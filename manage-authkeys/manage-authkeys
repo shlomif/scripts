@@ -65,6 +65,9 @@ my %command = (
   'put'     => \&do_put,
 );
 
+# how to get basic info on files containing public keys
+my @ssh_keydata = qw(ssh-keygen -lf);
+
 ######################################################################
 #
 # MAIN
@@ -135,12 +138,31 @@ exit;
 # shows what temporary keyfiles are available
 sub do_list {
   my @files = <*$temp_key_suffix>;
+  
   for (@files) {
-    my $hash;
-    ($hash = $_) =~ s/$temp_key_suffix$//;
-    print $hash, "\n";
+  
+    # extract and untaint keyfile tidbits
+    my ($hash, $keydata);
+    m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
+    $_    = $1;
+    $hash = $2;
+
+    # shell-free read from keydata utility
+    open KEYDATA,          "-|"
+     or exec @ssh_keydata, $_
+     or die "Error: could not invoke @ssh_keydata $_: $!\n";
+    while (<KEYDATA>) {
+      chomp;
+      $keydata = $_;
+      last;
+    }
+    close KEYDATA;
+
+    print $hash, ' ', $keydata, "\n";
   }
 }
+
+
 
 # pulls auth_key_file into individual files for better managablity
 # takes no arguments, returns true/false depending on result
