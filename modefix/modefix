@@ -543,10 +543,6 @@ This eases tracking down who is setting improper modes on files.
 Quiet mode.  Overrides verbose and report modes; only output will be
 on chown/chmod failures.
 
-The default is to print various warnings, and to generate a little
-summary report at the end of what was done.  Quiet mode is good for
-automated fixing taking place from cron.
-
 =back
 
 =head2 Actions
