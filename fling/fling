@@ -15,4 +15,4 @@ if [ -z $1 ]; then
   echo "usage: `basename $0` file [file2 ...]" >&2
 fi
 
-take "$@" $FTARGET
+copyto "$@" $FTARGET
