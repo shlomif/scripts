@@ -122,7 +122,9 @@ exit;
 
 # shows some info about known keys
 sub do_list {
-  for (sort keys %$data) {
+  push @_, "all" unless @_;
+
+  for (get_hashids(@_)) {
     print join ("\t",
       $data->{$_}->{'hash'},
       $data->{$_}->{'type'},
@@ -136,7 +138,7 @@ sub do_write {
   open KFILE, ">$auth_key_file"
    or die "Could not write authorized key file: $!\n";
 
-  for (sort keys %$data) {
+  for (keys %$data) {
     print KFILE $data->{$_}->{'key'}, "\n";
   }
 
@@ -144,7 +146,24 @@ sub do_write {
 }
 
 sub do_delete {
+  delete @$data{get_hashids(@_)};
+}
 
+# takes command arguments of "standard" form, and returns a list
+# of matching hash id's for the keys in question
+sub get_hashids {
+  return keys %$data if grep { $_ eq "all" } @_;
+
+  # otherwise...
+  my (@keys, @tmpkeys);
+  @tmpkeys = keys %$data;
+
+  for (@_) {
+    my ($cmd, $arg) = split /:/, $_, 2;
+    push @keys, grep { $data->{$_}->{$cmd} eq $arg } @tmpkeys;
+  }
+
+  return @keys;
 }
 
 # pulls auth_key_file into individual files for better managablity
@@ -266,14 +285,24 @@ See L<"OPTIONS"> for details on the command line switches supported.
 
 Commands allow scriptable interaction with the authorized_keys file. 
 Multiple commands may be supplied on either the command line or on
-STDIN.  Current commands are:
+STDIN.  Arguments to commands are separated by the tab character.
 
 =over 4
 
-=item B<list>
+=item B<list> I<keymatch statements>
 
 Shows what temporary keyfiles are available, plus some general data
-about the public key in question.
+about the public key in question.  Will list all available keys if no
+additional arguments are supplied.
+
+The syntax of keymatch statements is either C<all> to match all keys,
+or a colon-separated element consisting of the internal hash key and
+an exact value to match, e.g. C<type:rsa1> or C<hash:a5e6d976>.
+
+=item B<delete> I<keymatch statements>
+
+Deletes the specified keys from memory.  Delete requires a keymatch
+statement to do anything.
 
 =item B<write>
 
@@ -311,7 +340,13 @@ anything.
 
 =head1 EXAMPLES
 
-Additional examples/helpfull hints expanding on SYNOPSIS.
+List only DSA keys with a BSD-compatible echo(1):
+
+  $ echo -e "list\ttype:dsa" | ssh-authkey-manage.pl -i
+
+Delete all keys:
+
+  $ (echo -e "delete\tall"; echo write) | ssh-authkey-manage.pl -i
 
 =head1 ENVIRONMENT
 
@@ -339,7 +374,7 @@ Tabs are difficult to input on the command line, so STDIN is advised
 for commands that require arguments.
 
 Comments or blank lines in the authorized_keys file will be deleted
-following an extract-merge cycle.
+following an extract-write cycle.
 
 =head1 TODO
 
