@@ -12,6 +12,11 @@ DOTIME=no
 DOTIME_ZONE=no
 QUERY=
 
+if [ "$1" = "rpm" ]; then
+  date '+%a %b %m %Y'
+  exit
+fi
+
 # process arguments
 OPT=
 while getopts dtz OPT; do
