@@ -1,14 +1,13 @@
 #!/usr/bin/perl
 #
 # $Id$
-# Jeremy Mates <mailto:jmates@sial.org>
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Attempts to lock files.
-# 
-# For documentation, use the -h option or run perldoc on this script.
 #
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+# For documentation, use the -h option or run perldoc on this script.
 #
 ######################################################################
 #
@@ -41,28 +40,29 @@ getopts('h?z', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
-my $logfile = shift; # filename to lock
+my $logfile = shift;  # filename to lock
 
 # attempt lock on named file...
 # open & aquire write lock on the logfile
-open (FD, "+< $logfile") or die "Error opening $logfile: $!\n";
+open(FD, "+< $logfile") or die "Error opening $logfile: $!\n";
 FD->autoflush(1);
-    
-unless (flock (FD, LOCK_EX|LOCK_NB)) {
-    warn "Waiting for write lock on $logfile ...\n";
-    flock (FD, LOCK_EX);
+
+# TODO means to only get a read lock?
+unless (flock(FD, LOCK_EX | LOCK_NB)) {
+  warn "Waiting for write lock on $logfile ...\n";
+  flock(FD, LOCK_EX);
 }
 
 # zap the file if you want to...
 if (exists $opts{'z'}) {
-    seek     (FD, 0, 0) or die "Problem seeking $logfile: $!\n";
-    truncate (FD, 0) or die "Problem truncating $logfile: $!\n";
+  seek(FD, 0, 0) or die "Problem seeking $logfile: $!\n";
+  truncate(FD, 0) or die "Problem truncating $logfile: $!\n";
 }
 
 sleep 60;
 
-flock (FD, LOCK_UN);
-close (FD);
+flock(FD, LOCK_UN);
+close(FD);
 
 ######################################################################
 #
@@ -70,7 +70,7 @@ close (FD);
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 $0 v.$VERSION
 Usage: $0 [options] [LOGFILE]
 Purpose: simple file locker.
@@ -83,20 +83,20 @@ Options:
 Run perldoc on this script for more documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 __END__
 
 =head1 NAME
 
-lockit.pl - simple file locker.
+lockit - simple file locker.
 
 =head1 SYNOPSIS
 
 Pretty simple, just run:
 
-  $ lockit.pl
+  $ lockit
 
 =head1 DESCRIPTION
 
@@ -106,23 +106,17 @@ Sleeps for 60 seconds, probably enough for you to test stuff.
 
 =head1 USAGE
 
-  $ lockit.pl [options] LOCKFILE
+  $ lockit [options] LOCKFILE
 
 =head1 OPTIONS
 
-lockit.pl supports the following command line options:
+lockit supports the following command line options:
 
 -h     Get a brief help blarb
 
 -z     Zap the file.
 
 Truncates the file down the 0 bytes.
-
-=head1 LICENSE
-
-This script is distributed under the terms of the Artistic License:
-
-http://www.sial.org/artistic_license.txt
 
 =head1 BUGS
 
