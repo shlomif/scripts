@@ -30,22 +30,50 @@ use Getopt::Std;  # command line option processing
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my @facility = qw(
+auth
+authpriv
+cron
+daemon
+ftp
+kern
+lpr
+mail
+news
+security
+syslog
+user
+uucp
+local0
+local1
+local2
+local3
+local4
+local5
+local6
+local7
+);
+
+my @level = qw(
+emerg
+alert
+crit
+err
+warning
+notice
+info
+debug
+);
 
 ######################################################################
 #
 # MAIN
 
-# parse command-line options
-getopts('h?', \%opts);
-
-help() if exists $opts{'h'} or exists $opts{'?'};
-
-# read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
-# and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+for my $l (@level) {
+  for my $f (@facility) {
+    system 'logger', @ARGV, '-p', "$f.$l", "yakking to $f.$l";
+  }
+}
 
 exit;
 
@@ -56,9 +84,9 @@ exit;
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts]
+Usage: $0
 
-Help for a generic script template.
+Tests what levels/facilities are handled by syslog.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -75,49 +103,28 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+syslog-yakker.pl - tests what levels/facilities are handled by syslog
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+  $ syslog-yakker.pl
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-Short description of what script is intended to do.
+Tests what levels/facilities are handled by syslog.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ syslog-yakker.pl
 
-See L<"OPTIONS"> for details on the command line switches supported.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note about the script.
-
-=back
-
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
+Any command line arguments are passed to logger(1).  The script
+attempts to set the B<-p> I<priority> option to logger(1) internally.
 
 =head1 EXAMPLES
 
-Additional examples/helpfull hints expanding on SYNOPSIS.
-
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
+None yet.
 
 =head1 BUGS
 
@@ -134,10 +141,6 @@ Patches that fix problems or add new features are welcome.
 
 No known bugs.
 
-=head1 TODO
-
-Replace default stub POD entries with real documentation.
-
 =head1 SEE ALSO
 
 perl(1)
@@ -151,11 +154,6 @@ Jeremy A. Mates, http://www.sial.org/contact/
 Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
 you can redistribute it and/or modify it under the same terms as Perl
 itself.
-
-=head1 HISTORY
-
-A blank perl template I threw together to make writing new scripts
-easier.
 
 =head1 VERSION
 
