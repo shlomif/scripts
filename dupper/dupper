@@ -10,7 +10,6 @@ use strict;
 use Digest::SHA1 ();
 use File::Spec ();
 
-
 # we reset this for each file to avoid OO overhead on each file
 my $dig = Digest::SHA1->new;
 
@@ -221,7 +220,7 @@ To get a list of duplicate files in a particular directory:
 =head2 Overview
 
 Script to find (and optionally remove) duplicate files in one or more
-directories.  Duplicates are spotted though the use of MD5 checksums.
+directories. Duplicates are spotted though the use of SHA1 checksums.
 
 =head2 Normal Usage
 
@@ -230,8 +229,8 @@ directories.  Duplicates are spotted though the use of MD5 checksums.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 A list of directories to operate on should be specified on the command
-line.  Failing that, the script will attempt to read directories from
-STDIN.
+line. Failing that, the script will attempt to read directories from
+standard input.
 
 =head1 OPTIONS
 
@@ -253,10 +252,9 @@ Quiet mode, overrides verbose mode, turns off reporting.
 
 =item B<-u>
 
-Attempt to unlink any duplicates past the first.  Default is just to
-report the duplicate files.  Files are added least-depth first by
-order of sort().  In other words, be sure you are deleting the right
-thing.
+Attempt to unlink any duplicates past the first. Default is just to
+report the duplicate files. Files are added least-depth first by order
+of sort(). In other words, be sure you are deleting the right thing.
 
 =item B<-l>
 
@@ -265,36 +263,36 @@ directories passed to the script.
 
 =item B<-g>
 
-Make checksums apply across all directories on the command line.
-Default is to treat the various directories supplied to the program as
-their own separate realms.
+Make checksums apply across all directories on the command line. Default
+is to treat the various directories supplied to the program as their own
+separate realms.
 
 =item B<-z>
 
-Overrides B<-g>.  Limits the scope of checksums to only other files in
-the exact same local directory as one another.  Much tighter than the
+Overrides B<-g>. Limits the scope of checksums to only other files in
+the exact same local directory as one another. Much tighter than the
 default scope.
 
 =item B<-s> I<expression>
 
 Perl expression that will result in the current file (stored in $_)
-being skipped if the expression turns out to be "true."  Example:
+being skipped if the expression turns out to be "true." Example:
 
   -s 'm/^\\.rsrc\$/ || -z \$pti || -s \$pti > 1048576'
 
-Would skip the checksum on files named '.rsrc', or files that are
-empty via the B<-z> is-empty test, or files larger than a megabyte.
+Would skip the checksum on files named '.rsrc', or files that are empty
+via the B<-z> is-empty test, or files larger than a megabyte.
 
 =item B<-p> I<expression>
 
-Perl expression that will result in the current directory (stored in
-$_) being pruned out of the tree.  Like config dirs, for example:
+Perl expression that will result in the current directory (stored in $_)
+being pruned out of the tree. Like config dirs, for example:
 
   -p 'm/etc/'
 
-Both B<-s> and B<-p> have access to the filename in $_, and can find
-the full filepath in the variable $pti.  (Short for "path to item" in
-case you were wondering.)
+Both B<-s> and B<-p> have access to the filename in $_, and can find the
+full filepath in the variable $pti. (Short for "path to item" in case
+you were wondering.)
 
 =back
 
@@ -318,9 +316,9 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-Large files will stall the checksum generation.  Have to spend a bit
-of time and rewrite the checksum thingy to do files in chunks
-properly.
+Need to first index files by size somehow, so can speed the SHA1
+operations to just cases where the files are of identical sizes: no
+files of different size will ever be the same.
 
 =head1 TODO
 
@@ -349,4 +347,3 @@ public domain.
 Utilities
 
 =cut
-
