@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# "Human" sort that should emulate behaviour of Finder (as of Mac OS X
+# 10.2). Sorts numeric values so 10 appears after 2, and compares in case-
+# insensitive manner.
+#
+# Pass a list of files to merge and sort, or supply the data to be
+# sorted on standard input:
+#
+# hsort file1 file2 file3
+# ls | hsort
+
+print sort {
+  my ($la, $lb) = ($a, $b);
+
+  # convert numbers to bit strings so 10 sorts after 2
+  $la =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
+  $lb =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
+  lc $la cmp lc $lb;
+
+} <>;
