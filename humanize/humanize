@@ -59,7 +59,7 @@ my %format = (
   'max_human_length' => 2,
 
   # list of suffixes for human readable output
-  'suffix' => ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+  'suffix' => ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
 );
 
 # default conversion to do nothing
