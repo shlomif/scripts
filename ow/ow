@@ -1,0 +1,100 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
+
+use URI;
+use XML::XPath;
+
+my $f = $ENV{HOME} . "/Library/Preferences/com.omnigroup.OmniWeb.plist";
+my $x = XML::XPath->new(filename => $f);
+
+# we need the key/string text nodes under the dict element following a
+# key whose value is OWAddressShortcuts
+my @kn =
+ $x->find('/plist/dict/dict[preceding::key="OWAddressShortcuts"]/key')
+ ->get_nodelist;
+die "error: could not extract any OWAddressShortcuts keys" unless @kn;
+
+my @sn =
+ $x->find('/plist/dict/dict[preceding::key="OWAddressShortcuts"]/string')
+ ->get_nodelist;
+
+my %hash;
+@hash{map { $_->string_value } @kn} = map { $_->string_value } @sn;
+
+# TODO should save hash to prefs file for faster lookup
+
+# TODO have a "list" mode to show shortcuts, where they map too
+
+# TODO means to write new shortcuts back to prefs file?
+
+# what to launch URLs with
+my @open = qw(open);
+
+if (@ARGV == 0) {
+
+  # TODO could actually pull this from WWWHomePage data in the
+  # com.apple.internetconfig.plist file...
+  visit("http://www.sial.org/search/");
+
+} elsif (@ARGV == 1) {
+  if (exists $hash{$ARGV[0]}) {
+
+    # assume vanilla shortcuts are urls...
+    visit($hash{$ARGV[0]});
+
+  } elsif ($ARGV[0] =~ m(^\w+://.)) {
+    
+    # visit url-ish resources directly
+    visit($ARGV[0]);
+
+  } elsif ($ARGV[0] =~ m/\./) {
+
+    visit('http://'.$ARGV[0]);
+
+  } elsif (exists $hash{'*'}) {
+
+    # use OmniWeb * shortcut
+    visit(expand($hash{'*'}, $ARGV[0]));
+
+  } else {
+    die "not sure what to do with: $ARGV[0]\n";
+  }
+} else {
+  my $key = shift;
+
+  # OmniWeb shortcuts with parameters have a trailing @ on them...
+  $key .= '@';
+
+  # TODO check if two args whether second is actually a http:// URL,
+  # which should get fed to direct lookup instead of google search
+  # perhaps?
+  if (exists $hash{$key}) {
+    visit(expand($hash{$key}, join '+', @ARGV));
+  } else {
+    die "no such shortcut: $key\n";
+  }
+}
+
+# takes OmniWeb URL pattern "http://www.%@.com/" and a scalar to insert
+# into said pattern.  Returns expanded string.
+sub expand {
+  my $pattern = shift;
+  my $string  = "@_";
+
+  # catch @ where no %@, usually indicates user input mistake
+  warn "nothing to expand on in $pattern" unless $pattern =~ /\Q%@/;
+
+  $pattern =~ s/\Q%@/$string/g;
+  return $pattern;
+}
+
+# expects URL to visit, handles lanuching what OS needs.
+sub visit {
+  my $url = URI->new(shift)->canonical;
+  die "could not parse URL from $url" unless $url;
+  exec @open, $url;
+}
