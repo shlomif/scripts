@@ -8,9 +8,6 @@
 # Keep things up-to-date (CVS sandboxes at the moment, but that
 # could be extended to other things...)
 
-# where to look for things in need of updating
-CHECKOUT=$HOME/co
-
 # should be 0, if errors will be that of last error to occur
 RETURN=0
 
@@ -52,21 +49,7 @@ check_dir () {
 }
 
 if [ $# -eq 0 ]; then
-  if [ $WHATDIR = "$HOME" ]; then
-  (
-    if [ ! -d $CHECKOUT ]; then
-      echo "error: no directory to work on: $CHECKOUT"
-      exit 1
-    fi
-
-    cd $CHECKOUT 
-    for file in *; do
-      check_dir "$file"
-    done
-  )
-  else
-    check_dir $WHATDIR
-  fi
+  check_dir $WHATDIR
 else
   for file in "$@"; do
     check_dir "$file"
