@@ -84,10 +84,12 @@ exit 1;
 sub handle_file {
   my $uri = shift;
   my $url = $uri->canonical;
+  my $file = $uri->path;
 
-  # we use mtime for files
-  # TODO option to use checksum instead?
-  exit 0 if is_changed($uri->canonical, (stat $uri->path)[9]);
+  open my $fh, "< $file" or die "error: $file: $!\n";
+
+  my $content_hash = Digest::SHA1->new->addfile($fh)->b64digest;
+  exit 0 if is_changed($uri->canonical, $content_hash);
 }
 
 sub handle_url {
