@@ -313,20 +313,22 @@ sub parse_logfile {
 	if (m/^\s*Subject:\s+(.*)$/) {
 	    $data[$count]->{'_subject'} = $1;
 	}
-	if (m/^\s*Folder:\s+(.*?)\s+(\d+)$/) {
-	    $data[$count]->{'_folder'} = $1;
-	    $data[$count]->{'_size'} = $2;
+	if (my ($folder, $size) = m/^\s*Folder:\s+(.+?)\s+(\d+)$/) {
+	    $folder =~ s:/new.+::;
+
+	    $data[$count]->{'_folder'} = $folder;
+	    $data[$count]->{'_size'} = $size;
 
 	    # keep separate track of folder locs for ease
 	    # of lookup at cost of more memory
-	    $folders{$1}++;
+	    $folders{$folder}++;
 
 	    # and also amount of data gone to specific destinations
-	    $folder_sizes{$1} += $2;
+	    $folder_sizes{$folder} += $size;
 
 	    # and some totals for fun
 	    $total_messages++;
-	    $total_size += $2;
+	    $total_size += $size;
 	}
     }
 
