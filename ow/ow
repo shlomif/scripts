@@ -10,7 +10,11 @@
 use URI;
 
 # what to launch URLs with
-my @open = qw(open);
+my @open = qw(lynx);
+
+if ($^O eq 'darwin') {
+  @open = 'open';
+}
 
 my %pfiles = (
   shortcuts => '~/.ow/shortcuts',
@@ -54,7 +58,7 @@ if (exists $opts{d}) {
         $frag =~ s,^/+,, if $dirmap->{$_} =~ m,\Q/%@,;
         $dirmap->{$_} =~ s,\Q%@/,%\@,g if $frag eq '';
 
-        visit(expand($dirmap->{$_}, $frag));
+        visit(expand($dirmap->{$_}, [$frag]));
       }
     }
   }
@@ -98,7 +102,7 @@ sub parse_sc {
     
         # * shortcut is for unmatched things, an example target would be
         # http://www.%@.com/ to expand input to .com websites
-        visit(expand($scuts->{'*'}, $_->[0]));
+        visit(expand($scuts->{'*'}, $_));
     
       } else {
         die "not sure what to do with: $_->[0]\n";
@@ -114,7 +118,7 @@ sub parse_sc {
       # which should get fed to direct lookup instead of google search
       # perhaps?
       if (exists $scuts->{$key}) {
-        visit(expand($scuts->{$key}, join '+', @$_));
+        visit(expand($scuts->{$key}, $_));
       } else {
         die "no such shortcut: $key\n";
       }
@@ -122,16 +126,15 @@ sub parse_sc {
   }
 }
 
-# takes URL pattern "http://www.%@.com/" and a scalar to insert
+# takes URL pattern "http://www.%@.com/" and an array reference to insert
 # into said pattern.  Returns expanded string.
 sub expand {
   my $pattern = shift;
-  my $string  = "@_";
+  my $terms = shift;
 
-  # catch @ where no %@, usually indicates user input mistake
-  #warn "nothing to expand on in $pattern" unless $pattern =~ /\Q%@/;
+    $pattern =~ s/\Q%@/join '+', @$terms/ge;
+  $pattern =~ s/%(\d+)/$terms->[$1-1]||''/ge;
 
-  $pattern =~ s/\Q%@/$string/g;
   return $pattern;
 }
 
