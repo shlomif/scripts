@@ -28,7 +28,7 @@ if ($target->scheme) {
 
   use LWP::UserAgent;
   my $ua = LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 30);
-  $ua->agent($ENV{'http_agent'}) if exists $ENV{'http_agent'};
+  $ua->agent($ENV{http_agent}) if exists $ENV{http_agent};
   my $response = $ua->get($target->canonical, ':content_file' => $file);
 } else {
   $file = $target->canonical;
@@ -58,17 +58,7 @@ if ($@) {
 use XML::LibXML::XPathContext;
 my $xc = XML::LibXML::XPathContext->new($doc);
 
-# TODO this shows text of result, may want means of styling it with XSLT
-# in some cases?
-my $result = $xc->findvalue($query);
-print $xc->findvalue($query), "\n" if $result;
-
-#my $nodelist = $xc->find($query);
-#for my $node ($nodelist->get_nodelist) {
-#  use Data::Dumper; print Dumper $node;
-#  use XML::LibXML;
-#  my $doc = XML::LibXML::Document->createDocument();
-#  $doc->setDocumentElement($node);
-#  my $results = $stylesheet->transform($doc);
-#  print $stylesheet->output_string($results);
-#}
+my $nodelist = $xc->find($query);
+for my $node ($nodelist->get_nodelist) {
+  print $node->toString, "\n";
+}
