@@ -14,18 +14,65 @@ use Getopt::Std;
 my %opts;
 getopts 'mM', \%opts;
 
-my $khf = shift;
+my $khf   = shift;
+my $extra = shift;
 
 open my $file, "< $khf";
 my $hkd = parse_known_hosts($file);
 
-if ( $opts{'m'} ) {
-  $hkd = merge_host_keys($hkd);
-} elsif ( $opts{'M'} ) {
+if ($extra) {
+  my $ehkd;
+  if ( $extra eq '-' ) {
+    $ehkd = parse_known_hosts( \*STDIN );
+  } else {
+    open my $file, "< $extra";
+    $ehkd = parse_known_hosts($file);
+  }
+  $hkd = resolve_host_keys( $hkd, $ehkd );
+}
+
+if ( $opts{'M'} ) {
   $hkd = unmerge_host_keys($hkd);
+} elsif ( $opts{'m'} or $extra ) {
+  $hkd = merge_host_keys($hkd);
 }
 
 print_known_hosts($hkd);
+
+sub resolve_host_keys {
+  my $hkd  = unmerge_host_keys(shift);
+  my $ehkd = unmerge_host_keys(shift);
+
+  my ( %hostmap, %keymap );
+  for my $i ( 0 .. $#$hkd ) {
+    my $hkr = $hkd->[$i];
+    push @{ $keymap{"$hkr->{'key_type'} $hkr->{'public_key'}"} }, $i;
+  }
+
+  for my $i ( 0 .. $#$hkd ) {
+    my $hkr = $hkd->[$i];
+
+    for my $host ( @{ $hkr->{'hosts'} } ) {
+      push @{ $hostmap{"$hkr->{'key_type'} $host"} }, $i,
+       @{ $keymap{"$hkr->{'key_type'} $hkr->{'public_key'}"} };
+    }
+  }
+
+  my %delete;
+  for my $hkr (@$ehkd) {
+    for my $host ( @{ $hkr->{'hosts'} } ) {
+      if ( exists $hostmap{"$hkr->{'key_type'} $host"} ) {
+        $delete{$_} = 1 for @{ $hostmap{"$hkr->{'key_type'} $host"} };
+      }
+    }
+  }
+  delete @{$hkd}[ keys %delete ];
+  @$hkd = grep defined, @$hkd;
+
+  push @$hkd, @$ehkd;
+
+  return $hkd;
+}
 
 sub print_known_hosts {
   my $hkd = shift;
