@@ -67,7 +67,7 @@ debug
 
 for my $l (@level) {
   for my $f (@facility) {
-    system 'logger', @ARGV, '-p', "$f.$l", "yakking to $f.$l";
+    system 'logger', @ARGV, '-p', "$f.$l", '--', "yakking to $f.$l";
   }
 }
 
