@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2001-2002, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# The author disclaims all copyrights and releases this document into
+# the public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -204,12 +203,10 @@ the object.
 
 =head1 EXAMPLES
 
-Read through then follow several Apache VirtualHost logfiles, and send
-them off to colorize.pl:
+Read through then follow several Apache VirtualHost logfiles, passing
+them to a colorizing utility.
 
   $ eet -t -1 /www/site/logs/*_log | colorize.pl
-
-See http://colorize.raszi.hu/ for colorize.pl.
 
 =head1 BUGS
 
@@ -236,9 +233,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001-2002, Jeremy Mates.  This script is free
-software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+The author disclaims all copyrights and releases this document into the
+public domain.
 
 =head1 HISTORY
 
@@ -250,4 +246,3 @@ by Matija Grabnar.
   $Id$
 
 =cut
-
