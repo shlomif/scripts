@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/perl -w
 #
 # $Id$
 #
@@ -7,50 +7,123 @@
 #
 # Wrapper to screen(1) for easy resuming and management of named screen
 # sessions.
+#
+# Run perldoc(1) on this script for additional documentation.
 
-SCREEN=screen
-SCREEN_ARGS="-A -d -R -O -U"
+use strict;
 
-NAME=default
-FORCE=no
+my $session_re = qr/[\w.-]{1,32}/;
 
-OPT=
-while getopts f OPT; do
-  case $OPT in
-    f)
-      FORCE=yes
-    ;;
-  esac
-done
-shift $(($OPTIND - 1))
+my %param = ( force => 0 );
 
-if [ ! -z "$1" ]; then
-  NAME=$1
-fi
+use Getopt::Std;
+my %opts;
+getopts 'h?fl', \%opts;
 
-# TODO really need parsed output of -ls so can make decision on what
-# needs to happen, exit status not giving enough if want $NAME
-# support...
-$SCREEN -q -ls
-STATUS=$?
+print_help() if $opts{h} or $opts{'?'};
 
-screen_run () {
-  exec $SCREEN $SCREEN_ARGS -S $NAME
+$param{force} = 1 if exists $opts{f};
+$param{name} = shift || 'default';
+
+my ( $sessions, $shortnames ) = get_screen_sessions();
+
+# listing of screen sessions, for autocomplete needs
+if ( exists $opts{l} ) {
+  print join( "\n", sort keys %$sessions ), "\n" if keys %$sessions;
+  exit;
 }
 
-screen_list () {
-  exec $SCREEN -ls
+unless ( $param{name} =~ m/^$session_re$/ ) {
+  remark( 'error', 'invalid session name', { session => $param{session} } );
+  exit 101;
 }
 
-if [ $STATUS -eq 8 -o $STATUS -eq 9 ]; then
-  screen_run
-elif [ $STATUS -ge 10 ]; then
-  if [ $FORCE = "yes" ]; then
-    screen_run
-  else
-    screen_list
-  fi
-else
-  echo "warning: unknown exit from screen: status=$STATUS" >&2
-  exit $STATUS
-fi
+# figure out what to do
+exec_screen() unless ( keys %$sessions );
+
+my $running = 0;
+my $state   = 0;
+
+if ( exists $sessions->{ $param{name} } ) {
+  $running = 1;
+  $state   = $sessions->{ $param{name} }->{state};
+}
+if ( exists $shortnames->{ $param{name} } ) {
+  $running     = 1;
+  $state       = $shortnames->{ $param{name} }->{state};
+  $param{name} = $shortnames->{ $param{name} }->{name};
+}
+
+exec_screen() if not $running or $param{force} or not $state;
+
+remark(
+  'error',
+  'existing session attatched elsewhere',
+  { session => $param{name} }
+);
+exit 1;
+
+sub exec_screen {
+  # TODO need means of customizing (some) of the options...
+  exec qw(screen -A -d -R -S), $param{name};
+}
+
+sub get_screen_sessions {
+  unless ( open SCREENLS, 'screen -ls |' ) {
+    remark( 'error', 'could not run screen', { errno => $! } );
+    exit 102;
+  }
+
+  my ( %sessions, %shortnames );
+  while (<SCREENLS>) {
+    if (m/^\s+ ($session_re) \s+ \( (Attached|Detached) \)/x) {
+      my $name  = $1;
+      my $state = $2 eq 'Attached' ? 1 : 0;
+
+      my ($shortname) = $name =~ m/\. ([^.]+) $/x;
+
+      $sessions{$name} = { state => $state };
+      $shortnames{$shortname} = { state => $state, name => $name };
+    }
+  }
+
+  return \%sessions, \%shortnames;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [-f] [session name]
+
+Wrapper for screen(1).
+
+Options:
+  -h/-?  Display this message.
+
+  -f     Force resuming of session, even if attatched elsewhere.
+
+  -l     List running screen sessions for autocomplete needs.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
