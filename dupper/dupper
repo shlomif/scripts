@@ -26,19 +26,20 @@ use vars qw:$VERSION:;
 
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my $verbose = 1; #DBG
+my (%opts, $verbose, %check);
 
-# command to run to get MD5 checksum on file, assumes GNU-md5sum output
-my $md5 = '/usr/bin/md5sum';
+my $dig = new Digest::MD5; # we reset this for each file
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?v', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
+
+$verbose = 1 if exists $opts{'v'};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -48,9 +49,6 @@ help() unless @ARGV;
 
 # loop over arguments which presumably are a bunch of directories
 foreach ( @ARGV ) {
-    # MD5 sum => filename hash lookup table
-    my %check;
-
     if (-d) {
 	unless (opendir (DIR, $_)) {
 	    warn 'Problem reading ', $_, ': ', $!, "\n";
@@ -62,22 +60,25 @@ foreach ( @ARGV ) {
 	# loop over sorted contents of directory, skipping . and .. specials
 	foreach (sort (readdir (DIR))) {
 	    next if /^\.{1,2}$/;
-	    next if -l; # skip links.  Links bad.
+	    next if -l; # skip links.  Links bad. :)
 
 #	    my $loc = File::spec->catfile($parent, $_);
 
 	    # only deal with non-linked files when doing sums
 	    if (-f) {
-		# run the md5 program & gather output into temp variables
-		open (SUM, "$md5 $_ |") or die 'Problem with ', $md5, ': ', $!, "\n";
-		my $result; chomp ($result = <SUM>);
-		my ($sum, $filename) = split /\s+/, $result;
-		close (SUM);
-		
+		# obtain MD5 sum on this file
+		$dig->new(); # reset checksum object
+
+		open (FILE, $_);
+		$dig->addfile(*FILE);
+		my $sum = $dig->hexdigest;
+		close (FILE);
+
 		# either add new checksum to hash, or delete the duplicate file
 		unless (exists $check{$sum}) {
-		    $check{$sum} = $filename;
+		    $check{$sum} = $_;
 		} else {
+		    # need an interactive mode, or at least a report mode!!
 		    warn "unlink $_" if $verbose;
 		    unlink $_ || warn "Problem unlinking $_ (dup of $check{$sum}): $!\n";
 		}
