@@ -11,11 +11,14 @@
 # standard input is passed to standard out after the tidy is done.
 
 use strict;
+use File::Basename qw(basename dirname);
 use File::Temp qw(tempfile);
 
 # command to tidy up XML; xmllint from libxml2 produces output to
 # standard out
 my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);
+
+my $basename = basename $0;
 
 # TODO use these
 use Getopt::Std;
@@ -46,15 +49,34 @@ unless (@ARGV) {
       exit 101;
     }
 
-    # TODO use temporary file and rename, though this entails using the
-    # same dir/filesystem and a "safe" temporary file...
-    open my $replacefh, "> $file";
-    while ($tfh) {
-      print $replacefh $_;
+    # read document to scalar as otherwise while() loop over $tfh has
+    # issues when writing to temporary file... buffering problems?
+    my $string = do { local $/ = undef; <$tfh> };
+    if ( length $string == 0 ) {
+      remark( 'error', 'no data from xmllint', { file => $file } );
+      exit 102;
     }
+
+    my $parentdir = dirname $file;
+    my ( $replacefh, $tmpfile ) =
+     tempfile( ".tmp-$basename.XXXXXXX", DIR => $parentdir, UNLINK => 0 );
+
+    print $replacefh $string;
+
     close $replacefh
-     or remark( 'warning', 'problem closing file',
-      { errno => $!, file => $file } );
+     or remark(
+      'error',
+      'problem closing filehandle',
+      { errno => $!, file => $tmpfile }
+     )
+     and exit 103;
+
+    rename $tmpfile, $file
+     or remark(
+      'warning',
+      'rename failed',
+      { errno => $!, source => $tmpfile, target => $file }
+     );
   }
 }
 
@@ -65,14 +87,6 @@ sub xmltidy {
   open my $tidyfh,       "-|"
    or exec @xmltidy_cmd, $tmpfile
    or $error = $!;
-
-  return unless $tidyfh;
-
-  # KLUGE xmllint does not exit non-zero on failure, it seems...
-  if ( -z $tidyfh ) {
-    $error = 'no output from xmllint';
-    return;
-  }
 
   return $tidyfh;
 }
@@ -91,7 +105,7 @@ sub remark {
      sort keys %$attributes;
   }
 
-  print STDERR "$priority: $message"
+  print STDERR "$basename $priority: $message"
    . ( $attr_str ? ": $attr_str" : '' ) . "\n";
   return 1;
 }
