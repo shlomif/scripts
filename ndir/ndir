@@ -5,31 +5,69 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Creates new directories.  Acts like 'mkdir -p' to create parent
-# directories by default, and is aware of CVS, so will add new
-# directories to the repository automagically.
+# Creates new directories. Acts like 'mkdir -p' to create parent
+# directories by default, even on platforms whose mkdir does not support
+# the -p option. Additionally, will perform 'cvs add' on the new
+# directories should CVS be detected.
 
-for f in $@; do
-  # create at depth
-  mkdir -p $f
+VERBOSE=no
 
-  if [ $? -ne 0 ]; then
-    echo "warning: problem creating $f" >&2
-    continue
-  fi
+if [ -z "$1" ]; then
+  echo "usage: `basename $0` [-v] directory-path [dp2 .. dpN]" >&2
+  exit 1
+fi
 
-  # if in a CVS area, add the directory or directories to repository
-  if [ -f CVS/Root ]; then
+# process arguments
+OPT=
+while getopts v OPT; do
+  case $OPT in
+    v)
+      VERBOSE=yes
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+for f in "$@"; do
+  # create at depth (not all mkdir support -p, and we do CVS tests
+  # subshell () is to allow cd recursion to work
   (
-    IFS=' '
-    for sdir in `echo $f | sed 's/\// /g'`; do
-      cvs add $sdir >/dev/null
-      if [ $? -ne 0 ]; then
-        echo "warning: problem adding $sdir to repository" >&2
-        break
+    IFS='/'
+    for part in $f; do
+
+      # dirs with leading slash lead to inital null element to skip
+      if [ -z "$part" ]; then
+        cd /
+        continue
       fi
-      cd $sdir
+
+      if [ ! -e $part ]; then
+        mkdir $part
+        if [ $? -ne 0 ]; then
+          echo "error: could not create $part of $f" >&2
+          exit 1
+        fi
+      elif [ -d $part ]; then
+        # fall through to CVS tests below
+        :
+      else
+        echo "error: $part of $f not a directory" >&2
+        exit 1
+      fi
+
+      # add dir to CVS automagically if CVS available
+      if [ -f CVS/Root -a ! -f "$part/CVS/Root" ]; then
+        cvs add $part >/dev/null
+        if [ $? -ne 0 ]; then
+          echo "error: could not add $part of $1 to CVS" >&2
+          exit 1
+        fi
+      fi
+
+      cd $part
     done
   )
+  if test $VERBOSE = yes ; then
+    echo $f
   fi
 done
