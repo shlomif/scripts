@@ -185,7 +185,7 @@ sub do_list {
       $data->{$_}->{'hash'},
       $data->{$_}->{'type'},
       $data->{$_}->{'comment'},
-      join (",", sort keys %{$data->{$_}->{'options'}})),
+      authkey_options2str($data->{$_}->{'options'})),
      "\n";
   }
 }
@@ -293,14 +293,34 @@ sub parse_authkey {
     return;
   }
 
-  # "options" need to be ,-separated, not on " " as done to get elements
-  # above.  TODO: improve this to hande "'s ...
-  @{$values{'options'}}{split /,/, "@options"} = ();
+  $values{'options'} = parse_authkey_options("@options");
 
   $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
   $values{'key'}  = $authkey;
 
   return \%values;
+}
+
+# takes scalar containing auth_key_file options
+# returns hash reference
+#
+# TODO: fixup to handle 'mumble="asdf, zot",foo' issues
+sub parse_authkey_options {
+  my $options = shift;
+  my $ak_opts;
+
+  for (split /,/, $options) {
+    my ($k, $v) = split /=/;
+    $ak_opts->{$k} = $v;
+  }
+
+  return $ak_opts;
+}
+
+# takes hash ref, returns scalar format of options
+sub authkey_options2str {
+  return join ",", map { $_[0]->{$_} ? $_ . '=' . $_[0]->{$_} : $_ }
+   sort keys %{$_[0]};
 }
 
 # generic log handler
