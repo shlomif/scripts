@@ -20,6 +20,9 @@ sub print_help;
 
 my $exit_status = 0;
 
+# limit on symlink recursion
+my $max_link_follow = 15;
+
 # unix file type mappings
 # TODO use "use Fcntl ':mode';" instead?
 my %filetype = (
@@ -103,7 +106,7 @@ $opts{'constraint'} = 1
  or exists $opts{'options'}->{'R'};
 
 # verbose list by default unless checking something specific
-$opts{'options'}->{'l'} = 1 unless exists $opts{'constraint'};
+$opts{'options'}->{'v'} = 1 unless exists $opts{'constraint'};
 
 # use current user if constrained and no user set
 if (exists $opts{'constraint'} and not exists $opts{'role'}) {
@@ -122,29 +125,34 @@ if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
 # fix perms hash to use array for easier subsequent work
 $opts{'perms'} = [sort keys %{$opts{'perms'}}];
 
-for my $pnum (0 .. $#{$opts{'path'}}) {
-  my $path     = $opts{'path'}->[$pnum];
-  my @pathbits = File::Spec->splitdir($path);
+DIR: for (my $pnum = 0; $pnum <= $#{$opts{'path'}}; $pnum++) {
+  my $path           = $opts{'path'}->[$pnum];
+  my @pathbits       = File::Spec->splitdir($path);
+  my $links_followed = 0;
 
   unless (@pathbits) {
     warn "error: unable to split realpath: $path";
-    exit 101;
+    print "\n";
+    next DIR;
   }
 
   print "% $path\n" unless exists $opts{'constraint'};
 
-  my $current = '';
-  for my $i (0 .. $#pathbits) {
+  my $current  = '';
+  my $previous = '';
+  for (my $i = 0; $i <= $#pathbits; $i++) {
+    $previous = $current;
     $current = File::Spec->catdir($current, $pathbits[$i]);
     my $filedata = getfileinfo $current;
 
     unless ($filedata) {
       warn "error: no permission data for $pathbits[$i] in $current\n";
-      exit 103;
+      print "\n";
+      next DIR;
     }
 
     # TODO means of supplying output fields and their order?
-    if (exists $opts{'options'}->{'l'}) {
+    if (exists $opts{'options'}->{'v'}) {
       print join(' ',
         map { exists $filedata->{$_} ? $filedata->{$_} : () }
          qw(type unix_mode_octal unix_user unix_group name)),
@@ -153,6 +161,20 @@ for my $pnum (0 .. $#{$opts{'path'}}) {
 
     if (exists $opts{'constraint'}) {
       check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{'perms'};
+    }
+
+    if (  $i == $#pathbits
+      and $filedata->{'type'} eq 'l'
+      and exists $opts{'options'}->{'l'}) {
+      $links_followed++;
+      if ($links_followed > $max_link_follow) {
+        warn "error: max symlink recursion ($max_link_follow) exceeded\n";
+        print "\n";
+        next DIR;
+      }
+      $current = $previous;
+      push @pathbits,
+       resolve_path(File::Spec->catfile($previous, $filedata->{'link'}));
     }
   }
   print "\n" unless $pnum == $#{$opts{'path'}};
@@ -349,7 +371,9 @@ $0 takes the following arguments in any order:
   -R    Use real user/group instead of effective.
 
   -h    Print these notes and exit script.
-  -l    Verbose list of path to file (default if nothing else).
+  -v    Verbose list of path to file (default if nothing else).
+
+  -l    Chase tail symlink targets.
 
 HELP
   exit 100;
@@ -402,7 +426,9 @@ Options may be specified in any order:
   -R    Use real user/group instead of effective.
 
   -h    Print these notes and exit script.
-  -l    Verbose list of path to file (default if nothing else).
+  -v    Verbose list of path to file (default if nothing else).
+
+  -l    Chase tail symlink targets.
 
 Multiple permission checks are combined, so +rwx checks that the final
 file can be read, written, and executed. Parent directories leading up
