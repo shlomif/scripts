@@ -463,6 +463,10 @@ __END__
 
 fm.pl - procmail logfile parser.
 
+=head1 VERSION
+
+  $Id$
+
 =head1 SYNOPSIS
 
 Pretty simple, just run:
