@@ -25,8 +25,18 @@ my $status_map = {'+' => 0, '-' => 1};
 my $timeout = -1;
 
 # return value for timeout
-my $timeout_status = 1;
+my $timeout_status = 101;
 
+# use unix tty device to avoid polluting regular output
+my ($readfrom, $writeto);
+open $writeto, ">/dev/tty"
+ or remark('error', "could not open tty for writing: $!")
+ and exit 100;
+open $readfrom, "</dev/tty"
+ or remark('error', "could not open tty for reading: $!")
+ and exit 100;
+
+# command line option handling
 use Getopt::Std;
 my %opts;
 getopts('h?o:t:', \%opts);
@@ -37,10 +47,6 @@ $spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
 if (exists $opts{t}) {
   $timeout = duration2seconds($opts{t});
 }
-
-my ($readfrom, $writeto);
-open $readfrom, "</dev/tty" or die "error: could not open tty for reading: $!\n";
-open $writeto, ">/dev/tty" or die "error: could not open tty for writing: $!\n";
 
 # prompt (may not be formatted properly due to raw modes)
 print $writeto "@ARGV" if @ARGV;
@@ -59,7 +65,7 @@ eval {
     if (exists $spec->{keys}->{$key}) {
       print $writeto "\n";
       exit $spec->{keys}->{$key};
-    } elsif (exists $spec->{default}) {
+    } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
       print $writeto "\n";
       exit $spec->{default};
     }
@@ -82,13 +88,13 @@ sub get_key {
   my $readfrom = shift;
   my $first;
 
-  ReadMode 4, $readfrom;
+  ReadMode(4, $readfrom);
 
   do {
-    $first = ReadKey -1, $readfrom;
+    $first = ReadKey(-1, $readfrom);
   } until defined $first;
 
-  ReadMode 0, $readfrom;
+  ReadMode(0, $readfrom);
 
   return $first;
 }
@@ -109,6 +115,7 @@ sub parse_spec {
 
     # TODO warn about not getting numeric exit status
     if ($status ne '' and $status !~ /^\d+$/) {
+      remark('warning', "non-numeric exit status for $_, defaulting to 0");
       $status = 0;
     }
 
@@ -127,15 +134,16 @@ sub parse_spec {
   }
 
   # sanity check on specification to prevent key-read stalls
-  # TODO need to write output to tty device?
-  die "invalid specification\n" unless $spec;
+  unless ($spec) {
+    remark('error', "unable to parse specification '$string'");
+    exit 103;
+  } else {
+    unless (grep /^\d$/, $spec->{default}, values %{$spec->{keys}}) {
+      remark('error', "no valid exit codes in specification '$string'");
+      exit 103;
+    }
+  }
 
-  # TODO need more error checks (as spec could be "*:" - do nothing :)
-
-  # DBG
-  #    use Data::Dumper;
-  #    print Dumper $spec;
-  #die;
   return $spec;
 }
 
@@ -163,14 +171,39 @@ sub duration2seconds {
       $timeout += $1 * $factor{$2};
     }
   } else {
-    die "Error: unknown characters in duration.\n";
+    remark('error', 'unknown characters in duration');
+    exit 102;
   }
 
   unless (defined $timeout and $timeout =~ m/^\d+$/) {
-    die "Error: unable to parse duration.\n";
+    remark('error', 'unable to parse duration');
+    exit 102;
   }
 
   return $timeout;
+}
+
+# generic log handler
+sub remark {
+  my ($facility, $priority, $message, $where);
+  $facility = 'user';
+
+  if (@_ > 1) {
+    $priority = shift;
+    $message  = "@_";
+  } else {
+    $priority = 'info';
+    $message  = "@_";
+  }
+
+  #  return 1 if exists $opts{'q'} and $priority eq 'info';
+
+  # try to send errors to tty if available, STDERR otherwise
+  $where = (defined $writeto and -t $writeto) ? $writeto : *STDERR;
+
+  print $where $priority, ": ", $message, "\n";
+
+  return 1;
 }
 
 # a generic help blarb
@@ -257,6 +290,44 @@ may either be raw seconds, or a short hand human format "1m3s" for
 
 =back
 
+=head1 DIAGNOSTICS
+
+The exit status will usually depend on the specification used and the
+key pressed.  Errors from the script itself will have exit values of 100
+or higher; lower numbers are reserved for use in specifications.  Error
+messages will be sent to the tty device by default, STDERR if the tty
+device is not available.
+
+The following error codes are currently defined.
+
+=over 4
+
+=item B<0>
+
+Default "true" exit value.
+
+=item B<1>
+
+Default "false" exit value.
+
+=item B<100>
+
+Error reading or writing to tty device.
+
+=item B<101>
+
+Timeout exit status (may be 142, see L<"BUGS"> for details).
+
+=item B<102>
+
+Error parsing custom timeout duration.
+
+=tiem B<103>
+
+Error parsing key specification.
+
+=back
+
 =head1 BUGS
 
 =head2 Reporting Bugs
@@ -270,11 +341,10 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-See source for TODO notes and similar.
+The zsh shell is exiting the alarm timeout with an exit status of 142,
+not sure why at present.  Have not yet tested other shells.
 
-=head1 TODO
-
-See source for TODO notes.
+See also source for TODO notes and similar.
 
 =head1 SEE ALSO
 
