@@ -139,12 +139,17 @@ sub BEGIN {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts] searchdir1 [sd2 .. sdN]
+Usage: $0 [options] searchdir1 [sd2 .. sdN]
 
 Lists new (unseen) files under specified directory(-ies).
 
-Options for version $VERSION:
+Options supported:
+
   -h/-?  Display this message.
+
+  -s ss  Path to list of previously seen filenames index.
+
+  -w dd  Window inside which files will be considered against index.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -253,4 +258,3 @@ public domain.
   $Id$
 
 =cut
-
