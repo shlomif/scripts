@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# Fisher Yates Shuffle input data to stdout.
+
+# fisher_yates_shuffle( \@array ) : generate a random permutation
+# of @array in place
+sub fisher_yates_shuffle {
+    my $array = shift;
+    my $i;
+    for ($i = @$array; --$i;) {
+        my $j = int rand ($i+1);
+        next if $i == $j;
+        @$array[$i,$j] = @$array[$j,$i];
+    }
+}
