@@ -37,8 +37,12 @@ print_help() if exists $opts{'h'} or exists $opts{'?'};
 my %actions;
 @actions{qw(get put list-servers)} = ();
 
-# figure out what to do
+# figure out what to do, with default to uploading files
 my $verb = defined $ARGV[0] ? shift: 'put';
+if (not exists $actions{$verb} and -f $verb) {
+  unshift @ARGV, $verb;
+  $verb = 'put';
+}
 unless (exists $actions{$verb}) {
   remark(
     'error',
