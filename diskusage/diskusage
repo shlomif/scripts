@@ -29,9 +29,13 @@ if (exists $opts{x}) {
   push @du_cmd, '-x';
 }
 
-my $output_tmpl = '%{size} %{path}\n';
+my $output_tmpl = '%{size} %{path} %{humansize}\n';
 $output_tmpl = $opts{o} if exists $opts{o};
+
+# fix backslashed characters to literal, add newline if no trailing
+# whitespace found
 $output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
+$output_tmpl .= "\n" unless $output_tmpl =~ m/ \s$ /x;
 
 # split space-delimited key=value pairs. Backslash the space to include
 # a literal space
