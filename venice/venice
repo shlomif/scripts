@@ -10,27 +10,28 @@
 #
 # On Mac OS X launches "Descent2 X" and renices it to a -10 priority.
 
+my $default_nice = -10;
+my $nice_value   = $default_nice;
+
 use File::Basename qw(basename);
 my $command = basename $0;
 
-# TODO need to figure out how to allow '-n -20' to be accepted by opts
-use Getopt::Std;
-my %opts;
-getopts '?h', \%opts;
+# TODO figure out "-n 20 -h" handling. grrr!!@#$
+while ( my $arg = shift @ARGV ) {
+  if ( $arg eq '-?' or $arg =~ m/-h/ ) {
+    print_help();
+  } elsif ( $arg eq '-n' ) {
+    $nice_value = shift @ARGV;
+  }
+  last unless $ARGV[0] =~ /^-(?!-$)/;
+}
 
-die "usage: $command [-n increment] utility [argument ...]\n"
- if not @ARGV
- or $opts{'h'}
- or $opts{'?'};
+print_help() unless @ARGV;
 
-my $default_nice = -10;
-my $nice_value = $default_nice;
-# TODO
-#my $nice_value = exists $opts{'n'} ? $opts{'n'} : $default_nice;
-#if ( $nice_value !~ m/^-?\d\d?$/ or $nice_value > 20 or $nice_value < -20 ) {
-#  warn "warning: nice value invalid, reverting to default\n";
-#  $nice_value = $default_nice;
-#}
+if ( $nice_value !~ m/^-?\d\d?$/ or $nice_value > 20 or $nice_value < -20 ) {
+  warn "warning: nice value invalid, reverting to default\n";
+  $nice_value = $default_nice;
+}
 
 # parent will not be waiting on child
 $SIG{CHLD} = 'IGNORE';
@@ -39,7 +40,15 @@ $SIG{CHLD} = 'IGNORE';
 system qw(sudo -v);
 
 if ( my $child_pid = fork ) {
-  exec qw(sudo renice $nice_value -p $child_pid);
+  select undef, undef, undef, 0.25;
+  exec qw(sudo renice $nice_value -p $child_pid) if kill 0, $child_pid;
+  warn "error: could not renice: errno=$!\n" unless $! eq 'No such process';
 } else {
   exec @ARGV;
+  warn "error: could not exec command: errno=$!\n";
+}
+
+sub print_help {
+  warn "usage: $command [-n increment] -- utility [argument ...]\n";
+  exit 100;
 }
