@@ -527,7 +527,7 @@ View a brief help blarb.
 
 =item B<-v>
 
-Verbose mode, shows files being changed. Good if you want an audit
+Verbose mode, shows files being changed.  Good if you want an audit
 trail of what the system looked like before the script ran.
 
 =item B<-r>
@@ -536,7 +536,7 @@ Report mode.  Will print out a list summarizing which users owned
 files with improper permissions or ownerships, plus a count on on the
 magnitude of the problem.
 
-This eases tracking down of who is setting improper modes on files.
+This eases tracking down who is setting improper modes on files.
 
 =item B<-q>
 
