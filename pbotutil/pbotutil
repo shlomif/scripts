@@ -130,6 +130,107 @@ sub pb_get {
   }
 }
 
+sub pb_put {
+  my $channel = shift;
+  my ($url, $nick, $summary, $paste);
+
+  $nick = $opts{u};
+
+  # either use pb server name, or a fully qualified url
+  if (exists $opts{s} and exists $servers->{$opts{s}}) {
+    $url =
+     URI->new($servers->{$opts{s}}->{url}
+       . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
+       . 'paste')->canonical;
+    $nick = $servers->{$opts{s}}->{nick} if exists $servers->{$opts{s}}->{nick};
+  } else {
+    $url =
+     URI->new($channel . (($channel !~ m,/$,) ? '/' : '') . 'paste')->canonical;
+    $channel = shift;
+  }
+
+  unless (defined $url) {
+    remark('alert', 'could not determine url');
+    exit 104;
+  }
+
+  if (defined $channel) {
+
+    # KLUGE add # to front of channel, as # and some shells disagree
+    $channel =~ s/^/#/ if $channel ne '' and $channel !~ /^#/;
+  } else {
+    remark('warning', 'no channel specified, using null channel');
+    $channel = '';
+  }
+
+  # TODO other means of paste data entry besides stdin?
+  $paste = do { local $/; <STDIN> };
+  unless (defined $paste) {
+    remark('notice', 'nothing to paste, quitting');
+    exit 105;
+  }
+
+  # TODO merge this check with other eval for get routine/create global
+  # for a LWP object if required?  Also option to support other things
+  # if LWP not available might be nice.
+  eval { require LWP::UserAgent; };
+  if ($@) {
+    remark('alert', "problem loading LWP::UserAgent: $@");
+    exit 102;
+  } else {
+    require LWP::UserAgent;
+    my $ua =
+     LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
+
+   # DBG
+   #warn "url=$url channel=$channel nick=$nick summary=$summary paste=$paste\n";
+
+    my $response = $ua->post(
+      $url,
+      {
+        channel => $channel,
+        (defined $nick) ? (nick => $nick) : (),
+        (defined $summary) ? (summary => $summary) : (), paste => $paste
+      }
+    );
+
+    if ($response->is_success) {
+      if ($response->content) {
+        eval { require HTML::TokeParser; };
+        if ($@) {
+          remark('alert', "problem loading HTML::TokeParser: $@");
+
+          #print $$content, "\n";
+          exit 103;
+        } else {
+          require HTML::TokeParser;
+          my $p = HTML::TokeParser->new(\$response->content);
+
+          # look for paste URL, print for user
+          $p->get_tag('a');
+          print $p->get_text('/a'), "\n";
+        }
+      }
+    } else {
+      if ($response->is_error) {
+        my $error;
+        ($error) = $response->error_as_HTML =~ /^(\d{3}.+)/m;
+        remark('warning', "error posting to $url: $error");
+      } else {
+        remark('warning', "error posting to $url: unknown error");
+      }
+    }
+  }
+}
+
+sub pb_update {
+  die "patches welcome\n";
+
+  # TODO visit site, add list of channels to $servers data? would allow
+  # local warning about "no such channel" before flinging data at a
+  # pastebot, or something...
+}
+
 # accepts hash containing url to get plus other stuff
 # returns scalar reference with page content, or undef if problem
 sub get_url {
