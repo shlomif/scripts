@@ -17,6 +17,10 @@
 use Carp;
 use Getopt::Std;
 
+# file locking related modules
+use Fcntl qw(:DEFAULT :flock);
+use IO::Handle;
+
 use strict;
 use vars qw:$VERSION:;
 
@@ -24,10 +28,15 @@ use vars qw:$VERSION:;
 #
 # CONSTANTS
 
-my (%opts, $procmailrc, $logfile);
+my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year, $backup,
+    @data, %folders);
 
 # where to look for the procmailrc...
 $procmailrc = $ENV{'HOME'} . '/.procmailrc';
+
+# for matching date field in from line
+$days_of_week = '(Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
+$months_of_year = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
@@ -36,39 +45,159 @@ $procmailrc = $ENV{'HOME'} . '/.procmailrc';
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?sb:', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
-# first, we find out where the logfile is
-open (FILE, $procmailrc) or die "Error opening $procmailrc: $!\n";
-while (<FILE>) {
-    chomp;
-    # not too sure about formatting allowed in .procmailrc...
-    if (m/LOGFILE\s*=\s*(.*)$/) {
-	my $logfile_loc = $1;
-	# convert (potentially) shell-notational logfile loc
-	# to a full pathname (e.g. $HOME/.pm_log -> /home/user/.pm_log)
-	$logfile = `echo $logfile_loc`;
-    }
+# extract backup option, if any
+if (exists $opts{'b'}) {
+    $backup = $opts{'b'};
 }
-close (FILE);
 
-# parse procmail's logfile
+# first, we find out where the logfile is (command line or automagic)
+if (@ARGV) {
+    $logfile = shift;
+} else {
+    $logfile = get_logfile_loc ($procmailrc);
+}
+
+# parse through the logfile, feeding various global variables
+parse_logfile();
+
+# and print off a pretty little report for fun
+print_report();
 
 ######################################################################
 #
 # SUBROUTINES
 
+# dumps a pretty report to STDOUT...
+sub print_report {
+    print "Folder Message Counts:\n";
+
+    foreach (sort { $a cmp $b } keys %folders) {
+	print '  ', $folders{$_}, "\t", $_, "\n";
+    }
+    print "\n";
+
+    print "Message Summaries:\n";
+
+    # could also include _size and _date in report...
+    foreach (@data) {
+	print 'Subject: ', $_->{'_subject'}, "\n";
+	print 'From: ', $_->{'_from'}, "\n";
+	print "\n";
+    }
+}
+
+# parse procmail's logfile w/ locking using global variables
+sub parse_logfile {
+    my $count = -1; # track where we are in array of anon hashes
+
+    # open & aquire write lock on the logfile
+    open (FD, "+< $logfile") or die "Error opening $logfile: $!\n";
+    FD->autoflush(1);
+    
+    unless (flock (FD, LOCK_EX|LOCK_NB)) {
+	warn "Waiting for write lock on $logfile ...\n";
+	flock (FD, LOCK_EX);
+    }
+
+    # are we backing up the file?
+    if (defined $backup) {
+	open (BACK, ">$backup") or die "Error opening $backup: $!\n";
+	BACK->autoflush(1);
+
+	unless (flock (BACK, LOCK_EX|LOCK_NB)) {
+	    warn "Waiting for write lock on $logfile ...\n";
+	    flock (BACK, LOCK_EX);
+	}
+
+	# zap contents of current backup file (just to be sure)
+	seek     (BACK, 0, 0) or die "Problem seeking $backup: $!\n";
+	truncate (BACK, 0) or die "Problem truncating $backup: $!\n";
+    }
+    
+    # parse the file
+    while (<FD>) {
+	# keep backup if necessary
+	print BACK $_ if defined $backup;
+
+	chomp;
+
+	if (m/^From\s+(.*?)\s+($days_of_week\s+$months_of_year\s+\d{1,2}\s\d\d:\d\d:\d\d\s\d\d\d\d)/o) {
+	    # new From line matched, increment our position in @data array
+	    $count++;
+
+	    # and tack various info into anon hash in @data array...
+	    $data[$count]->{'_from'} = $1;
+	    $data[$count]->{'_date'} = $2;
+	}
+	if (m/^\s*Subject:\s+(.*)$/) {
+	    $data[$count]->{'_subject'} = $1;
+	}
+	if (m/^\s*Folder:\s+(.*?)\s+(\d+)$/) {
+	    $data[$count]->{'_folder'} = $1;
+	    $data[$count]->{'_size'} = $2;
+	    # keep separate track of folder locs for ease
+	    # of lookup at cost of more memory
+	    $folders{$1}++;
+	}
+    }
+
+    # this (optionally) erases the logfile
+    unless (exists $opts{'s'}) {
+	seek     (FD, 0, 0) or die "Problem seeking $logfile: $!\n";
+	truncate (FD, 0) or die "Problem truncating $logfile: $!\n";
+    }
+    
+    # clean up
+    if (defined $backup) {
+	flock (BACK, LOCK_UN);
+	close (BACK);
+    }
+
+    flock (FD, LOCK_UN);
+    close (FD);
+}
+
+# automagically gets logfile location from .procmailrc file,
+# single argument is path to the procmailrc file
+sub get_logfile_loc {
+    my $procmailrc = shift;
+
+    my $logfile;
+
+    open (FILE, $procmailrc) or die "Error opening $procmailrc: $!\n";
+
+    while (<FILE>) {
+	chomp;
+	# not too sure about formatting allowed in .procmailrc...
+	if (m/LOGFILE\s*=\s*(.*)$/) {
+	    my $logfile_loc = $1;
+	    # convert (potentially) shell-notational logfile loc
+	    # to a full pathname (e.g. $HOME/.pm_log -> /home/user/.pm_log)
+	    $logfile = `echo $logfile_loc`;
+	}
+    }
+    close (FILE);
+
+    return $logfile;
+}
+
 # a generic help blarb
 sub help {
     print <<"HELP";
 $0 v.$VERSION
-Usage: $0 [options]
+Usage: $0 [options] [LOGFILE]
 Purpose: procmail logfile parser.
 
 Options:
   -h/-?  Display this message
+
+  -b xx  Make a backup of the LOGFILE, where xx is the (optional) target.
+
+  -s     Do not truncate logfile after parsing it.
 
 Run perldoc on this script for more documentation.
 
@@ -100,17 +229,27 @@ goes to them.
 
 =head1 USAGE
 
-Typically...
+  $ fm.pl [options] [LOGFILE]
 
-  $ fm.pl
+If you omit the path to your promail LOGFILE, fm.pl will attempt to
+determine its location from your ~/.procmailrc file. Hence LOGFILE is
+an optional argument.
 
 =head1 OPTIONS
 
-None at the moment.
+fm.pl supports the following command line options:
 
-=heal1 LICENSE
+-h     Get a brief help blarb
+
+-s    Save the logfile.
+
+The default behaviour is to truncate the logfile down to nothing once
+done parsing it.
+
+=head1 LICENSE
 
 This script is distributed under the terms of the Artistic License:
+
 http://www.sial.org/artistic_license.txt
 
 =head1 BUGS
