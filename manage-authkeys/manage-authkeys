@@ -343,13 +343,13 @@ HELP
 
 =head1 NAME
 
-ssh-authkey-manage.pl - command interface to OpenSSH authorized_keys file
+manage-authkeys.pl - command interface to OpenSSH authorized_keys file
 
 =head1 SYNOPSIS
 
 Get a listing of keys in the default authorized_keys file:
 
-  $ ssh-authkey-manage.pl -a list
+  $ manage-authkeys.pl -a list
 
 =head1 DESCRIPTION
 
@@ -360,7 +360,7 @@ out of an OpenSSH C<~/.ssh/authorized_keys> file.
 
 =head2 Normal Usage
 
-  $ ssh-authkey-manage.pl [options] [commands]
+  $ manage-authkeys.pl [options] [commands]
 
 See L<"COMMANDS"> for details on the command syntax.
 
@@ -443,11 +443,11 @@ Quiet mode: do not emit informational messages.
 
 List only SSH1 keys with a BSD-compatible echo(1):
 
-  $ echo -e "list\ttype:rsa1" | ssh-authkey-manage.pl -i
+  $ echo -e "list\ttype:rsa1" | manage-authkeys.pl -i
 
 Delete all keys:
 
-  $ (echo -e "delete\tall"; echo write) | ssh-authkey-manage.pl -i
+  $ (echo -e "delete\tall"; echo write) | manage-authkeys.pl -i
 
 =head1 ENVIRONMENT
 
