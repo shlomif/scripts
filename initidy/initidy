@@ -22,13 +22,14 @@ use Text::Autoformat qw(autoformat);
 my $default        = 1;
 my $section_indent = '  ';
 
+# how to match comments
 my $comment_char_re = qr/[#;]/;
-my $comment_str     = '# ';
 
 my @lines;
 
 my $previous_type = '';
 
+# TODO if input, print to output; if filename(s), use in-place edit
 while (<>) {
   s/^\s+//;
   s/\s+$//;
@@ -59,9 +60,10 @@ while (<>) {
     } else {
       $data{count} = 1;
     }
-  } elsif (m/^ $comment_char_re (.*) $/x) {
-    my $line = $1 || '';
+  } elsif (m/^ ($comment_char_re) (.*) $/x) {
+    $data{comment_str} = "$1 ";
 
+    my $line = $2 || '';
     $line =~ s/^\s+//;
 
     $data{type}   = 'comment';
@@ -96,6 +98,7 @@ while (<>) {
   $previous_type = $data{type};
 }
 
+# walk over in-memory representation of configuration and write out tidy
 for my $i ( 0 .. $#lines ) {
   my $entry  = $lines[$i];
   my $indent = $entry->{indent} || '';
@@ -108,6 +111,8 @@ for my $i ( 0 .. $#lines ) {
     if ( $i != $#lines and $lines[ $i + 1 ]->{type} eq 'section' ) {
       $indent = '';
     }
+
+    my $comment_str = $entry->{comment_str} || '# ';
 
     my $comment = $indent . $comment_str . join "\n$indent$comment_str",
      @{ $entry->{lines} };
