@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # $Id$
 #
@@ -11,11 +11,7 @@
 
 require 5;
 use strict;
-
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
-my $duration;
+use warnings;
 
 # how to convert various time units to seconds
 my %factor = (
@@ -43,36 +39,40 @@ unless ($@) {
 
 my $factors = join '', keys %factor;
 
-# parse command-line options
 use Getopt::Std;
 my %opts;
 getopts('h?', \%opts);
-help() if exists $opts{'h'} or exists $opts{'?'};
+print_help() if exists $opts{'h'} or exists $opts{'?'};
+
+my $duration;
 
 if (@ARGV) {
   $_ = "@ARGV";
   parse_line();
-} else {
-  while (<STDIN>) {
-    parse_line();
+
+  # already have input if stdin closed to tty; read from there if so
+  unless (-t STDIN) {
+    parse_line() while <STDIN>;
   }
+} else {
+  parse_line() while <STDIN>;
 }
 
 sub parse_line {
- LOOP: {
+ LINE: {
 
     # match "3h" or "45 m"
-    $duration += $1 * $factor{$2}, redo LOOP
+    $duration += $1 * $factor{$2}, redo LINE
      if /\G(\d+) ?([$factors])(?=\b|\d)/gco;
 
     # treat unmatched numbers as seconds
-    $duration += $1, redo LOOP if /\G(\d+)/gc;
+    $duration += $1, redo LINE if /\G(\d+)/gc;
 
     # skip decimals (TODO warn on them?)
-    redo LOOP if /\G\.\d+(?![$factors])/gc;
+    redo LINE if /\G\.\d+(?![$factors])/gc;
 
     # or skip to next interesting bit
-    redo LOOP if /\G\D+/gc;
+    redo LINE if /\G\D+/gc;
   }
 }
 
@@ -81,7 +81,6 @@ die "error: no parseable duration found\n"
  and $duration =~ /^\d+$/;
 
 print deltatimefmt($duration), "\n";
-exit;
 
 sub deltatimefmt {
   my $difference = int(shift);
@@ -108,20 +107,18 @@ sub deltatimefmt {
   return $temp;
 }
 
-# a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
 Usage: $0 [opts] [time specifications]
 
 Totals up short hand time durations.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
 Run perldoc(1) on this script for additional documentation.
-
 HELP
-  exit;
+  exit 1;
 }
 
 __END__
