@@ -85,15 +85,16 @@ if (exists $opts{'u'}) {
     # by userid, otherwise attempt by user name
     if ($temp_user =~ m/^\d+$/) {
 	# check that this userid exists in passwd file
-	unless ($user = getpwuid $temp_user) { 
+	unless ($user = getpwuid $temp_user) {
 	    warn 'warning: userid ', $temp_user, " not found on system\n"
 		unless $quiet;
 	}
 	$userid = $temp_user;
 
     } else {
-	# need the userid, regardless :)
-	$userid = getpwnam $temp_user or 
+	# need the userid, regardless; can't pull out in scalar mode
+	# as root's 0 id triggers the or die... :)
+	(undef, undef, $userid, undef) = getpwnam $temp_user or 
 	    die 'no such user: ', $temp_user, "\n";
 	$user = $temp_user;
     }
