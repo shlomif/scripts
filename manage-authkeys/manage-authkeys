@@ -162,9 +162,10 @@ for (@ARGV) {
 }
 
 unless (exists $opts{'L'}) {
-  flock $akfh, LOCK_UN;
-  close $akfh;
+  flock $akfh, LOCK_UN
+   or remark('notice', "problem unlocking $auth_key_file: $!");
 }
+close $akfh or remark('notice', "problem closing $auth_key_file: $!");
 
 exit;
 
