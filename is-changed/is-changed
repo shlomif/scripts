@@ -81,7 +81,7 @@ sub handle_file {
 
   # we use mtime for files
   # TODO option to use checksum instead?
-  exit is_changed($uri->canonical, (stat $uri->path)[9]) ? 0 : 1;
+  exit (is_changed($uri->canonical, (stat $uri->path)[9]) ? 0 : 1);
 }
 
 sub handle_url {
@@ -97,7 +97,7 @@ sub handle_url {
   }
 
   my $content_hash = Digest::SHA1->new->add($response->content)->b64digest;
-  exit is_changed($url, $content_hash) ? 0 : 1;
+  exit (is_changed($url, $content_hash) ? 0 : 1);
 }
 
 sub is_changed {
