@@ -570,6 +570,8 @@ complete on the B<-s> option:
   if [[ ${words[CURRENT-1]} = "-s" ]]; then
     _wanted openmethod expl 'server names' compadd "$@" - \
       $(_call_program openm pbotutil list-servers) && ret=0
+  else
+    _files
   fi
 
   return ret
