@@ -15,16 +15,16 @@
 require 5;
 
 #use strict;			# disabled to allow more flexible
-                                # expression composition
+# expression composition
 
 ######################################################################
 #
 # MODULES
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
-use File::Tail;			# tail -f on steroids
+use File::Tail;   # tail -f on steroids
 
 ######################################################################
 #
@@ -38,10 +38,10 @@ my (%opts, $filename, $file);
 # various File::Tail object preferences.  listen much faster than default
 # to emulate tail(1) at expense of more busy wait.
 my $maxinterval = 2;
-my $interval = 1;
+my $interval    = 1;
 my $adjustafter = 1;
-my $tail = 0;
-my $reset_tail = -1;
+my $tail        = 0;
+my $reset_tail  = -1;
 
 # default to just printing input
 my $expression = "print";
@@ -59,25 +59,25 @@ getopts('h?m:i:a:t:r:p:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
 $maxinterval = $opts{'m'} if exists $opts{'m'} and $opts{'m'} =~ /^\d+$/;
-$interval =  $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
+$interval    = $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
 $adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
-$tail = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
-$reset_tail = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+$tail        = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
+$reset_tail  = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
 
 $preop = $opts{'p'} if exists $opts{'p'};
 
 # filename to tail on and perl expression to apply to each line
-$filename = shift;
+$filename   = shift;
 $expression = "@ARGV" if @ARGV;
 
 $file = File::Tail->new(
-			name => $filename, 
-			maxinterval => $maxinterval,
-			interval => $interval,
-			adjustafter => $adjustafter,
-			tail => $tail,
-			reset_tail => $reset_tail,
-			);
+  name        => $filename,
+  maxinterval => $maxinterval,
+  interval    => $interval,
+  adjustafter => $adjustafter,
+  tail        => $tail,
+  reset_tail  => $reset_tail,
+);
 
 # don't buffer STDOUT soas to interoperate with tee(1) properly
 $| = 1;
@@ -88,9 +88,9 @@ die 'Preop failed: ', $@, if $@;
 
 # loop forever on file; apply supplied expression to each line
 while (defined($_ = $file->read)) {
-    eval $expression;
+  eval $expression;
 
-    die 'Expression error: ', $@ if $@;
+  die 'Expression error: ', $@ if $@;
 }
 
 exit;
@@ -101,7 +101,7 @@ exit;
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [opts] file [expression]
 
 tails a file and applies perl expression to each line
@@ -121,7 +121,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 ######################################################################

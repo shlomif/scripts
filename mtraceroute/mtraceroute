@@ -20,8 +20,8 @@ use strict;
 #
 # MODULES
 
-use Carp;                       # better error reporting
-use Getopt::Std;                # command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
 ######################################################################
 #
@@ -67,69 +67,72 @@ help() unless @ARGV;
 
 # assume incoming data is wave of hosts/ip addresses to traceroute to
 for my $host (@ARGV) {
-    unless (open TRACE, "$traceroute $host 2>/dev/null |") {
-	die "Problem with traceroute on $host: $!\n";
-    } else {
-	$stats{$host}->{'timeouts'} = 0;
+  unless (open TRACE, "$traceroute $host 2>/dev/null |") {
+    die "Problem with traceroute on $host: $!\n";
+  } else {
+    $stats{$host}->{'timeouts'} = 0;
 
-	while (<TRACE>) {
-	    # head off timeouts at the pass, otherwise rip by regex
-	    if (m/^\s*\d+\s+\* \* \*$/) {
-		push @{$data{$host}}, undef;
-		$stats{$host}->{'timeouts'}++;
+    while (<TRACE>) {
 
-	    } elsif (m/^\s*\d+[ *]+    # optional leading whitespace & index
+      # head off timeouts at the pass, otherwise rip by regex
+      if (m/^\s*\d+\s+\* \* \*$/) {
+        push @{$data{$host}}, undef;
+        $stats{$host}->{'timeouts'}++;
+
+      } elsif (
+        m/^\s*\d+[ *]+    # optional leading whitespace & index
 		     (\S+)\s+	       # hostname   $1
 		     \(([^\)]+)\)\s+   # ip address (inside ()'s)   $2
-		     (.*?)$/x	       # the probe times $3
-		     ) {
+		     (.*?)$/x  # the probe times $3
+       ) {
 
-		# extract probe times manually
-		my (@times) = $3 =~ m/(\d+\.\d+)\sms\s/g;
+        # extract probe times manually
+        my (@times) = $3 =~ m/(\d+\.\d+)\sms\s/g;
 
-		# catch triple failed probes; mean/stddev don't like
-		# null arrays, as it turns out...
-		push @times, -1 unless @times;
+        # catch triple failed probes; mean/stddev don't like
+        # null arrays, as it turns out...
+        push @times, -1 unless @times;
 
-		# righty, form up data thingy...
-		push @{$data{$host}}, {
-		    'ip' => $2,
-		    'hostname' => $1,
-		    'times'    => \@times,
-		    'mean'     => mean(\@times),
-		    'stddev'   => standard_deviation_data(\@times),
-		};
-	    }
-	}
-
-	close TRACE;
-
-	# now a good time to store some stats...
-	if (defined $data{$host}) {
-	    $stats{$host}->{'maxhops'} = @{$data{$host}};
-	} else {
-	    warn "Warning: no data gained for $host\n";
-	}
+        # righty, form up data thingy...
+        push @{$data{$host}},
+         {
+          'ip'       => $2,
+          'hostname' => $1,
+          'times'    => \@times,
+          'mean'     => mean(\@times),
+          'stddev'   => standard_deviation_data(\@times),
+         };
+      }
     }
+
+    close TRACE;
+
+    # now a good time to store some stats...
+    if (defined $data{$host}) {
+      $stats{$host}->{'maxhops'} = @{$data{$host}};
+    } else {
+      warn "Warning: no data gained for $host\n";
+    }
+  }
 }
 
 # simple display until I can figure out better stuff to do with
 # the data...
 for (@ARGV) {
-    next unless $stats{$_}->{'maxhops'};
+  next unless $stats{$_}->{'maxhops'};
 
-    print $stats{$_}->{'maxhops'}, " hops to host ", $_;
-    if ($stats{$_}->{'timeouts'} > 0) {
-	print " errors ", $stats{$_}->{'timeouts'};
-    } else {
-	print " no errors";
-    }
-    print "\n";
-    
-    # and let's look at some specific stuff
-#    foreach my $info (@{$data{$_}}) {
-#	print $info->{'mean'}, "\t", $info->{'stddev'}, "\n";
-#    }
+  print $stats{$_}->{'maxhops'}, " hops to host ", $_;
+  if ($stats{$_}->{'timeouts'} > 0) {
+    print " errors ", $stats{$_}->{'timeouts'};
+  } else {
+    print " no errors";
+  }
+  print "\n";
+
+  # and let's look at some specific stuff
+  #    foreach my $info (@{$data{$_}}) {
+  #	print $info->{'mean'}, "\t", $info->{'stddev'}, "\n";
+  #    }
 }
 
 exit;
@@ -142,23 +145,23 @@ exit;
 # deviation of an array of numbers.
 #
 sub standard_deviation_data {
-    my $arrayref = shift;
-    my $mean = mean($arrayref);
-    return sqrt( mean( [map $_ ** 2, @$arrayref] ) - ($mean ** 2) );
+  my $arrayref = shift;
+  my $mean     = mean($arrayref);
+  return sqrt(mean([map $_**2, @$arrayref]) - ($mean**2));
 }
 
 # $mean = mean(\@array) computes the mean of an array of numbers.
 #
 sub mean {
-    my ($arrayref) = shift;
-    my $result;
-    foreach (@$arrayref) { $result += $_ }
-    return $result / @$arrayref;
+  my ($arrayref) = shift;
+  my $result;
+  foreach (@$arrayref) { $result += $_ }
+  return $result / @$arrayref;
 }
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [options] [host1 host2 .. hostN]
 
 A mass tracerouter that summarizes the results.
@@ -169,7 +172,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for more documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 __END__
