@@ -226,10 +226,6 @@ Patches that fix problems or add new features are welcome.
 
 The B<-f> prefix option does not work right all the time.
 
-=head1 TODO
-
-Replace default stub POD entries with real documentation.
-
 =head1 SEE ALSO
 
 perl(1)
