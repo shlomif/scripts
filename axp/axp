@@ -26,6 +26,10 @@ use XML::ApplyXSLT ();
 my $xapply = XML::ApplyXSLT->new;
 $xapply->config_libxml( { load_ext_dtd => 0 } );
 
+# load these "rule defaults" from prefs?
+$xapply->config(
+  { path => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl' } );
+
 #my $prefs_file = $ENV{'AXPCONF'} || '~/.axp/prefs';
 #$prefs_file = tilde_expand($prefs_file);
 #my $data = load_prefs($prefs_file);
@@ -38,13 +42,16 @@ my %user_prefs;
 $user_prefs{class} = $opts{c} if exists $opts{c};
 $user_prefs{style} = $opts{s} if exists $opts{s};
 
-# TODO need preferences file format for these
+# TODO need preferences file format for these...
+# what about fallback should the requested style not exist, but the
+# default does?
 my @rules = (
   {
-    subject  => 'filename',
+    subject  => 'suffix',
     operator => 'eq',
-    value    => 'foo',
+    value    => 'xml',
     action   => 'ignore',
+    negate   => 1
   },
   {
     subject  => 'rootname',
@@ -54,7 +61,16 @@ my @rules = (
     defaults => {
       class => 'eolas',
       style => 'default',
-      path  => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl'
+    }
+  },
+  {
+    subject  => 'rootname',
+    operator => 'eq',
+    value    => 'changelog',
+    action   => 'stop',
+    defaults => {
+      class => 'cvs2cl',
+      style => 'default',
     }
   },
 );
@@ -93,7 +109,9 @@ FILE: for my $file (@ARGV) {
   $xapply->config( { %$rule_prefs, %user_prefs } );
 
   # TODO single file to stdout, (unless -i), multiple files requires -i ??
-  my ( $docref, $details ) = $xapply->transform;
+  #
+  # TODO how pass in params?
+  my ( $docref, $details ) = $xapply->transform( { 'request.uri' => 'URI' } );
   die $xapply->errorstring unless defined $docref;
   print $$docref, "\n";
 }
@@ -127,13 +145,26 @@ sub parse_rules {
 
     next RULE unless exists $subject->{$topic} and defined $subject->{$topic};
 
-    my $match = 0;
+    my $match    = 0;
+    my @consider =
+     ref $subject->{$topic} eq 'ARRAY'
+     ? @{ $subject->{$topic} }
+     : $subject->{$topic};
 
-    # TODO support array refs, which need to be looped on
     if ( $rule->{operator} eq 'eq' ) {
-      $match = 1 if $subject->{$topic} eq $rule->{value};
+      for my $thingy (@consider) {
+        if ( $thingy eq $rule->{value} ) {
+          $match = 1;
+          last;
+        }
+      }
     } elsif ( $rule->{operator} eq 'sub' ) {
-      $match = 1 if -1 < index $subject->{$topic}, $rule->{value};
+      for my $thingy (@consider) {
+        if ( -1 < index $thingy, $rule->{value} ) {
+          $match = 1;
+          last;
+        }
+      }
     } else {
       warn "error: unknown operator for rule number ...\n";
       next RULE;
@@ -224,9 +255,9 @@ sub tilde_expand {
      }{
       $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{'HOME'}
         || remark('error',
-	     'could not lookup user or HOME not set',
-	     { file => $_ })
-	&& exit 99;
+             'could not lookup user or HOME not set',
+             { file => $_ })
+        && exit 99;
      }ex;
   }
   return wantarray ? @_ : "@_";
