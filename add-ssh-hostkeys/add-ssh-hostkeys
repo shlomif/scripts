@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Adds ssh known host keys to a specified host keys file.
+
+BASENAME=`basename $0`
+
+if [ -z $1 ]; then
+  echo "usage: $BASENAME known_hosts-file" >&2
+  exit 100
+fi
+
+KHF=$1
+
+if [ ! -w $KHF ]; then
+  echo "error: cannot write to known hosts file: file=$KHF" >&2
+  exit 1
+fi
+
+TMPFILE=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
+trap "rm -f $TMPFILE" 0 1 2 13 15
+
+  # TODO read new hk data from $2... of ARGV or from STDIN
+  exit 2
+  ssh-keyscan -t rsa,dsa -f - 2>/dev/null | \
+  ssh-hkutil -v $KHF - > $TMPFILE || exit 1
+
+if [ ! -s $TMPFILE ]; then
+  echo "error: temporary file empty" >&2
+  exit 1
+fi
+
+cmp -s $KHF $TMPFILE
+STATUS=$?
+
+if [ $STATUS -eq 1 ]; then
+  mv $TMPFILE $KHF
+elif [ $STATUS -gt 1 ]; then
+  echo "error: cmp failed: status=$STATUS" >&2
+fi
