@@ -38,14 +38,14 @@ use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts, @targets);
+my (%opts, $data, @targets);
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?f:ht', \%opts);
+getopts('h?f:tC', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
@@ -58,19 +58,45 @@ if (exists $opts{'f'}) {
      and die;
   }
   while (<STDIN>) {
+    next if m/^#/ or m/^\s*/;
     chomp;
+    
     s/^\s+//;
-    next if /^#/;
     s/\s+$//;
-    next if /^\s*/;
-
+    
     push @targets, $_;
   }
 }
+# TODO: validate incoming targets?
 
 # rest of argv keyfiles, load 'em up
 for (@ARGV) {
 
+  open KEYFILE, $_
+   or remark('warning', "problem reading $_: $!")
+   and next;
+   
+  while (<KEYFILE>) {
+    # see sshd(8) for expected format of auth_key_file
+    next if m/^#/ or m/^\s*$/;
+    chomp;
+    
+    my $values = parse_authkey($_);
+  
+    next unless defined $values;
+  
+    if (exists $data->{$values->{'hash'}}) {
+      remark(
+        'warning',         "skipping duplicate key (hash:",
+        $values->{'hash'}, ") at $_ line $."
+      );
+      next;
+    }
+  
+    $data->{$values->{'hash'}} = $values;
+  }
+  
+  close KEYFILE;
 }
 
 exit;
@@ -123,8 +149,11 @@ sub parse_authkey {
     return;
   }
 
+  # "options" need to be ,-separated, not on " " as done to get elements
+  # above.  TODO: improve this to hande "'s ...
+  $values{'options'} = [split /,/, "@options"];
+  
   $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
-  $values{'options'} = "@options";
   $values{'key'}     = $authkey;
 
   return \%values;
@@ -201,7 +230,7 @@ Quick usage notes here.
 =head2 Overview
 
 Loads, modifies, and distributes OpenSSH public authorized keys to
-hosts running the manage-authkeys.pl script.
+hosts with the backend manage-authkeys.pl script.
 
 =head2 Normal Usage
 
@@ -228,6 +257,9 @@ Specify a target host to manage keys with.
 Read target host(s) from specified file.  Setting the file to C<->
 will read from STDIN.  Lines beginning with # will be ignored; leading
 and trailing whitespace will be deleted, and empty lines skipped.
+
+Hosts should be hostnames or IP addresses the computer running the
+script can resolve.
 
 =back
 
