@@ -1,18 +1,91 @@
 #!/usr/bin/perl -w
 #
 # $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Helper script for cfengine.
 
 use strict;
 
 my $mode = shift || die "usage: $0 mode [args]\n";
 
-if ($mode eq 'append') {
-  while(<>) {
+if ( $mode eq 'append' ) {
+  # KLUGE! bleh...
+  while (<>) {
     chomp;
     s/(?<!\\)\\/\\\\/gx;
     s/(?<!\\)"/\\"/gx;
     s/(?<=\\\\)"/\\"/gx;
     print q{Append "} . $_ . qq{"\n};
   }
-  exit;
+} elsif ( $mode eq 'class2host' ) {
+  handle_class2host(@ARGV);
+}
+
+sub handle_class2host {
+  use Net::DNS ();
+  my $dns = Net::DNS::Resolver->new;
+  $dns->defnames(0);  # do not search default domain
+
+  use Getopt::Std qw(getopts);
+  my %opts;
+  getopts 'd:', \%opts;
+
+  my $domain = $opts{d} if exists $opts{d};
+
+  my $action = '';
+  my %hosts;
+  my %host2class;
+
+  # TODO replace with proper grammar parser?
+  while (<>) {
+
+    # set what action block we are in, like 'control:'
+    if (m/^\s*(\w+):(?!:)/) {
+      $action = $1;
+
+      # TODO other aliased names?
+      $action = 'classes' if $action eq 'groups';
+
+      next;
+    }
+
+    # try to read domain from configuration if not otherwise set
+    if (  $action eq 'control'
+      and not defined $domain
+      and m/^\s* domain \s*=\s* \(\s* (\S+) \s*\)/x ) {
+      $domain = $1;
+    }
+
+    # match foo = ( bar ) class definitions
+    if ( $action eq 'classes' and m/^\s* (\w+) \s*=\s* \(\s* (\S.+?) \s*\)/x ) {
+      my $class = $1;
+      my $tmp   = $2;
+
+      # pull out short "hostnames" for consideration
+      my @potential = $tmp =~ m/(\w[\w-]+)/g;
+
+      for my $p (@potential) {
+        # downcase as DNS case insensitive
+        $p = lc $p;
+
+        $hosts{$p}++;
+        push @{ $host2class{$p} }, $class;
+      }
+    }
+  }
+
+  die "error: domain not specified nor found\n" unless $domain;
+  $domain =~ s/\.$//;
+
+  die "error: unknown domain or domain lookup failure: name=$domain\n"
+   unless $dns->query( $domain, 'SOA' );
+
+  for my $host ( sort keys %hosts ) {
+    my $hostname = "$host.$domain";
+    my $query = $dns->query( $hostname, 'A' );
+    print $hostname, " ", join( ',', @{ $host2class{$host} } ), $/ if $query;
+  }
 }
