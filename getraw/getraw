@@ -125,7 +125,7 @@ sub parse_spec {
     }
 
     # unescape backwhacked things (\r, etc.)
-    $keys =~ s/(\\.)/qq!"$1"!/eeg;
+    $keys =~ s/(\\.)/$1/eeg;
 
     # quick lookup map for key typed
     for (split //, $keys) {
