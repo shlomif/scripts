@@ -12,7 +12,11 @@
 
 use strict;
 
-my %defaults = ();
+my %defaults = ( class => 'commit' );
+
+my $prefs_file = $ENV{'COMMITCONF'} || '~/.commit/prefs';
+$prefs_file = tilde_expand($prefs_file);
+my $prefs = load_prefs($prefs_file);
 
 use Getopt::Std;
 my %opts;
@@ -32,57 +36,41 @@ if ( exists $opts{'m'} ) {
 use File::Basename;
 use File::Spec ();
 
-# TODO read these from a prefs file (steal from osm)
-my %commits = (
-  cvs => {
-    exec =>
-     'cvs ci %{revisionopt} %{revision} %{msgfileopt} %{msgfile} %{msgopt} %{msg} %{files}',
-    msgfileopt  => '-f',
-    msgopt      => '-m',
-    revisionopt => '-r',
-  },
-  svn => {
-    exec =>
-     'svn ci %{revisionopt} %{revision} %{msgfileopt} %{msgfile} %{msgopt} %{msg} %{files}',
-    msgfileopt  => '-f',
-    msgopt      => '-m',
-    revisionopt => '-r',
-  },
-);
-
-my @unknown;
+# where to store filenames for handling
+my ( %tocommit, @unknown );
 
 for my $file (@ARGV) {
   my ( $filename, $filepath, undef ) = fileparse($file);
   if ( -f File::Spec->catfile( $filepath, qw{CVS ROOT} ) ) {
-    push @{ $commits{'cvs'}->{'files'} }, $file;
+    push @{ $tocommit{'cvs'} }, $file;
   } elsif ( -f File::Spec->catfile( $filepath, qw{.svn entries} ) ) {
-    push @{ $commits{'svn'}->{'files'} }, $file;
+    push @{ $tocommit{'svn'} }, $file;
   } else {
     push @unknown, $file;
   }
 }
 
-for my $type ( sort keys %commits ) {
-  my $tr = $commits{$type};
+for my $commit_type ( sort keys %tocommit ) {
 
-  next unless exists $tr->{'files'} and @{ $tr->{'files'} };
-  $tr->{'files'} = join ' ', @{ $tr->{'files'} };
-
-  %$tr = ( %$tr, %defaults );
+  my %tmp = ( %{ $prefs->{'commit'}->{$commit_type} }, %defaults );
+  $tmp{'files'} = join ' ', @{ $tocommit{$commit_type} };
 
   # delete "whateveropt" where no "whatever" exists
-  for my $option ( keys %$tr ) {
-    delete $tr->{$option} if $option =~ /(\w+)opt$/ and not exists $tr->{$1};
+  for my $option ( keys %tmp ) {
+    delete $tmp{$option} if $option =~ /(\w+)opt$/ and not exists $tmp{$1};
   }
 
-  $tr->{'exec'} =~ s/%{(\w+)}/$tr->{$1}||''/ge;
+  $tmp{'exec'} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
 
-  my @command = split /\s+/, $tr->{'exec'};
+  my @command = split /\s+/, $tmp{'exec'};
   unshift @command, 'echo' if exists $opts{'n'};
 
   unless ( system(@command) == 0 ) {
-    remark( 'warning', 'bad exit status', { errno => $!, type => $type } );
+    remark(
+      'warning',
+      'bad exit status',
+      { errno => $!, type => $commit_type }
+    );
   }
 }
 
@@ -108,4 +96,66 @@ sub remark {
   print STDERR "$priority: $message"
    . ( $attr_str ? ": $attr_str" : '' ) . "\n";
   return 1;
+}
+
+# expands ~username syntax to full home directory path
+sub tilde_expand {
+  for (@_) {
+    s{^ ~      # leading tilde
+      ([^/]*)  # preserve following data
+     }{
+      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{'HOME'}
+        || remark('error',
+	     'could not lookup user or HOME not set',
+	     { file => $_ })
+	&& exit 99;
+     }ex;
+  }
+  return wantarray ? @_ : "@_";
+}
+
+sub load_prefs {
+  my $file = shift;
+
+  open my $fh, "< $file"
+   or remark( 'error', 'could not load preferences', { file => $file } )
+   and exit 101;
+
+  my %prefs;
+  my %tmp = %defaults;
+
+  while (<$fh>) {
+    s/^\s+//;
+    next if /^#/;
+    chomp;
+
+    if (/^$/) {
+      pref_finish( \%tmp, \%prefs ) if exists $tmp{'name'};
+      %tmp = %defaults;
+      next;
+    }
+
+    s/\s+$//;
+
+    my ( $k, $v ) = split /\s+/, $_, 2;
+    unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
+      remark(
+        'warning',
+        'skipping invalid data',
+        { file => 'prefs', line => $. }
+      );
+      next;
+    }
+    $tmp{$k} = $v;
+  }
+  pref_finish( \%tmp, \%prefs ) if exists $tmp{'name'};
+
+  return \%prefs;
+}
+
+sub pref_finish {
+  my $tmp   = shift;
+  my $prefs = shift;
+
+  $prefs->{ $tmp->{'class'} }->{ $tmp->{'name'} } = {%$tmp};
 }
