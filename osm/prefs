@@ -16,7 +16,6 @@ exec gunzip -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
 verbose v
 preserve p
 destopt C
-priority 0
 
 name gnutargz
 class list
@@ -49,7 +48,6 @@ exec bunzip2 -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
 verbose v
 preserve p
 destopt C
-priority 0
 
 name tar
 suffix tar
@@ -102,7 +100,6 @@ name unstuff
 suffix sit bin hqx *
 comment Stuffit utility available on Mac OS X, expands many formats
 exec unstuff %{quiet} %{file}
-priority 0
 quiet -q
 
 name unstuff
@@ -124,7 +121,6 @@ exec unrpm %{file}
 name rpm
 class install
 suffix rpm
-priority 0
 comment Install RPM
 exec sudo rpm -U%{verbose} %{file}
 verbose vh
