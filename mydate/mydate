@@ -31,8 +31,8 @@ shift $(($OPTIND - 1))
 
 # custom arguments for custom formats
 if [ "$1" = "rpm" ]; then
-  [ -z $MY_REALNAME ] && MY_REALNAME=`whoami`
-  [ -z $MY_EMAIL ] && MY_EMAIL="`whoami`@`hostname`"
+  [ -z "$MY_REALNAME" ] && MY_REALNAME=`whoami`
+  [ -z "$MY_EMAIL" ] && MY_EMAIL="`whoami`@`hostname`"
   date "+* %a %b %d %Y $MY_REALNAME <$MY_EMAIL>"
   exit
 fi
