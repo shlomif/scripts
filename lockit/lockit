@@ -1,0 +1,125 @@
+#!/usr/bin/perl
+#
+# $Id$
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# Attempts to lock files.
+# 
+# For documentation, use the -h option or run perldoc on this script.
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+#
+######################################################################
+#
+# MODULES
+
+use Carp;
+use Getopt::Std;
+
+# file locking related modules
+use Fcntl qw(:DEFAULT :flock);
+use IO::Handle;
+
+use strict;
+use vars qw:$VERSION:;
+
+######################################################################
+#
+# CONSTANTS
+
+my (%opts);
+
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists($opts{'h'}) || exists($opts{'?'});
+
+my $logfile = shift; # filename to lock
+
+# attempt lock on named file...
+# open & aquire write lock on the logfile
+open (FD, "+< $logfile") or die "Error opening $logfile: $!\n";
+FD->autoflush(1);
+    
+unless (flock (FD, LOCK_EX|LOCK_NB)) {
+    warn "Waiting for write lock on $logfile ...\n";
+    flock (FD, LOCK_EX);
+}
+
+sleep 8500;
+
+flock (FD, LOCK_UN);
+close (FD);
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+$0 v.$VERSION
+Usage: $0 [options] [LOGFILE]
+Purpose: simple file locker.
+
+Options:
+  -h/-?  Display this message
+
+Run perldoc on this script for more documentation.
+
+HELP
+    exit;
+}
+
+__END__
+
+=head1 NAME
+
+lockit.pl - simple file locker.
+
+=head1 SYNOPSIS
+
+Pretty simple, just run:
+
+  $ lockit.pl
+
+=head1 DESCRIPTION
+
+Locks files, or gives it a good shot, anyways.
+
+=head1 USAGE
+
+  $ lockit.pl [options] LOCKFILE
+
+=head1 OPTIONS
+
+lockit.pl supports the following command line options:
+
+-h     Get a brief help blarb
+
+=head1 LICENSE
+
+This script is distributed under the terms of the Artistic License:
+
+http://www.sial.org/artistic_license.txt
+
+=head1 BUGS
+
+Lots, probably.
+
+=head1 SEE ALSO
+
+flock(2), perl(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=cut
