@@ -4,10 +4,15 @@
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
+#
+# Detects and deals with duplicate files.
+#
+# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 
 use Digest::SHA1 ();
+use File::Find;
 use File::Spec ();
 
 # we reset this for each file to avoid OO overhead on each file
@@ -15,189 +20,36 @@ my $dig = Digest::SHA1->new;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?vlgzuqp:s:', \%opts;
+getopts 'h?', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
-my $quiet = 0;
-my $verbose = 0;
-
-$verbose = 1 if exists $opts{v};
-
-if (exists $opts{q}) {
-  $verbose = 0;
-  $quiet   = 1;
-}
-
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
-
-# and flag the help text if nothing from STDIN
 print_help() unless @ARGV;
 
-my %check;
-
-# loop over arguments which presumably are a bunch of directories
-for (@ARGV) {
-  unless (-d) {
-    warn 'Error: ', $_, " is not a directory.  Skipping.\n" unless $quiet;
-    next;
-  }
-  parsedir($_);
-
-  # reset the %check hash between directories by default
-  unless ($opts{g} or $opts{z}) {
-    report(\%check, $_);
-    %check = ();
+my ( @dirs, @files );
+for my $arg (@ARGV) {
+  if (-d $arg) {
+    push @dirs, $arg;
+  } elsif (-f _) {
+    push @files, $arg;
+  } else {
+    # TODO notify here about non-supported thingies?
   }
 }
 
-report(\%check, 'all');
-
-sub parsedir {
-  my $dir = shift;
-
-  my @to_parse;  # subdirs we may need to recurse into later
-
-  # -z option allows checks to become single-directory
-  # specific, as opposed to the parent-dir globalness of default
-  # or the everywhere -g option
-  %check = () if exists $opts{z};
-
-  unless (opendir DIR, $dir) {
-    warn 'Problem reading ', $dir, ': ', $!, "\n" unless $quiet;
-    return;
-  }
-
-  # loop over sorted contents of directory, skipping . and .. specials
-  for (sort readdir DIR) {
-    next if /^\.{1,2}$/;
-    my $pti = File::Spec->catfile($dir, $_);
-
-    next if -l $pti;  # skip links. Links bad. :)
-
-    # only deal with files when doing sums
-    if (-f $pti) {
-
-      # first check whether we skip this file
-      if (exists $opts{s}) {
-        my $result = eval "return 1 if( " . $opts{s} . " );";
-
-        if ($@) {
-          chomp($@);
-          die "Skip error: ", $@;  # croak on errors
-        }
-
-        if ($result) {
-          warn "Skipped ", $pti, "\n" if $verbose;
-          next;
-        }
-      }
-
-      # open up file, then hand it off to MD5 module
-      unless (open FILE, "< $pti") {
-        warn 'Problem reading ', $pti, ': ', $!, "\n";
-        next;
-      }
-      binmode FILE;
-
-      # reset checksum object, then get new Checksum on file
-      $dig->new();
-      $dig->addfile(*FILE);
-      my $sum = $dig->hexdigest;
-
-      close FILE;
-
-      # either add new checksum to hash, or delete the duplicate file
-      if (exists $check{$sum} && exists $opts{u}) {
-
-        # show unlink statement, plus the file this one is dup'ing
-        warn "unlink ", $pti, "\t(", $check{$sum}->[0], ")\n"
-         if $verbose;
-        unless (unlink $pti) {
-          warn 'Problem unlinking ', $pti, ' (dup ', $check{$sum}->[0], '): ',
-           $!, "\n";
-        }
-      }
-
-      # regardless, we add the file to the list of files
-      # associated with this particular hash
-      push @{$check{$sum}}, $pti;
-
-    } elsif (-d $pti) {
-
-      # see whether this dir needs to be pruned from the search
-      if (exists $opts{p}) {
-        my $results = eval "return 1 if( " . $opts{p} . " );";
-
-        if ($@) {
-          chomp($@);
-          die "Prune error: ", $@;  # croak on errors
-        }
-
-        if ($results) {
-          warn "Pruned $pti\n" if $verbose;
-          next;
-        }
-      }
-      push @to_parse, $pti unless exists $opts{l};
-    }
-  }
-
-  # print a report if we're doing the local-dir-only thing
-  report(\%check, $dir) if exists $opts{z};
-
-  # before poping up a recursion level, deal with subdirs
-  unless (exists $opts{l}) {
-    for (@to_parse) {
-      parsedir($_);
-    }
-  }
-}
-
-# takes a hash reference (presumably to %check) and
-# dumps out a little report of duplicate files
-sub report {
-  my $ref = shift;
-  my $dir = shift;
-
-  # quit out early if no-yak mode turned on
-  return if exists $opts{q};
-
-  # rummage through hash, printing out only hash entries
-  # that have more than 1 file associated with them
-  for (keys %$ref) {
-    if (scalar @{$ref->{$_}} > 1) {
-      print $dir, "\t", join (', ', @{$ref->{$_}}), "\n";
-    }
-  }
-}
+# TODO deal with dirs (via File::Find) and files (via custom routine)
 
 # a generic help blarb
 sub print_help {
   print <<"HELP";
-Usage: $0 [opts] [dir1 dir2 .. dirN]
+Usage: $0 [options] [files]
 
-Removes duplicate files based on checksum comparison of files.
+Detects and deals with duplicate files.
 
 Options:
   -h/-?  Display this message
-  -v     Verbose mode, a little bit more chatty.
-  -q     Quiet.  Overrides -v, suppresses reporting.
-
-  -u     Attempt to unlink any duplicates found past first.
-
-  -l     Local mode only, script does not recurse into subdirs.
-
-  -g     Make checksums apply across all directories on command line.
-  -z     Overrides g; limits scope of checksums to only other files in
-         the same directory.
-
-  -s xx  Perl expression that will result in the current file (stored in \$_)
-         being skipped if the expression turns out to be true.
-
-  -p xx  Perl expression that will result in the current directory (stored in 
-         \$_) being pruned out of the tree.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -207,7 +59,7 @@ HELP
 
 =head1 NAME
 
-dupper - finds duplicate files, optionally removes them
+dupper - detects and deals with duplicate files
 
 =head1 SYNOPSIS
 
