@@ -5,16 +5,18 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Utility to manage and maintain OpenSSH known_hosts data.
+# Maintains OpenSSH known_hosts data.
 
 use strict;
 use Fatal qw(open close);
 
 use Getopt::Std;
 my %opts;
-getopts 'mM', \%opts;
+getopts 'h?mM', \%opts;
 
-my $khf   = shift;
+print_help() if $opts{'h'} or $opts{'?'};
+
+my $khf   = shift || print_help();
 my $extra = shift;
 
 open my $file, "< $khf";
@@ -145,3 +147,135 @@ sub parse_known_hosts {
 
   return \@host_keys;
 }
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] known-hosts-file [new-hosts-file|-]
+
+Maintains OpenSSH known_hosts data.
+
+Options:
+  -h/-?  Display this message.
+
+  -m     Merges host key records by public key (default if new host
+         keys are supplied).
+
+  -M     Unmerged host key records; one record per host or address.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
+=head1 NAME
+
+ssh-hkutil - maintains OpenSSH known_hosts data
+
+=head1 SYNOPSIS
+
+Clean up an existing C<known_hosts> file:
+
+  $ ssh-hkutil -m ~/.ssh/known_hosts > merged
+
+Work with ssh-keyscan(1) to add the host keys for example.org into the
+existing known hosts:
+
+  $ echo example.org | \
+    ssh-keyscan -t rsa,dsa -f - | \
+    ssh-hkutil ~/.ssh/known_hosts - > new_host_keys
+
+Or just update the known host keys based on the contents of
+C<~/.ssh/known_hosts>:
+
+  $ ssh-keyscan -t rsa,dsa -f ~/.ssh/known_hosts | \
+    ssh-hkutil ~/.ssh/known_hosts - > updated_host_keys
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Interface to OpenSSH known_hosts file: allows merging or unmerging of
+related SSH host keys, plus the ability to insert new host keys over
+existing ones.
+
+=head2 Normal Usage
+
+  $ ssh-hkutil [options] known-hosts-file [new-hosts-file|-]
+
+See L<"OPTIONS"> for details on the command line switches supported. The
+C<known-hosts-file> must be specified, usually C<~/.ssh/known_hosts> for
+a user. Optionally, an additional file (or from standard input if a - is
+used instead) may be specified containing new hosts keys to merge into
+the existing records.
+
+Output will be sent to standard out, errors to standard error. The only
+output format supported is the OpenSSH known_hosts file format. Host key
+records will be sorted before being printed out.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-m>
+
+Merges records with the same public key into single entries. For
+example, the two following entries with the example public key of
+C<AAAA>:
+
+  example.org ssh-rsa AAAA
+  192.0.2.1 ssh-rsa AAAA
+
+Would become the following single entry with B<-m> enabled:
+
+  example.org,192.0.2.1 ssh-rsa AAAA
+
+This merge is done by default if extra host keys are supplied, unless
+the B<-M> option is used to keep the keys unmerged.
+
+=item B<-M>
+
+Performs the opposite of B<-m>, such that each host or address is a
+separate record.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1), ssh-keyscan(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
