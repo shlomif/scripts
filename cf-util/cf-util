@@ -96,6 +96,26 @@ sub handle_class2host {
   for my $host ( sort keys %hosts ) {
     my $hostname = "$host.$domain";
     my $query = $dns->query( $hostname, 'A' );
-    print $hostname, " ", join( ',', @{ $host2class{$host} } ), $/ if $query;
+
+    # TODO allow templating of output, so can list in format appropriate
+    # for other tools easily (SSH host key updating, etc.)
+    if ($query) {
+      print $hostname, " ", join( ',', @{ $host2class{$host} } ), $/;
+    }
   }
+}
+
+sub get_ip {
+  my $dns = shift;
+  my $host = shift || return;
+  my @ips;
+
+  my $query = $dns->query( $host, 'A' );
+  if ($query) {
+    for my $rr ( $query->answer ) {
+      next unless $rr->type eq 'A';
+      push @ips, $rr->address;
+    }
+  }
+  return wantarray ? @ips : $ips[0];
 }
