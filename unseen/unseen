@@ -365,7 +365,7 @@ with YAML.
 
 =head2 Normal Usage
 
-  $ unseen [options] [-s seen-index] directory [directory ...]
+  $ unseen [options] -s seen-index directory [directory ...]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
