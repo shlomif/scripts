@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
+#
+# Keep things up-to-date (CVS sandboxes at the moment, but that
+# could be extended to other things...)
+
+# where to look for things in need of updating
+CHECKOUT=$HOME/co
+
+# should be 0, if errors will be that of last error to occur
+RETURN=0
+
+# update routines for specific packages
+# takes dirctory (already cd'ed into) and type of update
+update_cvs () {
+  cvs up -Ad
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "Bad exit status ($STATUS) from $2 update on $1" >&2
+    RETURN=$STATUS
+  fi
+}
+
+# figure out how to handle the directory in question
+check_dir () {
+  if [ ! -d $1 ]; then
+    echo "Error: not a directory: $1"
+    RETURN=1
+    return
+  fi
+
+(
+  cd $1
+
+  if [ -d CVS -a -f CVS/Root ]; then
+    update_cvs $1 "CVS"
+  elif [ ! -d CVS -a subdir >/dev/null ]; then
+    $0 `subdir | egrep -v '^CVS$'`
+  else
+    echo "Error: do not know how to update: $1" >&2
+    RETURN=1
+  fi
+)
+}
+
+if [ $# -eq 0 ]; then
+  if [ `pwd` = "$HOME" ]; then
+  (
+    if [ ! -d $CHECKOUT ]; then
+      echo "error: no directory to work on: $CHECKOUT"
+      exit 1
+    fi
+
+    cd $CHECKOUT 
+    for file in *; do
+      check_dir "$file"
+    done
+  )
+  else
+    check_dir `pwd`
+  fi
+else
+  for file in "$@"; do
+    check_dir "$file"
+  done
+fi
+
+exit $RETURN
