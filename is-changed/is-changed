@@ -47,28 +47,34 @@ UPDATE seen SET hash = ? WHERE what = ?
   ),
 );
 
-my $what = shift || remark('error', 'no resource listed to check') && exit 101;
-
-# need to figure out what got passed
-my $uri = URI->new($what);
-if (not $uri->scheme and -e $what) {
-  $uri = URI->new($what);
-  $uri->scheme('file');
-}
-unless ($uri->scheme) {
-  remark('error', "no scheme found for: $what") && exit 102;
-}
-
 my %handle = (
   file => {handle => \&handle_file},
   http => {handle => \&handle_url},
   ftp  => {handle => \&handle_url},
 );
 
-unless (exists $handle{$uri->scheme}) {
-  remark('error', "no scheme handler for: $what") && exit 102;
+remark('error', 'no resource listed to check') && exit 101 unless @ARGV;
+
+for my $what (@ARGV) {
+
+  # need to figure out what got passed
+  my $uri = URI->new($what);
+  if (not $uri->scheme and -e $what) {
+    $uri = URI->new($what);
+    $uri->scheme('file');
+  }
+  unless ($uri->scheme) {
+    remark('error', "no scheme found for: $what") && exit 102;
+  }
+
+  unless (exists $handle{$uri->scheme}) {
+    remark('error', "no scheme handler for: $what") && exit 102;
+  }
+  $handle{$uri->scheme}->{'handle'}->($uri);
 }
-$handle{$uri->scheme}->{'handle'}->($uri);
+
+# "no change" if reach here
+exit 1;
 
 # handle routines need to generate hash on URI, and more importantly
 # figure out the modification date of the resource
@@ -81,7 +87,7 @@ sub handle_file {
 
   # we use mtime for files
   # TODO option to use checksum instead?
-  exit (is_changed($uri->canonical, (stat $uri->path)[9]) ? 0 : 1);
+  exit 0 if is_changed($uri->canonical, (stat $uri->path)[9]);
 }
 
 sub handle_url {
@@ -97,7 +103,7 @@ sub handle_url {
   }
 
   my $content_hash = Digest::SHA1->new->add($response->content)->b64digest;
-  exit (is_changed($url, $content_hash) ? 0 : 1);
+  exit 0 if is_changed($url, $content_hash);
 }
 
 sub is_changed {
