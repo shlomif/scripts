@@ -139,8 +139,9 @@ sub rundu {
   my $parentdir = shift;
   my $wanted    = shift;
 
-  # trailing slashes lead to // in output, so evict
-  $parentdir =~ s, /+$ ,,x;
+  # trailing slashes lead to // in output, so evict, but leave leading
+  # slash (for / root) alone
+  $parentdir =~ s, (?<! ^ ) /+$ ,,x;
 
   my $targetdir = $parentdir;
 
