@@ -18,16 +18,16 @@ my $default_open = $ENV{'OW_METHOD'} || 'lynx';
 # what to launch URLs with (but see sub visit below)
 # TODO some means to pass options to say lwp-request and wget types?
 my %open = (
-  lynx         => [qw(lynx)],
-  links        => [qw(links)],
-  open         => [qw(open)],
-  omniweb      => [qw(open -a OmniWeb)],
-  safari       => [qw(open -a Safari)],
-  'omniweb-bg' => \&open_omniweb_bg,
-  mozilla      => [qw(mozilla)],
-  lwp          => [qw(lwp-request)],
-  lwp-noproxy  => [qw(lwp-request -P)],
-  wget         => [qw(wget)],
+  lynx          => [qw(lynx)],
+  links         => [qw(links)],
+  open          => [qw(open)],
+  omniweb       => [qw(open -a OmniWeb)],
+  safari        => [qw(open -a Safari)],
+  'omniweb-bg'  => \&open_omniweb_bg,
+  mozilla       => [qw(mozilla)],
+  lwp           => [qw(lwp-request)],
+  'lwp-noproxy' => [qw(lwp-request -P)],
+  wget          => [qw(wget)],
 );
 
 my %pfiles = (
@@ -38,20 +38,20 @@ my %pfiles = (
 # parse command-line options
 use Getopt::Std;
 my (%opts);
-getopts('dlo:T:', \%opts);
+getopts( 'dlo:T:', \%opts );
 
-for (keys %pfiles) {
-  $pfiles{$_} = tilde_expand($pfiles{$_});
+for ( keys %pfiles ) {
+  $pfiles{$_} = tilde_expand( $pfiles{$_} );
 }
 
 # -d flag does directory->web map lookup (if possible)
-if (exists $opts{'d'}) {
-  my $dirmap = loadconfig($pfiles{'dirmap'});
+if ( exists $opts{'d'} ) {
+  my $dirmap = loadconfig( $pfiles{'dirmap'} );
 
   require Cwd;
 
-  if (@ARGV == 1 and $ARGV[0] eq '-') {
-    chomp(@ARGV = <STDIN>);
+  if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
+    chomp( @ARGV = <STDIN> );
   }
 
   my @dir;
@@ -67,18 +67,18 @@ if (exists $opts{'d'}) {
     my $got_url = 0;
 
     # longest first, so subdirs can override parent
-    for (sort { length $b <=> length $a } keys %$dirmap) {
+    for ( sort { length $b <=> length $a } keys %$dirmap ) {
 
       my $pos = index $dir, $_;
-      if ($pos > -1) {
-        my $frag = substr($dir, $pos + length $_) || '';
+      if ( $pos > -1 ) {
+        my $frag = substr( $dir, $pos + length $_ ) || '';
         $frag .= "/";
 
         # prevent // issues
         $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
         $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq '';
 
-        visit(expand($dirmap->{$_}, [$frag]));
+        visit( expand( $dirmap->{$_}, [$frag] ) );
         $got_url = 1;
       }
     }
@@ -89,16 +89,16 @@ if (exists $opts{'d'}) {
   exit;
 }
 
-my $scuts = loadconfig($pfiles{'shortcuts'});
+my $scuts = loadconfig( $pfiles{'shortcuts'} );
 
 # for _T_ab completion lookups on hash keys
-if (exists $opts{'T'}) {
-  if ($opts{'T'} eq 'open') {
+if ( exists $opts{'T'} ) {
+  if ( $opts{'T'} eq 'open' ) {
     print join "\n", sort keys %open;
-  } elsif ($opts{'T'} eq 'shortcuts') {
+  } elsif ( $opts{'T'} eq 'shortcuts' ) {
     # need to cut out the "*" and "google@" stuff
     my %seen;
-    @seen{map { /(\w+)/ } keys %$scuts} = ();
+    @seen{ map { /(\w+)/ } keys %$scuts } = ();
     print join "\n", sort keys %seen;
   }
   print "\n";
@@ -106,7 +106,7 @@ if (exists $opts{'T'}) {
 }
 
 if (@ARGV) {
-  parse_sc([\@ARGV]);
+  parse_sc( [ \@ARGV ] );
 } else {
   my $scs;
   while (<STDIN>) {
@@ -120,26 +120,26 @@ sub parse_sc {
   my $sc = shift;
 
   for (@$sc) {
-    if (@$_ == 1) {
-      if (exists $scuts->{$_->[0]}) {
+    if ( @$_ == 1 ) {
+      if ( exists $scuts->{ $_->[0] } ) {
 
         # assume vanilla shortcuts are urls...
-        visit($scuts->{$_->[0]});
+        visit( $scuts->{ $_->[0] } );
 
-      } elsif ($_->[0] =~ m(^\w+://.)) {
+      } elsif ( $_->[0] =~ m(^\w+://.) ) {
 
         # visit url-ish resources directly
-        visit($_->[0]);
+        visit( $_->[0] );
 
-      } elsif ($_->[0] =~ m/\./) {
+      } elsif ( $_->[0] =~ m/\./ ) {
 
-        visit('http://' . $_->[0]);
+        visit( 'http://' . $_->[0] );
 
-      } elsif (exists $scuts->{'*'}) {
+      } elsif ( exists $scuts->{'*'} ) {
 
         # * shortcut is for unmatched things, an example target would be
         # http://www.%@.com/ to expand input to .com websites
-        visit(expand($scuts->{'*'}, $_));
+        visit( expand( $scuts->{'*'}, $_ ) );
 
       } else {
         die "not sure what to do with: $_->[0]\n";
@@ -154,8 +154,8 @@ sub parse_sc {
       # TODO check if two args whether second is actually a http:// URL,
       # which should get fed to direct lookup instead of google search
       # perhaps?
-      if (exists $scuts->{$key}) {
-        visit(expand($scuts->{$key}, $_));
+      if ( exists $scuts->{$key} ) {
+        visit( expand( $scuts->{$key}, $_ ) );
       } else {
         die "no such shortcut: $key\n";
       }
@@ -183,7 +183,7 @@ sub visit {
   my $url = shift;
   return unless $url;
 
-  if (exists $opts{'l'}) {
+  if ( exists $opts{'l'} ) {
     print $url, "\n";
     return;
   }
@@ -192,10 +192,10 @@ sub visit {
   die "error: unknown open method: $method\n" unless exists $open{$method};
 
   # TODO dispatch table for this
-  if (ref $open{$method} eq 'ARRAY') {
+  if ( ref $open{$method} eq 'ARRAY' ) {
 
     # TODO error checking
-    system @{$open{$method}}, $url;
+    system @{ $open{$method} }, $url;
   } else {
     $open{$method}->($url);
   }
@@ -258,8 +258,8 @@ sub loadconfig {
     s/\s+$//;
     next if /^$/;
 
-    my ($k, $v) = split ' ', $_, 2;
-    if ($k and $v) {
+    my ( $k, $v ) = split ' ', $_, 2;
+    if ( $k and $v ) {
 
       # convert tabs in key back to literal, if needed (unlikely)
       $k =~ s/\\t/\t/g;
