@@ -14,3 +14,17 @@ my $basename = basename $0;
 die "usage: $basename date\n" unless @ARGV;
 
 print UnixDate(ParseDate($ARGV[0]), "%s"), "\n";
+
+=pod PREREQUISITES
+
+Date::Manip
+
+=pod OSNAMES
+
+any
+
+=pod SCRIPT CATEGORIES
+
+Utilities
+
+=cut

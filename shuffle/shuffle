@@ -30,3 +30,9 @@ sub fisher_yates_shuffle {
     @$array[$i, $j] = @$array[$j, $i];
   }
 }
+
+=pod SCRIPT CATEGORIES
+
+Utilities
+
+=cut

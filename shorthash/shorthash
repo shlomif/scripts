@@ -24,3 +24,9 @@ if (@ARGV) {
 }
 
 printf "%08x\n", unpack "N", Digest::MD5->new->addfile($fh)->digest;
+
+=pod SCRIPT CATEGORIES
+
+Utilities
+
+=cut

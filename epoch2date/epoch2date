@@ -50,3 +50,9 @@ for my $epoch (@ARGV) {
   print strftime $format, eval "$function $epoch";
   print "\n";
 }
+
+=pod SCRIPT CATEGORIES
+
+Utilities
+
+=cut

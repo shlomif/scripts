@@ -26,3 +26,9 @@ print sort {
   lc $la cmp lc $lb;
 
 } <>;
+
+=pod SCRIPT CATEGORIES
+
+Utilities
+
+=cut
