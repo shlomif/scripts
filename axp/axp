@@ -75,7 +75,7 @@ my @rules = (
   },
 );
 
-print_help() if $opts{h} or $opts{?} or not @ARGV;
+print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
@@ -100,18 +100,15 @@ FILE: for my $file (@ARGV) {
   $filedata{dirname}  = dirname $file;
   $filedata{suffix}   = [ get_suffixes($file) ];
 
-  # TODO only load docheaders details if needed by rules??
+  # TODO only load docheaders details if needed by rules?
   %filedata = ( %filedata, %{ $xapply->docheaders } );
 
   my ( $result, $rule_prefs ) = parse_rules( \%filedata );
   next FILE unless $result;
 
-  $xapply->config( { %$rule_prefs, %user_prefs } );
-
-  # TODO single file to stdout, (unless -i), multiple files requires -i ??
-  #
-  # TODO how pass in params?
-  my ( $docref, $details ) = $xapply->transform( { 'request.uri' => 'URI' } );
+  # TODO single file to stdout, (unless -i), multiple files requires -i ?
+  my ( $docref, $details ) = $xapply->transform( { %$rule_prefs, %user_prefs },
+    { 'request.uri' => 'URI' } );
   die $xapply->errorstring unless defined $docref;
   print $$docref, "\n";
 }
