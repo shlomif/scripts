@@ -179,7 +179,12 @@ sub handle_distribution {
     push @buckets, $results{max} unless $buckets[-1] == $results{max};
     do_dist(\@array, \@buckets);
   } elsif ($way =~ /^r/) {
-    my @buckets = $results{min} .. $results{max};
+
+    # ensure range goes to 1 higher than floating point numbers
+    my $max = $results{max};
+    $max = 1 + int($max) if $max =~ /\./;
+    my @buckets = $results{min} .. $max;
+
     do_dist(\@array, \@buckets);
   }
 }
