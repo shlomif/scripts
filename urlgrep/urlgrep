@@ -6,7 +6,9 @@
 # public domain.
 #
 # Extracts links from a requested document and runs them by a supplied
-# regular expression to grep for URL.
+# Perl regular expression to grep for URL. Hence, 'urlgrep' as the name.
+#
+# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 
@@ -14,6 +16,7 @@ use File::Basename qw(basename);
 my $basename = basename($0);
 
 use HTML::TokeParser ();
+use LWP::UserAgent   ();
 use URI              ();
 
 use Getopt::Std;
@@ -56,7 +59,6 @@ sub get_document {
 
   if ( $target->scheme ) {
     # TODO URL lookup needs more error checking
-    use LWP::UserAgent;
     my $ua =
      LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
     $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
@@ -185,7 +187,108 @@ sub remark {
 }
 
 sub print_help {
-  print "usage: $basename URL|file|- [regular-expression]\n";
+  warn "usage: $basename [opts] URL|file|- [regular-expression]\n";
+  warn "\nRun perldoc(1) on this script for additional documentation.\n\n";
   exit 100;
 }
 
+__DATA__
+
+=head1 NAME
+
+urlgrep - extract links from a given URL or file
+
+=head1 SYNOPSIS
+
+List the RPM for PostgreSQL of the 7.4 version, first release.
+
+  $ urlgrep http://www.postgresql.org/download.html '/7\.4-1\.[^.]+\.rpm$'
+
+Match any C<*.patch> files on the OpenBSD errata page and download any
+with C<wget>.
+
+  $ urlgrep http://openbsd.org/errata.html '.patch$' | xargs wget
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Provides a means to list URL in a given HTML document, limited by an
+optional Perl regular expression. Useful when one is looking for a
+specific (matchable) set of documents listed on a page, where there are
+too many or too large false positives to justify simply downloading all
+links from a page.
+
+=head2 Normal Usage
+
+  $ urlgrep [options] URL|file|- [regular-expression]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+The script will determine whether a URL, a file, or standard input (via
+a filname of C<->) should be parsed as HTML for links. An optional Perl
+regular expression can be specified to limit matches. Any matched URL
+will be printed to standard output, and any errors or warnings to
+standard error.
+
+Use of a caching proxy is recommended, as numerous hits on an URL may be
+required while fine tuning a regular expression. If possible, this
+script will use a proxy specified by the standard unix proxy environment
+variables of C<http_proxy> and C<ftp_proxy>.
+
+  $ export http_proxy=http://proxy:3128
+  $ urlgrep ... | xargs wget --continue --proxy=on --passive-ftp
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-b> I<base-url>
+
+Specify custom base URL that will be used to qualify any relative links
+in the document. This custom URL will override any C<base> element found
+in the document, or the URL if a URL was specified to download instead
+of a local file or standard input.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues. See the source for TODO and other ideas for
+improvements.
+
+=head1 SEE ALSO
+
+perl(1), HTML::TokeParser, LWP::UserAgent, URI
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
