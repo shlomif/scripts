@@ -29,30 +29,44 @@ use File::Find;			# recursive directory walking
 #
 # VARIABLES
 
-my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid,
-    $verbose, $quiet, %badgroups, %badperms, $skip, $prune);
+    $verbose, $quiet, %badgroups, %badperms, $skip, $prune, $report,
+    $parent);
 
 ######################################################################
 #
 # MAIN
 
 # deal with command line options
-getopts('h?p:s:d:f:u:g:vq', \%opts);
+getopts('h?p:s:d:f:u:g:Grvq', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
+# make sure we got valid arguments...
+unless (exists $opts{'u'} or exists $opts{'g'} or 
+	exists $opts{'f'} or exists $opts{'d'}) {
+    die "Error: no action flag(s) specified\n";
+}
+if (exists $opts{'G'} and ! exists $opts{'u'}) {
+    die "Error: the -G flag requires -u\n";
+}
+
+# set some misc. options...
 $verbose = 1 if exists $opts{'v'};
+$report = 1 if exists $opts{'r'};
 if (exists $opts{'q'}) {
     $verbose = 0;
+    $report = 0;
     $quiet = 1;
 }
 
 $skip = $opts{'s'} if exists $opts{'s'};
 $prune = $opts{'p'} if exists $opts{'p'};
 
-# read in primary arguments (e.g. bits to set on various files...)
+# read in action flags
 
 # get directory mode to set
 if (exists $opts{'d'}) {
@@ -66,7 +80,7 @@ if (exists $opts{'d'}) {
 	# or an array ref for apply_mode to use
 	$dirmode = parse_mode($temp_dirmode);
 
-	die "Invalid directory mode: $temp_dirmode\n" unless $dirmode;
+	die "Error: invalid directory mode $temp_dirmode\n" unless $dirmode;
     }
 }
 
@@ -80,7 +94,7 @@ if (exists $opts{'f'}) {
     } else {
 	$filemode = parse_mode($temp_filemode);
 
-	die "Invalid file mode: $temp_filemode\n" unless $filemode;
+	die "Error: invalid file mode $temp_filemode\n" unless $filemode;
     }
 }
 
@@ -95,7 +109,7 @@ if (exists $opts{'u'}) {
     if ($temp_user =~ m/^\d+$/) {
 	# check that this userid exists in passwd file
 	unless ($user = getpwuid $temp_user) {
-	    warn 'warning: userid ', $temp_user, " not found on system\n"
+	    warn 'Warning: unknown userid ', $temp_user, "\n"
 		unless $quiet;
 	}
 	$userid = $temp_user;
@@ -103,48 +117,58 @@ if (exists $opts{'u'}) {
     } else {
 	# need the userid, regardless; can't pull out in scalar mode
 	# as root's 0 id triggers the or die... :)
-	(undef, undef, $userid, undef) = getpwnam $temp_user or 
-	    die 'no such user: ', $temp_user, "\n";
+	(undef, undef, $userid, $groupid) = getpwnam $temp_user or 
+	    die 'Error: no such user ', $temp_user, "\n";
 	$user = $temp_user;
     }
 }
 
-# group to set
-if (exists $opts{'g'} || defined $group) {
-    my $members; # for sanity checking
-    my $temp_group;
+unless (exists $opts{'G'}) {
+    # need to undefine $groupid, unless there's -g or $group crap
+    unless (exists $opts{'g'} || defined $group) {
+	undef $groupid;
 
-    # if group already defined, using -u user:group notation,
-    # ignore the -g option!
-    if (defined $group) {
-	$temp_group = $group;
     } else {
-	$temp_group = $opts{'g'};
-    }
+	my ($members, $temp_groupid); # for sanity checking
+	my $temp_group;    
+	$temp_groupid = $groupid if defined $groupid;
+	
+	if (exists $opts{'g'} || defined $group) {
+	    
+	    # if group already defined, using -u user:group notation,
+	    # ignore the -g option!
+	    if (defined $group) {
+		$temp_group = $group;
+	    } else {
+		$temp_group = $opts{'g'};
+	    }
+	    
+	    # by groupid, otherwise attempt by group name
+	    if ($temp_group =~ m/^\d+$/) {
+		unless (($group, undef, $groupid, $members) = 
+			getgrgid $temp_group) {
 
-    # by groupid, otherwise attempt by group name
-    if ($temp_group =~ m/^\d+$/) {
-	unless (($group, undef, $groupid, $members) = getgrgid $temp_group) {
-	    # hmmm, at least Linux doesn't appear to allow me to
-	    # set the gid to a non-existant group number in perl...
-	    die 'groupid ', $temp_group, " not found on system, quitting\n"
-	}
-    } else {
-	# extract more info on the group they gave us
-	($group, undef, $groupid, $members) = getgrnam $temp_group or 
-	    die 'no such group: ', $temp_group, "\n";
-    }
+		    # hmmm, at least Linux doesn't appear to allow me to
+		    # set the gid to a non-existant group number in perl...
+		    die 'Error: unknown groupid ', $temp_group, "\n";
+		}
+	    } else {
+		# extract more info on the group they gave us
+		($group, undef, $groupid, $members) = getgrnam $temp_group or 
+		    die 'Error: no such group ', $temp_group, "\n";
+	    }
+	    
+	    # some user/group sanity checking: check whether user is a member
+	    # of the group in question
+	    if ((defined $temp_groupid && $temp_groupid != $groupid) && 
+		exists $opts{'u'} && defined $members) {
 
-    # some user/group sanity checking: check whether user is a member
-    # of the group in question
-    #
-    # JAM 2000-09-20 still needs some fixing, as user's name often not in
-    # /etc/groups entry for their default group...
-    if (exists $opts{'u'} && defined $members) {
-	# username had better appear as a word in $members...
-	unless ( $members =~ m/\b$user\b/o ) {
-	    warn 'warning: ', $user, ' not member of group ', $group, "\n"
-		unless $quiet || $userid == 0;
+		# username had better appear as a word in $members...
+		unless ($members =~ m/\b$user\b/o) {
+		    warn "Warning: $user not member of group $group \n"
+			unless $quiet || $userid == 0;
+		}
+	    }
 	}
     }
 }
@@ -156,37 +180,40 @@ chomp (@ARGV = <STDIN>) unless @ARGV;
 help() unless @ARGV;
 
 # loop over the remaining input, looking for dirs and parsing them
-foreach ( @ARGV ) {
-    unless (-d $_) {
-	warn "error: $_ not a directory, skipping\n" if $verbose;
+for $parent (@ARGV) {
+    unless (-d $parent) {
+	warn "Warning: skipping non-directory $parent\n" unless $quiet;
 	next;
     }
 
-    find(\&zapit, $_);
+    find(\&zapit, $parent);
 }
 
-# now, report on who was a bad user (e.g. is setting the wrong group)
-# keys are the uid's of bad users
-if (keys %badgroups > 0 && ! $quiet) {
-    print "\nUsers owning files with improper groups:\n";
-    foreach ( keys %badgroups ) {
-	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
-
-	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
-	$dir, "\t", $badgroups{$_}, "\n";
+if ($report) {
+    # report on who was a bad user (e.g. is setting the wrong group)
+    # keys are the uid's of bad users
+    if (keys %badgroups > 0 && ! $quiet) {
+	print "Users owning files with improper groups:\n";
+	foreach ( keys %badgroups ) {
+	    my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
+	    
+	    print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
+	    $dir, "\t", $badgroups{$_}, "\n";
+	}
+	print "\n";
     }
-}
-
-# and same for the permissions on files
-if (keys %badperms > 0 && ! $quiet) {
-    print "\nUsers owning files with improper permissions:\n";
-    foreach ( keys %badperms ) {
-	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
-
-	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
-	$dir, "\t", $badperms{$_}, "\n";
+    
+    # and same for the permissions on files
+    if (keys %badperms > 0 && ! $quiet) {
+	print "Users owning files with improper permissions:\n";
+	foreach ( keys %badperms ) {
+	    my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
+	    
+	    print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
+	    $dir, "\t", $badperms{$_}, "\n";
+	}
+	print "\n";
     }
-    print "\n";
 }
 
 ######################################################################
@@ -210,12 +237,12 @@ sub zapit {
 	    
 	    if ($@) {
 		chomp $@;
-		die "Prune error: ", $@; # croak on errors
+		die "Error: prune eval failure: ", $@; # croak on errors
 	    }
 	    
 	    if ($result) {
 		$File::Find::prune = 1;
-		warn "pruned ", $File::Find::name, "\n" if $verbose;
+		warn "Pruned: ", $File::Find::name, "\n" if $verbose;
 		return;
 	    }
 	}
@@ -226,10 +253,11 @@ sub zapit {
 	    
 	    if($@) {
 		chomp $@;
-		die "Skip error: ", $@; # croak on errors
+		die "Error: skip eval failure: ", $@; # croak on errors
 	    }
 	    
 	    if($result) {
+		warn "Skipped: ", $File::Find::name, "\n" if $verbose;
 		return;
 	    }
 	}
@@ -249,17 +277,16 @@ sub zapit {
 	    # code below being identical...
 	    if ($new_mode != $cur_mode) {
 		# show the offending file if verbose on
-		print 'OLDMODE', "\t", 
-		sprintf ("%04o", $cur_mode), "\t", 
+		print 'Old mode: ', sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 
 		# attempt the change
 		my $result = chmod $new_mode, $_;
-		warn "error: chmod on ", 
-		$File::Find::name, " failed\n" if $result == 0;
+		warn "Warning: chmod failure on: ", 
+		$File::Find::name, "\n" if $result == 0;
 
 		# log bad permissions
-		$badperms{$cur_uid}++;
+		$badperms{$cur_uid}++ if $report;
 	    }
 	}
 
@@ -270,10 +297,11 @@ sub zapit {
 	    
 	    if ($@) {
 		chomp $@;
-		die "Skip error: ", $@; # croak on errors
+		die "Error: skip eval failure: ", $@; # croak on errors
 	    }
 	    
 	    if ($result) {
+		warn "Skipped: ", $File::Find::name, "\n" if $verbose;
 		return;
 	    }
 	}
@@ -292,17 +320,16 @@ sub zapit {
 	    # only perform the chmod if modes are different...
 	    if ($new_mode != $cur_mode) {
 		# show the offending file if verbose on
-		print 'OLDMODE', "\t", 
-		sprintf ("%04o", $cur_mode), "\t", 
+		print 'Old mode: ', sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 		
 		my $result = chmod $new_mode, $_;
 		
-		warn "error: chmod on ", 
-		$File::Find::name, " failed\n" if $result == 0;
+		warn "Warning: chmod failure on: ", 
+		$File::Find::name, "\n" if $result == 0;
 		
 		# log bad permissions
-		$badperms{$cur_uid}++;
+		$badperms{$cur_uid}++ if $report;
 	    }
 	}
     }
@@ -317,15 +344,15 @@ sub zapit {
 	my $gid_temp = (defined $groupid) ? $groupid : $cur_gid;
 	
 	# yak if verbose
-	print 'OLDUID/GID', "\t", $cur_uid, "\t", $cur_gid, "\t", 
+	print 'Old UID GID: ', $cur_uid, "\t", $cur_gid, "\t", 
 	$File::Find::name, "\n" if $verbose;
 	
 	my $result = chown $uid_temp, $gid_temp, $_;
-	warn "error: chown on ", 
-	$File::Find::name, " failed\n" if $result == 0;
+	warn "Warning: chown failure on: ", 
+	$File::Find::name, "\n" if $result == 0;
 	
 	# log this change so we know whose been setting bad groups
-	$badgroups{$cur_uid}++ if defined $groupid;
+	$badgroups{$cur_uid}++ if defined $groupid && $report;
     }
 }
 
@@ -409,25 +436,28 @@ sub apply_mode {
 # a standardized help blarb, see perldoc stuff for more meat
 sub help {
      print <<"HELP";
-modefix.pl [options] dir1 [dir2 dir3 .. dirN]
+$0 [options] dir1 [dir2 dir3 .. dirN]
 
-A recursive permissions/ownership fixer.
+A unix permissions and ownership changer.
 
 Options for version $VERSION
   -h/?   See this text.
-  -v     Verbose mode, shows files fixing.
-  -q     Overrides -v, only output will be on serious failures.
-    
+  -v     Verbose mode.
+  -r     Print a little report summarizing changes.
+  -q     Quiet mode, overrides verbose and report modes.
+
+ At least one action flag is required:
   -d nn  Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
   -f nn  File mode to set,      e.g. '660'  or 'ug+rw'
   -u uu  User name to set,      e.g. 'jdoe' or '42'
   -g gg  Group name to set,     e.g. 'goobers' or '1492'
 
-  -s xx  Perl expression that will result in the current item
-         being skipped if the expression turns out to be "true."
-  -p xx  Prune matching diretories from search tree.
+  -G     Use default group for user given by -u (overrides -g)
 
-Use perldoc on this script for more help.
+  -s xx  Perl expression to skip files.
+  -p xx  Perl expression to prune directories from search.
+
+Run perldoc(1) on this script for additional documentation.
 
 HELP
     exit;
@@ -441,7 +471,7 @@ __END__
 
 =head1 NAME
 
-modefix.pl - recursive permission and ownership changer.
+modefix.pl - a unix permission and ownership changer.
 
 =head1 SYNOPSIS
 
@@ -458,15 +488,15 @@ any access whatsoever to the files under the current directory:
 =head1 DESCRIPTION
 
 modefix.pl is a pure-perl implementation of the following three shell
-commands I got tired of typing:
+commands I got tired of running over large filesystems:
 
   $ find . -type d | xargs chmod 2750
   $ find . -type f | xargs chmod 640
   $ find . | xargs chown john:doe
 
 Which really is not all that efficient or practical, if you want to
-skip certain items, prune out a few directories, and avoid rampaging
-over the same files three times in a row.
+skip certain items, prune out a few directories, and only walk over
+the same files once.
 
 modefix.pl also does not suffer from the fork penalty find(1) incurs
 when xargs(1) does not work and -exec must be used; nor does it run
@@ -500,10 +530,18 @@ View a brief help blarb.
 Verbose mode, shows files being changed. Good if you want an audit
 trail of what the system looked like before the script ran.
 
+=item B<-r>
+
+Report mode.  Will print out a list summarizing which users owned
+files with improper permissions or ownerships, plus a count on on the
+magnitude of the problem.
+
+This eases tracking down of who is setting improper modes on files.
+
 =item B<-q>
 
-Quiet mode.  Overrides verbose mode-- only output will be on
-chown/chmod failures.
+Quiet mode.  Overrides verbose and report modes; only output will be
+on chown/chmod failures.
 
 The default is to print various warnings, and to generate a little
 summary report at the end of what was done.  Quiet mode is good for
@@ -513,8 +551,8 @@ automated fixing taking place from cron.
 
 =head2 Actions
 
-At least one of the following is required to make the script do
-something:
+At least one of the following four options are required to make the
+script do something besides complain at you:
 
 =over 4
 
@@ -547,6 +585,15 @@ Also, unless quiet mode is on, modefix.pl warns if you enter a id that
 does not exist on the system, or if the user is not a member of the
 specified group.
 
+=item B<-G>
+
+Use default group for user given by the required B<-u> option.
+Overrides the B<-g> flag.  This allows one to fix the ownerships in a
+directory without having to consult what the default group is for the
+user:
+
+  $ modefix.pl -G -u john /home/john
+
 =back
 
 =head2 Search Customization
@@ -571,15 +618,20 @@ actions are performed; modefix.pl will happily apply changes below a
 =item B<-p> I<expression>
 
 Perl expression that will result in the current directory (stored in
-$_) and anything below that directory being "pruned" from the search,
-in this case any hidden dot directories:
+$_) and anything below that directory being "pruned" from the search.
 
-  -p 'm/^\../' .
+For example, one can easily prune out all directories lower than the
+one supplied as an argument by using the special $parent variable to
+check against the current directory; essentially, this turns off the
+default recursive behaviour of File::Find:
 
-Expressions should use the shortcut _ operator in any stat() calls, to
-avoid race conditions.
+  -p '$parent ne $_'
 
 =back
+
+Note: Expressions should use the shortcut _ operator in any stat()
+calls, to avoid race conditions.  See the entry for stat under
+perlfunc(1) for the gory details.
 
 =head1 MORE ON MODES
 
@@ -652,7 +704,7 @@ support on softlinks appears to vary by OS.
 
 =head1 SEE ALSO
 
-chmod(1), chown(1), find(1), perl(1), xargs(1)
+chmod(1), chown(1), File::Find, find(1), perl(1), xargs(1)
 
 =head1 AUTHOR
 
