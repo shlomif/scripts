@@ -1,17 +1,39 @@
-#!/usr/bin/perl -l
-
+#!/usr/bin/perl -w
+#
 # $Id$
+#
+# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+# software; you can redistribute it and/or modify it under the same
+# terms as Perl itself.
+#
+# Run perldoc(1) on this file for additional documentation.
+#
+######################################################################
+#
+# REQUIREMENTS
 
-# Demonstration script showing how File::Size (or whatever it ends up
-# being called) would work to humanize output file sizes...
+require 5.005;
+
+use strict;
 
 ######################################################################
 #
-# CONSTANTS
+# MODULES
+
+use Carp;			# better error reporting
+use Getopt::Std;		# command line option processing
+
+######################################################################
 #
+# VARIABLES
+
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts);
+
 # All constants held in global hash, which can be overridden when
 # calling the humanize routine.
-
 my %global_prefs = (
 	     # include decimals in output? (e.g. 25.8 K vs. 26 K)
 	     'decimal' => 1,
@@ -30,10 +52,20 @@ my %global_prefs = (
 	     'suffix' => [ '', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y' ],
 	     );
 
-# note all these numbers are presumed to represent bytes; could add
-# optional pref to specify a conversion factor to deal with incoming
-# blocks or KB values (i.e. convert to bytes, then run humanization)
-print humanize($ARGV[0]);
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+exit;
+
+######################################################################
+#
+# SUBROUTINES
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
 # to be something human readable.
@@ -41,7 +73,7 @@ print humanize($ARGV[0]);
 # takes a number, returns formatted string.  Also takes optional
 # hash containing various defaults that affect output style.
 sub humanize {
-    my $num = shift; # could also take a array ref or hash ref to parse thru?
+    my $num = shift;
     my %prefs = @_;
 
     # inherit global prefs, but give preference to user supplied ones
@@ -98,11 +130,134 @@ sub humanize {
     return $prefix . $tmp . $prefs{'suffix'}->[$count];
 }
 
-__END__
+# a generic help blarb
+sub help {
+    print <<"HELP";
+Usage: $0 [opts]
 
-# some perldoc so my 2website script doesn't complain :)
+Script to humanize numbers in data.
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+  -b nn  Number to offset incoming data by.
+  -k     Default incoming data to kilobtyes. (Default is bytes)
+
+  -m rr  Regex to match what to operate on. (Default is \d{4})
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+    exit;
+}
+
+######################################################################
+#
+# DOCUMENTATION
+
 =head1 NAME
 
-human.pl - demonstrates humanization of file sizes.
+human.pl - humanizes numbers in data
+
+=head1 SYNOPSIS
+
+Make df output readable on systems lacking the human output option:
+
+  $ df -k | human.pl -k
+
+=head1 DESCRIPTION
+
+Intended as a quick way to humanize the output from random programs
+that displays unreadable file sizes, such as df(1) on large file
+systems:
+
+  $ df -k | grep nfs
+  nfs:/mbt    1026892400 704296472 322595928    69%    /mbt
+
+While certain utilities now support humanized output internally, not
+all systems have those utilities.  Hence, this perl script is intended
+to fill that gap util more utilities support humanization routines
+directly.  This will become more important as file systems continue to
+grow, and the number of bytes something takes up less meaningful to
+the user.
+
+=head2 Normal Usage
+
+  $ human.pl [options]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+human.pl expects the data to be humanized to come via STDIN, and
+results of the humanization will be piped to STDOUT.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-b> I<base>
+
+Optional number to factor the incoming data by.  The humanizing
+routine operates on bytes by default, so numbers of different formats
+will have to be adjusted accordingly.
+
+=item B<-k>
+
+Overrides B<-b> and treats the incoming data as if in kilobytes.
+
+=item B<-m> I<regex>
+
+Optional perl regex to specify what in the incoming data should be
+operated on; default is to operate on digit runs longer than three
+characters.
+
+=back
+
+=head1 EXAMPLES
+
+None yet.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
+=head1 HISTORY
+
+Inspired from the B<-h> option present in GNU df, which is sorely
+lacking in commercial varients of the same name.
+
+=head1 VERSION
+
+  $Id$
 
 =cut
