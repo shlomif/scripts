@@ -138,7 +138,7 @@ sub parse_spec {
     remark('error', "unable to parse specification '$string'");
     exit 103;
   } else {
-    unless (grep /^\d$/, $spec->{default}, values %{$spec->{keys}}) {
+    unless (grep { defined and /^\d$/ } $spec->{default}, values %{$spec->{keys}}) {
       remark('error', "no valid exit codes in specification '$string'");
       exit 103;
     }
