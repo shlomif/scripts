@@ -23,7 +23,7 @@ use strict;
 use Carp;			# better error reporting
 use Getopt::Std;		# command line option processing
 
-
+use File::Tail 0.91;		# tail -f on steroids
 
 ######################################################################
 #
@@ -32,7 +32,15 @@ use Getopt::Std;		# command line option processing
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my (%opts, @files);
+
+# various File::Tail object preferences.  listen much faster than default
+# to emulate tail(1) at expense of more busy wait.
+my $maxinterval = 2;
+my $interval = 1;
+my $adjustafter = 1;
+my $tail = 0;
+my $reset_tail = -1;
 
 ######################################################################
 #
@@ -43,13 +51,44 @@ getopts('h?', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
+$maxinterval = $opts{'m'} if exists $opts{'m'} and $opts{'m'} =~ /^\d+$/;
+$interval =    $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
+$adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
+$tail =        $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
+$reset_tail =  $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+
 # read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
 # and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+help() unless @ARGV;
 
+for (@ARGV) {
+    push @files, File::Tail->new(
+				 name=>"$_",
+				 maxinterval => $maxinterval,
+				 interval => $interval,
+				 adjustafter => $adjustafter,
+				 tail => $tail,
+				 reset_tail => $reset_tail,
+				 );
+}
 
+my $rin='';
+my $nfound;
+
+while (1) {
+    $nfound = File::Tail::select(undef, undef, undef, 60, @files);
+    unless ($nfound) {
+	my @ints;
+	for (@files) {
+	    push @ints, $_->interval;
+	}
+    }
+    for (@files) {
+	print $_->read unless $_->predict;
+    }
+}
 
 exit;
 
