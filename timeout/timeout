@@ -164,10 +164,6 @@ time.  Practical uses for this script include escape from buggy
 programs that stall from Makefile, where a SIGINT to stop the program
 will also stop make.
 
-TODO: Currently, a hard upper time limit must be specified.  In
-theory, one could watch the output from the program and stop the
-program if it remains idle for some period of time.
-
 =head2 Normal Usage
 
   $ timeout.pl duration program [program args]
@@ -220,6 +216,18 @@ Patches that fix problems or add new features are welcome.
 =head2 Known Issues
 
 No known bugs.
+
+=head1 TODO
+
+Currently, a hard upper time limit must be specified.  In theory, one
+could watch the output from the program and stop the program if it
+remains idle for some period of time.
+
+Since using a piped read from a program, likely cannot supply STDIN to
+the program in question.
+
+Make sure signals are properly passed back from command being run and
+reported on?
 
 =head1 SEE ALSO
 
