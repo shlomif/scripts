@@ -31,8 +31,6 @@ use Getopt::Std;  # command line option processing
 
 use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 
-#use Cwd;                 # working directory operations
-#use File::Temp;          # safe temporary files
 use File::Basename;       # parses file specifications
 
 ######################################################################
@@ -173,33 +171,7 @@ sub do_extract {
     # see sshd(8) for expected format of auth_key_file
     next if m/^#/ or m/^\s*$/;
 
-    # TODO: improve parser to get around boundary cases!
-    # e.g.: command="mumble ssh-rsa AAAA...." ssh-rsa AAAA....
-
-    # try to pull apart key so we can do a checksum on the
-    # important bits (i.e. not the optional option and comment fields)
-    my $goodbits;
-
-    my @elements = split /\s/;
-    for (0 .. $#elements) {
-      if ($elements[$_] =~ m/^(?:ssh-(?:rsa|dss)|\d+)$/) {
-        splice @elements, 0, $_;
-        last;
-      }
-    }
-
-    die "Error: out of elements" unless @elements;
-
-    if ($elements[0] =~ m/^ssh-(?:rsa|dss)$/) {
-      $goodbits = join " ", @elements[0 .. 1];
-    } else {
-      $goodbits = join " ", @elements[0 .. 2];
-    }
-
-    my $hash = sprintf "%08x", unpack "N", md5($goodbits);
-    $hash =~ /([A-Za-z0-9]+)/;
-    $hash = $1;
-    die "Error: not enough characters in hash" if length $hash < 8;
+    my $hash = parse_authkey($_);
 
     # save key to external file
     open OUT, ">$hash$temp_key_suffix"
@@ -236,6 +208,59 @@ sub do_clean {
     $_ = $1;
     unlink if -f;
   }
+}
+
+# accepts scalar bearing single authorized_key.  returns undef on
+# failure to parse a key, and either the shorthash or an array
+# of (goodbits, shorthash, options, comment) otherwise.
+sub parse_authkey {
+  my $authkey = shift;
+  my (@values, @options);
+
+  # TODO: improve parser to get around boundary cases!
+  # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
+
+  # try to pull apart key so we can do a checksum on the
+  # important bits (i.e. not the optional option and comment fields)
+  my @elements = split /\s/, $authkey;
+  for my $i (0 .. $#elements) {
+
+    if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
+      and $elements[$i + 1] =~ m/^AAAA/) {
+
+      $values[0] = join " ", @elements[$i .. $i + 1];
+      $values[3] = join " ", @elements[$i + 2 .. $#elements];
+
+      last;
+
+      } elsif ($elements[$i] =~ m/^\d+$/
+      and $elements[$i + 1] =~ m/^\d+$/
+      and $elements[$i + 2] =~ m/^\d+$/) {
+
+      $values[0] = join " ", @elements[$i .. $i + 2];
+      $values[3] = join " ", @elements[$i + 3 .. $#elements];
+
+      last;
+    }
+
+    push @options, $elements[$i];
+  }
+
+  unless (@values) {
+    warn "Could not parse key from: $authkey\n";
+    return;
+  }
+
+  # need to untaint hash as could be used in filename
+  $values[1] = sprintf "%08x", unpack "N", md5($values[0]);
+  $values[1] =~ /([A-Za-z0-9]+)/;
+  $values[1] = $1;
+  die "Error: not enough characters in hash" if length $values[1] < 8;
+
+  $values[2] = "@options";
+
+  # full results or just the shorthash
+  return wantarray ? @values : $values[1];
 }
 
 # a generic help blarb
@@ -375,6 +400,9 @@ Patches that fix problems or add new features are welcome.
 Commands expecting arguments use tabs to separate the parameters. 
 Tabs are difficult to input on the command line, so STDIN is advised
 for commands that require arguments.
+
+Comments or blank lines in the authorized_keys file will be deleted
+following an extract-merge cycle.
 
 =head1 TODO
 
