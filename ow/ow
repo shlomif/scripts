@@ -220,7 +220,7 @@ tell application "OmniWeb"
         flush cache
         reload tref
         set seen_url to true
-        exit repeat
+        -- exit repeat
       end if
     end repeat
   end repeat
