@@ -18,6 +18,8 @@ sub determine_role;
 sub check_access;
 sub print_help;
 
+my $exit_status = 0;
+
 # unix file type mappings
 # TODO use "use Fcntl ':mode';" instead?
 my %filetype = (
@@ -79,7 +81,7 @@ for (
     next;
   }
 
-  if (/^dir=(.+)$/) {
+  if (/^file=(.+)$/) {
     if (exists $opts{path}) {
       warn "notice: skipping as already have path: $_\n";
       next;
@@ -98,9 +100,10 @@ for (
 print_help if exists $opts{options}->{h};
 
 $opts{path} = resolve_path '.' unless exists $opts{path};
-die "error: no path to work with\n"
- unless exists $opts{path}
- and defined $opts{path};
+unless (exists $opts{path} and defined $opts{path}) {
+  warn "error: no path to work with\n";
+  exit 101;
+}
 
 $opts{constraint} = 1
  if exists $opts{options}->{u}
@@ -127,7 +130,10 @@ if (exists $opts{constraint} and not exists $opts{perms}) {
 $opts{perms} = [sort keys %{$opts{perms}}];
 
 my @pathbits = File::Spec->splitdir($opts{path});
-die "error: unable to split realpath: $opts{path}" unless @pathbits;
+unless (@pathbits) {
+  warn "error: unable to split realpath: $opts{path}";
+  exit 101;
+}
 
 my $current = '';
 for my $i (0 .. $#pathbits) {
@@ -135,7 +141,8 @@ for my $i (0 .. $#pathbits) {
   my $filedata = getfileinfo $current;
 
   unless ($filedata) {
-    die "error: no data about $current\n";
+    warn "error: no data about $current\n";
+    exit 103;
   }
 
   # TODO means of supplying output fields and their order?
@@ -150,6 +157,8 @@ for my $i (0 .. $#pathbits) {
     check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{perms};
   }
 }
+
+exit $exit_status;
 
 sub resolve_path {
   my $potential = shift;
@@ -202,7 +211,8 @@ sub determine_role {
       $function .= 'nam';
       $userdata{id} = eval qq{$function("$who")};
       unless (defined $userdata{id}) {
-        die "error: could not determine id from $function $who\n";
+        warn "error: could not determine id from $function $who\n";
+        exit 102;
       }
       next if exists $seen{"$type.$userdata{id}"};
       $userdata{name}              = $who;
@@ -277,8 +287,10 @@ sub check_access {
 
       my @fails;
       for my $bit (@$perms) {
-        push @fails, $bit
-         unless $filedata->{unix_mode} & $modemap{$role->{type} . $bit};
+        unless ($filedata->{unix_mode} & $modemap{$role->{type} . $bit}) {
+          push @fails, $bit;
+          $exit_status = 10;
+        }
       }
       print $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
        ' fails on ', $filedata->{type}, ' ', $filedata->{name}, "\n"
@@ -289,10 +301,13 @@ sub check_access {
     }
   }
 
-  # if drop off here without being restricted, need to check other access
+  # if drop off to here without being restricted, need to check "other"
   my @fails;
   for my $bit (@$perms) {
-    push @fails, $bit unless $filedata->{unix_mode} & $modemap{'other' . $bit};
+    unless ($filedata->{unix_mode} & $modemap{'other' . $bit}) {
+      push @fails, $bit;
+      $exit_status = 10;
+    }
   }
   print 'other', ' +', join('', @fails), ' fails on ', $filedata->{type}, ' ',
    $filedata->{name}, "\n"
@@ -304,10 +319,10 @@ sub print_help {
   print <<"HELP";
 $0 takes the following arguments in any order:
 
-  directory - single directory to parse (default current directory).
-    -r  Attempt to use realpath() of directory.
+  filepath - single path to parse (default current directory).
+    -r  Attempt to use realpath() to file.
 
-  Use dir=directory if directory name conflicts with option.
+  Use file=path if the path name conflicts with an option.
 
   Constraints (uses current user/group if (user|group)= is missing):
 
@@ -319,9 +334,150 @@ $0 takes the following arguments in any order:
   -g    Use currrent group(s) if constraining.
   -R    Use real user/group instead of effective.
 
-  -h    Print these notes.
+  -h    Print these notes and exit script.
   -l    Verbose list of path to file (default if nothing else).
 
 HELP
-  exit 1;
+  exit 100;
 }
+
+=head1 NAME
+
+parsepath - parse unix file paths
+
+=head1 SYNOPSIS
+
+List permissions for the current working directory.
+
+  $ parsepath
+
+See whether current user has write access to a specified file.
+
+  $ parsepath +w /var/tmp
+
+See whether the specified group can read and execute a script.
+
+  $ parsepath +rx /var/www/cgi-bin/printenv group=www
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+A utility that assists debugging of permissions problems by showing file
+path listings for manual study, along with means to check whether the
+specified user or group has particular access to a file in question.
+Currently, only unix users, groups, and file permissions are supported.
+
+=head2 Normal Usage
+
+Options may be specified in any order:
+
+  filepath - single path to parse (default current directory).
+    -r  Attempt to use realpath() to file.
+
+  Use file=path if the path name conflicts with an option.
+
+  Constraints (uses current user/group if (user|group)= is missing):
+
+  +r|+w|+x  - check whether read, write, or execute access possible.
+  user=???  - specify user to limit to (default: current user).
+  group=??? - specify group to limit to (default: current group).
+
+  -u    Use current user if constraining.
+  -g    Use currrent group(s) if constraining.
+  -R    Use real user/group instead of effective.
+
+  -h    Print these notes and exit script.
+  -l    Verbose list of path to file (default if nothing else).
+
+Multiple permission checks are combined, so +rwx checks that the final
+file can be read, written, and executed. Parent directories leading up
+to the final file are checked for read and execute permission,
+regardless of the permissions specified on the command line.
+
+The verbose list output will go to standard out. Permission problems and
+other errors go to standard error, and a non-zero exit status used to
+indicate there was a problem. See L<"DIAGNOSTICS"> for more information
+on the exit codes.
+
+When checking for permission problems, no news is good news.
+
+=head1 DIAGNOSTICS
+
+On error, the script will exit with a non-zero exit status.
+
+=over 4
+
+=item B<10>
+
+The specified user or group did not have access to the file in question
+as requested. Parent directories and files will be listed to stardard
+error prior to the script exiting.
+
+=item B<100>
+
+Usage notes were printed.
+
+=item B<101>
+
+Path problem: no path specified to work with found, or there was a
+problem rendering the path into parts for processing.
+
+=item B<102>
+
+User or group problem: errors were encountered when attempting to lookup
+all required information about the user or group in question. Check
+whether the user or group in question exists in the system databases.
+
+=item B<103>
+
+File access problem. Returned when the script is unable to read the
+required file data about a particular file. Usually this indicates the
+user running the script does not have permission to read information
+about the file in question; rerun the script in list mode to see where
+the reporting stops.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 TODO
+
+Confirm permission checks properly emulate unix.
+
+Support for other ACL systems and permissions on other operating
+systems?
+
+=head1 SEE ALSO
+
+chmod(2), perl(1), stat(2)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=head1 SCRIPT CATEGORIES
+
+Unix/System_administration
