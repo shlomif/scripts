@@ -182,9 +182,8 @@ Lines to read after file reset.
 
 =back
 
-The various command line options that have (something) mentioned in
-them refer to the File::Tail new() parameters by the same name.
-See L<File::Tail> for more information on them.
+See L<File::Tail> for more information on the parenthesized parameter
+names, which are File::Tail parameters passed directy to the object.
 
 =head1 EXAMPLES
 
