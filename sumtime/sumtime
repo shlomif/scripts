@@ -20,8 +20,8 @@ use strict;
 #
 # MODULES
 
-use Carp;           # better error reporting
-use Getopt::Std;    # command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
 ######################################################################
 #
@@ -30,7 +30,16 @@ use Getopt::Std;    # command line option processing
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my (%opts, $duration);
+
+# how to convert various time units to seconds
+my %factor = (
+  'w' => 604800,
+  'd' => 86400,
+  'h' => 3600,
+  'm' => 60,
+  's' => 1,
+);
 
 ######################################################################
 #
@@ -42,10 +51,20 @@ getopts('h?', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 # read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
 # and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+help() unless @ARGV;
+
+for (@ARGV) {
+  for (/(\d+\s*[wdhms])/g) {
+    /(\d+)(\w)/;
+    $duration += $1 * $factor{$2};
+  }
+}
+
+warn "Basic duration: $duration\n";  #DBG
+print deltatimefmt($duration), "\n";
 
 exit;
 
@@ -53,12 +72,36 @@ exit;
 #
 # SUBROUTINES
 
+sub deltatimefmt {
+  my $difference = shift;
+  $difference = int($difference);
+
+  my $seconds = $difference % 60;
+  $difference = ($difference - $seconds) / 60;
+  my $minutes = $difference % 60;
+  $difference = ($difference - $minutes) / 60;
+
+  #  my $hours = $difference;
+  my $hours = $difference % 24;
+  $difference = ($difference - $hours) / 24;
+  my $days  = $difference % 7;
+  my $weeks = ($difference - $days) / 7;
+
+  # better way to do this?
+  my $temp = ($weeks) ? "${weeks}w " : '';
+  $temp .= ($days)    ? "${days}d "    : '';
+  $temp .= ($hours)   ? "${hours}h "   : '';
+  $temp .= ($minutes) ? "${minutes}m " : '';
+  $temp .= ($seconds) ? "${seconds}s"  : '';
+  return $temp;
+}
+
 # a generic help blarb
 sub help {
-    print <<"HELP";
-Usage: $0 [opts]
+  print <<"HELP";
+Usage: $0 [opts] [time parameters]
 
-Help for a generic script template.
+Script to aid in totalling up time.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -66,7 +109,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 ######################################################################
@@ -75,11 +118,11 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+sumtime.pl - aids totalling up time
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+  $ sumtime.pl 1d 3h 5m 71s
 
 =head1 DESCRIPTION
 
@@ -89,7 +132,7 @@ Short description of what script is intended to do.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ sumtime.pl [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -109,15 +152,7 @@ Use B<-f> I<asdf> if a switch takes an argument of some kind.
 
 =head1 EXAMPLES
 
-Additional examples/helpfull hints expanding on SYNOPSIS.
-
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
+None yet.
 
 =head1 BUGS
 
@@ -136,7 +171,9 @@ No known bugs.
 
 =head1 TODO
 
-Replace default stub POD entries with real documentation.
+Output formatting, e.g. raw seconds, or ability to select output time
+format (e.g. hours only, and so forth).  Ability to set a default
+input factor, e.g. when passing in unadorned hours or minutes.
 
 =head1 SEE ALSO
 
@@ -152,14 +189,8 @@ Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
 you can redistribute it and/or modify it under the same terms as Perl
 itself.
 
-=head1 HISTORY
-
-A blank perl template I threw together to make writing new scripts
-easier.
-
 =head1 VERSION
 
   $Id$
 
 =cut
-
