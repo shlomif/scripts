@@ -6,25 +6,24 @@
 # the public domain.
 #
 # Command line URL shortcuts and directory to URL mapping.
+#
+# TODO means to tab complete on dir/shortcuts? -o flag to choose what
+# output mode used (print, OmniWeb script, lynx, etc)?
 
 use URI;
 
-# what to launch URLs with
+# what to launch URLs with (but see sub visit below)
 my @open = qw(lynx);
-
-if ($^O eq 'darwin') {
-  @open = 'open';
-}
 
 my %pfiles = (
   shortcuts => '~/.ow/shortcuts',
-  dirmap   => '~/.ow/dirmap',
+  dirmap    => '~/.ow/dirmap',
 );
 
 # parse command-line options
 use Getopt::Std;
 my (%opts);
-getopts('d', \%opts);
+getopts('dl', \%opts);
 
 for (keys %pfiles) {
   $pfiles{$_} = tilde_expand($pfiles{$_});
@@ -44,11 +43,14 @@ if (exists $opts{d}) {
   if (@ARGV) {
     @dir = map { Cwd::abs_path($_) } grep -d, @ARGV;
   }
-  
+
   # default to current directory
   push @dir, Cwd::getcwd() unless @dir;
 
   for my $dir (@dir) {
+
+    my $got_url = 0;
+
     # longest first, so subdirs can override parent
     for (sort { length $b <=> length $a } keys %$dirmap) {
 
@@ -56,14 +58,17 @@ if (exists $opts{d}) {
       if ($pos > -1) {
         my $frag = substr($dir, $pos + length $_) || '';
         $frag .= "/";
-        
+
         # prevent // issues
         $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
         $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq '';
 
         visit(expand($dirmap->{$_}, [$frag]));
+        $got_url = 1;
       }
     }
+
+    warn "notice: no map for $dir\n" unless $got_url;
   }
 
   exit;
@@ -88,35 +93,35 @@ sub parse_sc {
   for (@$sc) {
     if (@$_ == 1) {
       if (exists $scuts->{$_->[0]}) {
-    
+
         # assume vanilla shortcuts are urls...
         visit($scuts->{$_->[0]});
-    
+
       } elsif ($_->[0] =~ m(^\w+://.)) {
-    
+
         # visit url-ish resources directly
         visit($_->[0]);
-    
+
       } elsif ($_->[0] =~ m/\./) {
-    
+
         visit('http://' . $_->[0]);
-    
+
       } elsif (exists $scuts->{'*'}) {
-    
+
         # * shortcut is for unmatched things, an example target would be
         # http://www.%@.com/ to expand input to .com websites
         visit(expand($scuts->{'*'}, $_));
-    
+
       } else {
         die "not sure what to do with: $_->[0]\n";
       }
     } else {
       my $key = shift @$_;
-    
+
       # shortcut names with parameters have a trailing @ on them,
       # but user should not type that
       $key .= '@';
-    
+
       # TODO check if two args whether second is actually a http:// URL,
       # which should get fed to direct lookup instead of google search
       # perhaps?
@@ -133,23 +138,66 @@ sub parse_sc {
 # into said pattern.  Returns expanded string.
 sub expand {
   my $pattern = shift;
-  my $terms = shift;
+  my $terms   = shift;
 
-    $pattern =~ s/\Q%@/join '+', @$terms/ge;
+  $pattern =~ s/\Q%@/join '+', @$terms/ge;
   $pattern =~ s/%(\d+)/$terms->[$1-1]||''/ge;
 
-  return $pattern;
+  my $url = URI->new($pattern)->canonical;
+
+  warn "notice: could not convert to URL: $url\n" unless $url;
+  return $url;
 }
 
 # expects URL to visit, handles lanuching what OS needs.
 sub visit {
-  my $url = URI->new(shift)->canonical;
-  warn "notice: could not parse $url, skipping" unless $url;
+  my $url = shift;
+  return unless $url;
+
+  if (exists $opts{l}) {
+    print $url, "\n";
+    return;
+  }
+
+  if ($^O eq 'darwin') {
+
+    # for Mac OS X, use AppleScript to open pages in background, as
+    # open(1) brings to foreground.
+    my $omniweb_open_script = <<EOF;
+set new_url to "$url"
+
+tell application "OmniWeb"
+        -- this closes windows referencing what we are opening to avoid
+        -- having multiple windows open to the same URL
+        repeat with win_id in ListWindows
+                set win_url to first item of (GetWindowInfo of win_id)
+                if win_url is equal to new_url then
+                        close window (index of window id win_id)
+                end if
+        end repeat
+
+        OpenURL new_url
+end tell
+EOF
+
+    # TODO error checking!
+    # TODO better handling of annoying output from osascript
+    close STDOUT;
+    open OSASCRIPT, "|-"
+     or exec 'osascript'
+     or die "problem with osascript: $!";
+    print OSASCRIPT $omniweb_open_script;
+    close OSASCRIPT;
+
+    return;
+  }
+
+  # default means to open URLs
+  # TODO error checking
   system @open, $url;
 }
 
 sub tilde_expand {
-  my @tmp;
   for (@_) {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
@@ -164,16 +212,18 @@ sub tilde_expand {
 sub loadconfig {
   my $f = shift;
   my $h;
-  
+
   open F, $f or die "error: unable to open $f: $!\n";
   while (<F>) {
     chomp;
     next if /^#/;
-    s/^\s+//; s/\s+$//;
+    s/^\s+//;
+    s/\s+$//;
     next if /^$/;
-    
+
     my ($k, $v) = split /\t/, $_, 2;
     if ($k and $v) {
+
       # convert tabs in key back to literal, if needed (unlikely)
       $k =~ s/\\t/\t/g;
 
@@ -181,6 +231,6 @@ sub loadconfig {
     }
   }
   close F or warn "warning: problem closing $f: $!\n";
-  
+
   return $h;
 }
