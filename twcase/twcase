@@ -5,7 +5,7 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Converts hex format IP address into IPv4 address humans like.
+# Twiddles case.
 
 use Getopt::Std;
 my %opts;
