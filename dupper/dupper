@@ -3,16 +3,16 @@
 use strict;
 
 use Carp;
-use File::Spec;
+#use File::Spec;
 
 # command to run to get MD5 checksum on file, assumes GNU-md5sum output
 my $md5 = '/usr/bin/md5sum';
 
-# MD5 sum => filename hash lookup table
-my %check;
-
 # loop over arguments which presumably are a bunch of directories
 foreach ( @ARGV ) {
+    # MD5 sum => filename hash lookup table
+    my %check;
+
     if (-d) {
 	unless (opendir (DIR, $_)) {
 	    warn 'Problem reading ', $_, ': ', $!, "\n";
