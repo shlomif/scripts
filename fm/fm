@@ -583,7 +583,7 @@ From cron, that would be something like:
 
 Newer versions of this script may be available from:
 
-http://www.sial.org/code/perl/
+http://sial.org/code/perl/
 
 If the bug is in the latest version, send a report to the author.
 Patches that fix problems or add new features are welcome.
@@ -599,7 +599,7 @@ perl(1), procmail(1), procmailrc(5)
 
 =head1 AUTHOR
 
-Jeremy Mates, http://www.sial.org/contact/
+Jeremy Mates, http://sial.org/contact/
 
 =head1 COPYRIGHT
 
