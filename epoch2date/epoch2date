@@ -1,33 +1,52 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Converts epoch times to human parsable dates.
+# Converts epoch times to human parsable dates. Accepts list of epoch
+# dates (integers) on command line. Use xargs(1) or similar to take
+# input from a file.
+#
+# epoch2date `perl -le 'print time'`
+# echo 1059673440 | xargs epoch2date
 
 require 5;
 use strict;
 
+use File::Basename qw(basename);
 use POSIX qw(strftime);
 
 use Getopt::Std;
 my %opts;
-getopts('ef:gl', \%opts);
+getopts('ef:glq', \%opts);
+
+if (not @ARGV or (exists $opts{'g'} and exists $opts{'l'})) {
+  die "usage: $0 [-q] [-f fmt] [-g|-l] [-e] epoch [epoch ...]\n";
+}
 
 my $format = $opts{'f'} || "%Y-%m-%d %H:%M:%S";
 
 # gmtime or localtime, depending on program name or options supplied
+my $basename = basename $0;
 my $function = 'localtime';
-$function = 'gmtime' if $0 eq 'epoch2gmdate';
-$function = ($opts{'g'}) ? 'gmtime' : 'localtime';
-$function = ($opts{'l'}) ? 'localtime' : 'gmtime';
-
-die "usage: $0 [-f fmt] [-g|-l] [-e] epoch [epoch ...]\n" unless @ARGV;
+$function = 'gmtime'    if $basename eq 'epoch2gmdate';
+$function = 'localtime' if exists $opts{'l'};
+$function = 'gmtime'    if exists $opts{'g'};
 
 for my $epoch (@ARGV) {
-  print $epoch, ' ' if $opts{'e'};
+
+  # scrub input
+  unless ($epoch =~ m/^\d+$/) {
+    warn "warning: skipping non-integer input: $epoch\n"
+     unless exists $opts{'q'};
+    next;
+  }
+
+  # prefix output with original epoch value if needed
+  print $epoch, ' ' if exists $opts{'e'};
+
   print strftime $format, eval "$function $epoch";
   print "\n";
 }
