@@ -1,0 +1,236 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Applies XSLT styleseets to XML data.
+#
+# Run perldoc(1) on this script for additional documentation.
+
+use strict;
+
+# TODO load from file?
+my %defaults = ( class => 'eolas' );
+
+my $prefs_file = $ENV{'OSMCONF'} || '~/.axp/prefs';
+$prefs_file = tilde_expand($prefs_file);
+my $data = load_prefs($prefs_file);
+
+use Getopt::Std;
+my %opts;
+getopts 'h?', \%opts;
+
+print_help() if $opts{'h'} or $opts{'?'} or not @ARGV;
+
+FILE: for my $file (@ARGV) {
+  unless ( -e $file ) {
+    remark( 'notice', 'skipping as does not exist', { file => $file } )
+     unless exists $defaults{'quiet'};
+    next FILE;
+  }
+
+# might need, if have handling on .xml vs. .svg
+#  for my $suffix ( get_suffixes($file), '*' ) {
+}
+
+# given filename such as "foo.zip" or "bar.tar.gz" returns list of
+# suffixes, longest first (e.g. qw(zip) or qw(tar.gz gz) for the
+# previous example filenames).
+sub get_suffixes {
+  my $file = shift;
+
+  my @portions = split /$suffix_re/, fileparse($file);
+  return unless @portions > 1;
+
+  return ( $portions[-1] ) if @portions == 2;
+
+  my @suffixes;
+  local $" = $suffix_char;
+  for my $i ( 1 .. $#portions ) {
+    push @suffixes, "@portions[$i..$#portions]"
+  }
+  return @suffixes;
+}
+
+# TODO need this??
+sub load_prefs {
+  my $file = shift;
+
+  open my $fh, "< $file"
+   or remark( 'error', 'could not load preferences', { file => $file } )
+   and exit 101;
+
+  my %data;
+  my %tmp = %defaults;
+
+  while (<$fh>) {
+    s/^\s+//;
+    next if /^#/;
+    chomp;
+
+    if (/^$/) {
+      pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
+      next;
+    }
+
+    s/\s+$//;
+
+    my ( $k, $v ) = split /\s+/, $_, 2;
+    unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
+      remark(
+        'warning',
+        'skipping invalid data',
+        { file => $file, line => $. }
+      );
+      next;
+    }
+    $tmp{$k} = $v;
+  }
+  pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
+
+  return \%data;
+}
+
+sub pref_finish {
+  my $tmp  = shift;
+  my $data = shift;
+
+  if ( exists $tmp->{'suffix'} ) {
+    $tmp->{'suffix'} = [ map { s/^\.//; $_ } split / /, $tmp->{'suffix'} ];
+  }
+
+  push @{ $data->{ $tmp->{'class'} } }, {%$tmp};
+
+  if ( exists $tmp->{'suffix'} ) {
+    for my $suffix ( @{ $tmp->{'suffix'} } ) {
+      push @{ $data->{'_suffixmap'}->{ $tmp->{'class'} }->{$suffix} },
+       $#{ $data->{ $tmp->{'class'} } };
+    }
+  }
+
+  %$tmp = %defaults;
+}
+
+# expands ~username syntax to full home directory path
+sub tilde_expand {
+  for (@_) {
+    s{^ ~      # leading tilde
+      ([^/]*)  # preserve following data
+     }{
+      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{'HOME'}
+        || remark('error',
+	     'could not lookup user or HOME not set',
+	     { file => $_ })
+	&& exit 99;
+     }ex;
+  }
+  return wantarray ? @_ : "@_";
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] file [file2 ...]
+
+Applies XSLT styleseets to XML data.
+
+Options:
+  -h/-?  Display this message.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
+
+__END__
+
+=head1 NAME
+
+axp - applies XSLT styleseets to XML data
+
+=head1 SYNOPSIS
+
+TODO
+
+  $ axp
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+TODO
+
+=head2 Normal Usage
+
+  $ axp [options] file [file2 ...]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+TODO
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1), XML::ApplyXSLT
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
