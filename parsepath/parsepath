@@ -30,6 +30,17 @@ my %filetype = (
   '0140000' => 's',
   '0160000' => 'w',
 );
+my %modemap = (
+  userr  => 256,
+  userw  => 128,
+  userx  => 64,
+  groupr => 32,
+  groupw => 16,
+  groupx => 8,
+  otherr => 4,
+  otherw => 2,
+  otherx => 1
+);
 
 # NOTE could tighten up per site policy...
 my $match_username = qr/\w+/;
@@ -112,9 +123,8 @@ if (exists $opts{constraint} and not exists $opts{perms}) {
   $opts{perms}->{r} = 1;
 }
 
-# DBG
-#use Data::Dumper;
-#print Dumper \%opts;
+# fix perms hash to use array for easier subsequent work
+$opts{perms} = [sort keys %{$opts{perms}}];
 
 my @pathbits = File::Spec->splitdir($opts{path});
 die "error: unable to split realpath: $opts{path}" unless @pathbits;
@@ -137,7 +147,7 @@ for my $i (0 .. $#pathbits) {
   }
 
   if (exists $opts{constraint}) {
-    check_access $filedata, $i != $#pathbits ? {qw(r 1 x 1)} : $opts{perms};
+    check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{perms};
   }
 }
 
@@ -262,29 +272,16 @@ sub check_access {
   my $filedata = shift;
   my $perms    = shift;
 
-  #  use Data::Dumper; print Dumper $filedata, $perms;
-  my %modemap = (
-    userr  => 256,
-    userw  => 128,
-    userx  => 64,
-    groupr => 32,
-    groupw => 16,
-    groupx => 8,
-    otherr => 4,
-    otherw => 2,
-    otherx => 1
-  );
-
   for my $role (@{$opts{role}}) {
     if ($role->{name} eq $filedata->{"unix_" . $role->{type}}) {
 
       my @fails;
-      for my $bit (keys %$perms) {
+      for my $bit (@$perms) {
         push @fails, $bit
          unless $filedata->{unix_mode} & $modemap{$role->{type} . $bit};
       }
       print $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
-       ' fails on ', $filedata->{name}, "\n"
+       ' fails on ', $filedata->{type}, ' ', $filedata->{name}, "\n"
        if @fails;
 
       # unix, once gets match on user or group, stops looking at subsequent
@@ -294,10 +291,11 @@ sub check_access {
 
   # if drop off here without being restricted, need to check other access
   my @fails;
-  for my $bit (keys %$perms) {
+  for my $bit (@$perms) {
     push @fails, $bit unless $filedata->{unix_mode} & $modemap{'other' . $bit};
   }
-  print 'other', ' +', join('', @fails), ' fails on ', $filedata->{name}, "\n"
+  print 'other', ' +', join('', @fails), ' fails on ', $filedata->{type}, ' ',
+   $filedata->{name}, "\n"
    if @fails;
 }
 
