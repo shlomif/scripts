@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2001, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -37,35 +36,45 @@ use IO::Handle;
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year,
-    $backup, @data, %folders, %folder_sizes, $oldest, $newest,
-    $total_messages, $total_size, $machine, $summary, $reverse, $zap);
+my (
+  %opts,           $procmailrc, $logfile, $days_of_week,
+  $months_of_year, $backup,     @data,    %folders,
+  %folder_sizes,   $oldest,     $newest,  $total_messages,
+  $total_size,     $machine,    $summary, $reverse,
+  $zap
+);
 
 # where to look for the procmailrc...
 $procmailrc = $ENV{'HOME'} . '/.procmailrc';
 
 # for matching date field in from line
-$days_of_week = '(Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
+$days_of_week   = '(Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
 $months_of_year = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 
 # prefs for the humanize file size routine
 my %global_prefs = (
-		    # include decimals in output? (e.g. 25.8 K vs. 26 K)
-		    'decimal' => 0,
-		    # include .0 in decmail output?
-		    'decimal_zero' => 0,
-		    # what to divide file sizes down by
-		    'factor' => 1024,
-		    # percentage above which will be bumped up
-		    # (e.g. 999 bytes -> 1 K as within 5% of 1024)
-		    # set to undef to turn off
-		    'fudge' => 0.95,
-		    # lengths above which decimals will not be included
-		    # for better readability
-		    'max_human_length' => 2,
-		    # list of suffixes for human readable output
-		    'suffix' => [ '', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
-		    );
+
+  # include decimals in output? (e.g. 25.8 K vs. 26 K)
+  'decimal' => 0,
+
+  # include .0 in decmail output?
+  'decimal_zero' => 0,
+
+  # what to divide file sizes down by
+  'factor' => 1024,
+
+  # percentage above which will be bumped up
+  # (e.g. 999 bytes -> 1 K as within 5% of 1024)
+  # set to undef to turn off
+  'fudge' => 0.98,
+
+  # lengths above which decimals will not be included
+  # for better readability
+  'max_human_length' => 2,
+
+  # list of suffixes for human readable output
+  'suffix' => ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+);
 
 ######################################################################
 #
@@ -93,9 +102,9 @@ $machine = $opts{'m'} if exists $opts{'m'};
 
 # first, we find out where the logfile is (command line or automagic)
 if (@ARGV) {
-    $logfile = shift;
+  $logfile = shift;
 } else {
-    $logfile = get_logfile_loc($procmailrc);
+  $logfile = get_logfile_loc($procmailrc);
 }
 
 # parse through the logfile, feeding various global variables
@@ -103,8 +112,8 @@ parse_logfile();
 
 # see whether there is any new mail to report about...
 unless (keys %folders) {
-    print "No new mail.\n";
-    exit;
+  print "No new mail.\n";
+  exit;
 }
 
 # and print off a pretty little report for fun
@@ -119,55 +128,56 @@ print_machine($machine) if defined $machine;
 
 # dumps a pretty report to STDOUT...
 sub print_report {
-    my ($subject, $from, $folder, $size, $date);
+  my ($subject, $from, $folder, $size, $date);
 
-    print "Email report from $oldest to $newest\n\n";
+  print "Email report from $oldest to $newest\n\n";
 
-    # use format to easily line up everything the way I want...
+  # use format to easily line up everything the way I want...
 
-    # disable notion of "pages" in resulting format
-    format_lines_per_page STDOUT 99999999;
+  # disable notion of "pages" in resulting format
+  format_lines_per_page STDOUT 99999999;
 
-    # perl doesn't like format_formfeed on a per-handle basis, ergo:
-    $^L = '';
+  # perl doesn't like format_formfeed on a per-handle basis, ergo:
+  $^L = '';
 
-    format STDOUT_TOP = 
+  format STDOUT_TOP = 
  Count  Destination                                               Size
 ----------------------------------------------------------------------
 .
-    format STDOUT = 
+  format STDOUT = 
 @>>>>>  @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>
 commify($folders{$_}), $_, humanize($folder_sizes{$_})
 .
 
-    for (sort { $a cmp $b } keys %folders) {
-	write;
-    }
+  for (sort { $a cmp $b } keys %folders) {
+    write;
+  }
 
-# hack to get a "footer" for the above summary including totals...
-format_name         STDOUT "FOOTER";
+  # hack to get a "footer" for the above summary including totals...
+  format_name STDOUT "FOOTER";
 
-format FOOTER =
+  format FOOTER =
 ----------------------------------------------------------------------
 @>>>>>                                                    @>>>>>>>>>>>
 commify($total_messages), humanize($total_size)
 
 .
-    write;
+  write;
 
-unless ($summary) {
+  unless ($summary) {
+
     # select new format style
-    format_name         STDOUT "MESSAGE";
-    format_top_name     STDOUT "MESSAGE_TOP";
+    format_name STDOUT "MESSAGE";
+    format_top_name STDOUT "MESSAGE_TOP";
 
     # reset line count to force header
-    format_lines_left   STDOUT 0;
+    format_lines_left STDOUT 0;
 
     my $order;
     if ($reverse) {
-	$order = 'newest-at-top';
+      $order = 'newest-at-top';
     } else {
-        $order = 'oldest-at-top';
+      $order = 'oldest-at-top';
     }
 
     format MESSAGE_TOP =
@@ -176,7 +186,7 @@ $order
 ----------------------------------------------------------------------
 .
 
-format MESSAGE =
+    format MESSAGE =
 Subject:  ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
           $subject, $date
 ~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
@@ -190,198 +200,205 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
 
 .
 
-    @data = reverse (@data) if $reverse;
+    @data = reverse(@data) if $reverse;
 
     for (@data) {
-        # use strict complains if use funky calls, so de-ref 'em...
-        $subject = $_->{'_subject'};
-	$from    = $_->{'_from'};
-	$folder  = $_->{'_folder'};
-	$size    = $_->{'_size'};
-	$date    = $_->{'_date'};
 
-	# only show size if above certain amount (should be a constant,
-	# or even better based on standard deviation above average size!)
-	if ($size > 10000) {
-	    $size = humanize($size);
-	} else {
-	    $size = undef;
-	}
+      # use strict complains if use funky calls, so de-ref 'em...
+      $subject = $_->{'_subject'};
+      $from    = $_->{'_from'};
+      $folder  = $_->{'_folder'};
+      $size    = $_->{'_size'};
+      $date    = $_->{'_date'};
 
-	# just HH:MM now, as that's all I need to see...
-	my ($wday, $mon, $day, $time, $year) = split /\s+/, $date;
+      # only show size if above certain amount (should be a constant,
+      # or even better based on standard deviation above average size!)
+      if ($size > 10000) {
+        $size = humanize($size);
+      } else {
+        $size = undef;
+      }
 
-	$time =~ s/:\d+$//;
+      # just HH:MM now, as that's all I need to see...
+      my ($wday, $mon, $day, $time, $year) = split /\s+/, $date;
 
-	$date = $time;
+      $time =~ s/:\d+$//;
 
-	write;
+      $date = $time;
+
+      write;
     }
-}
+  }
 }
 
 # machine-style output format (e.g. easily parsed by a machine)
 sub print_machine {
-    my $file_loc = shift;
+  my $file_loc = shift;
 
-    # open & aquire write lock on the file_loc
-    open (FD, ">$file_loc") or die "Error opening $file_loc: $!\n";
-    FD->autoflush(1);
-    
-    unless (flock (FD, LOCK_EX|LOCK_NB)) {
-	warn "Waiting for write lock on $file_loc ...\n";
-	flock (FD, LOCK_EX);
-    }
-    
-    # delete file just to be sure
-    seek     (FD, 0, 0) or die "Problem seeking $file_loc: $!\n";
-    truncate (FD, 0) or die "Problem truncating $file_loc: $!\n";
-    
-    my $oldfh = select(FD);
+  # open & aquire write lock on the file_loc
+  open(FD, ">$file_loc") or die "Error opening $file_loc: $!\n";
+  FD->autoflush(1);
 
-    # global info
-    print "global\tstart\t", $oldest, "\n";
-    print "global\tfinish\t", $newest, "\n";
-    print "global\tcount\t", $total_messages, "\n";
-    print "global\tsize\t", $total_size, "\n";
+  unless (flock(FD, LOCK_EX | LOCK_NB)) {
+    warn "Waiting for write lock on $file_loc ...\n";
+    flock(FD, LOCK_EX);
+  }
 
-    # folder info
-    for (sort { $a cmp $b } keys %folders) {
-	print "folder\t", $_, "\t", $folders{$_}, "\t", $folder_sizes{$_}, "\n";
-    }
+  # delete file just to be sure
+  seek(FD, 0, 0) or die "Problem seeking $file_loc: $!\n";
+  truncate(FD, 0) or die "Problem truncating $file_loc: $!\n";
 
-    # message info
-    my $t_count = 0;
-    for (@data) {
-	print "message", $t_count, "\tsubject\t", $_->{'_subject'}, "\n";
-	print "message", $t_count, "\tfrom\t", $_->{'_from'}, "\n";
-	print "message", $t_count, "\tfolder\t", $_->{'_folder'}, "\n";
-	print "message", $t_count, "\tsize\t", $_->{'_size'}, "\n";
-	print "message", $t_count, "\tdate\t", $_->{'_date'}, "\n";
-	$t_count++;
-    }
+  my $oldfh = select(FD);
 
-    select ($oldfh);
+  # global info
+  print "global\tstart\t",  $oldest,         "\n";
+  print "global\tfinish\t", $newest,         "\n";
+  print "global\tcount\t",  $total_messages, "\n";
+  print "global\tsize\t",   $total_size,     "\n";
 
-    flock (FD, LOCK_UN);
-    close (FD);
+  # folder info
+  for (sort { $a cmp $b } keys %folders) {
+    print "folder\t", $_, "\t", $folders{$_}, "\t", $folder_sizes{$_}, "\n";
+  }
+
+  # message info
+  my $t_count = 0;
+  for (@data) {
+    print "message", $t_count, "\tsubject\t", $_->{'_subject'}, "\n";
+    print "message", $t_count, "\tfrom\t",    $_->{'_from'},    "\n";
+    print "message", $t_count, "\tfolder\t",  $_->{'_folder'},  "\n";
+    print "message", $t_count, "\tsize\t",    $_->{'_size'},    "\n";
+    print "message", $t_count, "\tdate\t",    $_->{'_date'},    "\n";
+    $t_count++;
+  }
+
+  select($oldfh);
+
+  flock(FD, LOCK_UN);
+  close(FD);
 }
 
 # parse procmail's logfile w/ locking using global variables
 sub parse_logfile {
-    my $count = -1; # track where we are in array of anon hashes
+  my $count = -1;  # track where we are in array of anon hashes
 
-    # open & aquire write lock on the logfile
-    open (FD, "+< $logfile") or die "Error opening $logfile: $!\n";
-    FD->autoflush(1);
-    
-    unless (flock (FD, LOCK_EX|LOCK_NB)) {
-	warn "Waiting for write lock on $logfile ...\n";
-	flock (FD, LOCK_EX);
+  # open & aquire write lock on the logfile
+  open(FD, "+< $logfile") or die "Error opening $logfile: $!\n";
+  FD->autoflush(1);
+
+  unless (flock(FD, LOCK_EX | LOCK_NB)) {
+    warn "Waiting for write lock on $logfile ...\n";
+    flock(FD, LOCK_EX);
+  }
+
+  # are we backing up the file?
+  if ($backup) {
+    open(BACK, ">$backup") or die "Error opening $backup: $!\n";
+    BACK->autoflush(1);
+
+    unless (flock(BACK, LOCK_EX | LOCK_NB)) {
+      warn "Waiting for write lock on $logfile ...\n";
+      flock(BACK, LOCK_EX);
     }
 
-    # are we backing up the file?
-    if ($backup) {
-	open (BACK, ">$backup") or die "Error opening $backup: $!\n";
-	BACK->autoflush(1);
+    # zap contents of current backup file (just to be sure)
+    seek(BACK, 0, 0) or die "Problem seeking $backup: $!\n";
+    truncate(BACK, 0) or die "Problem truncating $backup: $!\n";
+  }
 
-	unless (flock (BACK, LOCK_EX|LOCK_NB)) {
-	    warn "Waiting for write lock on $logfile ...\n";
-	    flock (BACK, LOCK_EX);
-	}
+  # parse the file
+  while (<FD>) {
 
-	# zap contents of current backup file (just to be sure)
-	seek     (BACK, 0, 0) or die "Problem seeking $backup: $!\n";
-	truncate (BACK, 0) or die "Problem truncating $backup: $!\n";
+    # keep backup if necessary
+    print BACK $_ if $backup;
+
+    chomp;
+
+    if (
+m/^From\s+(.*?)\s+($days_of_week\s+$months_of_year\s+\d{1,2}\s\d\d:\d\d:\d\d\s\d\d\d\d)/o
+     ) {
+
+      # new From line matched, increment our position in @data array
+      $count++;
+
+      # and tack various info into anon hash in @data array...
+      $data[$count]->{'_from'} = $1;
+      $data[$count]->{'_date'} = $2;
     }
-    
-    # parse the file
-    while (<FD>) {
-	# keep backup if necessary
-	print BACK $_ if $backup;
-
-	chomp;
-
-	if (m/^From\s+(.*?)\s+($days_of_week\s+$months_of_year\s+\d{1,2}\s\d\d:\d\d:\d\d\s\d\d\d\d)/o) {
-	    # new From line matched, increment our position in @data array
-	    $count++;
-
-	    # and tack various info into anon hash in @data array...
-	    $data[$count]->{'_from'} = $1;
-	    $data[$count]->{'_date'} = $2;
-	}
-	if (m/^\s*Subject:\s+(.*)$/) {
-	    $data[$count]->{'_subject'} = $1;
-	}
-	if (my ($folder, $size) = m/^\s*Folder:\s+(.+?)\s+(\d+)$/) {
-	    $folder =~ s:/new.+::;
-
-	    $data[$count]->{'_folder'} = $folder;
-	    $data[$count]->{'_size'} = $size;
-
-	    # keep separate track of folder locs for ease
-	    # of lookup at cost of more memory
-	    $folders{$folder}++;
-
-	    # and also amount of data gone to specific destinations
-	    $folder_sizes{$folder} += $size;
-
-	    # and some totals for fun
-	    $total_messages++;
-	    $total_size += $size;
-	}
+    if (m/^\s*Subject:\s+(.*)$/) {
+      $data[$count]->{'_subject'} = $1;
     }
+    if (my ($folder, $size) = m/^\s*Folder:\s+(.+?)\s+(\d+)$/) {
+      $folder =~ s:/new.+::;
 
-    # this (optionally) erases the logfile
-    if ($zap) {
-	seek     (FD, 0, 0) or die "Problem seeking $logfile: $!\n";
-	truncate (FD, 0) or die "Problem truncating $logfile: $!\n";
+      $data[$count]->{'_folder'} = $folder;
+      $data[$count]->{'_size'}   = $size;
+
+      # keep separate track of folder locs for ease
+      # of lookup at cost of more memory
+      $folders{$folder}++;
+
+      # and also amount of data gone to specific destinations
+      $folder_sizes{$folder} += $size;
+
+      # and some totals for fun
+      $total_messages++;
+      $total_size += $size;
     }
-    
-    # clean up all our locks/open files
-    if ($backup) {
-	flock (BACK, LOCK_UN);
-	close (BACK);
-    }
+  }
 
-    flock (FD, LOCK_UN);
-    close (FD);
+  # this (optionally) erases the logfile
+  if ($zap) {
+    seek(FD, 0, 0) or die "Problem seeking $logfile: $!\n";
+    truncate(FD, 0) or die "Problem truncating $logfile: $!\n";
+  }
 
-    # finally, extract out the oldest & newest dates from
-    # the data array using a lot of assumptions
-    $oldest = $data[0]->{'_date'};
-    $newest = $data[$#data]->{'_date'};
+  # clean up all our locks/open files
+  if ($backup) {
+    flock(BACK, LOCK_UN);
+    close(BACK);
+  }
+
+  flock(FD, LOCK_UN);
+  close(FD);
+
+  # finally, extract out the oldest & newest dates from
+  # the data array using a lot of assumptions
+  $oldest = $data[0]->{'_date'};
+  $newest = $data[$#data]->{'_date'};
 }
 
 # automagically gets logfile location from .procmailrc file,
 # single argument is path to the procmailrc file
 sub get_logfile_loc {
-    my $procmailrc = shift;
+  my $procmailrc = shift;
 
-    my $logfile;
+  my $logfile;
 
-    open FILE, $procmailrc or die "Error opening $procmailrc: $!\n";
+  open FILE, $procmailrc or die "Error opening $procmailrc: $!\n";
 
-    while (<FILE>) {
-	chomp;
-	# not too sure about formatting allowed in .procmailrc...
-	if (m/LOGFILE\s*=\s*(.*)$/) {
-	    my $logfile_loc = $1;
-	    # convert (potentially) shell-notational logfile loc
-	    # to a full pathname (e.g. $HOME/.pm_log -> /home/user/.pm_log)
-	    $logfile = `echo $logfile_loc`;
-	}
+  while (<FILE>) {
+    chomp;
+
+    # not too sure about formatting allowed in .procmailrc...
+    if (m/LOGFILE\s*=\s*(.*)$/) {
+      my $logfile_loc = $1;
+
+      # convert (potentially) shell-notational logfile loc
+      # to a full pathname (e.g. $HOME/.pm_log -> /home/user/.pm_log)
+      $logfile = `echo $logfile_loc`;
     }
-    close FILE;
+  }
+  close FILE;
 
-    return $logfile;
+  return $logfile;
 }
 
 # little generic add commas to data routine...
 sub commify {
-    my $text = reverse $_[0];
-    $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
-    return scalar reverse $text;
+  my $text = reverse $_[0];
+  $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
+  return scalar reverse $text;
 }
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
@@ -390,66 +407,67 @@ sub commify {
 # takes a number, returns formatted string.  Also takes optional
 # hash containing various defaults that affect output style.
 sub humanize {
-    my $num = shift; # could also take a array ref or hash ref to parse thru?
-    my %prefs = @_;
+  my $num   = shift;  # could also take a array ref or hash ref to parse thru?
+  my %prefs = @_;
 
-    # inherit global prefs, but give preference to user supplied ones
-    unless (keys %prefs) {
-	%prefs = %global_prefs;
+  # inherit global prefs, but give preference to user supplied ones
+  unless (keys %prefs) {
+    %prefs = %global_prefs;
+  } else {
+
+    # benchmarking w/ 5.6.0 on Linux PPC & i386 showed this next
+    # faster than direct merge method (p. 145 Perl Cookbook)
+    while (my ($k, $v) = each(%global_prefs)) {
+      $prefs{$k} = $v unless exists $prefs{$k};
+    }
+  }
+
+  # some local working variables
+  my $count  = 0;
+  my $prefix = '';
+  my $tmp    = '';
+
+  # handle negatives
+  if ($num < 0) {
+    $num    = abs $num;
+    $prefix = '-';
+  }
+
+  # reduce number to something readable by factor specified
+  while ($num > $prefs{'factor'}) {
+    $num /= $prefs{'factor'};
+    $count++;
+  }
+
+  # optionally fudge "near" values up to next higher level
+  if (defined $prefs{'fudge'}) {
+    if ($num > ($prefs{'fudge'} * $prefs{'factor'})) {
+      $count++;
+      $num /= $prefs{'factor'};
+    }
+  }
+
+  # no .[1-9] decimal on longer numbers for easier reading
+  # only show decimal if prefs say so
+  if (length sprintf("%.f", $num) > $prefs{'max_human_length'}
+    || !$prefs{'decimal'}) {
+
+    $tmp = sprintf("%.0f", $num);
+
     } else {
-	# benchmarking w/ 5.6.0 on Linux PPC & i386 showed this next
-	# faster than direct merge method (p. 145 Perl Cookbook)
-	while (my ($k, $v) = each (%global_prefs)) {
-	    $prefs{$k} = $v unless exists $prefs{$k};
-	}
-    }
+    $tmp = sprintf("%.1f", $num);
 
-    # some local working variables
-    my $count = 0;
-    my $prefix = '';
-    my $tmp = '';
+    # optionally hack trailing .0 as is not needed
+    $tmp =~ s/\.0$// unless $prefs{'decimal_zero'};
+  }
 
-    # handle negatives
-    if ($num < 0 ) {
-	$num = abs $num;
-	$prefix = '-';
-    }
-    
-    # reduce number to something readable by factor specified
-    while ($num > $prefs{'factor'}) {
-	$num /= $prefs{'factor'};
-	$count++;
-    }
-    
-    # optionally fudge "near" values up to next higher level
-    if(defined $prefs{'fudge'}) {
-	if ($num > ($prefs{'fudge'} * $prefs{'factor'})) {
-	    $count++;
-	    $num /= $prefs{'factor'};
-	}
-    }
-    
-    # no .[1-9] decimal on longer numbers for easier reading
-    # only show decimal if prefs say so
-    if (length sprintf("%.f", $num) > $prefs{'max_human_length'} || 
-	! $prefs{'decimal'}) {
-
-	$tmp = sprintf("%.0f", $num);
-
-    } else {
-	$tmp = sprintf("%.1f", $num);
-	
-	# optionally hack trailing .0 as is not needed
-	$tmp =~ s/\.0$// unless $prefs{'decimal_zero'};
-    }
-    
-    # return number with proper style applied
-    return $prefix . $tmp . $prefs{'suffix'}->[$count];
+  # return number with proper style applied
+  return $prefix . $tmp . $prefs{'suffix'}->[$count];
 }
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [options] [LOGFILE]
 
 Procmail logfile parser and reporter.
@@ -468,36 +486,36 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 __END__
 
 =head1 NAME
 
-fm.pl - procmail logfile parser and reporter.
+fm - procmail logfile parser and reporter.
 
 =head1 SYNOPSIS
 
 Pretty simple, just run:
 
-  $ fm.pl
+  $ fm
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-fm.pl is a procmail(1) logfile parser that shows you how many messages
+fm is a procmail(1) logfile parser that shows you how many messages
 of what size went where based on the contents of your procmail
 logfile.
 
 =head2 Normal Usage
 
-  $ fm.pl [options] [LOGFILE]
+  $ fm [options] [LOGFILE]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-If you omit the logfile, fm.pl will attempt to determine its location
+If you omit the logfile, fm will attempt to determine its location
 from your ~/.procmailrc file.
 
 Certain preferences must currently be set inside the script itself,
@@ -553,11 +571,11 @@ Save a machine-style output to the file I<machine-data>.
 
 If you want backups and to zero the manually located logfile once done:
 
-  $ fm.pl -zb ~/.pm_logfile.old
+  $ fm -zb ~/.pm_logfile.old
 
 From cron, that would be something like:
 
-  15 6 * * * /usr/local/bin/fm.pl -zb .pm_logfile.old | mail $USER
+  15 6 * * * /usr/local/bin/fm -zb .pm_logfile.old | mail $USER
 
 =head1 BUGS
 
@@ -585,9 +603,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
