@@ -551,11 +551,11 @@ Save a machine-style output to the file I<machine-data>.
 
 If you want backups and to zero the manually located logfile once done:
 
-  $ fm.pl -zb ~/.pm_logfile.old ~/.pm_logfile
+  $ fm.pl -zb ~/.pm_logfile.old
 
 From cron, that would be something like:
 
-  15  6  *  *  *  /usr/local/bin/fm.pl -zb ~/.pm_logfile.old ~/.pm_logfile
+  15 6 * * * /usr/local/bin/fm.pl -zb .pm_logfile.old | mail $USER
 
 =head1 BUGS
 
