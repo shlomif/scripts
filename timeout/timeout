@@ -1,0 +1,75 @@
+#!/usr/bin/perl
+
+use Time::HiRes qw(gettimeofday tv_interval);
+
+my $duration = shift;
+
+my $timeout = parse_duration($duration);
+
+my $t0 = [gettimeofday];
+my $pid = open WATCH, "-|";
+
+if ($pid) { # parent
+  eval {
+    local $SIG{ALRM} = sub { die "alarm\n" };
+
+    alarm $timeout;
+
+    # ergh, need STDERR output pass through... Expect??
+    while (<WATCH>) {
+
+      # keep track of output frequency?
+      print;
+    }
+    close WATCH or warn "Warning: kid exited $?\n";
+
+    # so one knows how long positive runs take
+    warn "Info: program ran for ", sprintf("%.1f", tv_interval($t0)),
+     " seconds\n";
+
+    alarm 0;
+  };
+  if ($@) {
+    die unless $@ eq "alarm\n";
+
+    warn "Error: timeout ($duration) exceeded: killing pid $pid\n";
+
+    for my $signal (qw(TERM INT HUP KILL)) {
+      last if kill $signal, $pid;
+      sleep 2;
+      warn "Warning: kill of $pid (via $signal) failed...\n";
+    }
+
+  }
+} else { # child
+  exec @ARGV or die "Error: could not exec: $!\n";
+}
+
+sub parse_duration {
+  my $tmpdur = shift;
+  my $timeout;
+
+  # assume raw seconds for plain number
+  if ($tmpdur =~ /^\d+$/) {
+    $timeout = $tmpdur * 60;
+
+  } elsif (my @matches = $tmpdur =~ /(\d+\s*[wdhms])/g) {
+    my %factor = (
+      'w' => 604800,
+      'd' => 86400,
+      'h' => 3600,
+      'm' => 60,
+      's' => 1,
+    );
+
+    for my $match (@matches) {
+      $match =~ /(\d+)(\w)/;
+      $timeout += $1 * $factor{$2};
+    }
+
+  } else {
+    die "Error: unable to parse duration supplied.\n";
+  }
+
+  return $timeout;
+}
