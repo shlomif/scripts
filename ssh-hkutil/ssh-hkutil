@@ -44,17 +44,12 @@ sub resolve_host_keys {
   my $ehkd = unmerge_host_keys(shift);
 
   my ( %hostmap, %keymap );
-  for my $i ( 0 .. $#$hkd ) {
-    my $hkr = $hkd->[$i];
-    push @{ $keymap{"$hkr->{'key_type'} $hkr->{'public_key'}"} }, $i;
-  }
 
   for my $i ( 0 .. $#$hkd ) {
     my $hkr = $hkd->[$i];
 
     for my $host ( @{ $hkr->{'hosts'} } ) {
-      push @{ $hostmap{"$hkr->{'key_type'} $host"} }, $i,
-       @{ $keymap{"$hkr->{'key_type'} $hkr->{'public_key'}"} };
+      $hostmap{"$hkr->{'key_type'} $host"} = $i;
     }
   }
 
@@ -62,7 +57,7 @@ sub resolve_host_keys {
   for my $hkr (@$ehkd) {
     for my $host ( @{ $hkr->{'hosts'} } ) {
       if ( exists $hostmap{"$hkr->{'key_type'} $host"} ) {
-        $delete{$_} = 1 for @{ $hostmap{"$hkr->{'key_type'} $host"} };
+        $delete{ $hostmap{"$hkr->{'key_type'} $host"} } = 1;
       }
     }
   }
