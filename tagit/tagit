@@ -7,10 +7,65 @@
 #
 # Prints intials/date in standard format I use when commenting files.
 
-ECHO="echo -n"
+INITIALS=$INITIALS
+DATE=`date +%Y-%m-%d`
 
-# TODO options to print initials, date, or both?
-if [ $INITIALS ]; then
-  $ECHO "$INITIALS "
+DOINITIALS=no
+DODATE=no
+DONEWLINE=no
+ONLINE=no
+OUTPUT=
+
+tagit () {
+  if test $DOINITIALS = yes ; then
+    OUTPUT=$INITIALS
+    if test $DODATE = yes ; then
+      OUTPUT="$OUTPUT "
+    fi
+  fi
+  if test $DODATE = yes ; then
+    OUTPUT="${OUTPUT}$DATE"
+  fi
+}
+
+mungeit () {
+  # KLUGE this will stall script if no STDIN
+  DATA=`cat`
+  if echo $DATA | grep '^#' > /dev/null ; then
+    echo $DATA | sed "s/^#[ ]*/# $OUTPUT\ /"
+  else
+    echo $DATA | sed "s/^/$OUTPUT\ /"
+  fi
+}
+
+# handle command line options
+OPT=
+while getopts vidn OPT; do
+  case $OPT in
+    i)
+      DOINITIALS=yes
+    ;;
+    d)
+      DODATE=yes
+    ;;
+    n)
+      DONEWLINE=yes
+    ;;
+    v)
+      ONLINE=yes
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+# form up $OUTPUT with date, initials, etc.
+tagit
+
+if test $ONLINE = yes ; then
+  mungeit
+else
+  echo -n $OUTPUT
+  if test $DONEWLINE = yes ; then
+    echo
+  fi
 fi
-$ECHO "`date +%Y-%m-%d`"
