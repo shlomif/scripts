@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -187,13 +186,13 @@ HELP
 
 =head1 NAME
 
-human.pl - humanizes file sizes in data
+humanize - humanizes file sizes in data
 
 =head1 SYNOPSIS
 
 Make df(1) output readable on systems lacking the human output option:
 
-  $ df -k | human.pl -k
+  $ df -k | humanize -k
 
 =head1 DESCRIPTION
 
@@ -215,16 +214,16 @@ The data munged by this script is less accurate, in that rounding is
 done in an effort to make the numbers more readable by a human.  In
 the above case, the munged data would look like:
 
-  $ df -k | grep nfs | human.pl -k
+  $ df -k | grep nfs | humanize -k
   nfs:/mbt    1.0T 672G 308G    69%    /mbt
 
 =head2 Normal Usage
 
-  $ human.pl [options]
+  $ humanize [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-human.pl expects the data to be humanized to come via STDIN, and
+humanize expects the data to be humanized to come via STDIN, and
 results will be piped to STDOUT.  Input can either be from a program,
 or you can interactively type numbers into the terminal and get a
 humanized size back.
@@ -303,9 +302,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 HISTORY
 
@@ -319,4 +317,3 @@ inline with the unix philosphopy of filters.)
   $Id$
 
 =cut
-
