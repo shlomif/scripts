@@ -56,14 +56,31 @@ while (<NMAP>) {
     next unless m!22/open/tcp!;
 
     # extract ip and hostname from matching lines
-    my ($ip, $hostname) = $_ =~ /Host: (\S+) \(([^\(]+)\)/;
+    my ($ip, $hostname) = $_ =~ /Host: (\S+) \(([^\(]+)?\)/;
+
+    $hostname = "UNKNOWN" unless $hostname;
 
     next unless $ip;
 
     # nab reply from SSH server and move on...
     my $t = Net::Telnet->new(Timeout => 3, Port => 22);
     $t->open($ip);
-    print "$ip\t$hostname\t", $t->get();
+
+    # probably a better way to do this :)
+    my $status;
+
+    eval {
+	$status = $t->get();
+    };
+
+    if ($@) {
+	$status = "TIMEOUT\n";
+    }
+
+    $status = "UNKNOWN\n" unless $status;
+
+    print "$ip\t$hostname\t";
+    print $status;
     $t->close;
 }
 
