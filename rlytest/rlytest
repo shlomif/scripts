@@ -71,7 +71,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts('c:f:t:u:p:mg:s:r', \%Opts)
+getopts('c:f:t:u:p:mgs:r', \%Opts)
         or die "$Usage";
 die "$Usage\n"
         unless (@ARGV == 1);
