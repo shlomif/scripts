@@ -23,9 +23,6 @@ use strict;
 use Carp;         # better error reporting
 use Getopt::Std;  # command line option processing
 
-# TODO make this optional!
-use Time::HiRes qw(gettimeofday tv_interval);
-
 ######################################################################
 #
 # VARIABLES
@@ -33,26 +30,39 @@ use Time::HiRes qw(gettimeofday tv_interval);
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my (%opts, %features, $t0);
 
 ######################################################################
 #
 # MAIN
 
+# optional high resolution timers
+eval { require Time::HiRes; };
+unless ($@) {
+  require Time::HiRes;
+  $features{'Time::HiRes'} = 1;
+}
+
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?v', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
+if (exists $opts{'v'}) {
+  $features{'verbose'} = 1;
+}
 
+# regular program arguments
 my $duration = shift;
-
 help() unless @ARGV;
 
 
-my $timeout = parse_duration($duration);
+# figure out duration, start timer, and fork/exec to run program
+my $timeout = duration2seconds($duration);
+$duration = seconds2duration($timeout);
 
-my $t0 = [gettimeofday];
+$t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'};
+
 my $pid = open WATCH, "-|";
 
 if ($pid) { # parent
@@ -70,8 +80,8 @@ if ($pid) { # parent
     close WATCH or warn "Warning: kid exited $?\n";
 
     # so one knows how long positive runs take
-    warn "Info: program ran for ", sprintf("%.1f", tv_interval($t0)),
-     " seconds\n";
+    warn "Info: program ran for ", sprintf("%.1f", Time::HiRes::tv_interval($t0)),
+     " seconds\n" if $features{'Time::HiRes'};
 
     alarm 0;
   };
@@ -95,7 +105,8 @@ if ($pid) { # parent
 #
 # SUBROUTINES
 
-sub parse_duration {
+# takes duration such as "2m3s" and returns number of seconds.
+sub duration2seconds {
   my $tmpdur = shift;
   my $timeout;
 
@@ -124,6 +135,30 @@ sub parse_duration {
   return $timeout;
 }
 
+# takes seconds and returns a shorthand duration format.
+sub seconds2duration {
+  my $tmpsec = shift;
+  
+  my $seconds = $tmpsec % 60;
+  $tmpsec = ($tmpsec - $seconds) / 60;
+  my $minutes = $tmpsec % 60;
+  $tmpsec = ($tmpsec - $minutes) / 60;
+
+  #  my $hours = $tmpsec;
+  my $hours = $tmpsec % 24;
+  $tmpsec = ($tmpsec - $hours) / 24;
+  my $days  = $tmpsec % 7;
+  my $weeks = ($tmpsec - $days) / 7;
+
+  # TODO better way to do this?
+  my $temp = ($weeks) ? "${weeks}w " : '';
+  $temp .= ($days)    ? "${days}d "    : '';
+  $temp .= ($hours)   ? "${hours}h "   : '';
+  $temp .= ($minutes) ? "${minutes}m " : '';
+  $temp .= ($seconds) ? "${seconds}s"  : '';
+  return $temp;
+}
+
 # a generic help blarb
 sub help {
   print <<"HELP";
@@ -134,6 +169,8 @@ or a shorthand format of "2m3s" for 123 seconds.
 
 Options for version $VERSION:
   -h/-?  Display this message
+
+  -v     Verbose.  Prints program run time unless timeout is hit.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -199,6 +236,11 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note about the script.
+
+=item B<-v>
+
+Verbose mode.  Currently prints program run time unless the timeout is
+reached.
 
 =back
 
