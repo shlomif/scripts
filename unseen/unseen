@@ -170,7 +170,11 @@ sub process {
     $printed{$output} = 1;
 
     # TODO replace with DB File or SQL for efficiency?
-    $seen->{ $filedata{index} } = $filename;
+    #
+    # need mtime stored in index, as used to retire old records
+    $seen->{ $filedata{index} } =
+     { map { exists $filedata{$_} ? ( $_ => $filedata{$_} ) : () }
+       qw(filename mtime) };
   }
 }
 
