@@ -242,7 +242,7 @@ HELP
 
 =head1 NAME
 
-syslog_snarf.pl - Simple syslogd server for debugging syslog
+syslog-snarf - Simple syslogd server for debugging syslog
 
 =head1 SYNOPSIS
 
@@ -250,16 +250,16 @@ Close any running syslog daemon (the stock syslogd binds to UDP port 514
 even when not being a server), then run the following to act as a
 debugging syslog server:
 
-  # syslog_snarf.pl
+  # syslog-snarf
 
 Bind to an alternate localhost-only port, be verbose about errors, and
 use custom time and message formats:
 
-  $ syslog_snarf.pl -b 127.1 -p 9999 -v -t %s -f '%{time_recv} %{raw}\n'
+  $ syslog-snarf -b 127.1 -p 9999 -v -t %s -f '%{time_recv} %{raw}\n'
 
 To see a list of available message fields for templating:
 
-  $ syslog_snarf.pl -l
+  $ syslog-snarf -l
 
 =head1 DESCRIPTION
 
@@ -291,7 +291,7 @@ currently supported keys to expand on are:
   
 =head2 Normal Usage
 
-  $ syslog_snarf.pl [options]
+  $ syslog-snarf [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 Output is to standard output, errors (under verbose mode) go to
