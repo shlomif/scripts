@@ -6,11 +6,16 @@
 # public domain.
 #
 # xmllint of libxml2 does not presently accept input from STDIN,
-# therefore this wrapper.  Formatted output sent to STDOUT.
+# therefore this wrapper.  Formatted output sent to STDOUT.  Also
+# accepts a filename to tidy, which disables STDIN processing.
 
 myn=`basename $0`
 
-TMPFILE=`mktemp /tmp/${myn}.XXXXXXX` || exit 1
-cat > $TMPFILE
+if [ ! -f $1 ]; then
+  TMPFILE=`mktemp /tmp/${myn}.XXXXXXX` || exit 1
+  cat > $TMPFILE
+else
+  TMPFILE=$1
+fi
 xmllint --encode utf8 --format $TMPFILE
 rm $TMPFILE
