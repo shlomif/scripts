@@ -11,7 +11,6 @@
 # known_hosts file?
 
 use strict;
-use Fatal qw(open close);
 
 use Getopt::Std;
 my %opts;
@@ -22,8 +21,12 @@ print_help() if $opts{'h'} or $opts{'?'};
 my $khf   = shift || print_help();
 my $extra = shift;
 
-open my $file, "< $khf";
+open my $file, "< $khf"
+ or warn "warning: could not open known hosts: file=$khf, error=$!\n";
 my $hkd = parse_known_hosts($file);
+if ( not $extra and not @$hkd ) {
+  die "error: no host keys found\n";
+}
 
 if ($extra) {
   my $ehkd;
@@ -40,6 +43,10 @@ if ( $opts{'M'} ) {
   $hkd = unmerge_host_keys($hkd);
 } elsif ( $opts{'m'} or $extra ) {
   $hkd = merge_host_keys($hkd);
+}
+
+unless (@$hkd) {
+  die "error: no host keys found\n";
 }
 
 print_known_hosts($hkd);
