@@ -7,6 +7,8 @@
 #
 # Checks whether domain(s) listed on command line (or failing that
 # STDIN) are wildcard domains.
+#
+# Run perldoc(1) on this file for more documentation.
 
 use strict;
 
