@@ -26,7 +26,7 @@ trap "rm -f $TMPFILE" 0 1 2 13 15
 
 awk '{print $1}' $KHF | \
   ssh-keyscan -t rsa,dsa -f - 2>/dev/null | \
-  ssh-hkutil $KHF - > $TMPFILE || exit 1
+  ssh-hkutil -v $KHF - > $TMPFILE || exit 1
 
 if [ ! -s $TMPFILE ]; then
   echo "error: temporary file empty" >&2
