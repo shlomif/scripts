@@ -16,27 +16,37 @@ fi
 
 KHF=$1
 
-TMPFILE=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
-trap "rm -f $TMPFILE" 0 1 2 13 15
+cleanup () {
+  rm -f $TMPKEYS $TMPHOSTS
+}
 
-# scan for all key types to avoid "MitM server runs DSA instead of RSA"
-# potential issue
-awk '{print $1}' $KHF | \
-  ssh-keyscan -t rsa,dsa,rsa1 -f - 2>/dev/null | \
-  ssh-hkutil -v $KHF - > $TMPFILE || exit 1
+TMPKEYS=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
+TMPHOSTS=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
+trap "cleanup" 0 1 2 13 15
 
-if [ ! -s $TMPFILE ]; then
+# need to do host-by-host as ssh-keyscan will abort if it cannot
+# resolve a particular address
+awk '{print $1}' $KHF | while read hke; do
+  # scan for all key types to avoid potential "MitM server runs DSA
+  # instead of RSA" issue
+  ssh-keyscan -t rsa,dsa,rsa1 $hke 2>/dev/null >> $TMPKEYS
+done
+
+ssh-hkutil -v $KHF - < $TMPKEYS > $TMPHOSTS || exit 1
+
+if [ ! -s $TMPHOSTS ]; then
   echo "error: no keys in temporary file" >&2
   exit 1
 fi
 
-cmp -s $KHF $TMPFILE
+cmp -s $KHF $TMPHOSTS
 STATUS=$?
 
 if [ $STATUS -eq 1 ]; then
   # use cat to preserve permissions cp or mv might fuddle with
-  cat $TMPFILE > $KHF
-  rm $TMPFILE
+  cat $TMPHOSTS > $KHF
 elif [ $STATUS -gt 1 ]; then
   echo "error: cmp failed: status=$STATUS" >&2
 fi
+
+cleanup
