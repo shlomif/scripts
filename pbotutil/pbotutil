@@ -5,6 +5,9 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
+# Interacts with pastebot sites:
+# http://sourceforge.net/projects/pastebot/
+#
 # Run perldoc(1) on this file for additional documentation.
 #
 ######################################################################
@@ -57,7 +60,7 @@ sub help {
   print <<"HELP";
 Usage: $0 [opts]
 
-Help for a generic script template.
+Interacts with pastebot sites.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -74,21 +77,25 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+pbotutil - interacts with pastebot sites
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+  $ TODO
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-Short description of what script is intended to do.
+Provides a command line interface to pastebot sites: allows posting
+to and downloading from such sites.  For more information on
+pastebots, see:
+
+http://sourceforge.net/projects/pastebot/
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ pbotutil [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -103,8 +110,6 @@ This script currently supports the following command line switches:
 Prints a brief usage note.
 
 =back
-
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
 
 =head1 EXAMPLES
 
@@ -135,7 +140,7 @@ No known bugs.
 
 =head1 TODO
 
-Replace default stub POD entries with real documentation.
+Lots.
 
 =head1 SEE ALSO
 
@@ -149,11 +154,6 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 HISTORY
-
-A blank perl template I threw together to make writing new scripts
-easier.
 
 =head1 VERSION
 
