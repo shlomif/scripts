@@ -5,10 +5,9 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 #
-# Command line URL shortcuts and directory to URL mapping.
+# Command line shortcuts and directory to URL mapping.
 #
-# TODO means to tab complete on dir/shortcuts? -o flag to choose what
-# output mode used (print, OmniWeb script, lynx, etc)?
+# TODO messy script, need to cleanup and standardize more.
 
 use URI;
 
@@ -17,6 +16,7 @@ my $default_open = $ENV{OW_METHOD} || 'lynx';
 
 # what to launch URLs with (but see sub visit below)
 # TODO some means to pass options to say lwp-request and wget types?
+# TODO load these from prefs file?
 my %open = (
   lynx          => [qw(lynx)],
   links         => [qw(links)],
@@ -37,14 +37,15 @@ my %pfiles = (
 
 # parse command-line options
 use Getopt::Std;
-my (%opts);
-getopts( 'dlo:T:', \%opts );
+my %opts;
+getopts( 'h?dlo:T:', \%opts );
+print_help() if $opts{h} or $opts{'?'};
 
 for ( keys %pfiles ) {
   $pfiles{$_} = tilde_expand( $pfiles{$_} );
 }
 
-# -d flag does directory->web map lookup (if possible)
+# -d flag does directory->web map lookup
 if ( exists $opts{d} ) {
   my $dirmap = loadconfig( $pfiles{dirmap} );
 
@@ -91,7 +92,7 @@ if ( exists $opts{d} ) {
 
 my $scuts = loadconfig( $pfiles{shortcuts} );
 
-# for _T_ab completion lookups on hash keys
+# for _T_ab completion lookups on hash keys, e.g. for shell autocomplete
 if ( exists $opts{T} ) {
   if ( $opts{T} eq 'open' ) {
     print join "\n", sort keys %open;
@@ -235,15 +236,21 @@ EOF
   return;
 }
 
+# expands ~username syntax to full home directory path
 sub tilde_expand {
-  for (@_) {
+  my @pathes = @_;
+  for (@pathes) {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
+      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
+        || remark('error',
+             'could not lookup user or HOME not set',
+             { file => $_ })
+        && exit 99;
      }ex;
   }
-  return wantarray ? @_ : "@_";
+  return wantarray ? @pathes : "@pathes";
 }
 
 # accepts filename to load TSV from, returns hash reference
@@ -259,15 +266,262 @@ sub loadconfig {
     next if /^$/;
 
     my ( $k, $v ) = split ' ', $_, 2;
-    if ( $k and $v ) {
-
-      # convert tabs in key back to literal, if needed (unlikely)
-      $k =~ s/\\t/\t/g;
-
-      $h->{$k} = $v;
-    }
+    $h->{$k} = $v if $k and $v;
   }
   close F or warn "warning: problem closing $f: $!\n";
 
   return $h;
 }
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] file [file2 ...]
+
+Command line shortcuts and directory to URL mapping.
+
+Options:
+  -h/-?  Display this message.
+
+  -d     Perform directory mapping instead of shortcut lookup.
+
+  -l     Print URL instead of calling web client.
+
+  -o oo  Use specified open method instead of default.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
+__END__
+
+=head1 NAME
+
+ow - command line shortcuts and directory to URL mapping
+
+=head1 SYNOPSIS
+
+Do a google search for 'foo'. Assumes appropriate shortcut has
+been created.
+
+  $ ow g foo
+
+Translate current directory via directory map to web client. Assumes
+appropriate directory map entry has been created.
+
+  $ ow -d
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Short for "Open Web", this tool allows quick access to websites from the
+command line. It is based on the "Shortcuts" feature of the OmniWeb
+browser, though has enhanced macro expansion, and works with any web
+browser that has a command line interface.
+
+By default, the browser alias set by the C<OW_METHOD> environment
+variable will be called to open up the expanded URL. This can be altered
+by changing the C<OW_METHOD> variable, or using the B<-o> command line
+option. Currently, browser aliases are set inside the script itself, and
+either call a subroutine or execute a command.
+
+=head2 Normal Usage
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+This script has two different usage modes: expansion of shortcuts, and a
+directory mapping mode.
+
+  $ ow [options] shortcut [parameter [parameter ...]]
+
+Use the shortcut mode to visit (no parameters) or possibly supply data
+to a website, e.g. to perform a web search.
+
+  $ ow -d [options] [directory]
+
+Filesystem directory to website mapping.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-d>
+
+Lookup directory instead of shortcut. This allows directory trees on a
+filesystem to be mapped to websites. I alias this as 'wv' in my shell
+for "Web View".
+
+  alias wv='ow -d'
+
+=item B<-l>
+
+Show expanded URL instead of calling web client. Good for copy and
+paste needs, for instance to copy the URL of a lookup on Mac OS X:
+
+  ow -l perldoc Term::CallEditor | pbcopy
+
+=back
+
+=head1 SHORTCUTS
+
+These are stored in the C<~/.ow/shortcuts> file by default, and are key
+to value parameters with limited macro expansion on the URL contained in
+the value.
+
+  # for unknown key, attempt *.com expansion
+  *       http://www.%@.com/
+
+  # quick access to site websites: 'ow example foo bar' brings up
+  # http://foo.example.org/bar
+  example http://%1.example.org/%2
+
+  # sample shortcuts. A trailing @ is required for parameters that will
+  # have macro expansion done on them.
+  arin    http://ws.arin.net/
+  arin@   http://ws.arin.net/cgi-bin/whois.pl?queryinput=%@
+
+  cpan    http://search.cpan.org/
+  cpan@   http://search.cpan.org/search?query=%@&mode=all
+
+  d@      http://dictionary.reference.com/search?db=*&q=%@
+
+  dnsr    http://www.DNSreport.com/
+  dnsr@   http://www.DNSreport.com/tools/dnsreport.ch?domain=%@
+
+  fm@     http://freshmeat.net/search/?q=%@
+
+  fr      http://froogle.google.com/
+  fr@     http://froogle.google.com/froogle?q=%@
+  g       http://google.com/
+  g@      http://google.com/search?num=30&lr=lang_en&q=%@
+  gg      http://groups.google.com/advanced_group_search
+  gi      http://images.google.com/
+  gi@     http://images.google.com/images?q=%@
+  gja     http://www.google.co.jp/
+  gja@    http://www.google.co.jp/search?num=100&lr=lang_en&q=%@
+  gn      http://news.google.com/
+  gn@     http://news.google.com/news?q=%@
+
+  mac     http://www.coffer.com/mac_find/
+  mac@    http://www.coffer.com/mac_find/?string=%@
+
+  man     http://www.FreeBSD.org/cgi/man.cgi
+  man@    http://www.FreeBSD.org/cgi/man.cgi?query=%1
+
+  mapq@   http://www.mapquest.com/
+  mapq@   http://www.mapquest.com/maps/map.adp?fakeTab.x=0&fakeTab.y=0&country=US&countryid=250&addtohistory=&searchtab=address&searchtype=address&address=%1&city=%2&state=%3&zipcode=%4
+
+  metro   http://transit.metrokc.gov/
+  metro@  http://transit.metrokc.gov/cftemplates/show_schedule.cfm?BUS_ROUTE=%1
+  metroplan       http://tripplanner.metrokc.gov/cgi-bin/itin_page.pl?resptype=U
+
+  news    http://news.google.com/
+
+  nut     http://www.nal.usda.gov/fnic/cgi-bin/nut_search.pl
+  nut@    http://www.nal.usda.gov/fnic/cgi-bin/nut_search.pl?%@
+
+  ordb@   http://www.ordb.org/lookup/?host=%1
+
+  pp      http://sial.org/pbot/
+  pp@     http://sial.org/pbot/%@
+
+  ripe    http://www.ripe.net/ripencc/pub-services/db/whois/whois.html
+  ripe@   http://www.ripe.net/perl/whois?form_type=simple&full_query_string=&searchtext=%@&do_search=Search
+
+  sbl     http://www.spamhaus.org/SBL
+  sbl@    http://www.spamhaus.org/query/bl?ip=%1
+
+  t@      http://www.thesaurus.com/cgi-bin/search?config=roget&words=%@
+
+  v       http://validator.w3.org/
+  v@      http://validator.w3.org/check?uri=%@
+
+  vt      http://www.versiontracker.com/macosx/
+  vt@     http://www.versiontracker.com/php/search.php?mode=basic&action=search&str=%@&plt%5B%5D=macosx&x=0&y=0
+
+=head1 DIRECTORY MAPS
+
+These are stored in the C<~/.ow/dirmap> file by default, and are key to
+value parameters with limited macro expansion on the URL contained in
+the value. The key is a directory fragment used in a substring match
+against the full directory name being considered.
+
+  # when in checkout of sial.org, map to website
+  co/sial.org/htdocs http://sial.org/%1
+
+=head1 TAB COMPLETION
+
+Use the B<-T> option to assist in tab completion needs. For example, the
+following ZSH completion definition allows tab completion on the open
+method and shortcut names.
+
+  #compdef ow
+
+  local expl ret=1
+
+  if [[ ${words[CURRENT-1]} = "-o" ]]; then
+    _wanted openmethod expl 'open method' compadd "$@" - \
+      $(_call_program openm ow -T open) && ret=0
+  else
+    _wanted shortcut expl 'shortcut' compadd "$@" - \
+      $(_call_program scs ow -T shortcuts) && ret=0
+  fi
+
+  return ret
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+Messy code in need of cleanup.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
