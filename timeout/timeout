@@ -129,10 +129,12 @@ sub duration2seconds {
     while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
       $timeout += $1 * $factor{$2};
     }
+  } else {
+    die "Error: unknown characters in duration.\n";
   }
 
   unless (defined $timeout and $timeout =~ m/^\d+$/) {
-    die "Error: unable to parse duration supplied.\n";
+    die "Error: unable to parse duration.\n";
   }
 
   return $timeout;
@@ -143,7 +145,7 @@ sub seconds2duration {
   my $tmpsec = shift;
 
   unless (defined $tmpsec and $tmpsec =~ m/^\d+$/) {
-    die "Error: input not in seconds";
+    die "Error: input not an integer";
   }
 
   my $seconds = $tmpsec % 60;
