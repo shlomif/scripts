@@ -42,6 +42,9 @@ my %user_prefs;
 $user_prefs{class} = $opts{c} if exists $opts{c};
 $user_prefs{style} = $opts{s} if exists $opts{s};
 
+# TODO read param from user somehow
+my %param = ();
+
 # TODO need preferences file format for these...
 # what about fallback should the requested style not exist, but the
 # default does?
@@ -108,11 +111,47 @@ FILE: for my $file (@ARGV) {
   my ( $result, $rule_prefs ) = parse_rules( \%filedata );
   next FILE unless $result;
 
-  # TODO single file to stdout, (unless -i), multiple files requires -i ?
-  my ( $docref, $details ) = $xapply->transform( { %$rule_prefs, %user_prefs },
-    { 'request.uri' => 'URI' } );
-  die $xapply->errorstring unless defined $docref;
-  print $$docref, "\n";
+  my %prefs = ( %$rule_prefs, %user_prefs );
+
+  my ( $docref, $details ) = $xapply->transform( {%prefs}, {%param} );
+  unless ( defined $docref ) {
+    remark(
+      'error',
+      'could not parse document',
+      { file => $file, errno => $xapply->errorstring }
+    );
+    exit 101;
+  }
+
+  # TODO need to chdir or similar for the output files?
+  my $output_file;
+  if ( exists $opts{o} ) {
+    ( $output_file = $opts{o} ) =~
+     s/ %{ (\w+) } / $filedata{$1} || $prefs{$1} || '' /egx;
+
+    # TODO use IO::Atomic or something?
+    open OUTPUT, "> $output_file"
+     or remark(
+      'error',
+      'could not write to file',
+      { file => $output_file, errno => $! }
+     )
+     and exit 102;
+    select OUTPUT;
+  }
+
+  # TODO need autoflush if no newlines on end?
+  print $$docref;
+
+  if ( exists $opts{o} ) {
+    close OUTPUT
+     or remark(
+      'error',
+      'could not close write to file',
+      { file => $output_file, errno => $! }
+     )
+     and exit 102;
+  }
 }
 
 # given filename (or path to file) returns path to file, filename with
@@ -123,6 +162,10 @@ sub filedata {
   my $filename = shift;
 
   my ( $name, $path, undef ) = fileparse $filename;
+
+  # KLUGE strip trailing / from path to avoid // in paths
+  $path =~ s,/+$,,;
+
   my @portions = split /$suffix_re/, $name;
   return $path, $name, $portions[0] if @portions == 1;
 
