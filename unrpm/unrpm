@@ -7,4 +7,21 @@
 # This file is licensed under the terms of the Artistic License:
 # http://www.sial.org/artistic_license.txt
 #
-# 
+# Script to ease the expansion of src RPM's via rpm2cpio(8) and
+# cpio(1).
+
+# preamble argument checking for fun
+if [ -z "$1" ]; then
+    echo "usage: `basename $0` file1 [file2 .. fileN]"
+    exit 1
+fi
+
+# quick n' dirty expansion
+for file in "$@" ; do
+    if [ -f $file ]; then
+	dir=`echo $file | perl -ple 's/.src.rpm$//'`
+        mkdir $dir 2>/dev/null || ( rm -rf $dir && mkdir $dir )
+        rpm2cpio $file | ( cd $dir && cpio -id 2>/dev/null )
+    fi
+done
+
