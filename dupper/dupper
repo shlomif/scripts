@@ -1,47 +1,30 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
+use Digest::SHA1 ();
+use File::Spec ();
 
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-use Digest::SHA1;
-use File::Spec;
-
-######################################################################
-#
-# VARIABLES
-
-my (%opts, $verbose, $quiet, %check);
 
 # we reset this for each file to avoid OO overhead on each file
 my $dig = Digest::SHA1->new;
 
-######################################################################
-#
-# MAIN
+use Getopt::Std;
+my %opts;
+getopts 'h?vlgzuqp:s:', \%opts;
 
-# parse command-line options
-getopts('h?vlgzuqp:s:', \%opts);
+print_help() if $opts{h} or $opts{'?'};
 
-help() if exists($opts{h}) or exists($opts{'?'});
+my $quiet = 0;
+my $verbose = 0;
 
 $verbose = 1 if exists $opts{v};
+
 if (exists $opts{q}) {
   $verbose = 0;
   $quiet   = 1;
@@ -51,7 +34,9 @@ if (exists $opts{q}) {
 chomp(@ARGV = <STDIN>) unless @ARGV;
 
 # and flag the help text if nothing from STDIN
-help() unless @ARGV;
+print_help() unless @ARGV;
+
+my %check;
 
 # loop over arguments which presumably are a bunch of directories
 for (@ARGV) {
@@ -62,19 +47,13 @@ for (@ARGV) {
   parsedir($_);
 
   # reset the %check hash between directories by default
-  unless (exists $opts{g} || exists $opts{z}) {
+  unless ($opts{g} or $opts{z}) {
     report(\%check, $_);
     %check = ();
   }
 }
 
 report(\%check, 'all');
-
-exit;
-
-######################################################################
-#
-# SUBROUTINES
 
 sub parsedir {
   my $dir = shift;
@@ -196,7 +175,7 @@ sub report {
 }
 
 # a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
 Usage: $0 [opts] [dir1 dir2 .. dirN]
 
@@ -224,12 +203,8 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 100;
 }
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
