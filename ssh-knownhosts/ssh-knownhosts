@@ -5,7 +5,8 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Lists all known hosts from SSH known_hosts file.
+# Lists all known hosts from OpenSSH known_hosts files; see
+# ssh_config(5) for details.
 
 # KLUGE global ssh_known_hosts location may vary by system
 KNOWN_HOSTS_FILES="$HOME/.ssh/known_hosts /etc/ssh/ssh_known_hosts"
