@@ -1,0 +1,106 @@
+#!/usr/bin/perl
+#
+# $Id$
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# 
+# 
+# For documentation, use the -h option or run perldoc on this script.
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+#
+######################################################################
+#
+# MODULES
+
+use Carp;
+use Getopt::Std;
+
+use strict;
+use vars qw:$VERSION:;
+
+######################################################################
+#
+# CONSTANTS
+
+my (%opts);
+
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists($opts{'h'}) || exists($opts{'?'});
+
+# read from STDIN if no args left
+#chomp(@ARGV = <STDIN>) unless @ARGV;
+
+# and flag the help text if nothing from STDIN
+#help() unless @ARGV;
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+$0 v.$VERSION
+Usage: $0 [options]
+Purpose: 
+
+Options:
+  -h/-?  Display this message
+
+
+Run perldoc on this script for more documentation.
+
+HELP
+    exit;
+}
+
+__END__
+
+=head1 NAME
+
+thingy - one line description.
+
+=head1 SYNOPSIS
+
+Quick usage notes...
+
+=head1 DESCRIPTION
+
+1-2 paragraph blarb on what it does
+
+This module is distributed under the terms of the Artistic License:
+http://www.sial.org/artistic_license.txt
+
+=head1 USAGE
+
+Brief summary of OPTIONS and general useage
+
+=head1 OPTIONS
+
+Complete summary of what all the various options do...
+
+=head1 INTERNALS
+
+How any data structures work, why chosen, etc.
+
+=head1 BUGS
+
+=head1 SEE ALSO
+
+perl(1).
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=cut
