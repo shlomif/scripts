@@ -38,7 +38,7 @@ exec tar tvjf %{file}
 # TODO need to experiment with -noautoopen (prevents autorun or not??)
 name Apple disk image
 suffix dmg
-exec hdiutil mount %{file} %{verbose} %{quiet} -noautoopen
+exec hdiutil mount %{file} %{verbose} %{quiet}
 verbose -verbose
 quiet -quiet
 
