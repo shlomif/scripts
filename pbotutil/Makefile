@@ -1,5 +1,5 @@
 all:
-	cvs2cl.pl -r --stdout pbotutil > pbotutil.pl.log
+	cvs2cl -r --stdout pbotutil > pbotutil.pl.log
 	cp pbotutil pbotutil.pl
 	pod2html pbotutil > pbotutil.pl.html
 	rsync -e ssh -avz pbotutil.pl* sial.org:www/code/perl/scripts
