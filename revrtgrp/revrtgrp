@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -20,10 +19,10 @@ use strict;
 #
 # MODULES
 
-use Carp;                       # better error reporting
-use Getopt::Std;                # command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
-use File::Find;			# recursive directory walking
+use File::Find;   # recursive directory walking
 
 ######################################################################
 #
@@ -53,91 +52,95 @@ help() unless @ARGV;
 
 # build a lookup table of user -> default group from passwd file
 while (my ($user, undef, $uid, $gid) = getpwent()) {
-    $u2g{$uid} = $gid;
+  $u2g{$uid} = $gid;
 
-    # and a hash for converting group members to uid's
-    $n2u{$user} = $uid;
+  # and a hash for converting group members to uid's
+  $n2u{$user} = $uid;
 }
 
 # if needed, add user's membership in other groups to the list
 if (exists $opts{'g'}) {
-    while (my (undef, undef, $gid, $members) = getgrent()) {
-	# need convert space delimited list to uid's...
-	for (split ' ', $members) {
-	    my $uid = $n2u{$_};
+  while (my (undef, undef, $gid, $members) = getgrent()) {
 
-	    # make a hash of hashes so we can use quick lookups
-	    # instead of looping over an array for each file
-	    $groups{$uid}->{$gid} = 1 if defined $uid;
-	}
+    # need convert space delimited list to uid's...
+    for (split ' ', $members) {
+      my $uid = $n2u{$_};
+
+      # make a hash of hashes so we can use quick lookups
+      # instead of looping over an array for each file
+      $groups{$uid}->{$gid} = 1 if defined $uid;
     }
+  }
 }
 
 # loop over the remaining input, looking for dirs and parsing them
 for (@ARGV) {
-    unless (-d $_) {
-        warn "error: $_ not a directory, skipping\n";
-        next;
-    }
+  unless (-d $_) {
+    warn "error: $_ not a directory, skipping\n";
+    next;
+  }
 
-    find(\&do_stuff, $_);
+  find(\&do_stuff, $_);
 }
 
 # SUBROUTINES
 
 sub do_stuff {
-    # get current user/group ids off of file
-    my ($uid, $gid) = (lstat)[4,5];
 
-    # see if we should "prune" this directory
-    if (exists $opts{'p'} && -d _) {
-        my $results = eval "return 1 if( " . $opts{'p'} . " );";
+  # get current user/group ids off of file
+  my ($uid, $gid) = (lstat)[4, 5];
 
-        if ($@) {
-            chomp $@;
-            die "Prune error: ", $@; # croak on errors
-        }
+  # see if we should "prune" this directory
+  if (exists $opts{'p'} && -d _) {
+    my $results = eval "return 1 if( " . $opts{'p'} . " );";
 
-        if ($results) {
-            $File::Find::prune = 1;
-            return;
-        }
+    if ($@) {
+      chomp $@;
+      die "Prune error: ", $@;  # croak on errors
     }
 
-    # (try to) figure out what to skip
-    if (exists $opts{'s'}) {
-        my $result = eval "return 1 if( " . $opts{'s'} . " );";
+    if ($results) {
+      $File::Find::prune = 1;
+      return;
+    }
+  }
 
-        if ($@) {
-            chomp $@;
-            die "Skip error: ", $@; # croak on errors
-        }
+  # (try to) figure out what to skip
+  if (exists $opts{'s'}) {
+    my $result = eval "return 1 if( " . $opts{'s'} . " );";
 
-        if ($result) {
-            return;
-        }
+    if ($@) {
+      chomp $@;
+      die "Skip error: ", $@;  # croak on errors
     }
 
-    # catch odd 'uninitialized value' errors I'm seeing (DBG)
-    if ($verbose) {
-	warn $File::Find::name, ' uid ', $uid, ' gid ', $gid, " uninitialized\n" unless defined $u2g{$uid};
+    if ($result) {
+      return;
     }
+  }
 
-    # see whether gid of this file exists in our lookup hash
-    if ($gid != $u2g{$uid}) {
-	# and optionally whether other group is valid for the user
-	if (exists $opts{'g'}) {
-	    return if exists $groups{$uid}->{$gid};
-	}
-	print $File::Find::name, ' ', $gid, ' to ', $u2g{$uid}, "\n" if $verbose;
-	
-	my $result = chown $uid, $u2g{$uid}, $_;
-	warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
+  # catch odd 'uninitialized value' errors I'm seeing (DBG)
+  if ($verbose) {
+    warn $File::Find::name, ' uid ', $uid, ' gid ', $gid, " uninitialized\n"
+     unless defined $u2g{$uid};
+  }
+
+  # see whether gid of this file exists in our lookup hash
+  if ($gid != $u2g{$uid}) {
+
+    # and optionally whether other group is valid for the user
+    if (exists $opts{'g'}) {
+      return if exists $groups{$uid}->{$gid};
     }
+    print $File::Find::name, ' ', $gid, ' to ', $u2g{$uid}, "\n" if $verbose;
+
+    my $result = chown $uid, $u2g{$uid}, $_;
+    warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
+  }
 }
 
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [options] dir1 dir2 .. dirN
 
 Recursive group ownership fixing utility.
@@ -158,7 +161,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 ######################################################################
@@ -167,13 +170,13 @@ HELP
 
 =head1 NAME
 
-revertgrp.pl - recursive group ownership fixing utility.
+revrtgrp - recursive group ownership fixing utility.
 
 =head1 SYNOPSIS
 
 Fix group settings on a bunch of files under /home/user/restore:
 
-  $ revertgrp.pl /home/user/restore
+  $ revrtgrp /home/user/restore
 
 =head1 DESCRIPTION
 
@@ -184,7 +187,7 @@ group on each file to the default group of the owner.
 
 =head2 Normal Usage
 
-  $ revertgrp.pl [options] [dir1 dir2 .. dirN]
+  $ revrtgrp [options] [dir1 dir2 .. dirN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -265,12 +268,12 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
   $Id$
 
 =cut
+
