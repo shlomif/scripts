@@ -146,20 +146,20 @@ sub parse_rules {
     next RULE unless exists $subject->{$topic} and defined $subject->{$topic};
 
     my $match    = 0;
-    my @consider =
+    my $consider =
      ref $subject->{$topic} eq 'ARRAY'
-     ? @{ $subject->{$topic} }
-     : $subject->{$topic};
+     ? $subject->{$topic}
+     : [ $subject->{$topic} ];
 
     if ( $rule->{operator} eq 'eq' ) {
-      for my $thingy (@consider) {
+      for my $thingy (@$consider) {
         if ( $thingy eq $rule->{value} ) {
           $match = 1;
           last;
         }
       }
     } elsif ( $rule->{operator} eq 'sub' ) {
-      for my $thingy (@consider) {
+      for my $thingy (@$consider) {
         if ( -1 < index $thingy, $rule->{value} ) {
           $match = 1;
           last;
