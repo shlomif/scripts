@@ -3,7 +3,14 @@
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
 #
-# Script to fix permissions.
+# Script to fix permissions/ownerships easily in one swoop, as
+# opposed to what I was doing at the command line:
+#
+# find . -exec chmod 2750 {} \;
+# find . -exec chown foo:bar {} \;
+#
+# Which really isn't all that efficient or practical, if you
+# want to skip certain files, prune out directories, etc.
 #
 # Distributed under the Artistic License:
 # http://www.sial.org/artistic_license.txt
@@ -18,13 +25,13 @@ use strict;
 
 # CONSTANTS
 
-my (%opts, $dirmode, $filemode, $group, $groupid, $members, $verbose, 
-    %badgroups, %badperms);
+my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid, $members, 
+    $verbose, %badgroups, %badperms);
 
 # MAIN
 
 # deal with command line options
-getopts('h?p:s:d:f:g:v', \%opts);
+getopts('h?p:s:d:f:u:g:v', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
@@ -37,6 +44,12 @@ if (exists $opts{'d'}) {
 if (exists $opts{'f'}) {
     $filemode = $opts{'f'};
     die "filemode must be four numbers long, e.g. 0640\n" if 4 != length $filemode;    
+}
+
+if (exists $opts{'u'}) {
+    $user = $opts{'u'};
+    # get user id
+    (undef, undef, $userid) = getpwnam $user or die 'no such user: ', $user, "\n";
 }
 
 if (exists $opts{'g'}) {
@@ -167,16 +180,20 @@ sub zapit {
     }
 
     # same group-change code for both dirs and files here
-    if (defined $groupid) {
-	if ($groupid != $cur_gid) {
-	    # yak if verbose
-	    print 'GROUP', "\t", $cur_gid, "\t", $File::Find::name, "\n" if $verbose;
-
-	    my $result = chown $cur_uid, $groupid, $_;
-	    warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
-	    # log this change so we know whose been setting bad groups
-	    $badgroups{$cur_uid}++;
-	}
+    # need to merge in the userid change into here as well..
+    if ((defined $groupid && $groupid != $cur_gid) || (defined $userid && $userid != $cur_uid)) {
+	# set what to change what to, depending :)
+	my $uid_temp = $userid  || $cur_uid;
+	my $gid_temp = $groupid || $cur_gid;
+	
+	# yak if verbose
+	print 'OLD', "\t", $cur_uid, "\t", $cur_gid, "\t", $File::Find::name, "\n" if $verbose;
+	
+	my $result = chown $uid_temp, $gid_temp, $_;
+	warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
+	
+	# log this change so we know whose been setting bad groups
+	$badgroups{$cur_uid}++ if defined $groupid;
     }
 }
 
@@ -190,7 +207,8 @@ Options
   -h/?   See this text.  
   -d     Directory mode to set, e.g. '2770'
   -f     File mode to set,      e.g. '0660'
-  -g     Group mode to set,     e.g. 'goobers'
+  -u     User name to set,      e.g. 'jdoe'
+  -g     Group name to set,     e.g. 'goobers'
 
   -s xx  Perl expression that will result in the current item (stored in \$_)
          being skipped if the expression turns out to be "true."  Example:
@@ -217,6 +235,9 @@ HELP
 __END__
 
 $Log$
+Revision 1.9  2000/02/16 19:30:22  jmates
+Added -u change-the-userid-too option plus documentaton.
+
 Revision 1.8  2000/02/12 00:49:52  jmates
 Changed stat() to lstat() to make the script behave better in link-rich
 environs.
