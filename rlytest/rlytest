@@ -21,10 +21,10 @@ use Term::ANSIColor;
 use Time::gmtime;
 use vars qw($Usage $Dflt_hostname $Dflt_domain $Root_check %Opts
         $Target_host $Port $Timeout $Hostname $Username $Comment
-        $Actual_sender $MailFrom_addr $RcptTo_addr $Mssg_body);
+        $Actual_sender $MailFrom_addr $RcptTo_addr $Hdr_to $Hdr_from $Mssg_body);
 
 $0 =~ s!.*/!!;
-$Usage = "usage: $0 [-f sender_addr] [-u recip_addr] [-c comment] [-t timeout] [-p port] target_host";
+$Usage = "usage: $0 [-f sender_addr] [-u recip_addr] -s [header_sender] -r [header_recip] [-c comment] [-t timeout] [-p port] target_host";
 
 use vars qw($EX_RELAY_ACCEPTED $EX_RELAY_REJECTED $EX_PROGRAM_ERROR);
 $EX_RELAY_REJECTED = 0;
@@ -71,7 +71,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts('c:f:t:u:p:mg', \%Opts)
+getopts('c:f:t:u:p:mg:s:r', \%Opts)
         or die "$Usage";
 die "$Usage\n"
         unless (@ARGV == 1);
@@ -98,12 +98,24 @@ if ($Opts{'f'} ne "") {
         $MailFrom_addr = "nobody\@${Target_host}";
 }
 
+if ($Opts{'s'} ne ""){
+	$Hdr_to = $Opts{'s'};
+} else {
+	$Hdr_to = $RcptTo_addr;
+}
+
+if ($Opts{'r'} ne ""){
+	$Hdr_from = $Opts{'r'};
+} else {
+	$Hdr_from = $MailFrom_addr;
+}
+
 #
 # Construct the test message.
 #
 $Mssg_body =
-        "To: $RcptTo_addr\n"
-        . "From: $MailFrom_addr\n"
+        "To: $Hdr_to\n"
+        . "From: $Hdr_from\n"
         . "Subject: test for susceptibility to third-party mail relay\n"
         . "Date: " .  arpa_date(time()) . "\n"
         . "Message-Id: <rlytest-" . time() . "-" . $$ . "\@$Hostname>\n"
@@ -372,3 +384,4 @@ smtpd(8)
 
   $Id$
   See http://www.unicom.com/sw/#rlytest for latest version.
+
