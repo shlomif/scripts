@@ -99,9 +99,9 @@ exit;
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [opts] [file1 file2 .. fileN]
 
-Help for a generic script template.
+Merges growing files into single stream
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -118,23 +118,29 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+eet.pl - merges growing files into single stream
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+To follow two log files at the same time:
+
+  $ eet.pl /var/log/messages /var/log/maillog
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-Short description of what script is intended to do.
+This script does rougly the opposite of tee(1), reading in from
+multiple files and merging them all into STDOUT.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ eet.pl [options] [file1 file2 .. fileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
+
+If no files are mentioned on the command line for reading, this script
+will look fo them on STDIN.
 
 =head1 OPTIONS
 
@@ -148,19 +154,12 @@ Prints a brief usage note about the script.
 
 =back
 
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
-
 =head1 EXAMPLES
 
-Additional examples/helpfull hints expanding on SYNOPSIS.
+Follow several Apache VirtualHost logfiles, and send them off to
+colorize.pl (available on http://freshmeat.net):
 
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
+  $ eet.pl logs/e.com.log logs/e.org.log | colorize.pl
 
 =head1 BUGS
 
@@ -197,8 +196,8 @@ itself.
 
 =head1 HISTORY
 
-A blank perl template I threw together to make writing new scripts
-easier.
+Based heavily on the select_demo script from File::Tail by Matija
+Grabnar.
 
 =head1 VERSION
 
