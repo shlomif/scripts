@@ -2,9 +2,9 @@
 #
 # $Id$
 #
-# Copyright (c) 2000, Jeremy A. Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+# software; you can redistribute it and/or modify it under the same
+# terms as Perl itself.
 #
 # Run perldoc on this file for additional documentation.
 #
@@ -14,9 +14,7 @@
 
 require 5.005;
 
-# no strict, as this allows for more freedom in the expression
-# creation phase...
-#use strict;
+use strict;
 
 ######################################################################
 #
@@ -40,13 +38,18 @@ my (%opts, $op, $fn);
 # MAIN
 
 # parse command-line options
-getopts('h?cifvp', \%opts);
+getopts('h?cmifvp', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# choose which function to use (copy vs. rename) depending on argument
+# choose which function to use depending on argument; default is to
+# use the rename() function, but that can be changed to one of copy()
+# or move() from File::Copy if the name of the script is changed or
+# appropriate argument is supplied
 $fn = $opts{'c'} || $0 eq "copy" ? "copy" : "rename";
+$fn = $opts{'m'} || $0 eq "move" ? "move" : $fn;
 
+# perl expression to run the files by
 $op = shift;
 
 # read from STDIN if no args left
@@ -56,7 +59,10 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 help() unless @ARGV;
 
 # loop over the files
-for(@ARGV) {
+for (@ARGV) {
+    # allow more flexibility in eval statements
+    no strict;
+
     # record what the file was called
     my $was = $_;
 
@@ -79,10 +85,11 @@ for(@ARGV) {
 
     # check whether we should drop into interactive mode
     # when a conflicting file exists
-    if($opts{'i'} || (-e && ! $opts{'f'})) {
-        print $opts{'i'} ? "Confirm? " : "$_ exists.  Overwrite? ";
+    if (-e && $opts{'i'} && ! $opts{'f'}) {
+	print "$_ exists.  Overwrite? (y/[n]) ";
         next unless <STDIN> =~ /^[Yy]/;
     }
+
     # with error checking, actually attempt the rename or
     # copy.
     unless (eval "$fn(\$was, \$_)") {
@@ -107,13 +114,16 @@ A powerful file renamer in perl.
 Options for version $VERSION:
   -h/-?  Display this message
 
-  -c     copy file(s) instead of rename
+  -c     copy instead of rename
+  -m     move instead of rename or copy
+
   -i     interactive, prompt if necessary
-  -f     force (over-rides -i, it would seem...)
+  -f     force (do not prompt to replace existing files)
+
   -v     be verbose
   -p     preview mode (show changes only)
 
-Run perldoc on this script for additional documentation.
+Run perldoc(1) on this script for additional documentation.
 
 HELP
     exit;
@@ -125,62 +135,70 @@ HELP
 
 =head1 NAME
 
-rename.pl - a spiffy file renamer.
+rename.pl - a file renamer in perl
 
 =head1 SYNOPSIS
 
-Append .foo to a bunch of files:
+Append .old to a bunch of files:
 
-  $ rename.pl 's/$/.foo/' *
+  $ rename.pl 's/$/.old/' *
 
-Fix the case on all .C files in the current directory:
+Fix the case on all .C files to lower, doing a preview of changes
+only:
 
-  $ rename.pl 'tr/A-Z/a-z/' *.C
+  $ rename.pl -p 'tr/A-Z/a-z/' *.C
 
 =head1 DESCRIPTION
 
-A powerful file renamer that uses perl expressions to rename files.
+A powerful file renamer that uses user-supplied perl expressions to
+rename files.  Optionally, the copy() or move() routines from
+File::Copy may be used instead of the builtin rename() function.
 
-This is a hacked up version of Larry Wall's original rename script
-distributed with perl, improved by Daniel V. Klien (copy option,
-interactive mode), and then polished into this form by Jeremy Mates
-(preview mode, comments in source).
+A preview mode is also available, to allow testing of expressions
+before any changes are allowed to go to disk.
 
 =head1 USAGE
 
   $ rename.pl [options] expression [file1 file2 .. fileN]
 
+See L<"OPTIONS"> for details on the command line switches supported.
+
 If no files are mentioned on the command line, the script will attempt
-to read them from STDIN, allowing for things like:
+to read them from STDIN, allowing for easy interoperation with various
+shell utilities.  In this case, fix .htm files to .html:
 
-  $ find . -name "*.asp" | rename.pl 's/asp$/cleopatra_killer/'
-
-Options are detailed below.
-
-For more examples, consult the Perl Cookbook, which is probably
-reproducing some portion of the manual.
+  $ find . ! -type d -name "*.htm" | rename.pl '$_ .= "l"'
 
 =head1 OPTIONS
 
-rename.pl currently supports the following options:
+This script currently supports the following command line switches:
 
 =over 4
 
 =item B<-h> / B<-?>
 
-Display a brief help blarb.
+Prints a brief usage note about the script.
 
 =item B<-c>
 
-Copy files instead of renaming them.
+Copy files instead of renaming them, using copy() from File::Copy.
+
+=item B<-m>
+
+Move files instead of renaming them.  Uses move() from File::Copy,
+which may not be available in older versions of File::Copy.
+
+Since rename() cannot be used across filesystem boundaries, and may
+not be available on all systems, move() may be a better option in some
+circumstances.
 
 =item B<-i>
 
-Interactive mode: prompt if necessary.
+Interactive mode: prompts for confirmation.
 
 =item B<-f>
 
-Force.  Overrides the interactive mode.
+Force mode.  Does not prompt to replace existing files.
 
 =item B<-v>
 
@@ -194,27 +212,39 @@ Enable preview mode, no changes will be made to disk.
 
 =head1 BUGS
 
+=head2 Reporting Bugs
+
 Newer versions of this script may be available from:
+
 http://www.sial.org/code/perl/
 
-If not, or the bug is in the latest version, send the bug report to:
-jmates@sial.org
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+Bugs are left as an exercise to the expression writer. :)
 
 =head1 SEE ALSO
 
-perl(1), L<Carp>, L<Getopt::Std>
+File::Copy, perl(1)
 
 =head1 AUTHOR
 
-Jeremy A. Mates, jmates@sial.org
-
-Who improved on earlier work done by Daniel V. Klien and Larry Wall.
+Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000, Jeremy A. Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
+=head1 HISTORY
+
+This is a hacked up version of Larry Wall's original rename script
+distributed with perl under the eg directory, improved by Daniel
+V. Klien (copy option, interactive mode), and then polished into this
+form by Jeremy Mates (preview mode, comments in source, move support).
 
 =head1 VERSION
 
