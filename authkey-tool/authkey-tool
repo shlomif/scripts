@@ -31,6 +31,8 @@ use Getopt::Std;  # command line option processing
 
 use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 
+use Data::Dumper;         # DBG
+
 ######################################################################
 #
 # VARIABLES
@@ -38,14 +40,25 @@ use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts, $data, @targets);
+my (%opts, $data, @targets, $comment, $keyopts);
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?f:tC', \%opts);
+getopts('h?f:C:o:O:t', \%opts);
+
+# various key-munging options
+$comment = $opts{'C'} if exists $opts{'C'};
+
+if (exists $opts{'o'}) {
+  $keyopts->{'required'} = parse_authkey_options($opts{'o'});
+}
+
+if (exists $opts{'O'}) {
+  $keyopts->{'exclusive'} = parse_authkey_options($opts{'O'});
+}
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
@@ -60,13 +73,14 @@ if (exists $opts{'f'}) {
   while (<STDIN>) {
     next if m/^#/ or m/^\s*/;
     chomp;
-    
+
     s/^\s+//;
     s/\s+$//;
-    
+
     push @targets, $_;
   }
 }
+
 # TODO: validate incoming targets?
 
 # rest of argv keyfiles, load 'em up
@@ -75,29 +89,41 @@ for (@ARGV) {
   open KEYFILE, $_
    or remark('warning', "problem reading $_: $!")
    and next;
-   
+
   while (<KEYFILE>) {
+
     # see sshd(8) for expected format of auth_key_file
     next if m/^#/ or m/^\s*$/;
     chomp;
-    
+
     my $values = parse_authkey($_);
-  
+
     next unless defined $values;
-  
+
     if (exists $data->{$values->{'hash'}}) {
-      remark(
-        'warning',         "skipping duplicate key (hash:",
-        $values->{'hash'}, ") at $_ line $."
-      );
+      remark('warning', "skipping duplicate key (hash:",
+        $values->{'hash'}, ") at $_ line $.");
       next;
     }
-  
+
+    # munge keys as called for
+    $values->{'comment'} = $comment if defined $comment;
+
+    if (exists $keyopts->{'exclusive'}) {
+      $values->{'options'} = $keyopts->{'exclusive'};
+
+    } elsif (exists $keyopts->{'required'}) {
+      %{$values->{'options'}} =
+       (%{$values->{'options'}}, %{$keyopts->{'required'}});
+    }
+
     $data->{$values->{'hash'}} = $values;
   }
-  
+
   close KEYFILE;
 }
+
+print Dumper $data;
 
 exit;
 
@@ -149,14 +175,34 @@ sub parse_authkey {
     return;
   }
 
-  # "options" need to be ,-separated, not on " " as done to get elements
-  # above.  TODO: improve this to hande "'s ...
-  $values{'options'} = [split /,/, "@options"];
-  
+  $values{'options'} = parse_authkey_options("@options");
+
   $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
-  $values{'key'}     = $authkey;
+  $values{'key'}  = $authkey;
 
   return \%values;
+}
+
+# takes scalar containing auth_key_file options
+# returns hash reference
+#
+# TODO: fixup to handle 'mumble="asdf, zot",foo' issues
+sub parse_authkey_options {
+  my $options = shift;
+  my $ak_opts;
+
+  for (split /,/, $options) {
+    my ($k, $v) = split /=/;
+    $ak_opts->{$k} = $v;
+  }
+
+  return $ak_opts;
+}
+
+# takes hash ref, returns scalar format of options
+sub authkey_options2str {
+  return join ",", map { $_[0]->{$_} ? $_ . '=' . $_[0]->{$_} : $_ }
+   sort keys %{$_[0]};
 }
 
 # generic log handler
@@ -197,7 +243,7 @@ sub remark {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [opts] keyfile1 [keyfile2 .. keyfileN]
 
 Manages OpenSSH authorized key files.
 
@@ -206,6 +252,11 @@ Options for version $VERSION:
 
   -t hh  Target host tt.
   -f ff  Read target host(s) from file ff; - for STDIN.
+
+  -C cc  Set comment cc on keys.
+  
+  -o aa  Require options aa to be set.
+  -O bb  Force only options bb to be set.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -234,7 +285,7 @@ hosts with the backend manage-authkeys.pl script.
 
 =head2 Normal Usage
 
-  $ authkey-tool.pl [options]
+  $ authkey-tool.pl [options] keyfile1 [keyfile2 .. keyfileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -260,6 +311,22 @@ and trailing whitespace will be deleted, and empty lines skipped.
 
 Hosts should be hostnames or IP addresses the computer running the
 script can resolve.
+
+=item B<-C> I<comment>
+
+Set the comment field on all keys dealt with to I<comment>.
+
+=item B<-o> I<options>
+
+Ensure that the options specified are set on all keys.  This allows
+variable C<from> and C<command> options to be set elsewhere, but to
+have this utility add the usual command key restrictions:
+
+  -o no-X11-forwarding,no-agent-forwarding,no-port-forwarding,no-pty
+
+=item B<-O> I<options>
+
+Replace any existing options with those specified.
 
 =back
 
