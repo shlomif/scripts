@@ -239,7 +239,7 @@ sub tilde_expand {
         || remark('error',
 	     'could not lookup user or HOME not set',
 	     { file => $_ })
-	&& exit 104;
+	&& exit 99;
      }ex;
   }
   return wantarray ? @_ : "@_";
