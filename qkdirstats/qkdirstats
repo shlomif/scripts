@@ -94,6 +94,8 @@ sub dirdata {
       $overview_overflow = 1;
     }
   }
+
+  $keys{empty} = 1 unless @overview;
 }
 
 sub output {
