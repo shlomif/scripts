@@ -103,3 +103,12 @@ sub humanize {
     # return number with proper style applied
     return $prefix . $tmp . $prefs{'suffix'}->[$count];
 }
+
+__END__
+
+# some perldoc so my 2website script doesn't complain :)
+=head1 NAME
+
+human.pl - demonstrates humanization of file sizes.
+
+=cut
