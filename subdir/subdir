@@ -14,7 +14,7 @@ RETURN=1
 
 scandir () {
   for file in *; do
-    if [ -d $file ]; then
+    if [ -d "$file" ]; then
       RETURN=0
 
       # if quiet, single subdir enough
@@ -41,9 +41,9 @@ if [ $# -eq 0 ]; then
   scandir
 else
   for dir in "$@"; do
-    if [ -d $dir ]; then
+    if [ -d "$dir" ]; then
     (
-      cd $dir
+      cd "$dir"
       scandir
     )
     else
