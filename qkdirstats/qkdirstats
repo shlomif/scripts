@@ -7,6 +7,8 @@ my $pwd = getcwd;
 my %keys;
 my %counts;
 my @overview;
+my $overview_max      = 7;
+my $overview_overflow = 0;
 
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
@@ -54,18 +56,21 @@ sub dirdata {
       next;
     }
 
-    push @overview, $_ unless @overview > 7;
+    if ( @overview <= $overview_max ) {
+      push @overview, $_;
+    } else {
+      $overview_overflow = 1;
+    }
   }
 }
 
 sub output {
   if (@overview) {
     print 'files:  ',
-     join( ' ', sort(@overview), $counts{total} > @overview ? '...' : () ),
-     "\n";
+     join( ' ', sort(@overview), $overview_overflow ? '...' : () ), "\n";
   }
 
-  if ( $counts{total} and $counts{total} > @overview ) {
+  if ( $overview_overflow ) {
     print 'counts: ', join( ', ', map { "$_=$counts{$_}" } sort keys %counts ),
      "\n";
   }
