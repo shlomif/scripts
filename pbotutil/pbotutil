@@ -1,17 +1,20 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Interacts with pastebot sites:
-# http://sourceforge.net/projects/pastebot/
+# Command line interface to pastebot sites; provides means to post and
+# retrieve arbitrary data.
 #
 # Run perldoc(1) on this file for additional documentation.
 
 require 5;
 use strict;
+use warnings;
+
+# other required modules may be loaded dynamically as needed
 use File::Basename;
 use File::Path;
 use URI;
@@ -27,56 +30,67 @@ my $aliases = parse_aliases($servers);
 use Getopt::Std;
 my %opts;
 getopts('h?qu:s:c:m:', \%opts);
-help() if exists $opts{'h'} or exists $opts{'?'};
+print_help() if exists $opts{'h'} or exists $opts{'?'};
 
-# action table
-my %actions = (
-  get => {
-    description => 'Download pastes from pastebot site',
-    handle      => \&pb_get,
-  },
-  put => {
-    description => 'Paste to pastebot site',
-    handle      => \&pb_put,
-  },
-  'list-servers' => {
-    description => 'Lists server definitions',
-    handle      => \&list_servers,
-  },
-);
+my %actions;
+@actions{qw(get put list-servers)} = ();
 
 # figure out what to do
-my $verb;
-if (defined $ARGV[0]) {
-  if (exists $actions{$ARGV[0]}) {
-    $verb = shift;
-  } elsif (exists $servers->{$ARGV[0]}) {
-    $verb = 'put';
-    $opts{s} = shift;
-  }
-} else {
-  $verb = 'put';
-}
+my $verb = defined $ARGV[0] ? shift: 'put';
 unless (exists $actions{$verb}) {
-  remark('alert', "no such action: $verb") and exit 101;
+  remark(
+    'error',
+    "argument '$verb' not one of: " . join " ",
+    sort keys %actions
+  );
+  exit 101;
 }
 
-if ($verb eq 'put') {
-  my %args;
-  @args{qw(name nick channel summary)} = @opts{qw(s u c m)};
+if ($verb eq 'list-servers') {
+  print join ("\n", sort keys %$servers, keys %$aliases), "\n";
+  exit;
+}
 
-  # also need to pull args from after the put verb and merge them over
-  # the pre-put arguments
-  my %putopts;
-  getopts('s:c:m:u:', \%putopts);
-  my %postargs;
-  @postargs{qw(name nick channel summary)} = @putopts{qw(s u c m)};
+# common command line option parsing for get and put
+my %args;
+@args{qw(name nick channel summary)} = @opts{qw(s u c m)};
 
-  while (my ($k, $v) = each %postargs) {
-    $args{$k} = $v if defined $v;
+# also need to pull args from after the put verb and merge them over
+# the pre-verb arguments
+my %postopts;
+getopts('s:c:m:u:', \%postopts);
+my %postargs;
+@postargs{qw(name nick channel summary)} = @postopts{qw(s u c m)};
+
+while (my ($k, $v) = each %postargs) {
+  $args{$k} = $v if defined $v;
+}
+
+print_help()
+ unless (exists $args{name} and defined $args{name})
+ or ($verb eq 'get' and defined $ARGV[0]);
+
+if ($verb eq 'get') {
+  my $prefs;
+
+  $prefs = $servers->{
+    exists $aliases->{$args{name}}
+    ? $aliases->{$args{name}}->[0]
+    : $args{name}
+   }
+   if defined $args{name};
+
+  # merge command-line prefs over server entry
+  while (my ($k, $v) = each %args) {
+    $prefs->{$k} = $v if defined $v;
   }
 
-  help() unless exists $args{name} and defined $args{name};
+  pb_get($prefs, @ARGV);
+
+} elsif ($verb eq 'put') {
+
+  # deal with uploading data with put; trickier as can upload to any
+  # number of pastebots
 
   # lookup aliases, pre-populate potential servers with name fields
   my @potentials;
@@ -86,7 +100,7 @@ if ($verb eq 'put') {
   }
 
   unless (exists $servers->{$args{name}}) {
-    remark('alert', "no preferences entry for: $args{name}");
+    remark('error', "no preferences entry for: $args{name}");
     exit 105;
   }
 
@@ -131,16 +145,14 @@ if ($verb eq 'put') {
       $prefs->{$k} = $v if defined $v;
     }
 
-    last if $actions{$verb}->{handle}->($prefs, \$paste);
+    last if pb_put($prefs, \$paste);
   }
-
-} else {
-  $actions{$verb}->{handle}->(@ARGV);
 }
 
 # handles downloads from paste sites
 sub pb_get {
-  my $id = shift || help();
+  my $prefs = shift;
+  my $id    = shift;
   my $url;
 
   # if get a URL, run with that; otherwise expect shortcut and paste id
@@ -151,35 +163,24 @@ sub pb_get {
 
   } else {
 
-    unless (exists $opts{s} and defined $opts{s}) {
-      help();
-    } else {
-      unless (exists $servers->{$opts{s}}) {
-        remark('alert', "no server entry for: $opts{s}");
-        exit 105;
+    unless ($id =~ /^\d+$/) {
+      remark('error', "could not parse paste id: $id");
+      exit 105;
+    }
+    $url =
+     URI->new(
+      $prefs->{url} . (($prefs->{url} !~ m,/$,) ? '/' : '') . $id . '?tx=on')
+     ->canonical;
 
-        # KLUGE assume pastebot id numeric
-      } elsif ($id !~ m/^\d+$/) {
-        remark('alert', "could not parse paste id: $id");
-        exit 105;
-
-      } else {
-        $url =
-         URI->new($servers->{$opts{s}}->{url}
-           . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
-           . $id
-           . '?tx=on')->canonical;
-
-        unless (defined $url) {
-          remark('alert', "could not determine url for: $id");
-          exit 102;
-        }
-      }
+    unless (defined $url) {
+      remark('error', "could not determine url for: $id");
+      exit 102;
     }
   }
+
   my $content = get_url({url => $url});
   unless ($content) {
-    remark('alert', "no data from $url");
+    remark('error', "no data from $url");
     exit 103;
   }
 
@@ -202,7 +203,7 @@ sub pb_put {
    ->canonical;
 
   unless (defined $url) {
-    remark('alert', "could not determine url from $prefs->{url}");
+    remark('error', "could not determine url from $prefs->{url}");
     exit 104;
   }
 
@@ -216,7 +217,7 @@ sub pb_put {
   # if LWP not available might be nice.
   eval { require LWP::UserAgent; };
   if ($@) {
-    remark('alert', "problem loading LWP::UserAgent: $@");
+    remark('error', "problem loading LWP::UserAgent: $@");
     exit 102;
   } else {
     my $ua =
@@ -233,7 +234,7 @@ sub pb_put {
       if ($response->content and not exists $opts{q}) {
         eval { require HTML::TokeParser; };
         if ($@) {
-          remark('alert', "problem loading HTML::TokeParser: $@");
+          remark('error', "problem loading HTML::TokeParser: $@");
 
           #print $$content, "\n"; # DBG
           exit 103;
@@ -259,12 +260,6 @@ sub pb_put {
   }
 }
 
-# list server definitions, exits scripts.  for tab completion
-sub list_servers {
-  print join ("\n", sort keys %$servers, keys %$aliases), "\n";
-  exit;
-}
-
 # accepts hash containing url to get plus other stuff
 # returns scalar reference with page content, or undef if problem
 sub get_url {
@@ -274,7 +269,7 @@ sub get_url {
   # back to command line utils if nothing installed CPAN-wise
   eval { require LWP::UserAgent; };
   if ($@) {
-    remark('alert', "problem loading LWP::UserAgent: $@");
+    remark('error', "problem loading LWP::UserAgent: $@");
     exit 102;
   } else {
     my $ua =
@@ -304,7 +299,7 @@ sub server_load {
   push @tmp, {};
 
   open FILE, $data->{filename}
-   or remark('alert', "could not open $data->{filename} for reading: $!")
+   or remark('error', "could not open $data->{filename} for reading: $!")
    and exit 100;
 
   while (<FILE>) {
@@ -369,7 +364,7 @@ sub server_load {
   }
 
   unless (keys %$servers) {
-    remark('alert', "no entries found in preferences file $data->{filename}");
+    remark('error', "no entries found in preferences file $data->{filename}");
     exit 100;
   }
   return $servers;
@@ -422,7 +417,7 @@ sub init {
   remark('info', "creating default preference file: $file");
   mkpath(dirname($file));
   open FILE, ">$file"
-   or remark('alert', "could not create preference file $file: $!")
+   or remark('error', "could not create preference file $file: $!")
    and exit 100;
 
   print FILE <<"DEFAULTPREFS";
@@ -442,11 +437,11 @@ channel #perl
 network freenode
 
 # for non-announced pastes
-name nochan-sial
+name sial
 alias nochan test
 url http://sial.org/pbot/
 
-name nochan-dragon
+name dragon
 alias nochan
 url http://dragon.cbi.tamucc.edu:8080/
 DEFAULTPREFS
@@ -475,22 +470,19 @@ sub remark {
 }
 
 # a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
 Usage for $0:
 
-  Download (to stdout):
+  Put data to the named paste site from file(s) or stdin:
 
-$0 -s shortcut get pasteid
+$0 -s name [-m summary] [files]
 
-  Upload (from files or stdin).  Shortcut is name field from
-  a server preferences file entry.
+  Get a paste:
 
-$0 -s shortcut [-c channel] [-m summary] [-u nick] [files]
+$0 -s name get pasteid
 
-  Run perldoc(1) on this script for additional documentation, and also
-  see the preferences file: $prefs_file
-
+Run perldoc(1) on this script for additional documentation.
 HELP
   exit 1;
 }
@@ -505,28 +497,27 @@ pbotutil - interacts with pastebot sites
 
 =head1 SYNOPSIS
 
-Get post number 1 using the "perl" shortcut, save to "file":
+Post contents of the C<myscript> file to the pastebot defined by the
+C<perl> entry in the preferences file.
 
-  $ pbotutil -s perl get 1 > file
+  $ pbotutil -s perl myscript
 
-Post contents of "file" to the #linux channel available on the same
-server that is referenced by the "perl" shortcut.
+Get post number 42 using the C<perl> definition, save to C<file>:
 
-  $ pbotutil -s perl -c linux -u mynick file
+  $ pbotutil -s perl get 42 > file
 
-See L<"FILES"> for details on the preferences file, where shortcuts
-are defined.
+See L<"FILES"> for details on the preferences file.
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
 Provides a command line interface to pastebot sites offered by various
-IRC channels to prevent paste floods.  Methods to upload files to
-pastebots or download specific entries are provided, to spare command
-line junkies the trouble of copying and pasting into a browser.
+IRC channels to prevent paste floods. Methods to B<put> files to
+pastebots or B<get> prior pastes are provided.
 
-For more information on pastebots, see:
+At present, this script is only compatible with sites running the
+following pastebot implementation:
 
 http://sourceforge.net/projects/pastebot/
 
@@ -534,58 +525,56 @@ http://sourceforge.net/projects/pastebot/
 
   $ pbotutil [global-options] action [args]
 
-The C<action> can be one of get or put at present.  The put verb is the
-default option, and will be assumed if left out.
+The C<action> can be one of B<get> or B<put> at present. The B<put> verb
+is the default option, and will be assumed if left out.
+
+Output will be sent to stdout, errors to stderr. Problems will result in
+a non-zero exit code.
 
 =over 4
 
 =item B<get>
 
-The get verb accepts two formats: a shortcut lookup plus a pasteid
-(number) or a fully qualified URL to download.  A URL will be looked for
-first; failing that, a -s shortcut and numeric pasteid are required.
+The B<get> verb accepts two formats: a shortcut lookup plus a pasteid
+(number) or a fully qualified URL to download. A URL will be looked for
+first; failing that, a B<-s> name and numeric pasteid are required.
 
   $ pbotutil get URL
 
-  $ pbotutil -s shortcut get pasteid
+  $ pbotutil -s name get pasteid
 
-Output will be sent to stdout by default.
+The data of the paste will be sent to stdout.
+
+Aliases work for B<get>, though may not lead to the correct site if
+multiple entries share the same alias name. To avoid this problem,
+create entries named after the site in question, and get content using
+this name, while uploading using the failover alias.
 
 =item B<put> (default)
 
-The text "put" is optional, and will be assumed if left out. If multiple
-files are specified on the command line, they will be joined together
-and then pasted. Otherwise, input will be read from stdin. A server to
-upload to is required. Additionally, this script will look through the
-server entries for alternates to upload to, should the upload fail.
+The B<put> verb is optional, and will be assumed if left out. If
+multiple files are specified on the command line, they will be joined
+together and then pasted. Otherwise, input will be read from stdin. A
+server to upload to is required. Additionally, this script will look
+through the server definitions for alternates to upload to, should the
+upload fail.
 
-The paste URL will be returned to stdout, unless the quiet mode is on.
+The paste URL will be returned to stdout, unless quiet mode is on.
 
-  $ pbotutil -s shortcut [-c channel] [-m summary] [-u nick] \
-   [put] [-c channel] [-m summary] [-u nick] [files]
+  $ pbotutil [-s name] [-c channel] [-m summary] [-u nick] [put]
+    [-s name] [-c channel] [-m summary] [-u nick] [files]
 
-  $ pbotutil [-c channel] [-m summary] [-u nick] \
-   [put] URL [-c channel] [-m summary] [-u nick] [files]
-
-The -s and the URL arguments are exclusive, though one is required to
-obtain a pastebot URL to talk to.  Some options appear on either side of
-the optional put verb: options after the verb (if specified) override
-those before the verb, and command line options trump any server
-preference settings.
-
-This allows shell aliases to be created while still offering the ability
-to override the defaults, to avoid faux pas.  The example below is
-somewhat contrived, as a better solution would be to create a different
-preferences file entry for python posts.
-
-  $ alias pbup='pbotutil -s perl -u perlguru put'
-  $ pbup -c python -u pythonguru foo.py
+At minimum, a B<-s> option and data to upload must be specified. Using
+the B<-m> summary option to describe the paste is highly recommended.
+The other options allow flexibility; the author recommends avoiding them
+and using preferences file entries that contain the required details.
 
 =item B<list-servers>
 
 Provides a list of C<name> (and C<alias>) entries from the preferences
 file. For tab completion systems needing to complete the value of the
-B<-s> option.  For instance, a primitive zsh compdef entry:
+B<-s> option. For instance, a bare bones zsh compdef entry to tab
+complete on the B<-s> option:
 
   #compdef pbotutil
 
@@ -608,17 +597,17 @@ This script currently supports the following command line switches:
 
 =item B<-h>, B<-?>
 
-Prints a brief usage note.
+Prints a brief usage note, exits script.
 
 =item B<-q>
 
 Makes the script less chatty about various things.
 
-=item B<-s> I<shortcut>
+=item B<-s> I<name>
 
-Use a I<shortcut> definition to get the URL, default nickname, and other
-details from the preference file.  Optional, as the get and put commands
-accept fully qualified URL, though recommended to simplify useage.
+Use a I<name> definition to get the URL, default nickname, and other
+details from the preferences file. Required, except when downloading by
+raw URL with the B<get> method.
 
 See L<"FILES"> for details on the preference file format.
 
@@ -626,22 +615,24 @@ See L<"FILES"> for details on the preference file format.
 
 Channel the pastebot should send the "new paste" notice to.  Overrides
 preference file setting, if any.  Setting it to an empty string will
-target the "null" channel, which avoids channel announcements; this good
-for testing.
+target the "null" channel, which avoids channel announcements.
 
-  $ date | pbotutil -s test -c ''
+  $ date | pbotutil -s perl -c ''
+
+Entries in the preferences file default to no channel pastes should the
+C<channel> keyword be left out for the entry in question.
 
 =item B<-u> I<nick>
 
-Use I<nick> as username when posting.  Will override the preference file
-setting, if any.  This allows channel members to associate a paste with
+Use I<nick> as username when posting. Will override the preference file
+setting, if any. This allows channel members to associate a paste with
 your nick.
 
 =item B<-m> I<summary>
 
 Short, descriptive summary about the data being pasted, to assist the
-members of channel being notified.  This does not include things like
-"help!"  For more details on asking questions, see:
+members of channel being notified. This does not include things like
+"help!" For more details on asking questions, see:
 
 http://www.catb.org/~esr/faqs/smart-questions.html
 
@@ -677,17 +668,17 @@ script will failover between the named sites.
   network freenode
 
   # for non-announced pastes or testing
-  name nochan-sial
+  name sial
   alias nochan test
   url http://sial.org/pbot/
 
-  name nochan-dragon
+  name dragon
   alias nochan
   url http://dragon.cbi.tamucc.edu:8080/
 
 The C<channel> and C<nick> keys provide defaults to use, though will be
 overridden by the appropriate command line options. The C<network> field
-allows this script to figure out alternative servers to attempt to paste
+aids the script in figuring out alternative servers to attempt to paste
 to, should the specified site be down. The C<type> entry is reserved for
 potential future support of other pastebot-style sites.
 
@@ -703,9 +694,31 @@ Consult your IRC program's manual for more details on how to
 invoke scripts.
 
 On Mac OS X, the contents of the clipboard can be pasted from the
-command line:
+command line, and the resulting upload URL saved to the clipboard for
+pasting of the resulting upload URL. With multiple C<nochan> entries in
+the preferences files via C<alias> keys, the data should be uploaded
+somewhere, assuming at least one pastebot is up:
 
-  $ pbpaste | pbotutil -s server -m "my code"
+  $ pbpaste | pbotutil -s nochan -m "my code" | pbcopy
+
+A complex download example: paste 42 is saved to the C<paste42> file,
+and also cleaned up (assuming a perltidy configuration that accepts on
+stdin and sends to stdout) and sent to bbedit:
+
+  $ pbotutil -s server get 42 | tee paste42 | perltidy | bbedit
+
+For more information on perltidy, see:
+
+http://perltidy.sourceforge.net/
+
+To configure perltidy to send output to stdout, set the following in
+C<~/.perltidyrc>:
+
+  -st     # output to STDOUT (so works with programs as filter)
+  -se     # errors to STDERR
+  -nsyn   # no syntax checking
+
+=head1 RELATED
 
 An Emacs interface is available:
 
@@ -713,7 +726,7 @@ http://tierra.dyndns.org:81/emacs/pastebot
 
 =head1 DIAGNOSTICS
 
-There are magic number exit codes.  See source.  :)
+There are magic number exit codes. See source.
 
 =head1 BUGS
 
