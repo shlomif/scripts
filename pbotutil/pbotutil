@@ -212,9 +212,6 @@ sub pb_put {
    if $prefs->{channel} ne ''
    and $prefs->{channel} !~ /^#/;
 
-  # TODO merge this check with other eval for get routine/create global
-  # for a LWP object if required?  Also option to support other things
-  # if LWP not available might be nice.
   eval { require LWP::UserAgent; };
   if ($@) {
     remark('error', "problem loading LWP::UserAgent: $@");
@@ -265,8 +262,6 @@ sub pb_put {
 sub get_url {
   my $data = shift;
 
-  # TODO support faster things, like HTTP::GHTTP here, or maybe fall
-  # back to command line utils if nothing installed CPAN-wise
   eval { require LWP::UserAgent; };
   if ($@) {
     remark('error', "problem loading LWP::UserAgent: $@");
@@ -734,11 +729,6 @@ Patches that fix problems or add new features are welcome.
 No known issues.
 
 =head1 TODO
-
-See C<TODO> comments in source for things that may need working on.
-
-Way to set default nick, other server defaults. Probably via
-default_nick and similar statements in config file.
 
 Support for other pastebot sites, via 'type' setting. Would require
 implementation specific get/post routines for the type in question.
