@@ -29,10 +29,10 @@ my $timeout_status = 101;
 
 # use unix tty device to avoid polluting regular output
 my ($readfrom, $writeto);
-open $writeto, ">/dev/tty"
+open $writeto, "> /dev/tty"
  or remark('error', "could not open tty for writing: $!")
  and exit 100;
-open $readfrom, "</dev/tty"
+open $readfrom, "< /dev/tty"
  or remark('error', "could not open tty for reading: $!")
  and exit 100;
 

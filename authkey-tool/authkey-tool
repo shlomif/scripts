@@ -85,7 +85,7 @@ if (exists $opts{'f'}) {
 # rest of argv keyfiles, load 'em up
 for (@ARGV) {
 
-  open KEYFILE, "<$_"
+  open KEYFILE, "< $_"
    or remark('warning', "problem reading $_: $!")
    and next;
 

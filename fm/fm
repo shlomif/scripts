@@ -236,7 +236,7 @@ sub print_machine {
   my $file_loc = shift;
 
   # open & aquire write lock on the file_loc
-  open(FD, ">$file_loc") or die "Error opening $file_loc: $!\n";
+  open(FD, "> $file_loc") or die "Error opening $file_loc: $!\n";
   FD->autoflush(1);
 
   unless (flock(FD, LOCK_EX | LOCK_NB)) {
@@ -293,7 +293,7 @@ sub parse_logfile {
 
   # are we backing up the file?
   if ($backup) {
-    open(BACK, ">$backup") or die "Error opening $backup: $!\n";
+    open(BACK, "> $backup") or die "Error opening $backup: $!\n";
     BACK->autoflush(1);
 
     unless (flock(BACK, LOCK_EX | LOCK_NB)) {
@@ -375,7 +375,7 @@ sub get_logfile_loc {
 
   my $logfile;
 
-  open FILE, "<$procmailrc" or die "Error opening $procmailrc: $!\n";
+  open FILE, "< $procmailrc" or die "Error opening $procmailrc: $!\n";
 
   while (<FILE>) {
     chomp;
