@@ -62,6 +62,8 @@ my %command = (
   'write'  => \&do_write,
   'delete' => \&do_delete,
   'add'    => \&do_add,
+  'dump'   => \&do_dump,
+  'alter'  => \&do_alter
 );
 
 ######################################################################
@@ -191,6 +193,19 @@ sub do_list {
   }
 }
 
+# literal display of requested keys in memory
+sub do_dump {
+  push @_, "all" unless @_;
+
+  my @keys = get_hashids(@_);
+
+  remark('info', "dumping", scalar @keys, "keys");
+  
+  for (@keys) {
+    print $data->{$_}->{'key'}, "\n";
+  }
+}
+
 # merges keys into auth_key_file
 sub do_write {
   seek $akfh, 0, 0
@@ -248,6 +263,30 @@ sub do_add {
   }
 
   remark('info', 'adding', scalar @added, "keys: @added");
+}
+
+# alters specified key(s) in memory (comments or options ONLY!)
+sub do_alter {
+  my $keyspec = shift;
+  
+  my @keys = get_hashids($keyspec);
+  
+  my %updates;
+  
+  for (@_) {
+    my ($cmd, $arg) = /^(comment|options):(.*)/;
+    $updates{$cmd} = $arg;
+  }
+  
+  remark('info', 'altering', scalar @keys, "keys: @keys");
+  
+  for (@keys) {
+    my $alias = $data->{$_};
+    @{$alias}{keys %updates} = values %updates;
+  }
+  
+  # TODO ergh, dump is taking the literal key from memory, not
+  # the updated values!!
 }
 
 # takes scalar containing key, tries to return hash reference with
@@ -421,7 +460,7 @@ STDIN.  Arguments to commands are separated by the tab character.
 
 =over 4
 
-=item B<list> I<keymatch statements>
+=item B<list> I<keymatch statement> [I<keymatch statement> ...]
 
 Shows what temporary keyfiles are available, plus some general data
 about the public key in question.  Will list all available keys if no
@@ -431,7 +470,11 @@ The syntax of keymatch statements is either C<all> to match all keys,
 or a colon-separated element consisting of the internal hash key and
 an exact value to match, e.g. C<type:rsa> or C<hash:a5e6d976>.
 
-=item B<delete> I<keymatch statements>
+=item B<dump> I<keymatch statement> [I<keymatch statement> ...]
+
+Lists keys as exist in memory.
+
+=item B<delete> I<keymatch statement> [I<keymatch statement> ...]
 
 Deletes the specified keys from memory.  Delete requires a keymatch
 statement to do anything.
@@ -440,6 +483,13 @@ statement to do anything.
 
 Adds the specified key(s) into memory.  The literal key must not
 contain tab characters.
+
+=item B<alter> I<keymatch statement> [comment:foo] [options:bar]
+
+Will alter the comment or options fields of the specified key(s).
+Leave the argument to comment or options blank to clear the item in
+question.  This allows key options and comments to be updated without
+doing an awkward delete/add command cycle.
 
 =item B<write>
 
@@ -536,10 +586,14 @@ commas inside the same style of quoted blocks.
 
 =head1 TODO
 
-A means to lock the .ssh directory to only allow one invocation of
-this script to run, or on auth_keys_file.
+Some sort of ACL/preferences file to limit what commands a remote
+agent has available to it?
 
-Ability to alter comment on specified keys?
+Better error handling?  Get user-side script written, so can figure
+out error handling across a SSH channel.
+
+Option to optionally log what keys were altered or not (as key list
+could potentially be long)?
 
 =head1 SEE ALSO
 
