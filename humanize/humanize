@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -l
 
 # $Id$
 
@@ -34,18 +34,6 @@ my %global_prefs = (
 # optional pref to specify a conversion factor to deal with incoming
 # blocks or KB values (i.e. convert to bytes, then run humanization)
 print humanize($ARGV[0]);
-print humanize(-56990456345), "\n";
-print humanize(0), "\n";
-print humanize(500), "\n";
-print humanize(1023, 'fudge' => undef), "\n";
-print humanize(1023), "\n";
-print humanize(8700), "\n";
-print humanize(8900), "\n";
-print humanize(999999), "\n";
-print humanize(1048500), "\n";
-print humanize(26223559), "\n";
-print humanize(133456345), "\n";
-print humanize(56990456345), "\n";
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
 # to be something human readable.
