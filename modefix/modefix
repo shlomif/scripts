@@ -172,7 +172,7 @@ unless (exists $opts{'G'}) {
 
       # some user/group sanity checking: check whether user is a member
       # of the group in question
-      if ((defined $temp_groupid && $temp_groupid != $groupid)
+      if ( (defined $temp_groupid && $temp_groupid != $groupid)
         && exists $opts{'u'}
         && defined $members) {
 
@@ -195,10 +195,10 @@ help() unless @ARGV;
 # loop over the remaining input, applying mode changes
 for (@ARGV) {
   if (-d and $recursive) {
-	$parent = $_;
+    $parent = $_;
     find({wanted => \&zapit, no_chdir => 1}, $parent);
   } elsif (-e) {
-	zapit();
+    zapit();
   }
 }
 
@@ -294,8 +294,7 @@ sub zapit {
       if ($new_mode != $cur_mode) {
 
         # show the offending file if verbose on
-        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $_,
-         "\n"
+        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $_, "\n"
          if $verbose;
 
         # attempt the change
@@ -340,8 +339,7 @@ sub zapit {
       if ($new_mode != $cur_mode) {
 
         # show the offending file if verbose on
-        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $_,
-         "\n"
+        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $_, "\n"
          if $verbose;
 
         my $result = chmod $new_mode, $_;
@@ -365,8 +363,7 @@ sub zapit {
     my $gid_temp = (defined $groupid) ? $groupid : $cur_gid;
 
     # yak if verbose
-    print 'Old UID GID: ', $cur_uid, "\t", $cur_gid, "\t", $_,
-     "\n"
+    print 'Old UID GID: ', $cur_uid, "\t", $cur_gid, "\t", $_, "\n"
      if $verbose;
 
     my $result = chown $uid_temp, $gid_temp, $_;
