@@ -46,10 +46,24 @@ my (%opts);
 
 # path to authorized_keys file.  OpenSSH >= 3.0 should merge old
 # authorized_keys2 files into authorized_keys.
-my $auth_key_file = "~/.ssh/authorized_keys";
+my $auth_key_file       = "~/.ssh/authorized_keys";
+my $auth_key_file_chars = '[\w\s.~/-]';
+
+my $temp_key_suffix = '.akey';
 
 # what to use as a working directory
 my $auth_key_dir;
+
+# registered commands
+my %command = (
+  'list'    => \&do_list,
+  'extract' => \&do_extract,
+  'clean'   => \&do_clean,
+  'merge'   => \&do_merge,
+  'delete'  => \&do_delete,
+  'get'     => \&do_get,
+  'put'     => \&do_put,
+);
 
 ######################################################################
 #
@@ -60,10 +74,7 @@ getopts('h?f:ai', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-if (exists $opts{'f'}) {
-  # TODO: need to detaint/validate this input...
-  $auth_key_file = $opts{'f'};
-}
+$auth_key_file = $opts{'f'} if exists $opts{'f'};
 
 # do ~ expansion on filename
 $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
@@ -73,19 +84,26 @@ $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
                               )
                           }ex;
 
+# untaint filename
+if ($auth_key_file =~ m,^([\w\s.~/-]+)$,) {
+  $auth_key_file = $1;
+} else {
+  die "Invalid characters in filename.\n";
+}
+
 # set working directory to that of one containing auth_key_file
 $auth_key_dir = dirname($auth_key_file);
 
 chdir $auth_key_dir or die "Error: could not chdir to $auth_key_dir: $!\n";
 
-# clear out remaining arguments unless we're reading commands from there
+# clear out arguments unless we're reading commands from there
 @ARGV = () unless exists $opts{'a'};
 
 # read commands from STDIN if specified
 if (exists $opts{'i'}) {
-	my @tmp;
-	chomp(@tmp = <STDIN>);
-	push @ARGV, @tmp;
+  my @tmp;
+  chomp(@tmp = <STDIN>);
+  push @ARGV, @tmp;
 }
 
 # and flag the help text if nothing from STDIN
@@ -93,9 +111,19 @@ help() unless @ARGV;
 
 # look for commands and deal with them
 for (@ARGV) {
-	next if m/^#/ or m/^\s*$/;
+  next if m/^#/ or m/^\s*$/;
 
-	my @command = split /\t/;
+  # TODO: -a will not work with following, as tricky to get
+  # command line arguments with tabs in them on unix...
+  my @work = split /\t/;
+  my $cmd  = shift @work;
+
+  unless (exists $command{$cmd}) {
+    warn "Warning: skipping unknown command: $cmd\n";
+    next;
+  }
+
+  $command{$cmd}(@work);
 }
 
 exit;
@@ -103,6 +131,88 @@ exit;
 ######################################################################
 #
 # SUBROUTINES
+
+# shows what temporary keyfiles are available
+sub do_list {
+  my @files = <*$temp_key_suffix>;
+  for (@files) {
+    my $hash;
+    ($hash = $_) =~ s/$temp_key_suffix$//;
+    print $hash, "\n";
+  }
+}
+
+# pulls auth_key_file into individual files for better managablity
+# takes no arguments, returns true/false depending on result
+sub do_extract {
+  open KFILE, $auth_key_file
+   or die "Error: could not open authorized key file: $!\n";
+
+  while (<KFILE>) {
+
+    # see sshd(8) for expected format of auth_key_file
+    next if m/^#/ or m/^\s*$/;
+
+    # TODO: improve parser to get around boundary cases!
+    # e.g.: command="mumble ssh-rsa AAAA...." ssh-rsa AAAA....
+
+    # try to pull apart key so we can do a checksum on the
+    # important bits (i.e. not the optional option and comment fields)
+    my $goodbits;
+
+    my @elements = split /\s/;
+    for (0 .. $#elements) {
+      if ($elements[$_] =~ m/^(?:ssh-(?:rsa|dss)|\d+)$/) {
+        splice @elements, 0, $_;
+        last;
+      }
+    }
+
+    die "Error: out of elements" unless @elements;
+
+    if ($elements[0] =~ m/^ssh-(?:rsa|dss)$/) {
+      $goodbits = join " ", @elements[0 .. 1];
+    } else {
+      $goodbits = join " ", @elements[0 .. 2];
+    }
+
+    my $hash = sprintf "%08x", unpack "N", md5($goodbits);
+    $hash =~ /([A-Za-z0-9]+)/;
+    $hash = $1;
+    die "Error: not enough characters in hash" if length $hash < 8;
+
+    # save key to external file
+    open OUT, ">$hash$temp_key_suffix"
+     or die "Could not write keyfile $hash$temp_key_suffix: $!\n";
+    print OUT $_;
+    close OUT;
+
+  }
+
+  close KFILE;
+}
+
+# merges temporary key files (if any) into auth_key_file
+sub do_merge {
+  my @files = <*$temp_key_suffix>;
+  if (@files) {
+    open KFILE, ">$auth_key_file"
+     or die "Could not write authorized key file: $!\n";
+
+    for (@files) {
+      open FILE, $_ or die "Could not read keyfile $_: $!\n";
+      print KFILE while <FILE>;
+      close FILE;
+    }
+
+    close KFILE;
+  }
+}
+
+# removes any temporary key files
+sub do_clean {
+  unlink <*$temp_key_suffix>;
+}
 
 # a generic help blarb
 sub help {
@@ -146,9 +256,41 @@ out of an OpenSSH C<~/.ssh/authorized_keys> file.
 
 =head2 Normal Usage
 
-  $ ssh-authkey-manage.pl [options]
+  $ ssh-authkey-manage.pl [options] [commands]
+
+See L<"COMMANDS"> for details on the command syntax.
 
 See L<"OPTIONS"> for details on the command line switches supported.
+
+=head1 COMMANDS
+
+Commands allow scriptable interaction with the authorized_keys file. 
+Multiple commands may be supplied on either the command line or on
+STDIN.  Current commands are:
+
+=over 4
+
+=item B<extract>
+
+Attempts to pull apart the authorized_keys file into individual
+keyfiles suitable for operation on by other commands.  It is advisable
+to run this command before any others to make sure the temporary files
+are up-to-date.
+
+=item B<list>
+
+Shows what temporary keyfiles are available.
+
+=item B<merge>
+
+Overwrites the authorized_keys file with the contents of the temporary
+keyfiles, if any.
+
+=item B<clean>
+
+Removes any temporary keyfiles.
+
+=back
 
 =head1 OPTIONS
 
@@ -228,4 +370,3 @@ itself.
   $Id$
 
 =cut
-
