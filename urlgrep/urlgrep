@@ -15,13 +15,23 @@ use strict;
 use File::Basename qw(basename);
 my $basename = basename($0);
 
+my $output_tmpl = '%{url}\n';
+
 use HTML::TokeParser ();
 use LWP::UserAgent   ();
 use URI              ();
 
 use Getopt::Std;
 my %opts;
-getopts 'h?b:', \%opts;
+getopts 'h?Tb:o:', \%opts;
+
+$output_tmpl = $opts{o} if exists $opts{o};
+$opts{T} = 1 if $output_tmpl =~ m/%{text}/;
+
+# fix backslashed characters to literal, add newline if no trailing
+# whitespace found
+$output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
+$output_tmpl .= "\n" unless $output_tmpl =~ m/ \s$ /x;
 
 print_help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 my $base_uri = $opts{b} if exists $opts{b};
@@ -43,8 +53,11 @@ unless (@$urls) {
 # TODO need template output, and means to select "a href" along with
 # others like img src or anything with a href...
 for my $result (@$urls) {
-  my $url = $result->{url};
-  print $url, "\n" if $result->{element} eq 'a' and $url =~ m/$pattern/o;
+  next unless $result->{url} =~ m/$pattern/o;
+
+  my $str_out = $output_tmpl;
+  $str_out =~ s/ %{ (\w+) } / defined $result->{$1} ? $result->{$1} : '' /egx;
+  print $str_out;
 }
 
 # gets document into something HTML::TokeParser can deal with
@@ -126,7 +139,17 @@ sub parse_document {
       # but do or do not want URL that are set for both?
       next if exists $seenurl{"$token->[0].$href.$url"};
       $seenurl{"$token->[0].$href.$url"} = 1;
-      push @found, { element => $token->[0], attribute => $href, url => $url }
+
+      my $result = { element => $token->[0], attribute => $href, url => $url };
+
+      # save text inside <a> with URL for reference
+      if ( exists $opts{T} and $token->[0] eq 'a' ) {
+        $result->{text} = $p->get_trimmed_text('/a');
+        delete $result->{text}
+         unless defined $result->{text}
+         and length $result->{text} >= 1;
+      }
+      push @found, $result;
     }
   }
 
@@ -140,6 +163,7 @@ sub parse_document {
     my $uri;
     if ($base_uri) {
       $uri = URI->new_abs( $result->{url}, $base_uri )->canonical->as_string;
+      $result->{base_uri} = $base_uri;
     } else {
       $uri = URI->new( $result->{url} )->canonical->as_string;
     }
@@ -151,7 +175,8 @@ sub parse_document {
       );
       next;
     }
-    $result->{url} = $uri;
+    $result->{url}    = $uri;
+    $result->{source} = $source->{document};
   }
 
   return \@found;
@@ -202,12 +227,14 @@ urlgrep - extract links from a given URL or file
 
 List the RPM for PostgreSQL of the 7.4 version, first release.
 
-  $ urlgrep http://www.postgresql.org/download.html '/7\.4-1\.[^.]+\.rpm$'
+  $ urlgrep http://www.postgresql.org/download.html \
+    '/7\.4-1\.[^.]+\.rpm$'
 
 Match any C<*.patch> files on the OpenBSD errata page and download any
 with C<wget>.
 
-  $ urlgrep http://openbsd.org/errata.html '.patch$' | xargs wget
+  $ urlgrep http://openbsd.org/errata.html '.patch$' | \
+    xargs wget
 
 =head1 DESCRIPTION
 
@@ -255,6 +282,35 @@ Specify custom base URL that will be used to qualify any relative links
 in the document. This custom URL will override any C<base> element found
 in the document, or the URL if a URL was specified to download instead
 of a local file or standard input.
+
+=item B<-T>
+
+Save text inside any C<a href> tags for reference in the C<text> macro.
+Enabled automatically if C<%{text}> found in custom output template.
+
+=item B<-o> I<template>
+
+Use custom output I<template> to change default output format. By
+default, each URL is printed on a different line via a template of
+C<%{url}\n>. The I<template> will expand any backslashed single
+characters, allowing tabs and similar characters in the output, and a
+newline will be appended to the template if the template does not end in
+whitespace.
+
+  -o '%{url}\t%{text}'
+
+Macros that can be enclosed inside C<%{}> statements include the
+following.
+
+  url       - URL in question.
+
+  element   - Name of the element from which the URL is from,
+              typically 'a'.
+  attribute - Name of the attribute from which the URL is from,
+              usually 'href'.
+
+  source    - URL or filename of original document.
+  text      - Text inside any C<a href> element, if any.
 
 =back
 
