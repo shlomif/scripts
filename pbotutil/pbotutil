@@ -74,6 +74,8 @@ my $servers = server_load({filename => $pfiles{servers}});
 my $verb;
 if ($ARGV[0] eq "get" or $ARGV[0] eq "put") {
   $verb = shift;
+} else {
+  $verb = 'put';
 }
 unless (exists $actions{$verb}) {
   remark('alert', "no such action: $verb") and exit 101;
