@@ -53,7 +53,7 @@ my %format = (
 	     # for better readability
 	     'max_human_length' => 2,
 	     # list of suffixes for human readable output
-	     'suffix' => [ '', 'K', 'M', 'G', 'P', 'E', 'Z', 'Y' ],
+	     'suffix' => [ '', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
 	     );
 
 # default conversion to do nothing
@@ -178,11 +178,11 @@ HELP
 
 =head1 NAME
 
-human.pl - humanizes numbers in data
+human.pl - humanizes file sizes in data
 
 =head1 SYNOPSIS
 
-Make df output readable on systems lacking the human output option:
+Make df(1) output readable on systems lacking the human output option:
 
   $ df -k | human.pl -k
 
@@ -203,7 +203,11 @@ grow, and the number of bytes something takes up less meaningful to
 the user.
 
 The data munged by this script is less accurate, in that rounding is
-done in an effort to make the numbers more readable by a human.
+done in an effort to make the numbers more readable by a human.  In
+the above case, the munged data would look like:
+
+  $ df -k | grep nfs | human.pl -k
+  nfs:/mbt    1.0T 672G 308G    69%    /mbt
 
 =head2 Normal Usage
 
@@ -212,7 +216,9 @@ done in an effort to make the numbers more readable by a human.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 human.pl expects the data to be humanized to come via STDIN, and
-results of the humanization will be piped to STDOUT.
+results will be piped to STDOUT.  Input can either be from a program,
+or you can interactively type numbers into the terminal and get a
+humanized size back.
 
 =head1 OPTIONS
 
