@@ -44,9 +44,9 @@ my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 # prefs for the humanize file size routine
 my %global_prefs = (
 		    # include decimals in output? (e.g. 25.8 K vs. 26 K)
-		    'decimal' => 1,
+		    'decimal' => 0,
 		    # include .0 in decmail output?
-		    'decimal_zero' => 1,
+		    'decimal_zero' => 0,
 		    # what to divide file sizes down by
 		    'factor' => 1024,
 		    # percentage above which will be bumped up
