@@ -36,7 +36,9 @@ if (exists $opts{d}) {
 
   require Cwd;
 
-  chomp(@ARGV = <STDIN>) unless @ARGV;
+  if (@ARGV == 1 and $ARGV[0] eq '-') {
+    chomp(@ARGV = <STDIN>);
+  }
 
   my @dir;
   if (@ARGV) {
@@ -44,7 +46,7 @@ if (exists $opts{d}) {
   }
   
   # default to current directory
-  push @dir, Cwd::getcwd unless @dir;
+  push @dir, Cwd::getcwd() unless @dir;
 
   for my $dir (@dir) {
     # longest first, so subdirs can override parent
