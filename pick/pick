@@ -42,7 +42,9 @@ $| = 1;
 
 while (<>) {
   $last = $_;
-  system qw(getraw -o), $spec;
+  my $item = $_;
+  chomp $item;
+  system qw(getraw -o), $spec, "$item";
   if (0 == $? >> 8) {
     $count++;
     $lastprinted = $_;
