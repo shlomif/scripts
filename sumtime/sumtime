@@ -68,6 +68,9 @@ sub parse_line {
     # treat unmatched numbers as seconds
     $duration += $1, redo LOOP if /\G(\d+)/gc;
 
+    # skip decimals (TODO warn on them?)
+    redo LOOP if /\G\.\d+(?![$factors])/gc;
+
     # or skip to next interesting bit
     redo LOOP if /\G\D+/gc;
   }
