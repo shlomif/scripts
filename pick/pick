@@ -14,15 +14,56 @@ my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 # specifications for getraw utility
-my $spec = {
+my $specs = {
   y => 'Yy\ \n:+ Nn:-',
-  n => 'Nn\ \n:+ Yy:-'
+  n => 'Nn\ \n:- Yy:+'
 };
+my $spec = $specs->{y};
 
 use Getopt::Std;
 my %opts;
 getopts('h?yno:d:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
+
+if (exists $opts{n}) {
+  $spec = $specs->{n};
+} elsif (exists $opts{o}) {
+  $spec = $opts{o};
+}
+
+# TODO how default to reading on \n, otherwise -d otherwise -e ?
+$/ = $opts{d} if exists $opts{d};
+
+my ($last, $lastprinted);
+my $count = 0;
+
+while (<>) {
+  $last = $_;
+  system qw(getraw -o), $spec;
+  if (0 == $? >> 8) {
+    $count++;
+    $lastprinted = $_;
+    print;
+  }
+}
+
+# KLUGE replicate trailing \n on data if line with trailing \n
+# rejected (attempts workaround an 'echo a b c' -> c\n dropped -> no
+# \n after b problem)
+if (  $count
+  and $last ne $lastprinted
+  and $last =~ /\n$/
+  and $lastprinted !~ /\n$/) {
+  print "\n";
+}
+
+# TODO only warn if verbose on?  use special exit code to denote
+# nothing printed?
+unless ($count) {
+  die "notice: no lines printed\n";
+}
+
+exit 0;
 
 ######################################################################
 #
@@ -36,11 +77,14 @@ Usage: $0 [opts]
 Pick or reject items from a list of input data.
 
 Options for version $VERSION:
-  -h/-?  Display this message
+  -h/-?  Display this message.
 
-  -y     Default to "yes" and accept item.
-  -n     Default to "no" and skip item.
-  -o ss  Key mapping specification
+  -d dd  Split records on dd instead of default (\$/).
+
+  -y     Default to "yes" to accept item with space/return.
+  -n     Default to "no" to skip item.
+
+  -o ss  Custom key mapping specification.
 
 Run perldoc(1) on this script for additional documentation.
 
