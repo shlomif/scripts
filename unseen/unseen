@@ -187,6 +187,13 @@ configures how far back in time the script is allowed to report on,
 to keep the index file and SHA1 digest generation needs from growing
 over time.
 
+As a consequence of the SHA1 digest, the script will list both files
+that are new to the search directory, or ones that have been modified
+since the previous run of the script.
+
+Without the seen index file, the script will always list all files under
+the specified search directories.
+
 =head2 Normal Usage
 
   $ unseen [options] searchdir1 [sd2 .. sdN]
