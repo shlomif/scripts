@@ -1,0 +1,42 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Lists maximum length possible of data encrypted with varying RSA key
+# lengths and padding options, along with size of ciphertext (binary
+# format) and the ciphertext encoded in base64 format.
+
+use Crypt::OpenSSL::Random;
+use Crypt::OpenSSL::RSA;
+
+use MIME::Base64;
+
+Crypt::OpenSSL::Random::random_status()
+ or die "error: random number generator not seeded properly\n";
+
+KEYSIZE: for my $ks (qw(512 1024 2048 3072 4096)) {
+  my $pk = Crypt::OpenSSL::RSA->generate_key($ks);
+
+  # alter encoding method here
+  #$pk->use_pkcs1_padding();
+  $pk->use_pkcs1_oaep_padding();
+
+  # encrypt longer strings until failure
+  for my $dl (1 .. 10000) {
+
+    # lengths of resulting blob and blob base64 encoded
+    my $el = length $pk->encrypt("a");
+    my $bl = length encode_base64($pk->encrypt("a"));
+
+    eval { $pk->encrypt("a" x $dl); };
+    if ($@) {
+      # failed on current length, so max one less
+      $dl--;
+      print "rsakey=$ks datalength=$dl encryptedlength=$el base64=$bl\n";
+      next KEYSIZE;
+    }
+  }
+}
