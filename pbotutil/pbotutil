@@ -109,29 +109,48 @@ exit;
 # SUBROUTINES
 
 sub pb_get {
-  my $id = shift;
-  my ($url, $content);
+  my $id = shift || help();
+  my ($urltmp, $url, $content);
 
-  # look for server alias + paste id, or fully qualified URL to nab
-  if (exists $opts{s} and defined $opts{s}) {
-    unless (exists $servers->{$opts{s}}) {
-      remark('alert', "no server entry for: $opts{s}");
-      exit 105;
+  # if get a URL, run with that; otherwise expect shortcut and paste id
+  $urltmp = URI->new($id);
 
-    } else {
-      $url =
-       URI->new($servers->{$opts{s}}->{url}
-         . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
-         . $id)->canonical;
-    }
+  if (defined $urltmp and defined $urltmp->scheme) {
+    $url = $urltmp->canonical;
+
   } else {
-    $url = URI->new($id)->canonical;
+
+    unless (exists $opts{s} and defined $opts{s}) {
+      help();
+    } else {
+      unless (exists $servers->{$opts{s}}) {
+        remark('alert', "no server entry for: $opts{s}");
+        exit 105;
+
+        # KLUGE assume pastebot id numeric
+      } elsif ($id !~ m/^\d+$/) {
+        remark('alert', "could not parse paste id: $id");
+        exit 105;
+
+      } else {
+        $url =
+         URI->new($servers->{$opts{s}}->{url}
+           . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
+           . $id)->canonical;
+
+        unless (defined $url) {
+          remark('alert', "could not determine url for: $id");
+          exit 102;
+        }
+      }
+    }
   }
 
-  unless (defined $url) {
-    remark('alert', "could not determine url for: $id");
-    exit 102;
-  }
+  # TODO use HTML::TokeParser below as may want to pull out the
+  # from/summary details for the post.  If not, or unavilable, we could
+  # use the ?tx=on parameter to the pastebot, which displays the paste
+  # in raw text format.
+
   $content = get_url({url => $url});
 
   if ($content) {
@@ -142,16 +161,20 @@ sub pb_get {
       #print $$content, "\n";
       exit 103;
     } else {
-      require HTML::TokeParser;
       my $p = HTML::TokeParser->new($content);
 
       # TODO pull out "From" and "Summary" data if wanted?
 
-      # look for stuff in <pre> and evict HTML crap
+      # look for stuff in <pre>, pretty simple
       $p->get_tag('pre');
 
       # TODO option to dump to file named after id, instead of just stdout
-      print $p->get_text('/pre'), "\n";
+      my $text = $p->get_text('/pre');
+      print $text;
+
+      # KLUGE ensure trailing linefeed to prevent shell from gobbling
+      # something up
+      print "\n" if $text !~ m/\n$/;
     }
   }
 }
@@ -221,7 +244,6 @@ sub pb_put {
     remark('alert', "problem loading LWP::UserAgent: $@");
     exit 102;
   } else {
-    require LWP::UserAgent;
     my $ua =
      LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
 
@@ -243,7 +265,6 @@ sub pb_put {
           #print $$content, "\n";
           exit 103;
         } else {
-          require HTML::TokeParser;
           my $p = HTML::TokeParser->new(\$response->content);
 
           # look for paste URL, print for user
@@ -268,7 +289,8 @@ sub pb_update {
 
   # TODO visit site, add list of channels to $servers data? would allow
   # local warning about "no such channel" before flinging data at a
-  # pastebot, or something...
+  # pastebot, or maybe creation of entries for each channel in the
+  # server prefs file?
 }
 
 # accepts hash containing url to get plus other stuff
@@ -283,7 +305,6 @@ sub get_url {
     remark('alert', "problem loading LWP::UserAgent: $@");
     exit 102;
   } else {
-    require LWP::UserAgent;
     my $ua =
      LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
     my $response = $ua->get($data->{url});
@@ -493,12 +514,13 @@ default option, and will be assumed if left out.
 
 =item B<get>
 
-The get verb accepts two mutually exclusive formats: a shortcut lookup
-plus a pasteid (number) or a fully qualified URL to download.
-
-  $ pbotutil -s shortcut get pasteid
+The get verb accepts two formats: a shortcut lookup plus a pasteid
+(number) or a fully qualified URL to download.  A URL will be looked for
+first; failing that, a -s shortcut and numeric pasteid are required.
 
   $ pbotutil get URL
+
+  $ pbotutil -s shortcut get pasteid
 
 Output will be sent to stdout by default.
 
@@ -525,7 +547,9 @@ those before the verb, and command line options trump any server
 preference settings.
 
 This allows shell aliases to be created while still offering the ability
-to override the defaults, to avoid obvious social blunders.
+to override the defaults, to avoid faux pas.  The example below is
+somewhat contrived, as a better solution would be to create a different
+preferences file entry for python posts.
 
   $ alias pbup='pbotutil -s perl -u perlguru put'
   $ pbup -c python -u pythonguru foo.py
@@ -571,8 +595,9 @@ your nick.
 
 =item B<-m> I<summary>
 
-Short, descriptive summary about the data being pasted.  This does not
-include things like "help!"  For more details on asking questions, see:
+Short, descriptive summary about the data being pasted, to assist the
+members of channel being notified.  This does not include things like
+"help!"  For more details on asking questions, see:
 
 http://www.catb.org/~esr/faqs/smart-questions.html
 
@@ -641,15 +666,16 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-Yes.  See TODO in source, etc.  New code, still being worked on.
+No known issues, though this is new code that has not been tested much.
 
 =head1 TODO
 
-Lots.
+New code; limited testing of various features.  See C<TODO> comments in
+source for things that may need working on.
 
 =head1 SEE ALSO
 
-perl(1)
+perl(1), LWP::UserAgent, HTML::TokeParser
 
 =head1 AUTHOR
 
