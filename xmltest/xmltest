@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Tests XML files for validity.
+
+if [ -z "$1" ]; then
+  echo "usage: `basename $0` xmlfile" >&2
+  exit 100
+fi
+
+xmllint --noout $@

@@ -1,0 +1,104 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Wrapper to commit changes back to CVS or SVN.
+
+# should be 0, if errors will be that of last error to occur
+RETURN=0
+
+# where we are
+WHATDIR=`pwd`
+
+# commit routines for specific packages
+# takes dirctory (already cd'ed into) and type of commit
+
+# for CVS
+commit_cvs () {
+  [ $WHATDIR != $1 ] && echo "info: cvs commit in $1" >&2
+  cvs ci $MESSAGE $CHANGESFILE
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "warn: bad exit status ($STATUS) from $2 commit on $1" >&2
+    RETURN=$STATUS
+  fi
+}
+
+# for subversion
+commit_svn () {
+  [ $WHATDIR != $1 ] && echo "info: svn commit in $1" >&2
+  svn ci $MESSAGE $CHANGESFILE
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "warn: bad exit status ($STATUS) from $2 commit on $1" >&2
+    RETURN=$STATUS
+  fi
+}
+
+# figure out how to handle the directory in question
+check_dir () {
+  if [ -f CVS/Root ]; then
+    commit_cvs "$1" "CVS"
+  elif [ -f .svn/entries ]; then
+    commit_svn "$1" "svn"
+  else
+    IFS='
+'
+    for file in `subdir`; do
+      (
+        cd "$file"
+        check_dir "$file"
+      )
+    done
+  fi
+}
+
+
+# process arguments
+OPT=
+CHANGESFILE=
+while getopts F:m: OPT; do
+  case $OPT in
+    F)
+      CHANGESFILE=$OPTARG
+      if [ ! -f "$CHANGESFILE" ]; then
+        echo "error: change file not a file: $CHANGESFILE" >&2
+	exit 1
+      fi
+      CHANGESFILE="-F $CHANGESFILE"
+    ;;
+    m)
+      MESSAGE=$OPTARG
+      if [ -z "$MESSAGE" ]; then
+        echo "error: no commit message" >&2
+        exit 1
+      fi
+      MESSAGE="-m '$MESSAGE'"
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+# -m message trumps -F file?
+if [ ! -z "$CHANGESFILE" -a ! -z "$MESSAGE" ]; then
+  echo "error: cannot specify both -m and -F options" >&2
+  exit 1
+fi
+
+if [ $# -eq 0 ]; then
+  check_dir "$WHATDIR"
+else
+  for file in "$@"; do
+    if [ -d "$file" ]; then
+      (
+        cd "$file"
+        check_dir "$file"
+      )
+    fi
+  done
+fi
+
+exit $RETURN

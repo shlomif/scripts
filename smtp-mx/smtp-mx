@@ -1,0 +1,198 @@
+#!/usr/bin/perl -wl
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Returns MX server for domains in question.
+#
+# Run perldoc(1) on this file for additional documentation.
+
+require 5;
+use strict;
+
+sub get_mx;
+sub print_help;
+
+# loose(?) match for domain names
+my $domain_re = qr/ ( [\w-]{1,63} \. \w{1,7} ) \.? /x;
+
+use Net::DNS;
+my $dns = Net::DNS::Resolver->new;
+$dns->defnames(0);  # do not search default domain
+
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+my @domains;
+
+my %opts;
+for (@ARGV) {
+
+  if (/^-([\w]+)$/) {
+    my $opts = $1;
+    for ($opts =~ /(.)/g) { $opts{$_} = 1 }
+    print_help if exists $opts{'h'} or exists $opts{'?'};
+    next;
+  }
+
+  my ($domain) = / $domain_re \s* $ /x;
+
+  unless ($domain) {
+    warn "error: no domain found in: $_\n";
+    next;
+  }
+
+  unless ($dns->query($domain, 'SOA')) {
+    warn "warning: domain does not exist: $domain\n";
+    next;
+  }
+
+  push @domains, $domain;
+}
+
+for my $domain (@domains) {
+  print +(@domains > 1 ? "$domain: " : ''), join ' ', get_mx $domain;
+}
+
+sub get_mx {
+  my $domain = shift;
+
+  my @mx;
+
+  my $mx = $dns->query($domain, 'MX');
+  if ($mx) {
+    for my $rr ($mx->answer) {
+      push @mx, $rr->exchange if $rr->type eq 'MX';
+    }
+  } else {
+
+    # if no MX use A record for domain (assumes domain exists!)
+    warn "notice: no MX records found, using A for $domain\n"
+     unless exists $opts{'q'};
+    push @mx, $domain;
+  }
+
+  if (exists $opts{'1'}) {
+    @mx = $mx[0];
+  }
+
+  return @mx;
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] domain [domain2 ...]
+
+Returns MX server(s) for domain(s) in question.
+
+Options:
+  -h/-?  Display this message.
+
+  -1     Limit output to first MX only.
+
+  -q     Produce less warnings.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
+__END__
+
+=head1 NAME
+
+smtp-mx - return MX server(s) for specified domain(s)
+
+=head1 SYNOPSIS
+
+List MX servers for several domains.
+
+  $ smtp-mx example.com hotmail.com
+  notice: no MX records found, using A for example.com
+  example.com: example.com
+  hotmail.com: mx3.hotmail.com mx4.hotmail.com mx1.hotmail.com mx2.hotmail.com
+
+Connect to first MX of a domain for SMTP debugging.
+
+  $ telnet `smtp-mx -1 sial.org` 25
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Provides easy means of determining the MX servers for domains.
+
+=head2 Normal Usage
+
+  $ smtp-mx [options] domain [domain2 ...]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+Options and domains may be mixed freely on the command line, which
+currently precludes lookup of domain names that being with a hypen.
+
+If no domains are listed on the command line, the script will attempt to
+read the list from standard input.
+
+Output will be sent to standard out, errors to standard error. When
+multiple domains are being looked up, the output will prefix the MX list
+with the domain in question. For a single domain, just the MX servers
+will be listed.
+
+For multiple MX servers, the underlying DNS library will randomize the
+list of MX servers.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-1>
+
+Limit output to first MX record only.
+
+=item B<-q>
+
+Produce less output.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1), Net::DNS
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut

@@ -1,0 +1,314 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Takes specified files into target directory.
+
+require 5;
+use strict;
+
+# command to use to create target directory if does not exist
+# use qw(mkdir -p) if you lack ndir
+my @make_target_dir = qw(ndir);
+
+# commands to use to copy the files in form of "command files dir"
+# TODO other methods like rsync to pull from remote hosts, or wget?
+my %copy_with = (
+  cp  => [qw(cp -p)],
+  svn => [qw(svn copy -q)],
+);
+my $default_copy_method = 'cp';
+
+use Cwd qw(getcwd realpath);
+use File::Spec;
+use File::Basename;
+
+sub get_subversion_url;
+sub print_usage;
+sub print_help;
+sub remark;
+
+use Getopt::Std;
+my %opts;
+getopts 'h?fq', \%opts;
+print_help if exists $opts{'h'} or exists $opts{'?'};
+
+print_usage unless @ARGV > 1;
+
+# figure out directories to deal with
+my $target_dir    = pop @ARGV;
+my $target_exists = 0;
+if (-d $target_dir) {
+  $target_dir    = realpath $target_dir;
+  $target_exists = 1;
+  unless ($target_dir) {
+    remark 'error', 'could not determine realpath to target';
+    exit 101;
+  }
+}
+
+my $current_dir = realpath getcwd;
+unless ($current_dir) {
+  remark 'error', 'could not determine current directory';
+  exit 101;
+}
+if ($target_dir eq $current_dir) {
+  remark 'error', "target is current directory: $current_dir";
+  exit 101;
+}
+
+unless ($target_exists) {
+  system @make_target_dir, $target_dir;
+  my $status = $? >> 8;
+  if ($status != 0) {
+    remark 'error', "problem creating target directory: $target_dir";
+    exit $status;
+  }
+}
+
+# whether target under Subversion
+my $subversive_target =
+ -f File::Spec->catfile($target_dir, qw{.svn entries}) ? 1 : 0;
+
+# sanity checks, copy method determination on input files
+my %files;
+{
+  my (%seen, @replacing);
+  for my $file (@ARGV) {
+    if (exists $seen{$file}) {
+      remark 'notice', "skipping duplicate file: $file";
+      next;
+    }
+    $seen{$file} = 1;
+
+    unless (-r $file) {
+      remark 'warning', "skipping unreadable file: $file";
+      next;
+    }
+    if (  $target_exists
+      and not exists $opts{'f'}
+      and -e File::Spec->catfile($target_dir, $file)) {
+
+      # TODO other options to handle already existing target file?
+      push @replacing, $file;
+      next;
+    }
+
+    if ($subversive_target
+      and -f File::Spec->catfile(dirname(realpath $file), qw{.svn entries})) {
+
+      # need URL, so copies from other repositories work right
+      if (my $svn_url = get_subversion_url $file) {
+        push @{$files{'svn'}}, $svn_url;
+        next;
+      }
+    }
+
+    push @{$files{$default_copy_method}}, $file;
+  }
+
+  if (@replacing) {
+    remark 'error', "cannot replace: @replacing";
+    exit 104;
+  }
+}
+
+unless (keys %files) {
+  remark 'error', 'no files to operate on';
+  exit 102;
+}
+
+for my $method (keys %files) {
+  system @{$copy_with{$method}}, @{$files{$method}}, $target_dir;
+  my $status = $? >> 8;
+  if ($status != 0) {
+    remark 'error', "problem copying files to target via $method";
+    exit $status;
+  }
+}
+
+# for use by subsequent cd, if any
+print $target_dir, "\n" unless exists $opts{'q'};
+
+exit;
+
+# given file, attempts to return URL information Subversion stores
+# about files
+sub get_subversion_url {
+  my $file = shift;
+
+  unless (open SVNINFO, "svn info $file |") {
+    remark 'error', "could not run svn info $file: $!";
+    exit 105;
+  }
+  my $svn_url;
+  while (<SVNINFO>) {
+    if (/^URL: (.+)$/) {
+      $svn_url = $1;
+      chomp $svn_url;
+      last;
+    }
+  }
+  close SVNINFO;
+
+  return $svn_url;
+}
+
+sub print_help {
+  my $basename = basename $0;
+  print <<"HELP";
+Usage: $basename [opts] file [file2 ...] dir
+
+Takes files into specified dir.
+
+Options:
+  -h/-?  Display this message.
+
+  -f     Force copy files.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
+sub print_usage {
+  my $basename = basename $0;
+  warn "usage: $basename file [file2 ...] dir\n";
+  exit 100;
+}
+
+sub remark {
+  my $priority = shift;
+  my $message  = shift;
+
+  return if exists $opts{'q'} and $priority eq 'notice';
+
+  warn "$priority: $message\n";
+}
+
+__END__
+
+=head1 NAME
+
+copyto - copies files into target directory
+
+=head1 SYNOPSIS
+
+Copy password file to temporary directory. Creates target directory if
+it does not exist.
+
+  $ copyto /etc/passwd /var/tmp/working
+  /var/tmp/working
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Copies files into a directory, creating the target directory if it does
+not exist. Returns created directory, so subsequent shell command may
+optionally chdir into the new directory.
+
+Recommended for the ZSH shell is the following function, which will copy
+the named files to the target directory, then take the shell to them:
+
+  function take {
+    cd `copyto $@ | tail -1`
+  } 
+
+If the target directory is under Subversion, any of the source files
+also under subversion will be moved using C<svn copy> instead of the
+default copy command.
+
+=head2 Normal Usage
+
+  $ copyto [opts] file [file2 ...] dir
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+Error messages will go to the error channel, and the target directory to
+standard out. If paranoid, `tail -1` the output to ensure the target
+directory is the only thing in the output for a subsequent chdir.
+
+A non-zero exit status indicates something went wrong. See source for
+exit status number defitions, though the number might have come from the
+"new directory" or "copy files" system calls.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-f>
+
+Force copy files. Prevents script from complaining about and stopping
+when the target contains files that would be replaced. May not prevent
+interactive options on the copy command called out to later.
+
+=item B<-q>
+
+Hide notice messages and do not print target directory. For use as a
+regular 'cp' replacement, where one wants the target directory created,
+but the resulting directory not mentioned.
+
+Will break usage that relys on target directory being printed.
+
+=back
+
+=head1 SECURITY
+
+Not for use where security is required, as files and directories are not
+taint checked, nor is the "chdir to output of this script" step.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 HISTORY
+
+Based on 'take', 'take.pl', and the csh alias setting found in Damian
+Conway's "stuff from my home directory" tarball that was posted to the
+Seattle Perl User's Group e-mail list.
+
+=head1 VERSION
+
+  $Id$
+
+=head1 SCRIPT CATEGORIES
+
+Utilities
+Unix/System_administration
+
+=cut
