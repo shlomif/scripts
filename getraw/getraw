@@ -91,6 +91,7 @@ sub get_key {
   ReadMode(4, $readfrom);
 
   do {
+    select undef, undef, undef, 0.25;
     $first = ReadKey(-1, $readfrom);
   } until defined $first;
 
