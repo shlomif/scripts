@@ -47,9 +47,9 @@ my $auth_key_file_chars = '[\w\s.~/-]';
 
 # registered commands
 my %command = (
-  'list'    => \&do_list,
-  'merge'   => \&do_merge,
-  'delete'  => \&do_delete,
+  'list'   => \&do_list,
+  'merge'  => \&do_merge,
+  'delete' => \&do_delete,
 );
 
 #  'get'     => \&do_get,
@@ -122,8 +122,12 @@ exit;
 
 # shows some info about known keys
 sub do_list {
-  for (@$data) {
-    print join("\t", $_->{'hash'}, $_->{'type'}, $_->{'comment'}), "\n";
+  for (sort keys %$data) {
+    print join ("\t",
+      $data->{$_}->{'hash'},
+      $data->{$_}->{'type'},
+      $data->{$_}->{'comment'}),
+     "\n";
   }
 }
 
@@ -132,19 +136,23 @@ sub do_merge {
   open KFILE, ">$auth_key_file"
    or die "Could not write authorized key file: $!\n";
 
-  for (@$data) {
-  	print KFILE $_->{'key'}, "\n";
+  for (sort keys %$data) {
+    print KFILE $data->{$_}->{'key'}, "\n";
   }
 
   close KFILE;
+}
+
+sub do_delete {
+
 }
 
 # pulls auth_key_file into individual files for better managablity
 # takes no arguments, returns a data structure of keys
 sub extract {
   my $auth_key_file = shift;
-  my @data;
-  
+  my %data;
+
   open KFILE, $auth_key_file
    or die "Error: could not open authorized key file: $!\n";
 
@@ -167,7 +175,7 @@ sub extract {
       if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
         and $elements[$i + 1] =~ m/^AAAA/) {
 
-		$values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
+        $values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
         $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
         $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
 
@@ -177,7 +185,7 @@ sub extract {
         and $elements[$i + 1] =~ m/^\d+$/
         and $elements[$i + 2] =~ m/^\d+$/) {
 
-		$values{'type'} = 'rsa1';
+        $values{'type'}    = 'rsa1';
         $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
         $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
 
@@ -194,14 +202,14 @@ sub extract {
 
     $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
     $values{'options'} = "@options";
-    $values{'key'} = $_;
+    $values{'key'}     = $_;
 
-	push @data, \%values;
+    $data{$values{'hash'}} = \%values;
   }
 
   close KFILE;
-  
-  return \@data;
+
+  return \%data;
 }
 
 # a generic help blarb
