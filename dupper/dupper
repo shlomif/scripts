@@ -1,32 +1,34 @@
 #!/usr/bin/perl
 #
 # $Id$
-# By Jeremy Mates <mailto:jmates@sial.org>
 #
-# Removes duplicate files, using no external programs to do
-# the checksums (via Digest::MD5).  Recursive by default,
-# but very customizable, use to -h option to see how.
+# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+# software; you can redistribute it and/or modify it under the same
+# terms as Perl itself.
 #
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+######################################################################
 #
+# REQUIREMENTS
+
+require 5.005;
+
+use strict;
+
 ######################################################################
 #
 # MODULES
 
-use Carp;
+use Carp;                       # better error reporting
+use Getopt::Std;                # command line option processing
+
 use Digest::MD5;
 use File::Spec;
-use Getopt::Std;
-
-use strict;
-use vars qw:$VERSION:;
 
 ######################################################################
 #
-# CONSTANTS
+# VARIABLES
 
-# set version for CVS revision
+my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $verbose, $quiet, %check);
@@ -41,7 +43,7 @@ my $dig = new Digest::MD5;
 # parse command-line options
 getopts('h?vlgzuqp:s:', \%opts);
 
-help() if exists($opts{'h'}) || exists($opts{'?'});
+help() if exists($opts{'h'}) or exists($opts{'?'});
 
 $verbose = 1 if exists $opts{'v'};
 if (exists $opts{'q'}) {
@@ -56,7 +58,7 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 help() unless @ARGV;
 
 # loop over arguments which presumably are a bunch of directories
-foreach ( @ARGV ) {
+for (@ARGV) {
     unless (-d) {
 	warn 'Error: ', $_, " is not a directory.  Skipping.\n" unless $quiet;
 	next;
@@ -71,6 +73,8 @@ foreach ( @ARGV ) {
 }
 
 report (\%check, 'all');
+
+exit;
 
 ######################################################################
 #
@@ -183,7 +187,7 @@ sub report {
 
     # rummage through hash, printing out only hash entries
     # that have more than 1 file associated with them
-    foreach ( keys %$ref ) {
+    for (keys %$ref) {
 	if (scalar @{$ref->{$_}} > 1) {
 	    print $dir, "\t", join(', ', @{$ref->{$_}}), "\n";
 	}
@@ -193,20 +197,16 @@ sub report {
 # a generic help blarb
 sub help {
     print <<"HELP";
-$0 v.$VERSION
-Usage: $0 [options] directory1 [dir2 .. dirN]
+Usage: $0 [opts] [dir1 dir2 .. dirN]
 
-Removes duplicate files based on checksum comparison of
-file contents.
+Removes duplicate files based on checksum comparison of files.
 
-Options:
+Options for version $VERSION:
   -h/-?  Display this message
   -v     Verbose mode, a little bit more chatty.
-  -q     Chat no more.  Overrides -v, suppresses reporting.
+  -q     Quiet.  Overrides -v, suppresses reporting.
 
   -u     Attempt to unlink any duplicates found past first.
-         (Default is not to unlink anything, just report.  Files
-         are added least-depth first by order of sort().)
 
   -l     Local mode only, script does not recurse into subdirs.
 
@@ -215,22 +215,156 @@ Options:
          the same directory.
 
   -s xx  Perl expression that will result in the current file (stored in \$_)
-         being skipped if the expression turns out to be "true."  Example:
-
-         -s 'm/^\\.rsrc\$/ || -z \$pti || -s \$pti > 1048576'
-
-         Would skip the checksum on files named '.rsrc', or files that are
-         empty via the -z is-empty test, or files larger than a megabyte.
-         (This script has problems with very large files, as the whole
-         file must be read in to perform the MD5 sum!)
+         being skipped if the expression turns out to be true.
 
   -p xx  Perl expression that will result in the current directory (stored in 
-         \$_) being pruned out of the tree.  Like config dirs, for example:
+         \$_) being pruned out of the tree.
 
-         -p 'm/etc/'
+Run perldoc(1) on this script for additional documentation.
 
-         Both -s and -p have access to the filename in \$_, and can find
-         the full filepath in the variable \$pti.
 HELP
     exit;
 }
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+dup_remove.pl - finds duplicate files, optionally removes them
+
+=head1 SYNOPSIS
+
+To get a list of duplicate files in a particular directory:
+
+  $ dup_remove.pl ~/public_html/images
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Script to find (and optionally remove) duplicate files in one or more
+directories.
+
+=head2 Normal Usage
+
+  $ blank.pl [options] [dir1 dir2 .. dirN]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+A list of directories to operate on should be specified on the command
+line.  Failing that, the script will attempt to read directories from
+STDIN.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-v>
+
+Verbose mode, a little bit more chatty.
+
+=item B<-q>
+
+Quiet mode, overrides verbose mode, turns off reporting.
+
+=item B<-u>
+
+Attempt to unlink any duplicates past the first.  Default is just to
+report the duplicate files.  Files are added least-depth first by
+order of sort().  In other words, be sure you are deleting the right
+thing.
+
+=item B<-l>
+
+Local-only mode; script will not recurse into subdirectories of any
+directories passed to the script.
+
+=item B<-g>
+
+Make checksums apply across all directories on the command line.
+Default is to treat the various directories supplied to the program as
+their own separate realms.
+
+=item B<-z>
+
+Overrides B<-g>.  Limits the scope of checksums to only other files in
+the exact same local directory as one another.  Much tighter than the
+default scope.
+
+=item B<-s> I<expression>
+
+Perl expression that will result in the current file (stored in $_)
+being skipped if the expression turns out to be "true."  Example:
+
+  -s 'm/^\\.rsrc\$/ || -z \$pti || -s \$pti > 1048576'
+
+Would skip the checksum on files named '.rsrc', or files that are
+empty via the B<-z> is-empty test, or files larger than a megabyte.
+
+=item B<-p> I<expression>
+
+Perl expression that will result in the current directory (stored in
+$_) being pruned out of the tree.  Like config dirs, for example:
+
+  -p 'm/etc/'
+
+Both B<-s> and B<-p> have access to the filename in $_, and can find
+the full filepath in the variable $pti.
+
+=back
+
+=head1 EXAMPLES
+
+To remove duplicate files under a web area via cron, skipping html
+documents, matching only in local directories, and being very quiet:
+
+  21 6 * * * dup_remove.pl -uqzs 'm/\.html$/' /www/example/images
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+Large files will stall the checksum generation.  Have to spend a bit
+of time and rewrite the checksum thingy to do files in chunks
+properly.
+
+=head1 TODO
+
+Change out the hackish manual directory recurser with File::Find.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
