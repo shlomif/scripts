@@ -71,6 +71,7 @@ my %postargs;
 while (my ($k, $v) = each %postargs) {
   $args{$k} = $v if defined $v;
 }
+$args{'name'} = 'default' unless $args{'name'};
 
 print_help()
  unless (exists $args{'name'} and defined $args{'name'})
@@ -335,7 +336,7 @@ sub server_load {
   close FILE;
 
   # validate found records before moving them into $servers
-  my $count;
+  my $count = 0;
   for my $server (@tmp) {
     next unless keys %{$server};
     $count++;
@@ -371,6 +372,7 @@ sub server_load {
     $server->{'count'} = $count;
 
     $servers->{$server->{'name'}} = $server;
+    $servers->{'default'} = {%$server} unless exists $servers->{'default'};
   }
 
   unless (keys %$servers) {
@@ -605,8 +607,8 @@ Makes the script less chatty about various things.
 =item B<-s> I<name>
 
 Use a I<name> definition to get the URL, default nickname, and other
-details from the preferences file. Required, except when downloading by
-raw URL with the B<get> method.
+details from the preferences file. If not specified, the first entry of
+the preferences file will be used as the default.
 
 See L<"FILES"> for details on the preference file format.
 
