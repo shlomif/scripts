@@ -145,7 +145,7 @@ sub seconds2duration {
   my $tmpsec = shift;
 
   unless (defined $tmpsec and $tmpsec =~ m/^\d+$/) {
-    die "Error: input not an integer";
+    die "Error: argument not an integer";
   }
 
   my $seconds = $tmpsec % 60;
