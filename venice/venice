@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# Runs named command with higher priority, but without running the
+# command as superuser. Uses fork/exec and exec sudo from the parent to
+# both launch the child application and renice the child.
+
+use File::Basename qw(basename);
+my $command = basename $0;
+
+use Getopt::Std;
+my %opts;
+getopts '?hn:', \%opts;
+
+die "usage: $command [-n increment] utility [argument ...]\n"
+ if not @ARGV
+ or $opts{'h'}
+ or $opts{'?'};
+
+my $default_nice = -10;
+my $nice_value = exists $opts{'n'} ? $opts{'n'} : $default_nice;
+if ( $nice_value !~ m/^-?\d\d?$/ or $nice_value > 20 or $nice_value < -20 ) {
+  warn "warning: nice value invalid, reverting to default\n";
+  $nice_value = $default_nice;
+}
+
+# parent will not be waiting on child
+$SIG{CHLD} = 'IGNORE';
+
+# ensure password not prompted for after forking
+system qw(sudo -v);
+
+if ( my $child_pid = fork ) {
+  exec qw(sudo renice -10 -p $child_pid);
+} else {
+  exec @ARGV;
+}
