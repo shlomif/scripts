@@ -12,6 +12,9 @@
 use strict;
 use IO::Socket;
 
+use Date::Parse;
+use POSIX qw(strftime);
+
 # what address to listen on (default everywhere)
 my $bind;
 
@@ -20,7 +23,8 @@ my $port = 514;
 
 # max message length for incoming data ([RFC 3164] limits this to 1024
 # by default, though things might not follow the standards)
-my $max_msg_len = 5000;
+my $max_msg_len  = 5000;
+my $msg_len_warn = 1024;
 
 # to match PRI header plus remaining fields
 my $PRI_data_re = qr/^ < (\d{1,3}) > (.*) /x;
@@ -29,11 +33,20 @@ my $PRI_data_re = qr/^ < (\d{1,3}) > (.*) /x;
 # and MSG fields
 my $HEADER_MSG_re = qr/^ ((  # match HEADER, TIMESTAMP for reference
   (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)  # Month
-  (?:[ ][ ]\d|[ ]\d\d)   # day of month, '  5' or ' 10'
-  [ ] \d\d:\d\d:\d\d)    # timestamp
-  ([\w.:-]+))            # HOSTNAME host|IPv4|IPv6 and close HEADER
-  [ ] (.*)               # MSG data
+  (?:[ ][ ]\d|[ ]\d\d) # day of month, '  5' or ' 10'
+  [ ] \d\d:\d\d:\d\d)  # timestamp
+  [ ] ([\w@.:-]+)      # HOSTNAME host|IPv4|IPv6 (syslog-ng prefixes foo@?)
+  )                    # close match on HEADER
+  [ ] (.*)             # MSG data
 /x;
+
+# see strftime man page for allowed fields here
+my $timestamp_template = "%Y-%m-%dT%H:%M:%S%z";
+
+# this is a custom template based on contents of %message hash for each
+# log entry
+my $message_template =
+ '%{TIMESTAMP} <%{facility}.%{priority}> %{HOSTNAME} %{MSG}\n';
 
 # syslog.h code->name mappings for better output
 my %syslog_priorities = (
@@ -79,31 +92,48 @@ my $VERSION;
 # parse command-line options
 use Getopt::Std;
 my %opts;
-getopts 'h?b:p:', \%opts;
+getopts 'h?lvb:p:t:f:', \%opts;
 
 print_help() if exists $opts{'h'} or exists $opts{'?'};
 
+# list known elements might be in %message for templating needs
+if ( $opts{'l'} ) {
+  print join(
+    "\n",
+    qw{raw MSG time_recv TIMESTAMP priority length HOSTNAME facility facility_code peerport HEADER priority_code peerhost PRI}
+   ),
+   "\n";
+  exit;
+}
+
 # no input checking as let IO::Socket handle any errors
-$bind = $opts{'b'} if exists $opts{'b'};
+my (@bind) = ( 'LocalAddr', $opts{'b'} ) if exists $opts{'b'};
 $port = $opts{'p'} if exists $opts{'p'};
+
+$message_template   = $opts{'f'} if exists $opts{'f'};
+$timestamp_template = $opts{'t'} if exists $opts{'t'};
 
 $SIG{'INT'} = sub { exit 0 };  # control+c handler
 
 # start up the syslog server
 my $sock = IO::Socket::INET->new(
-  Proto => 'udp',
-  ( $bind ? LocalAddr => $bind : () ),
-  LocalPort => $port
+  Proto     => 'udp',
+  LocalPort => $port,
+  @bind
  )
  or die "error: could not start server: errno=$@\n";
 
 $| = 1;                        # autoflush output
 
+my ( %message, @errors );
+
 while (1) {
-  my ( %message, @errors );
+  %message = ();
+  @errors  = ();
+
   next unless $sock->recv( $message{'raw'}, $max_msg_len );
 
-  $message{'time_recv'} = time;
+  $message{'time_recv'} = strftime $timestamp_template, localtime time;
 
   # get various info on the packet in question
   $message{'peerhost'} = gethostbyaddr( $sock->peeraddr, AF_INET )
@@ -111,37 +141,74 @@ while (1) {
   $message{'peerport'} = $sock->peerport;
 
   # see [RFC 3164] for syslog message format details
-  $message{'length'} = length($msg_in);
-  push @errors, 'message exceeds length limit' if $message{'length'} > 1024;
+  $message{'length'} = length( $message{'raw'} );
+  push @errors, "message exceeds length of $msg_len_warn"
+   if $message{'length'} > $msg_len_warn;
 
-  if ( $message{'raw'} =~ m/$PRI_data_re/o ) {
-    ( $message{'PRI'}, $message{'data'} ) = ( $1, $2 );
-  } else {
-    push @errors, 'could not parse PRI field';
+  if ( $message{'length'} == 0 ) {
+    push @errors, 'message contains no data';
+    next;
   }
 
-  if ( $message{'data'} =~ m/$HEADER_MSG_re/o ) {
+  my $header_msg = '';
+
+  if ( $message{'raw'} =~ m/$PRI_data_re/o ) {
+    ( $message{'PRI'}, $header_msg ) = ( $1, $2 );
+
+    # decode facility/priority (see [RFC 2234] for PRI part values
+    if ( $message{'PRI'} ) {
+      $message{'priority_code'} = $message{'PRI'} % 8;
+      if ( exists $syslog_priorities{ $message{'priority_code'} } ) {
+        $message{'priority'} = $message{'priority_code'};
+        $message{'priority'} = $syslog_priorities{ $message{'priority_code'} };
+      } else {
+        push @errors, "no name for priority $message{'priority_code'}";
+      }
+
+      $message{'facility_code'} = int( $message{'PRI'} / 8 );
+      if ( exists $syslog_facilities{ $message{'facility_code'} } ) {
+        $message{'facility'} = $syslog_facilities{ $message{'facility_code'} };
+      } else {
+        $message{'facility'} = $message{'facility_code'};
+        push @errors, "no name for facility $message{'facility_code'}";
+      }
+    }
+
+  } else {
+    push @errors, 'could not parse PRI field';
+    next;
+  }
+
+  # TODO is syslog-ng adding \n to the data already?
+  chomp $header_msg;
+
+  if ( $header_msg =~ m/$HEADER_MSG_re/o ) {
     (
       $message{'HEADER'},   $message{'TIMESTAMP'},
-      $message{'HOSTNAME'}, $mesage{'MSG'}
+      $message{'HOSTNAME'}, $message{'MSG'}
     )
      = ( $1, $2, $3, $4 );
+
+    $message{'TIMESTAMP'} = strftime $timestamp_template,
+     localtime str2time $message{'TIMESTAMP'};
   } else {
     push @errors, 'could not parse HEADER and MSG fields';
   }
 
-  # decode facility/priority (see [RFC 2234] for PRI part values
-  if ( $message{'PRI'} ) {
-    # TODO replace with simpler 'int($PRI/8)' and '$PRI%8' ?
-    $message{'facility'} = ( $message{'PRI'} & 0x03f8 ) >> 3;
-    $message{'priority'} = ( $message{'PRI'} & 0x07 );
+} continue {
+
+  if ( $opts{v} and @errors ) {
+    warn "error: $_\n" for @errors;
   }
 
-  # TODO error checking on facility and priority codes?
+  # converts '\n' and similar to actual character
+  ( my $output = $message_template ) =~ s/(\\.)/qq!"$1"!/eeg;
 
-  # TODO use template to produce this...
-  use Data::Dumper;
-  warn Dumper \%message, \@errors;
+  # replaces %{foo} keys from %message hash with values for log entry
+  $output =~ s/%{(\w+)}/$message{$1}||''/eg;
+
+  # template needs a line ending thingy!
+  print $output;
 }
 
 END {
@@ -157,9 +224,15 @@ Simple syslogd server for debugging or experimenting with syslog.
 
 Options for version $VERSION:
   -h/-?  Display this message
+  -l     Lists available message keys to template on and exists
+
+  -v     Verbose: lists errors in parsing log data.
 
   -b bb  Bind to host or address instead of to everything
   -p pp  Use UDP port instead of default ($port)
+
+  -f ff  Use different message template (custom format)
+  -t tt  Use different time format in strftime(3) format
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -173,32 +246,56 @@ syslog_snarf.pl - Simple syslogd server for debugging syslog
 
 =head1 SYNOPSIS
 
-Close any running syslog daemon (syslogd binds to UDP port 514 even in
-client-only mode), then run:
+Close any running syslog daemon (the stock syslogd binds to UDP port 514
+even when not being a server), then run the following to act as a
+debugging syslog server:
 
-  $ syslog_snarf.pl
+  # syslog_snarf.pl
+
+Bind to an alternate localhost-only port, be verbose about errors, and
+use custom time and message formats:
+
+  $ syslog_snarf.pl -b 127.1 -p 9999 -v -t %s -f '%{time_recv} %{raw}\n'
+
+To see a list of available message fields for templating:
+
+  $ syslog_snarf.pl -l
 
 =head1 DESCRIPTION
 
-This script is a simple syslog server that binds to the syslog port,
-and prints out a formatted message of all incoming syslog messages:
+This script is a simple syslog server that binds to a specified UDP
+port (514 by default) and prints out a formatted message of the
+parsed log data:
 
-  foo.example.org:514   user.info    testing, testing...
+  2004-06-08T00:16:48-0700 <user.notice> example.org username: test
 
-Decoding the syslog protocol is fairly easy; one begins with something
-wierd like:
+The output format of the log entries and the timestamps involved can be
+altered via templates; timestamps use strftime(3) templates, and log
+entries a custom macro format that uses C<%{keyword}> expansion. The
+currently supported keys to expand on are:
 
-  <14>testing, testing...
-
-The 14 is a specially encoded combination of the facility and priority
-codes; it can be extracted using funny bit twiddling operations one
-can glean from syslog.h with enough study.
-
+  HEADER - syslog message data past the priority field
+  HOSTNAME
+  MSG
+  PRI - syslog protocol facility/priority number
+  TIMESTAMP - timestamp set by log generator
+  facility
+  facility_code
+  length - size of log packet
+  peerhost - where log packet came from
+  peerport
+  priority
+  priority_code
+  raw - unparsed log data
+  time_recv - timestamp when log entry seen by this script
+  
 =head2 Normal Usage
 
   $ syslog_snarf.pl [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
+Output is to standard output, errors (under verbose mode) go to
+standard error.
 
 =head1 OPTIONS
 
@@ -210,9 +307,56 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
-=item B<-P> I<port>
+=item B<-l>
+
+List available fields for templating the message format with the B<-f>
+option.
+
+=item B<-b> I<hostname>
+
+Bind to specified hostname or address instead of everywhere. For testing
+and to prevent remote connects, 127.1 would be used to bind only to the
+localhost interface:
+
+  -b 127.0.0.1
+
+=item B<-p> I<port>
 
 Listen on the specified UDP port instead of the default.
+
+=item B<-t> I<timeformat>
+
+Specify a different time format to use instead of the default ISO
+format. See strftime(3) for a list of allowed parameters, as well as the
+strftime notes under the POSIX man page.
+
+=item B<-f> I<messageformat>
+
+Specify a different format for how messages are printed. Uses a
+custom %{keyword} expansion format; use the B<-l> option to list
+available fields.
+
+To emulate the format used by stock unix syslogd:
+
+  -t '%b %e %H:%M:%S' -f '%{TIMESTAMP} %{HOSTNAME} %{MSG}\n'
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Forward logs from syslog-ng>
+
+To have the syslog-ng daemon forward log messages to this script, add
+the following to the syslog-ng.conf configuration file and restart
+syslog-ng. The source statement will need to be altered to suit your
+configuration file:
+
+  destination testdaemon {
+    udp("127.0.0.1" port (9999));
+  };
+  log { source(local); destination(testdaemon); };
 
 =back
 
@@ -256,4 +400,3 @@ header file.
 $Id$
 
 =cut
-
