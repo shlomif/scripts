@@ -11,6 +11,13 @@
 # TRAPUSR2() {
 #   [ -f ~/.sh-sourceall ] && . ~/.sh-sourceall
 # }
+#
+# Warning! This script has various potential security problems,
+# especially where multiple users are involved with a shared account
+# (root), or where write access to the ~/.sh-sourceall file is possible
+# by untrusted users, e.g. via untrusted code injection into the file
+# in question, especially if ~/.sh-sourceall is on an insecure network
+# file system.
 
 # routine to signal a process matching an expression with a
 # specified signal.
