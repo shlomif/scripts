@@ -55,6 +55,8 @@ while (<>) {
 
     undef $lzero if $lzero == 0 and not exists $opts{'0'};
 
+    $^W = 0;			# hide uninit warnings on $lzero
+
     s/[d-]?([r-][w-][x-])([r-][w-][x-])([r-][w-][x-])/
 	$lzero.r2m($1).r2m($2).r2m($3)/ex;
 
