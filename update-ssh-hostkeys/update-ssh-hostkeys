@@ -21,7 +21,7 @@ if [ ! -w $KHF ]; then
   exit 1
 fi
 
-TMPFILE=`mktemp -t $BASENAME.XXXXXXXX` || exit 1
+TMPFILE=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
 trap "rm -f $TMPFILE" 0 1 2 13 15
 
 awk '{print $1}' $KHF | \
