@@ -207,21 +207,26 @@ sub open_omniweb_bg {
   my $url = shift;
 
   # for Mac OS X, use AppleScript to open pages in background, as
-  # open(1) brings to foreground.
+  # open(1) brings the browser forward, which annoys me.
   my $omniweb_open_script = <<EOF;
-set new_url to "$url"
-
+set url_new to "$url"
 tell application "OmniWeb"
-        -- this closes windows referencing what we are opening to avoid
-        -- having multiple windows open to the same URL
-        repeat with win_id in ListWindows
-                set win_url to first item of (GetWindowInfo of win_id)
-                if win_url is equal to new_url then
-                        close window (index of window id win_id)
-                end if
-        end repeat
+  set seen_url to false
+  repeat with bref in browsers
+    repeat with tref in tabs of bref
+      set url_cur to address of tref
+      if url_cur = url_new then
+        flush cache
+        reload tref
+        set seen_url to true
+        exit repeat
+      end if
+    end repeat
+  end repeat
 
-        OpenURL new_url
+  if seen_url is false then
+    OpenURL url_new
+  end if
 end tell
 EOF
 
