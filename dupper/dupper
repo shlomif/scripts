@@ -184,7 +184,7 @@ sub report {
     # that have more than 1 file associated with them
     foreach ( keys %$ref ) {
 	if (scalar @{$ref->{$_}} > 1) {
-	    print $dir, "\t", $_, "\t", join(', ', @{$ref->{$_}}), "\n";
+	    print $dir, "\t", join(', ', @{$ref->{$_}}), "\n";
 	}
     }
 }
