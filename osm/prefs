@@ -5,7 +5,7 @@
 name gnutargz
 comment GNU tar with gunzip support (or compatible)
 suffix tar.gz tgz
-exec tar x%{verbose}z%{preserve}%{destopt}f %{dest} %{file} %{wanted}
+exec tar x%{verbose}z%{preserve}%{destopt}f %{dest} %{file}
 verbose v
 preserve p
 destopt C
@@ -20,12 +20,12 @@ destopt C
 name gnutargz
 class list
 suffix tar.gz tgz
-exec tar tvzf %{file} %{wanted}
+exec tar tvzf %{file}
 
 name gnutarbz
 comment GNU tar with bzip support (or compatible)
 suffix tar.bz tar.bz2 tbz
-exec tar x%{verbose}j%{preserve}%{destopt}f %{dest} %{file} %{wanted}
+exec tar x%{verbose}j%{preserve}%{destopt}f %{dest} %{file}
 verbose v
 preserve p
 destopt C
@@ -33,7 +33,7 @@ destopt C
 name gnutarbz
 class list
 suffix tar.bz tar.bz2 tbz
-exec tar tvjf %{file} %{wanted}
+exec tar tvjf %{file}
 
 # TODO need to experiment with -noautoopen (prevents autorun or not??)
 name Apple disk image
@@ -51,13 +51,13 @@ destopt C
 
 name tar
 suffix tar
-exec tar x%{verbose}%{preserve}f %{file} %{wanted}
+exec tar x%{verbose}%{preserve}f %{file}
 verbose v
 preserve p
 
 name tar
 class list
-exec tar t%{verbose}%{preserve}f %{file} %{wanted}
+exec tar t%{verbose}%{preserve}f %{file}
 
 name gunzip
 suffix gz z
@@ -72,7 +72,7 @@ verbose -v
 # TODO need to experiment with verbose, quiet, other uses
 name unzip
 suffix zip
-exec unzip %{preserve} %{quiet} %{file} %{wanted} %{destopt} %{dest}
+exec unzip %{preserve} %{quiet} %{file} %{destopt} %{dest}
 preserve -X
 quiet -q
 destopt -d
