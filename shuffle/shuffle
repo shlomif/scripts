@@ -1,8 +1,18 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
 # Fisher Yates Shuffle input data to stdout.
+
+while (<STDIN>) {
+  push @array, $_;
+}
+
+die "No input\n" unless @array;
+
+fisher_yates_shuffle(\@array);
+
+print for @array;
 
 # fisher_yates_shuffle( \@array ) : generate a random permutation
 # of @array in place
