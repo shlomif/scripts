@@ -9,4 +9,4 @@
 
 # require non-interactive authuentication methods to prevent things from
 # stalling on a password prompt
-exec /usr/bin/ssh -o PreferredAuthentications=hostbased,publickey $@
+exec /usr/bin/ssh -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic $@
