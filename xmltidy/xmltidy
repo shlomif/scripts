@@ -1,28 +1,103 @@
-#!/bin/sh
+#!/usr/bin/perl -w
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# xmllint of libxml2 does not presently accept input from STDIN,
-# therefore this wrapper.  Formatted output sent to STDOUT.  Also
-# accepts a filename to tidy, which disables STDIN processing.
+# Cleans up XML via the xmllint utility from the libxml2 project.
+# Handles input either from standard input, or named files given as
+# arguments. Named files are currently operated on in-place, while
+# standard input is passed to standard out after the tidy is done.
 
-myn=`basename $0`
+use strict;
+use File::Temp qw(tempfile);
 
-if [ $# -eq 0 ]; then
-  TMPFILE=`mktemp /tmp/${myn}.XXXXXXX` || exit 1
-  cat > $TMPFILE
-else
-  if [ ! -f $1 ]; then
-    echo "error: not a file: $1" >&2
-    exit 1
-  fi
-  TMPFILE=$1
-fi
-xmllint --encode utf8 --format $TMPFILE
+# command to tidy up XML; xmllint from libxml2 produces output to
+# standard out
+my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);
 
-if [ $# -eq 0 ]; then
-  rm $TMPFILE
-fi
+# TODO use these
+use Getopt::Std;
+my %opts;
+getopts 'h?i', \%opts;
+
+my $error;
+
+# no args, read file from stdin, write to temp file
+unless (@ARGV) {
+  my ( $fh, $tmpfile ) = tempfile( UNLINK => 1 );
+  print $fh $_ while <STDIN>;
+
+  my $tfh = xmltidy($tmpfile);
+  unless ($tfh) {
+    remark( 'error', 'xmllint failed', { errno => $error } );
+    exit 101;
+  }
+  print while <$tfh>;
+
+} else {
+  for my $file (@ARGV) {
+    next unless -f $file;
+
+    my $tfh = xmltidy($file);
+    unless ($tfh) {
+      remark( 'error', 'xmllint failed', { errno => $error, file => $file } );
+      exit 101;
+    }
+
+    # TODO use temporary file and rename, though this entails using the
+    # same dir/filesystem and a "safe" temporary file...
+    open my $replacefh, "> $file";
+    while ($tfh) {
+      print $replacefh $_;
+    }
+    close $replacefh
+     or remark( 'warning', 'problem closing file',
+      { errno => $!, file => $file } );
+  }
+}
+
+# accepts filename to tidy up, returns filehandle to play with
+sub xmltidy {
+  my $tmpfile = shift;
+
+  open my $tidyfh,       "-|"
+   or exec @xmltidy_cmd, $tmpfile
+   or $error = $!;
+
+  return unless $tidyfh;
+
+  # KLUGE xmllint does not exit non-zero on failure, it seems...
+  if ( -z $tidyfh ) {
+    $error = 'no output from xmllint';
+    return;
+  }
+
+  return $tidyfh;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
+
+END {
+  # catch disk full problems during command line redirection according
+  # to perlopentut
+  close STDOUT || die "error: could not close STDOUT: errno=$!\n";
+}
