@@ -6,13 +6,13 @@
 # software; you can redistribute it and/or modify it under the same
 # terms as Perl itself.
 #
-# Run perldoc on this file for additional documentation.
+# Run perldoc(1) on this file for additional documentation.
 #
 ######################################################################
 #
 # REQUIREMENTS
 
-require 5.005;
+require 5;
 
 use strict;
 
@@ -29,7 +29,8 @@ use File::Copy;			# if want to copy instead of rename
 #
 # VARIABLES
 
-my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $op, $fn);
 
@@ -61,7 +62,7 @@ help() unless @ARGV;
 # loop over the files
 for (@ARGV) {
     # allow more flexibility in eval statements
-    no strict;
+    no strict; $^W = 0;
 
     # record what the file was called
     my $was = $_;
@@ -211,6 +212,10 @@ Enable preview mode, no changes will be made to disk.
 =back
 
 =head1 EXAMPLES
+
+Remove upper case from a bunch of files:
+
+  $ rename.pl '$_ = lc' *
 
 Dealing with deep directories full of files to be changed can be
 tricky, especially if the pattern in question is renaming directories,
