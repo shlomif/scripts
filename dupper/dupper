@@ -64,8 +64,13 @@ foreach ( @ARGV ) {
     parsedir ($_);
 
     # reset the %check hash between directories by default
-    %check = () unless exists $opts{'g'};
+    unless (exists $opts{'g'} || exists $opts{'z'}) {
+	report (\%check, $_);
+	%check = ();
+    }
 }
+
+report (\%check, 'all');
 
 ######################################################################
 #
@@ -157,10 +162,31 @@ sub parsedir {
 	}
     }
 
+    # print a report if we're doing the local-dir-only thing
+    report (\%check, $dir) if exists $opts{'z'};
+
     # before poping up a recursion level, deal with subdirs
     unless (exists $opts{'l'}) {
 	foreach (@to_parse) {
 	    parsedir ($_);
+	}
+    }
+}
+
+# takes a hash reference (presumably to %check) and
+# dumps out a little report of duplicate files
+sub report {
+    my $ref = shift;
+    my $dir = shift;
+
+    # quit out early if no-yak mode turned on
+    return if exists $opts{'q'};
+
+    # rummage through hash, printing out only hash entries
+    # that have more than 1 file associated with them
+    foreach ( keys %$ref ) {
+	if (scalar @{$ref->{$_}} > 1) {
+	    print $dir, "\t", $_, "\t", join(', ', @{$ref->{$_}}), "\n";
 	}
     }
 }
@@ -177,7 +203,7 @@ file contents.
 Options:
   -h/-?  Display this message
   -v     Verbose mode, a little bit more chatty.
-  -q     Chat no more.  Overrides -v.
+  -q     Chat no more.  Overrides -v, suppresses reporting.
 
   -u     Attempt to unlink any duplicates found past first.
          (Default is not to unlink anything!)
