@@ -23,16 +23,16 @@ use strict;
 use Carp;			# better error reporting
 use Getopt::Std;		# command line option processing
 
-eval { require Net::Telnet; };
-if ($@) {
-    die "Net::Telnet is not installed; please install it from CPAN.\n";
-} else {
-    require Net::Telnet;
-}
+use Socket qw(:DEFAULT :crlf);	# low-level connection handling
 
 ######################################################################
 #
 # VARIABLES
+
+my $service    = 'ssh';
+my $protoname  = 'tcp';
+my $port       = getservbyname($service, $protoname);
+my $proto      = getprotobyname($protoname);
 
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
@@ -48,44 +48,46 @@ getopts('h?', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# do nmap with supplied arguments
-open NMAP, "nmap -sS -p 22 -oM - @ARGV |" 
-    or die "Couldn't call nmap: $!\n";
-
-while (<NMAP>) {
+while (<STDIN>) {
     # skip non-open/non-relevant data
-    next unless m!22/open/tcp!;
+    next unless m!$port/open/$protoname!o;
 
-    # extract ip and hostname from matching lines
-    my ($ip, $hostname) = $_ =~ /Host: (\S+) \(([^\(]+)?\)/;
-
+    # extract ip and (optional) hostname from matching lines
+    my ($ip, $hostname) = $_ =~ /^Host: (\S+) \(([^\(]+)?\)/;
+    
     $hostname = "UNKNOWN" unless $hostname;
 
+    # skip invalid IPv4 addresses (network & broadcast)
     next unless $ip;
+    next if $ip =~ /\.(0|255)$/;
 
     # nab reply from SSH server and move on...
-    my $t = Net::Telnet->new(Timeout => 3, Port => 22);
-    $t->open($ip);
-
-    # probably a better way to do this :)
-    my $status;
-
-    eval {
-	$status = $t->get();
-    };
-
-    if ($@) {
-	$status = "TIMEOUT\n";
+    my $ret = do_connect($ip);
+    if ((!defined $ret) || ($ret <= 0)) {
+        print $ip, "\t", $hostname, "\tCouldn't connect()\n";
+        next;
     }
 
-    $status = "UNKNOWN\n" unless $status;
+    my $output;
 
-    print "$ip\t$hostname\t";
-    print $status;
-    $t->close;
+    eval {
+        local $SIG{ALRM} = sub { die "timed out\n" };
+        alarm(3);
+        recv(SOCK, $output, 9999, 0);
+        alarm(0);
+    };
+    if ($@) { 
+	print $ip, "\t", $hostname, "\ttimeout\n";
+    }
+
+    shutdown(SOCK, 2);
+
+    # grab SSH version tag e.g. "SSH-1.99-OpenSSH_2.9"
+    if ($output =~ /$service/io) {
+        chomp($output);
+        print $ip, "\t", $hostname, "\t", $output, "\n";
+    }
 }
-
-close NMAP;
 
 exit;
 
@@ -93,12 +95,28 @@ exit;
 #
 # SUBROUTINES
 
+sub do_connect {
+    my $ip = shift || return (0);
+    my $o = undef;
+    socket(SOCK, PF_INET, SOCK_STREAM, $proto);
+
+    my $sin = sockaddr_in($port, inet_aton("$ip"));
+    eval {
+        local $SIG{ALRM} = sub { die "timed out\n" };
+        alarm(3);
+        $o = connect(SOCK, $sin);
+        alarm(0);
+    };
+
+    return ($o);
+}
+
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 <host or net #1 ... [#N]>
+Usage: $0 < nmap-scan-output
 
-See nmap(1) for details on the host or net specifications allowed.
+nmap(1) output should be in -oG or -oM format.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -115,35 +133,39 @@ HELP
 
 =head1 NAME
 
-ssh_scan.pl - a script to map SSH server versions
+ssh_scan.pl - a script to help map SSH server versions
 
 =head1 SYNOPSIS
 
-This script accepts nmap target specifications as arguments:
+Simply pipe in nmap(1) output of the B<-oG> or B<-oM> format:
 
-  $ ssh_scan.pl 192.168.0.1-254 gateway.example.org
+  # nmap -sS -p 22 -oG - 10.0.0.1/24 | ssh_scan.pl
+  10.0.0.1    example.org    SSH-1.99-OpenSSH_2.9
+  ...
 
 =head1 DESCRIPTION
 
-This script invokes nmap to scan the specified targets for SSH
-servers, then calls Net::Telnet to figure out what daemon version the
-specified server is running.
+This script takes nmap output, extracts out what look like open SSH
+servers, and attempts to connect to the IP Address in quetion to
+obtain the SSH version string (via the Socket module).  Network and
+broadcast addresses will be skipped.
 
 Output consists of the IP Address, hostname, and server version for
 each running SSH daemon found, in tab-separated value format.  The
-server version can also be "UNKNOWN" or "TIMEOUT" depending on various
-failures of Net::Telnet to extract any meaningful data.  This is
-usually the case where there exist connectivity problems between the
-scanner and the target, or where the nmap stealth scan reported the
-port as being open, but TCP WRAPPERS on the remote host denies
-Net::Telnet.
+server version can also be "timeout" or a similar error message,
+depending on various failures to extract any meaningful data.
+
+Errors will crop up when there exist connectivity problems between the
+scanner and the target, or when a nmap stealth scan reports the port
+as being open, but tcp_wrappers on the target host denies the full
+socket connection.
 
 =head2 Normal Usage
 
-  $ ssh_scan.pl <host or net #1 ... [#N]>
+  $ ssh_scan.pl < nmap-scan-output
 
-See nmap(1) for details on the host or netmasks supported under TARGET
-SPECIFICATION.
+The nmap output must be in the B<-oG> or B<-oM> format, and is
+accepted on STDIN.  All results are written to STDOUT.
 
 =head1 OPTIONS
 
@@ -174,11 +196,15 @@ No known bugs.
 
 =head1 SEE ALSO
 
-nmap(1), L<Net::Telnet>, perl(1)
+nmap(1), perl(1)
+
+http://www.google.com/search?q=nmap+service+detection
 
 =head1 AUTHOR
 
 Jeremy A. Mates, http://www.sial.org/contact/
+
+Socket code contributed by Michael Hornung, hornung@u.washington.edu.
 
 =head1 COPYRIGHT
 
