@@ -22,7 +22,6 @@ use Getopt::Std;
 my %opts;
 getopts 'h?c:o:d:', \%opts;
 
-print_help() unless exists $opts{c} and -f $opts{c};
 print_help() if exists $opts{h} or exists $opts{'?'};
 
 my $output_tmpl = '%{size} %{path}\n';
@@ -40,60 +39,78 @@ if ( exists $opts{d} ) {
   }
 }
 
-open PREFS, "< $opts{c}"
- or remark( 'error', 'could not load prefs', { file => $opts{c}, errno => $! } )
- and exit 104;
+my @directories;
 
-while (<PREFS>) {
-  next if /^\s*$/;
-  s/^\s+//;
-  next if /^#/;
-  chomp;
-  s/\s+$//;
+if ( exists $opts{c} ) {
+  open PREFS, "< $opts{c}"
+   or
+   remark( 'error', 'could not load prefs', { file => $opts{c}, errno => $! } )
+   and exit 104;
 
-  # extend lines ending with \
-  if (s/ \\ $ //x) {
-    $_ .= <DATA>;
-    redo unless eof;
-  }
+  push @directories, load_dir_prefs( \*PREFS );
+}
 
-  my @tokens;
- UBLE: {
-    # unquoted text
-    push( @tokens, $1 ), redo UBLE
-     if m/ \G ( [^"'\s]+ ) \s* /cgx;
+for my $entry (@directories) {
+  rundu( $entry->{parentdir}, $entry->{wanted} );
+}
 
-    # single or double quoted, allowing for backslashed internal escapes
-    push( @tokens, $2 ), redo UBLE
-     if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
+exit;
 
-    last UBLE if / \G $ /gcx;
-  }
+sub load_dir_prefs {
+  my $fh = shift;
+  my @dirs;
+  while (<$fh>) {
+    next if /^\s*$/;
+    s/^\s+//;
+    next if /^#/;
+    chomp;
+    s/\s+$//;
 
-  if (@tokens) {
-    # unescape things like "\ " or "\n"
-    @tokens = map { s/(\\.)/qq!"$1"!/eeg; $_ } @tokens;
-
-    my $dir = shift @tokens;
-
-    # TODO only subpath matching for output right now, could add more
-    my @wanted;
-
-    # default to printing for the parentdir, which has no subpath
-    push @wanted, { subject => 'subpath', value => '^$', op => 're' };
-
-    for (@tokens) {
-      # convert regex-free configuration entries to regex for cleaner
-      # configuration file format
-      unless ( m,\$$, or m,^\^, ) {
-        $_ = '^/' . $_ . '$';
-      }
-      s, \* ,[^/]+/?,gx;
-      push @wanted, { subject => 'subpath', value => $_, op => 're' };
+    # extend lines ending with \
+    if (s/ \\ $ //x) {
+      $_ .= <DATA>;
+      redo unless eof;
     }
 
-    rundu( $dir, \@wanted );
+    my @tokens;
+   UBLE: {
+      # unquoted text
+      push( @tokens, $1 ), redo UBLE
+       if m/ \G ( [^"'\s]+ ) \s* /cgx;
+
+      # single or double quoted, allowing for backslashed internal escapes
+      push( @tokens, $2 ), redo UBLE
+       if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
+
+      last UBLE if / \G $ /gcx;
+    }
+
+    if (@tokens) {
+      # unescape things like "\ " or "\n"
+      @tokens = map { s/(\\.)/qq!"$1"!/eeg; $_ } @tokens;
+
+      my $dir = shift @tokens;
+
+      # TODO only subpath matching for output right now, could add more
+      my @wanted;
+
+      # default to printing for the parentdir, which has no subpath
+      push @wanted, { subject => 'subpath', value => '^$', op => 're' };
+
+      for (@tokens) {
+        # convert regex-free configuration entries to regex for cleaner
+        # configuration file format
+        unless ( m,\$$, or m,^\^, ) {
+          $_ = '^/' . $_ . '$';
+        }
+        s, \* ,[^/]+/?,gx;
+        push @wanted, { subject => 'subpath', value => $_, op => 're' };
+      }
+
+      push @dirs, { parentdir => $dir, wanted => \@wanted };
+    }
   }
+  return @dirs;
 }
 
 sub rundu {
@@ -311,6 +328,7 @@ HELP
   exit 100;
 }
 
+1;
 __END__
 
 =head1 NAME
