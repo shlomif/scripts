@@ -149,6 +149,12 @@ sub pb_put {
     $channel = shift;
   }
 
+  # pull summary text from rest of command line
+  # TODO better means of doing this?  -m flag like CVS?
+  if (@_) {
+    $summary = "@_";
+  }
+
   unless (defined $url) {
     remark('alert', 'could not determine url');
     exit 104;
@@ -181,9 +187,6 @@ sub pb_put {
     require LWP::UserAgent;
     my $ua =
      LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
-
-   # DBG
-   #warn "url=$url channel=$channel nick=$nick summary=$summary paste=$paste\n";
 
     my $response = $ua->post(
       $url,
@@ -433,9 +436,9 @@ Get first post, either by server name or fully qualified URL.
   $ pbotutil -s server get 1
   $ pbotutil get http://example.org:8080/1
 
-Put data to a server.
+Put data to a server.  The channel will have # prefixed if needed.
 
-  $ pbotutil -s server put channel < file
+  $ pbotutil -s server put channel "optional summary" < file
   $ pbotutil put http://example.org:8080 channel < file
 
 Use the null channel when testing, to avoid pestering a real channel
@@ -510,6 +513,10 @@ server.  The nick field specifies a default nickname to use for the
 pastings, which may vary by pastebot for someone on multiple networks.
 
 The preference file will be created automagically if it cannot be found.
+
+=head1 DIAGNOSTICS
+
+There are magic number exit codes.  See source.  :)
 
 =head1 BUGS
 
