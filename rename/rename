@@ -1,0 +1,123 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Copyright (c) 2000, Jeremy A. Mates.  This script is free software;
+# you can redistribute it and/or modify it under the same terms as
+# Perl itself.
+#
+# Run perldoc on this file for additional documentation.
+#
+######################################################################
+#
+# REQUIREMENTS
+
+require 5.005;
+
+use strict;
+
+######################################################################
+#
+# MODULES
+
+use Carp;			# better error reporting
+use Getopt::Std;		# command line option processing
+
+
+
+######################################################################
+#
+# VARIABLES
+
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts);
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+# read from STDIN if no args left
+#chomp(@ARGV = <STDIN>) unless @ARGV;
+#
+# and flag the help text if nothing from STDIN
+#help() unless @ARGV;
+
+
+
+exit;
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+Usage: $0 [opts]
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+Run perldoc on this script for additional documentation.
+
+HELP
+    exit;
+}
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+blank.pl - a stub perl script.
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 USAGE
+
+=head1 OPTIONS
+
+=head1 ENVIRONMENT
+
+=head1 FILES
+
+=head1 EXAMPLES
+
+=head1 BUGS
+
+Newer versions of this script may be available from:
+http://www.sial.org/code/perl/
+
+If not, or the bug is in the latest version, send the bug report to:
+jmates@sial.org
+
+=head1 TODO
+
+=head1 SEE ALSO
+
+perl(1), L<Carp>, L<Getopt::Std>
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000, Jeremy A. Mates.  This script is free software;
+you can redistribute it and/or modify it under the same terms as Perl
+itself.
+
+=head1 VERSION
+
+$Id$
+
+=cut
