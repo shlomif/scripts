@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into
+# the public domain.
+#
+# Creates original copies of the specified file(s).
+
+for f in $@; do
+  if [ ! -e $f ]; then
+    echo "warning: no such file: $f" >&2
+  elif [ -f $f ]; then
+    cp -p -f $f $f.orig
+    RETURN=$?
+    if [ $RETURN -ne 0 ]; then
+      echo "warning: non-zero exit from cp: $RETURN" >&2
+    fi
+# TODO write handlers for directories, Mac OS X HFS+ infested files?
+  else
+    echo "warning: no handle method for: $f" >&2
+  fi
+done

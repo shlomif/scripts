@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into
+# the public domain.
+#
+# Reverses command line arguments, for when the .foo longer name needs
+# to come first, e.g. when doing stuff like:
+#
+# diff annoying-long-name.orig annoying-long-name
+#
+# becomes:
+#
+# diff `esr annoying*`
+#
+# or:
+#
+# esr annoying* | xargs diff
+
+for x in $@; do
+  out="$x $out"
+done
+
+echo $out
