@@ -26,10 +26,10 @@ $Text::Wrap::columns = 80;
 my %keys;
 my %counts;
 my @overview;
-my $overview_max      = 7000;
+my $overview_max      = 50;
 my $overview_overflow = 0;
 
-my $output_max = 7;
+my $output_max = 5;
 
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
