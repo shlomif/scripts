@@ -428,7 +428,20 @@ pbotutil - interacts with pastebot sites
 
 =head1 SYNOPSIS
 
-  $ TODO
+Get first post, either by server name or fully qualified URL.
+
+  $ pbotutil -s server get 1
+  $ pbotutil get http://example.org:8080/1
+
+Put data to a server.
+
+  $ pbotutil -s server put channel < file
+  $ pbotutil put http://example.org:8080 channel < file
+
+Use the null channel when testing, to avoid pestering a real channel
+with upload messages.
+
+  $ pbotutil -s server put '' < file
 
 =head1 DESCRIPTION
 
@@ -444,6 +457,8 @@ http://sourceforge.net/projects/pastebot/
 
   $ pbotutil [global-options] action [args]
 
+The C<action> can be one of get or put at present.
+
 See L<"OPTIONS"> for details on the command line switches supported.
 
 =head1 OPTIONS
@@ -455,6 +470,17 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note.
+
+=item B<-s> I<server>
+
+Use I<server> definition to get URL, default nickname, and other details
+from the preference file.  Optional, as the get and put commands accept
+fully qualified URL, though recommended to simplify useage.
+
+=item B<-u> I<nick>
+
+Use I<nick> as username when posting.  Will be overridden if a nick
+entry exists for a server definition.
 
 =back
 
@@ -468,7 +494,22 @@ Any special environement details or warnings?
 
 =head1 FILES
 
-Any important files this script relies on?
+A preferences file is used to store server definitions.  This may either
+be a list of pastebot urls, which will be expanded out and given short
+names, or a list of key/value blocks representing pastebot servers.
+
+  url http://example.org:8080
+  name foo
+  nick bar
+
+  url http://example.net:8888
+  name bar
+
+The name field is for the -s option for easy reference to a particular
+server.  The nick field specifies a default nickname to use for the
+pastings, which may vary by pastebot for someone on multiple networks.
+
+The preference file will be created automagically if it cannot be found.
 
 =head1 BUGS
 
@@ -483,7 +524,7 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known bugs.
+Yes.  See TODO in source, etc.
 
 =head1 TODO
 
@@ -507,4 +548,3 @@ public domain.
   $Id$
 
 =cut
-
