@@ -4,6 +4,8 @@
 #
 # The author disclaims all copyrights and releases this document into
 # the public domain.
+#
+# Integrates command line with OmniWeb shortcuts.
 
 use URI;
 use XML::XPath;
@@ -36,9 +38,18 @@ my @open = qw(open);
 
 if (@ARGV == 0) {
 
-  # TODO could actually pull this from WWWHomePage data in the
-  # com.apple.internetconfig.plist file...
-  visit("http://www.sial.org/search/");
+  my $f = $ENV{HOME} . "/Library/Preferences/com.apple.internetconfig.plist";
+  my $x = XML::XPath->new(filename => $f);
+
+  # find WWWHomePage entry
+  # TODO fix // search, which is slow.  or cache the entry somewhere for
+  # faster lookup?
+  my @sn = $x->find('//dict[preceding::key="WWWHomePage"]/string')->get_nodelist;
+  my $homepage = $sn[0]->string_value;
+
+  die "could not find homepage\n" unless $homepage;
+
+  visit($homepage);
 
 } elsif (@ARGV == 1) {
   if (exists $hash{$ARGV[0]}) {
