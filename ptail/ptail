@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -14,8 +13,8 @@
 
 require 5;
 
-#use strict;			# disabled to allow more flexible
-# expression composition
+# disabled to allow more flexible expression composition
+#use strict;
 
 ######################################################################
 #
@@ -241,9 +240,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
