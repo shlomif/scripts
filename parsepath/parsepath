@@ -14,6 +14,7 @@ use File::Spec;
 
 sub getfileinfo;
 sub determine_role;
+sub print_help;
 
 # unix file type mappings
 # TODO use "use Fcntl ':mode';" instead?
@@ -72,6 +73,8 @@ for (@ARGV) {
   }
 }
 
+print_help if exists $opts{options}->{h};
+
 $opts{path} = realpath '.' unless exists $opts{path};
 die "error: no path to work with\n"
  unless exists $opts{path}
@@ -82,8 +85,17 @@ $opts{options}->{l} = 1 unless exists $opts{constraint};
 
 # use current user if constrained and no user set
 if (exists $opts{constraint} and not exists $opts{role}) {
-  my $what = exists $opts{options}->{g} ? 'group' : 'user';
-  my $who  = exists $opts{options}->{R} ? $<      : $>;
+  my ($what, $who);
+  if (exists $opts{options}->{g}) {
+    $what = 'group';
+    my $tmp = exists $opts{options}->{R} ? $( : $);
+    $tmp =~ /^(\d+)/;
+    $who = $1;
+  } else {
+    $what = 'user';
+    $who = exists $opts{options}->{R} ? $< : $>;
+  }
+  print "going to do $what with $who some say...\n";
   $opts{role} = determine_role $what, $who;
 }
 
@@ -174,4 +186,28 @@ sub getfileinfo {
   $filedata{unix_group} = getgrgid $filedata{unix_gid} || $filedata{unix_gid};
 
   return \%filedata;
+}
+
+# usage notes
+sub print_help {
+  print <<"HELP";
+$0 takes the following arguments in any order:
+
+  directory - single directory to parse (default current directory).
+
+  Constraints (uses current user/group if (user|group)= is missing):
+
+  +r|+w|+x  - check whether read, write, or execute access possible.
+  user=???  - specify user to limit to (default: current user).
+  group=??? - specify group to limit to (default: current group).
+
+  Options:
+
+  -h    Print these notes.
+  -l    Verbose list of path to file (default if nothing else).
+  -g    Use group instead of user if no user and constraining.
+  -R    Use real user/group instead of effective.
+
+HELP
+  exit 1;
 }
