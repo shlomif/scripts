@@ -11,45 +11,102 @@
 my @du_cmd = qw(du -k);
 my $du_re  = qr/^(\d+) \s+ (\S+)/ox;
 
-my $parentdir = shift || die "TODO usage notes";
-$parentdir =~ s, /+$ ,,x;
+my $output_tmpl = '%{size} %{path}\n';
+# TODO read -o option for custom template here
+$output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
 
-open FROMDU,      '-|'
- or exec @du_cmd, $parentdir
- or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
- and exit 101;
+while (<DATA>) {
+  next if /^\s*$/;
+  s/^\s+//;
+  next if /^#/;
+  chomp $line;
+  s/\s+$//;
 
-while (<FROMDU>) {
-
-  # gather output into a hash for easy access of data
-  my %duinfo = ( parentdir => $parentdir );
-  unless ( ( $duinfo{size}, $duinfo{path} ) = m/$du_re/ ) {
-
-    # this should never be hit, unless output format of du changes
-    remark(
-      'error',
-      'invalid output from du',
-      { line => $., dir => $parentdir }
-    );
-    exit 102;
+  if (s/ \\ $ //x) {
+    $_ .= <DATA>;
+    redo unless eof;
   }
 
-  # determine path excluding leading root
-  my $offset = index $duinfo{path}, $parentdir;
-  if ( $offset > -1 ) {
-    $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
+  my @tokens;
+ UBLE: {
+    push( @tokens, $1 ), redo UBLE
+     if m/ \G ( [^"'\s]+ ) \s* /cgx;
+    push( @tokens, $2 ), redo UBLE
+     if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
+
+    last UBLE if / \G $ /gcx;
   }
 
-  # DBG
-  #use Data::Dumper;
-  #warn Dumper \%duinfo;
+  if (@tokens) {
+    # unescape things like "\ " or "\n"
+    @tokens = map { s/(\\.)/qq!"$1"!/eeg; $_ } @tokens;
+
+    rundu(@tokens);
+  }
+
 }
-close FROMDU
- or remark(
-  'warning',
-  'problem closing pipe from du',
-  { errno => $!, dir => $parentdir }
- );
+
+sub rundu {
+  my $parentdir = shift;
+  my @wanted    = @_;
+
+  # trailing slashes lead to // in output, so evict
+  $parentdir =~ s, /+$ ,,x;
+
+  my $targetdir = $parentdir;
+
+  # KLUGE du will happily stat only a symlink instead of the actual
+  # target directory
+  $targetdir = readlink $parentdir if -l $parentdir;
+
+  unless ( -d $targetdir ) {
+    remark( 'error', 'target not a directory', { dir => $parentdir } );
+    exit 101;
+  }
+
+  open FROMDU,      '-|'
+   or exec @du_cmd, $targetdir
+   or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
+   and exit 102;
+
+  while (<FROMDU>) {
+    chomp;
+
+    # gather output into a hash for easy access of data
+    my %duinfo = ( parentdir => $parentdir );
+    unless ( ( $duinfo{size}, $duinfo{path} ) = m/$du_re/ ) {
+
+      # this should never be hit, unless output format of du changes
+      remark(
+        'error',
+        'invalid output from du',
+        { line => $., dir => $parentdir }
+      );
+      exit 103;
+    }
+
+    # determine path excluding leading root
+    $duinfo{subpath} = '';
+    my $offset = index $duinfo{path}, $parentdir;
+    if ( $offset > -1 ) {
+      $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
+    }
+
+    # DBG
+    #use Data::Dumper;
+    #warn Dumper \%duinfo;
+
+    my $str_out = $output_tmpl;
+    $str_out =~ s/ %{ (\w+) } / $duinfo{$1} || '' /egx;
+    print $str_out if $duinfo{subpath} eq '';
+  }
+  close FROMDU
+   or remark(
+    'warning',
+    'problem closing pipe from du',
+    { errno => $!, dir => $parentdir }
+   );
+}
 
 sub remark {
   my $priority   = shift;
@@ -69,3 +126,7 @@ sub remark {
    . ( $attr_str ? ": $attr_str" : '' ) . "\n";
   return 1;
 }
+
+__DATA__
+/home/jmates src/* backup cfm co repository
+/sial/music *
