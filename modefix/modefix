@@ -19,7 +19,7 @@ use strict;
 # CONSTANTS
 
 my (%opts, $dirmode, $filemode, $group, $groupid, $members, $verbose, 
-    %badgroups);
+    %badgroups, %badperms);
 
 # MAIN
 
@@ -74,15 +74,27 @@ if (keys %badgroups > 0) {
     print "\n";
 }
 
+# and same for the permissions on files
+if (keys %badperms > 0) {
+    print "\nUsers owning files with improper permissions:\n";
+    foreach ( keys %badperms ) {
+	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
+	print '  ', $name, ':', $uid, ':', $gid, ':', $gcos, ':', $dir, "\n";
+    }
+    print "\n";
+}
+
 # SUBROUTINES
 
 sub zapit {
     # get current user/group ids off of item
-    my ($cur_uid, $cur_gid) = (stat)[4,5];
+    my ($cur_mode, $cur_uid, $cur_gid) = (stat)[2,4,5];
+
+    $cur_mode = $cur_mode & 07777; # remove type from mode, leaving permission
 
     # deal with directories
     if (-d) {
-	# see if we should "prune" this directory
+	# see if we should "prune" this directory first
 	if (exists $opts{'p'}) {
 	    my $results = eval "return 1 if( " . $opts{'p'} . " );";
 	    
@@ -93,39 +105,50 @@ sub zapit {
 	    
 	    if ($results) {
 		$File::Find::prune = 1;
-		warn "error: pruned ", $File::Find::name, "\n" if $verbose;
+		warn "pruned ", $File::Find::name, "\n" if $verbose;
 		return;
 	    }
 	}
 
-	# otherwise, apply mode changes as needed
+	# apply mode changes as needed to directory
 	if (defined $dirmode) {
-	    my $result = chmod oct($dirmode), $_;
-	    warn "error: chmod on ", $File::Find::name, " failed\n" if $verbose && $result == 0;
-	}
+	    if (oct($dirmode) != $cur_mode) {
+		# show the offending file if verbose on
+		print 'MODE', "\t", sprintf("%04o", $cur_mode), "\t", $File::Find::name, "\n" if $verbose;
 
-	if (defined $groupid) {
-	    if ($groupid != $cur_gid) {
-		chown $cur_uid, $groupid, $_;
-		# log this change so we know whose been setting bad groups
-		warn "DBG changed group for ", $File::Find::name, "\n";
-		$badgroups{$cur_uid}++;
+		# attempt the change
+		my $result = chmod oct($dirmode), $_;
+		warn "error: chmod on ", $File::Find::name, " failed\n" if $result == 0;
+		# log bad permissions
+		$badperms{$cur_uid}++;
 	    }
 	}
+
     } elsif (-f) {
-	# set file mode, group, if needed
+	# set file modes if needed
 	if (defined $filemode) {
-	    my $result = chmod oct($filemode), $_;
-	    warn "error: chmod on ", $File::Find::name, " failed\n" if $verbose && $result == 0;
-	}
+	    if (oct($filemode) != $cur_mode) {
+		# show the offending file if verbose on
+		print 'MODE', "\t", sprintf("%04o", $cur_mode), "\t", $File::Find::name, "\n" if $verbose;
 
-	if (defined $groupid) {
-	    if ($groupid != $cur_gid) {
-		chown $cur_uid, $groupid, $_;
-		# log this change so we know whose been setting bad groups
-		warn "DBG changed group for ", $File::Find::name, "\n";
-		$badgroups{$cur_uid}++;
+		my $result = chmod oct($filemode), $_;
+		warn "error: chmod on ", $File::Find::name, " failed\n" if $result == 0;
+		# log bad permissions
+		$badperms{$cur_uid}++;
 	    }
+	}
+    }
+
+    # same group-change code for both dirs and files here
+    if (defined $groupid) {
+	if ($groupid != $cur_gid) {
+	    # yak if verbose
+	    print 'GROUP', "\t", $cur_gid, "\t", $File::Find::name, "\n";
+
+	    my $result = chown $cur_uid, $groupid, $_;
+	    warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
+	    # log this change so we know whose been setting bad groups
+	    $badgroups{$cur_uid}++;
 	}
     }
 }
@@ -161,6 +184,9 @@ HELP
 __END__
 
 $Log$
+Revision 1.6  2000/02/04 01:50:47  jmates
+Am still having trouble with getting -r updates to work right...
+
 Revision 1.5  2000/02/03 01:20:21  jmates
 Updated revision to be in line with previous named development.
 
