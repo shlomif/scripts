@@ -12,7 +12,7 @@
 #
 # REQUIREMENTS
 
-require 5.005;
+require 5;
 
 use strict;
 
@@ -127,7 +127,7 @@ sub humanize {
     }
     
     # optionally fudge "near" values up to next higher level
-    if(defined $format{'fudge'}) {
+    if (defined $format{'fudge'}) {
 	if ($num > ($format{'fudge'} * $format{'factor'})) {
 	    $count++;
 	    $num /= $format{'factor'};
@@ -165,9 +165,9 @@ Options for version $VERSION:
   -h/-?  Display this message
 
   -b nn  Integer to offset incoming data by.
-  -k     Default incoming data to Kilobtyes.  Default is bytes.
+  -k     Default incoming data to Kilobtyes.  Default: bytes.
 
-  -m rr  Regex to match what to operate on.  Default is $regex.
+  -m rr  Regex to match what to operate on.  Default: $regex.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -280,8 +280,7 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-Script is under development.  Certain things may or may not work as
-advertised in the docs.
+No known issues.
 
 =head1 TODO
 
@@ -305,7 +304,9 @@ terms as Perl itself.
 =head1 HISTORY
 
 Inspired from the B<-h> option present in GNU df, which is sorely
-lacking in commercial varients of the same name.
+lacking in commercial varients of the same name.  (On the other hand,
+leaving the job of humanizing to an external script is probably more
+inline with the unix philosphopy of filters.)
 
 =head1 VERSION
 
