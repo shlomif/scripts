@@ -72,13 +72,13 @@ sub get_key {
   my $readfrom = shift;
   my $first;
 
-  ReadMode 4;
+  ReadMode 4, $readfrom;
 
   do {
-    $first = ReadKey(-1, $readfrom);
+    $first = ReadKey -1, $readfrom;
   } until defined $first;
 
-  ReadMode 0;
+  ReadMode 0, $readfrom;
 
   return $first;
 }
