@@ -18,4 +18,5 @@ my %letter2num =
 
 while (<>) {
   s/([A-Za-z])/$letter2num{lc $1}/ge;
+  print;
 }
