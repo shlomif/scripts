@@ -204,7 +204,7 @@ names, which are File::Tail parameters passed directy to the object.
 Read through then follow several Apache VirtualHost logfiles, and send
 them off to colorize.pl (available on http://freshmeat.net):
 
-  $ eet.pl -t -1 logs/e.com.log logs/e.org.log | colorize.pl
+  $ eet.pl -t -1 /www/site/logs/*_log | colorize.pl
 
 =head1 BUGS
 
