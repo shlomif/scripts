@@ -31,6 +31,10 @@ use Getopt::Std;  # command line option processing
 
 use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 
+#use Cwd;                 # working directory operations
+#use File::Temp;          # safe temporary files
+use File::Basename;       # parses file specifications
+
 ######################################################################
 #
 # VARIABLES
@@ -44,12 +48,15 @@ my (%opts);
 # authorized_keys2 files into authorized_keys.
 my $auth_key_file = "~/.ssh/authorized_keys";
 
+# what to use as a working directory
+my $auth_key_dir;
+
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?f', \%opts);
+getopts('h?f:ai', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
@@ -66,11 +73,30 @@ $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
                               )
                           }ex;
 
-# read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+# set working directory to that of one containing auth_key_file
+$auth_key_dir = dirname($auth_key_file);
+
+chdir $auth_key_dir or die "Error: could not chdir to $auth_key_dir: $!\n";
+
+# clear out remaining arguments unless we're reading commands from there
+@ARGV = () unless exists $opts{'a'};
+
+# read commands from STDIN if specified
+if (exists $opts{'i'}) {
+	my @tmp;
+	chomp(@tmp = <STDIN>);
+	push @ARGV, @tmp;
+}
 
 # and flag the help text if nothing from STDIN
 help() unless @ARGV;
+
+# look for commands and deal with them
+for (@ARGV) {
+	next if m/^#/ or m/^\s*$/;
+
+	my @command = split /\t/;
+}
 
 exit;
 
@@ -89,6 +115,9 @@ Options for version $VERSION:
   -h/-?  Display this message
 
   -f ff  Use specified authorized_keys file.
+
+  -a     Allow commands on the command line.
+  -i     Allow commands on STDIN.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -134,6 +163,18 @@ Prints a brief usage note about the script.
 =item B<-f> I<auth_key_file>
 
 Use the specified authorized_keys file instead of the default.
+
+=item B<-a>
+
+Allow commands on the command line.
+
+=item B<-i>
+
+Allow commands on STDIN.  If nothing is found on STDIN, the script
+will stall, waiting for input.
+
+One (or both) of B<-a> or B<-i> must be specified for the script to do
+anything.
 
 =back
 
