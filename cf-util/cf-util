@@ -11,17 +11,27 @@ use strict;
 
 my $mode = shift || die "usage: $0 mode [args]\n";
 
-if ( $mode eq 'append' ) {
+# pull mode handlers from symbol table
+{
+  no strict 'refs';
+  my $pkgname = __PACKAGE__ . '::';
+
+  my %action_map =
+   map { $_ =~ m/^ handle_ (\w{1,32}) /x ? ( $1 => $_ ) : () } keys %$pkgname;
+
+  die "error: no such action: name=$mode\n" unless exists $action_map{$mode};
+  $action_map{$mode}->(@ARGV);
+}
+
+sub handle_append {
   # KLUGE! bleh...
   while (<>) {
     chomp;
     s/(?<!\\)\\/\\\\/gx;
     s/(?<!\\)"/\\"/gx;
     s/(?<=\\\\)"/\\"/gx;
-    print q{Append "} . $_ . qq{"\n};
+    print q{Append "} . $_ . $/;
   }
-} elsif ( $mode eq 'class2host' ) {
-  handle_class2host(@ARGV);
 }
 
 sub handle_class2host {
