@@ -13,8 +13,6 @@
 require 5;
 use strict;
 
-use Data::Dumper;  # DBG
-
 use File::Basename;
 use File::Path;
 
@@ -24,6 +22,22 @@ use URI;
 my %pfiles = (servers => '~/.pbotutil/servers');
 
 my $prefs_updated = 0;
+
+# action table
+my %actions = (
+  get => {
+    description => 'Download pastes from pastebot site',
+    handle      => \&pb_get,
+  },
+  put => {
+    description => 'Paste to pastebot site',
+    handle      => \&pb_put,
+  },
+  up => {
+    description => 'Obtain channel data from pastebot site',
+    handle      => \&pb_update,
+  },
+);
 
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
@@ -35,7 +49,7 @@ my $VERSION;
 # parse command-line options
 use Getopt::Std;
 my %opts;
-getopts('h?q', \%opts);
+getopts('h?qu:s:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 for (keys %pfiles) {
@@ -56,6 +70,12 @@ for (keys %pfiles) {
 # TODO locking on the prefs file or somthing
 my $servers = server_load({filename => $pfiles{servers}});
 
+# figure out what to do
+my $verb = shift or help();
+unless (exists $actions{$verb}) {
+  remark('alert', "no such action: $verb") and exit 101;
+}
+$actions{$verb}->{handle}->(@ARGV);
 
 # TODO this probably needs locking in conjunction with reading above
 if ($prefs_updated) {
@@ -68,6 +88,81 @@ exit;
 #
 # SUBROUTINES
 
+sub pb_get {
+  my $id = shift;
+  my ($url, $content);
+
+  # look for server alias + paste id, or fully qualified URL to nab
+  if (exists $opts{s} and exists $servers->{$opts{s}}) {
+    $url =
+     URI->new($servers->{$opts{s}}->{url}
+       . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
+       . $id)->canonical;
+  } else {
+    $url = URI->new($id)->canonical;
+  }
+
+  unless (defined $url) {
+    remark('alert', "could not determine url for: $id");
+    exit 102;
+  }
+  $content = get_url({url => $url});
+
+  if ($content) {
+    eval { require HTML::TokeParser; };
+    if ($@) {
+      remark('alert', "problem loading HTML::TokeParser: $@");
+
+      #print $$content, "\n";
+      exit 103;
+    } else {
+      require HTML::TokeParser;
+      my $p = HTML::TokeParser->new($content);
+
+      # TODO pull out "From" and "Summary" data if wanted?
+
+      # look for stuff in <pre> and evict HTML crap
+      $p->get_tag('pre');
+
+      # TODO option to dump to file named after id, instead of just stdout
+      print $p->get_text('/pre'), "\n";
+    }
+  }
+}
+
+# accepts hash containing url to get plus other stuff
+# returns scalar reference with page content, or undef if problem
+sub get_url {
+  my $data = shift;
+
+  # TODO support faster things, like HTTP::GHTTP here, or maybe fall
+  # back to command line utils if nothing installed CPAN-wise
+  eval { require LWP::UserAgent; };
+  if ($@) {
+    remark('alert', "problem loading LWP::UserAgent: $@");
+    exit 102;
+  } else {
+    require LWP::UserAgent;
+    my $ua =
+     LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
+    my $response = $ua->get($data->{url});
+
+    unless ($response->is_success) {
+      if ($response->is_error) {
+        my $error;
+        ($error) = $response->error_as_HTML =~ /^(\d{3}.+)/m;
+        remark('warning', "error fetching $data->{url}: $error");
+        return;
+      } else {
+        remark('warning', "error fetching $data->{url}: unknown error");
+        return;
+      }
+    }
+    return \$response->content();
+  }
+}
+
+# pulls prefs file off disk or something like that
 sub server_load {
   my $data = shift;
   my (@tmp, $servers);
@@ -152,7 +247,9 @@ sub server_save {
     print FILE "\n";
   }
 
-  close FILE or remark('alert', "problem saving to $data->{filename}: $!") and exit 100;
+  close FILE
+   or remark('alert', "problem saving to $data->{filename}: $!")
+   and exit 100;
 }
 
 # expands ~username syntax to full home directory path
