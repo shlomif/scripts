@@ -19,7 +19,7 @@ use File::Spec ();
 my $digest = Digest::SHA1->new;
 
 my %actions = (
-  list => \&handle_list,
+  list   => \&handle_list,
   unlink => \&handle_unlink,
 );
 my @actions = sort keys %actions;
@@ -29,20 +29,20 @@ my %defaults;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?d0a:', \%opts;
+getopts 'h?d0va:', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
 $defaults{action}  = $opts{a} if exists $opts{a};
 $defaults{bydepth} = 1        if exists $opts{d};
+$defaults{verbose} = 1        if exists $opts{v};
 
 unless ( $defaults{action} =~ m/^ [a-z][A-Za-z0-9_-]{0,31} $/x ) {
   remark( 'error', 'invalid action name' );
   exit 101;
 }
 unless ( exists $actions{ $defaults{action} } ) {
-  remark( 'error', 'no such action',
-    { action => $defaults{action} } );
+  remark( 'error', 'no such action', { action => $defaults{action} } );
   exit 101;
 }
 
@@ -74,7 +74,14 @@ sub handle_unlink {
   for my $key ( keys %duplicates ) {
     next if @{ $duplicates{$key} } < 2;
 
+    # KLUGE log duplicates if verbose
+    if ( exists $defaults{verbose} ) {
+      local $" = "\0" if exists $opts{0};
+      print "@{ $duplicates{$key} }\n";
+    }
+
     my $wanted = @{ $duplicates{$key} };
+
     my $result = unlink @{ $duplicates{$key} }[ 1 .. $#{ $duplicates{$key} } ];
 
     if ( $wanted != $result ) {
@@ -171,6 +178,8 @@ Actions: @actions
 
   -0     Delimit duplicates with ASCII nul character instead of space.
 
+  -v     Become more verbose about certain operations.
+
 Run perldoc(1) on this script for additional documentation.
 
 HELP
@@ -236,6 +245,10 @@ Changes list output to use the ASCII null (000) character to delimit
 duplicates. Different sets of duplicates will still be listed on
 different lines.
 
+=item B<-v>
+
+Verbose logs of file unlinks, currently.
+
 =back
 
 =head1 BUGS
@@ -273,3 +286,4 @@ public domain.
 Utilities
 
 =cut
+
