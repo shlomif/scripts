@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2002, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -193,13 +192,13 @@ HELP
 
 =head1 NAME
 
-timeout.pl - stop operation of long running programs
+timeout - stop operation of long running programs
 
 =head1 SYNOPSIS
 
 Break out of sleep program after five seconds:
 
-  $ timeout.pl 5s sleep 60
+  $ timeout 5s sleep 60
 
 =head1 DESCRIPTION
 
@@ -212,7 +211,7 @@ will also stop make.
 
 =head2 Normal Usage
 
-  $ timeout.pl duration program [program args]
+  $ timeout duration program [program args]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -229,7 +228,7 @@ recognized:
 Multiple factors will be added together, allowing easy addition of
 time values to existing timeouts:
 
-  $ timeout.pl 3s3s sleep 60
+  $ timeout 3s3s sleep 60
 
 Would only allow the sleep to run for six seconds.
 
@@ -290,9 +289,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
