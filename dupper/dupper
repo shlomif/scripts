@@ -124,6 +124,7 @@ sub parsedir {
         warn 'Problem reading ', $pti, ': ', $!, "\n";
         next;
       }
+      binmode FILE;
 
       # reset checksum object, then get new Checksum on file
       $dig->new();
