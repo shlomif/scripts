@@ -34,43 +34,58 @@ chomp( @ARGV = <STDIN> ) unless @ARGV;
 @ARGV = grep { -d $_ || -f _ } @ARGV;
 print_help() unless @ARGV;
 
-my ( %seen, %duplicates );
+my ( %seen, %duplicates, @empty );
 
-find( { wanted => \&wanted, no_chdir => 1, bydepth => $defaults{bydepth} },
+find( { wanted => \&find_dups, no_chdir => 1, bydepth => $defaults{bydepth} },
   @ARGV );
 
-use Data::Dumper;
-warn Dumper \%seen, \%duplicates;
+for my $key (keys %duplicates) {
+  next if @{ $duplicates{$key} } < 2;
+  print "dups: @{ $duplicates{$key} }\n";
+}
 
-sub wanted {
+sub find_dups {
   return unless -f;
 
   my $size = -s;
 
-  # TODO need means to control handling of empty files
-  #return if $size == 0;
-
-  # TODO need to go back over any existing files in size index and
-  # calculate checksums on them now that have size hit... but only if
-  # there is only a single file, as otherwise will have done a checksum?
-  if ( exists $seen{$size} ) {
-    unless ( open FILE, "< $_" ) {
-      # TODO handle permissions problems or whatnot
-
-      return;
-    }
-
-    $digest->addfile(*FILE);
-    my $checksum = $digest->b64digest;
-    $seen{$size}->{dups}->{$checksum}++;
-
-    if ( $seen{$size}->{dups}->{$checksum} > 1 ) {
-      warn "duplicate: $_\n";
-      push @{ $duplicates{$checksum} }, $_;
-    }
+  # empty files are a special case: duplicates make no sense for them
+  if ( $size == 0 ) {
+    push @empty, $_;
+    return;
   }
 
-  push @{ $seen{$size}->{files} }, $_;
+  unless ( exists $seen{$size} ) {
+    $seen{$size}->{firsthit} = $_;
+    return;
+  }
+
+  # generate checksum on first file hit of this size, as now have
+  # second of same size
+  if ( exists $seen{$size}->{firsthit} ) {
+    my $checksum = gen_checksum( $seen{$size}->{firsthit} );
+    push @{ $duplicates{$checksum} }, $seen{$size}->{firsthit}
+     if defined $checksum;
+
+    delete $seen{$size}->{firsthit};
+  }
+
+  my $checksum = gen_checksum($_);
+  push @{ $duplicates{$checksum} }, $_ if defined $checksum;
+}
+
+sub gen_checksum {
+  my $filename = shift;
+
+  unless ( open FILE, "< $filename" ) {
+    # TODO warn about permissions problems or whatnot
+    return;
+  }
+
+  $digest->addfile(*FILE);
+  close FILE;
+
+  return $digest->b64digest;
 }
 
 # a generic help blarb
@@ -217,6 +232,8 @@ perl(1)
 
 Jeremy Mates, http://sial.org/contact/
 
+Pre-index on size concept adapted from code by Craig Reyenga.
+
 =head1 COPYRIGHT
 
 The author disclaims all copyrights and releases this script into the
@@ -231,3 +248,4 @@ public domain.
 Utilities
 
 =cut
+
