@@ -31,6 +31,8 @@ use Getopt::Std;  # command line option processing
 
 use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 
+use Sys::Syslog;          # interface to the UNIX syslog(3) calls
+
 ######################################################################
 #
 # VARIABLES
@@ -43,7 +45,7 @@ my (%opts);
 # path to authorized_keys file.  OpenSSH >= 3.0 should merge old
 # authorized_keys2 files into authorized_keys.
 my $auth_key_file       = "~/.ssh/authorized_keys";
-my $auth_key_file_chars = '[\w\s.~/-]';
+my $auth_key_file_chars = qr"^([\w\s.~/-]+)$";
 
 # registered commands
 my %command = (
@@ -58,7 +60,7 @@ my %command = (
 # MAIN
 
 # parse command-line options
-getopts('h?f:ai', \%opts);
+getopts('h?f:l:aiq', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
@@ -73,7 +75,7 @@ $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
                           }ex;
 
 # untaint filename
-if ($auth_key_file =~ m,^([\w\s.~/-]+)$,) {
+if ($auth_key_file =~ $auth_key_file_chars) {
   $auth_key_file = $1;
 } else {
   die "Invalid characters in filename.\n";
@@ -105,7 +107,7 @@ for (@ARGV) {
   my $cmd  = shift @work;
 
   unless (exists $command{$cmd}) {
-    warn "Warning: skipping unknown command: $cmd\n";
+    remark('notice', "skipping unknown command: $cmd");
     next;
   }
 
@@ -122,11 +124,14 @@ exit;
 sub do_list {
   push @_, "all" unless @_;
 
-  for (get_hashids(@_)) {
+  my @keys = get_hashids(@_);
+
+  remark('info', "listing", scalar @keys, "keys");
+
+  for (@keys) {
     print join ("\t",
-      $data->{$_}->{'hash'},
-      $data->{$_}->{'type'},
-      $data->{$_}->{'comment'}),
+      $data->{$_}->{'hash'},    $data->{$_}->{'type'},
+      $data->{$_}->{'comment'}, $data->{$_}->{'options'}),
      "\n";
   }
 }
@@ -134,7 +139,8 @@ sub do_list {
 # merges keys into auth_key_file
 sub do_write {
   open KFILE, ">$auth_key_file"
-   or die "Could not write authorized key file: $!\n";
+   or remark('alert', "could not write authorized key file: $!")
+   and die;
 
   for (keys %$data) {
     print KFILE $data->{$_}->{'key'}, "\n";
@@ -144,7 +150,9 @@ sub do_write {
 }
 
 sub do_delete {
-  delete @$data{get_hashids(@_)};
+  my @evict = get_hashids(@_);
+  remark('info', "deleting", scalar @evict, "keys: @evict");
+  delete @$data{@evict};
 }
 
 # takes command arguments of "standard" form, and returns a list
@@ -166,13 +174,22 @@ sub get_hashids {
 
 # adds specified key(s) into memory (replaces preexistant keys by hash)
 sub do_add {
+  my @added;
+
   for (@_) {
     my $values = parse_authkey($_);
 
     next unless defined $values;
 
+    push @added, $values->{'hash'};
+
+    if (exists $data->{$values->{'hash'}}) {
+      remark('notice', 'replacing key', $values->{'hash'});
+    }
     $data->{$values->{'hash'}} = $values;
   }
+
+  remark('info', 'adding', scalar @added, "keys: @added");
 }
 
 # pulls auth_key_file into individual files for better managablity
@@ -182,7 +199,8 @@ sub extract {
   my %data;
 
   open KFILE, $auth_key_file
-   or die "Error: could not open authorized key file: $!\n";
+   or remark('alert', "could not open authorized key file: $!")
+   and die;
 
   while (<KFILE>) {
 
@@ -194,8 +212,10 @@ sub extract {
     next unless defined $values;
 
     if (exists $data{$values->{'hash'}}) {
-      warn "Warning: skipping duplicate key (hash:", $values->{'hash'},
-       ") at $auth_key_file line $.\n";
+      remark(
+        'warning',         "skipping duplicate key (hash:",
+        $values->{'hash'}, ") at $auth_key_file line $."
+      );
       next;
     }
 
@@ -247,7 +267,7 @@ sub parse_authkey {
   }
 
   unless (exists $values{'goodbit'}) {
-    warn "Could not parse key from: $authkey\n";
+    remark('notice', "could not parse key from: $authkey");
     return;
   }
 
@@ -256,6 +276,41 @@ sub parse_authkey {
   $values{'key'}     = $authkey;
 
   return \%values;
+}
+
+# generic log handler
+sub remark {
+  my ($facility, $priority, $message);
+  $facility = 'user';
+
+  if (@_ > 1) {
+    $priority = shift;
+    $message  = "@_";
+  } else {
+    $priority = 'info';
+    $message  = "@_";
+  }
+
+  return 1 if exists $opts{'q'} and $priority eq 'info';
+
+  if (exists $opts{'l'}) {
+    if ($opts{'l'} eq "syslog") {
+      openlog($0, 'cons', $facility);
+      syslog($priority, $message);
+      closelog();
+
+    } elsif ($opts{'l'} eq "logger") {
+      system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
+
+    } else {
+      die "alert: unknown log handler: ", $opts{'l'};
+    }
+
+  } else {
+    warn $priority, ": ", $message, "\n";
+  }
+
+  return 1;
 }
 
 # a generic help blarb
@@ -272,6 +327,9 @@ Options for version $VERSION:
 
   -a     Allow commands on the command line.
   -i     Allow commands on STDIN.
+
+  -l xx  Log to target xx (default: STDERR, also logger, syslog).
+  -q     Hide informational messages.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -368,6 +426,16 @@ will stall, waiting for input.
 
 One (or both) of B<-a> or B<-i> must be specified for the script to do
 anything.
+
+=item B<-l> I<target>
+
+Log to I<target>.  Default is to log to STDERR, other options are
+C<syslog> (via L<Sys::Syslog|Sys::Syslog>) or C<logger> (system
+logger(1) utility).
+
+=item B<-q>
+
+Quiet mode: do not emit informational messages.
 
 =back
 
