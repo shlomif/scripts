@@ -17,6 +17,7 @@ use warnings;
 # other required modules may be loaded dynamically as needed
 use File::Basename;
 use File::Path;
+use File::Spec;
 use URI;
 
 my $prefs_file = $ENV{'PBOTUTILCONF'} || '~/.pbotutil/servers';
