@@ -457,8 +457,10 @@ Which really is not all that efficient or practical, if you want to
 skip certain items, prune out a few directories, and avoid rampaging
 over the same files three times in a row.
 
-I also do not trust the recursive flag on certain unix utilities.  See
-the B<BUGS> section for more details.
+modefix.pl also does not suffer from the fork penalty find(1) incurs
+when xargs(1) does not work and -exec must be used; nor does it run
+the risk of ruining your filesystem like a careless recursive chmod(1)
+can.
 
 =head2 Normal Usage
 
@@ -507,11 +509,13 @@ something:
 
 =item B<-d> I<mode>
 
-Directory mode to set.  See L<"MORE ON MODES"> for details on the syntax.
+Directory mode to set.
 
 =item B<-f> I<mode>
 
-File mode to set.  See L<"MORE ON MODES"> for details on the syntax.
+File mode to set.
+
+See L<"MORE ON MODES"> for details on the syntax I<mode> accepts.
 
 =item B<-u> I<username>
 
@@ -569,13 +573,14 @@ avoid race conditions.
 =head1 MORE ON MODES
 
 This section describes the format of the I<modes> parameter that can
-be passed to eith the B<-f> or B<-d> command line switches.
+be passed to either the B<-f> or B<-d> command line switches.
 
 Both may take either a literal mode to set, such as:
 
   0750  (optional sticky bit, user bit, group bit, other bit)
 
-Or can take an interpreted expression of arbitrary length and complexity:
+Or can take an interpreted expression of arbitrary length and
+complexity:
 
   ug+rw,o-rw,o+s  (mode, operator, flags)
 
@@ -592,8 +597,10 @@ The various modes recognized are:
   o  other bit
   a  all bits
 
-The a mode is shorthand for 'ugo', can also be specified by leaving
-off the mode flag, which has the same effect as 'ugo' or 'a'.
+The 'a' mode is shorthand for 'ugo', and can also be specified by
+leaving off the mode flag:
+
+  -rx is the same as a-rx or ugo-rx
 
 There are only two operators:
 
@@ -617,14 +624,20 @@ See chmod(1) for the background on these arguments.
 
 =head1 BUGS
 
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
 modefix.pl does not deal well with soft links.  Well, File::Find has
 trouble with softlinked directories, and I am using lstat, and chmod
 support on softlinks appears to vary by OS.
-
-Speaking of bugs, systems can easily be taken out by rampant recursive
-chmod invocations.  You can avoid this problem by not matching .. as
-an argument to the recursive command, which is generally just plain
-annoying to do.
 
 =head1 SEE ALSO
 
@@ -632,7 +645,7 @@ chmod(1), chown(1), find(1), perl(1), xargs(1)
 
 =head1 AUTHOR
 
-Jeremy A. Mates, jmates@sial.org
+Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
