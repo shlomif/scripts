@@ -9,45 +9,58 @@
 # http://sourceforge.net/projects/pastebot/
 #
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
 
 require 5;
-
 use strict;
 
-######################################################################
-#
-# MODULES
+use Data::Dumper;  # DBG
 
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
+use File::Basename;
+use File::Path;
 
-######################################################################
-#
-# VARIABLES
+use URI;
+
+# where preference files are stored
+my %pfiles = (servers => '~/.pbotutil/servers');
+
+my $prefs_updated = 0;
 
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
-my (%opts);
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
-
+use Getopt::Std;
+my %opts;
+getopts('h?q', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
-# and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+for (keys %pfiles) {
+  $pfiles{$_} = tilde_expand($pfiles{$_});
+
+  # create prefs files automagcially
+  unless (-e $pfiles{$_}) {
+    remark('info', "creating preference file: $pfiles{$_}");
+    mkpath(dirname($pfiles{$_}));
+    open TOUCH, ">$pfiles{$_}"
+     or remark('alert', "could not touch preference file $pfiles{$_}: $!")
+     and exit 100;
+    close TOUCH;
+  }
+}
+
+# having no servers may or may not be a good thing
+# TODO locking on the prefs file or somthing
+my $servers = server_load({filename => $pfiles{servers}});
+
+
+# TODO this probably needs locking in conjunction with reading above
+if ($prefs_updated) {
+  server_save({filename => $pfiles{servers}, data => $servers});
+}
 
 exit;
 
@@ -55,10 +68,146 @@ exit;
 #
 # SUBROUTINES
 
+sub server_load {
+  my $data = shift;
+  my (@tmp, $servers);
+
+  push @tmp, {};
+
+  open FILE, $data->{filename}
+   or remark('alert', "could not open $data->{filename} for reading: $!")
+   and exit 100;
+
+  while (<FILE>) {
+    chomp;
+    s/^\s+//;
+    next if /^#/;
+
+    # treat blank lines as record seperators, if have enough to work with
+    if (/^$/ and exists $tmp[-1]->{url}) {
+      push @tmp, {};
+      next;
+    }
+
+    s/\s+$//;
+
+    my ($k, $v) = split /\s+/, $_, 2;
+    if (defined $k and defined $v) {
+      $tmp[-1]->{$k} = $v;
+    } elsif (defined $k and defined URI->new($k)) {
+
+      # convert plain URL into our data format
+      push @tmp, {};
+      $tmp[-1]->{url} = $k;
+      push @tmp, {};
+    }
+  }
+  close FILE;
+
+  for my $server (@tmp) {
+    next unless keys %{$server};
+
+    unless (exists $server->{url}) {
+      remark('warning', 'no url found: skipping preference data');
+
+      #use Data::Dumper; print Dumper $server;  # DBG
+      next;
+    }
+
+    unless (exists $server->{name}) {
+
+      # create an abbreviation from URL, use as "name" value until
+      # human picks a better one for us
+      $server->{name} = URI->new($server->{url})->host_port;
+
+      $prefs_updated = 1;
+    }
+
+    if (exists $servers->{$server->{name}}) {
+      remark('warning',
+        "duplicate server name $server->{name}: skipping new data");
+      $prefs_updated = 1;
+      next;
+    }
+
+    $servers->{$server->{name}} = $server;
+  }
+
+  return $servers;
+}
+
+# saves pastebot server data
+sub server_save {
+  my $data = shift;
+
+  open FILE, ">$data->{filename}"
+   or remark('alert', "could not open for writing: $!")
+   and exit 100;
+
+  for my $name (sort keys %{$data->{data}}) {
+    my $server = $data->{data}->{$name};
+    for (sort keys %$server) {
+      print FILE $_, "\t", $server->{$_}, "\n";
+    }
+    print FILE "\n";
+  }
+
+  close FILE or remark('alert', "problem saving to $data->{filename}: $!") and exit 100;
+}
+
+# expands ~username syntax to full home directory path
+sub tilde_expand {
+  my @tmp;
+  for (@_) {
+    s{^ ~      # leading tilde
+      ([^/]*)  # preserve following data
+     }{
+      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
+     }ex;
+  }
+  return wantarray ? @_ : "@_";
+}
+
+# generic message handler
+sub remark {
+  my ($facility, $priority, $message);
+  $facility = 'user';
+
+  if (@_ > 1) {
+    $priority = shift;
+    $message  = "@_";
+  } else {
+    $priority = 'info';
+    $message  = "@_";
+  }
+
+  return 1 if exists $opts{'q'} and $priority eq 'info';
+
+  #  if (exists $opts{'l'}) {
+  #    if ($opts{'l'} eq "syslog") {
+  #      openlog($0, 'cons', $facility);
+  #      syslog($priority, $message);
+  #      closelog();
+  #
+  #    } elsif ($opts{'l'} eq "logger") {
+  #      system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
+  #
+  #    } else {
+  #      die "alert: unknown log handler: ", $opts{'l'};
+  #    }
+  #
+  #  } else {
+  warn $priority, ": ", $message, "\n";
+
+  #  }
+
+  return 1;
+}
+
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [global-opts] action [args]
 
 Interacts with pastebot sites.
 
@@ -95,7 +244,7 @@ http://sourceforge.net/projects/pastebot/
 
 =head2 Normal Usage
 
-  $ pbotutil [options]
+  $ pbotutil [global-options] action [args]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -160,3 +309,4 @@ public domain.
   $Id$
 
 =cut
+
