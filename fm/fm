@@ -73,19 +73,20 @@ print_report();
 
 # dumps a pretty report to STDOUT...
 sub print_report {
-    print "Folder Message Counts:\n";
+    print "Destination Counts:\n";
 
     foreach (sort { $a cmp $b } keys %folders) {
 	print '  ', $folders{$_}, "\t", $_, "\n";
     }
     print "\n";
 
-    print "Message Summaries:\n";
+    print "Message Summaries by Date:\n\n";
 
     # could also include _size and _date in report...
     foreach (@data) {
 	print 'Subject: ', $_->{'_subject'}, "\n";
 	print 'From: ', $_->{'_from'}, "\n";
+	print 'Folder: ', $_->{'_folder'}, "\n";
 	print "\n";
     }
 }
