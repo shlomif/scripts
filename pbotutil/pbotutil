@@ -332,7 +332,7 @@ sub server_load {
     next if /^#/;
 
     # treat blank lines as record seperators, if have enough to work with
-    if (/^$/ and exists $tmp[-1]->{url}) {
+    if (/^$/ and exists $tmp[-1]->{name} and exists $tmp[-1]->{url}) {
       push @tmp, {};
       next;
     }
@@ -340,15 +340,11 @@ sub server_load {
     s/\s+$//;
 
     my ($k, $v) = split /\s+/, $_, 2;
-    if (defined $k and defined $v) {
-      $tmp[-1]->{$k} = $v;
-    } elsif (defined $k and defined URI->new($k)) {
-
-      # convert plain URL into our data format
-      push @tmp, {};
-      $tmp[-1]->{url} = $k;
-      push @tmp, {};
+    unless (defined $k and $k =~ /^[\w.-]+$/ and defined $v) {
+      remark('warning', "skipping invalid data at $data->{filename} line $.");
+      next;
     }
+    $tmp[-1]->{$k} = $v;
   }
   close FILE;
 
@@ -360,6 +356,10 @@ sub server_load {
 
     unless (exists $server->{name} and defined $server->{name}) {
       remark('warning', "skipping entry $count due to missing name parameter");
+      next;
+    }
+    unless ($server->{name} =~ /^[\w.-]+$/) {
+      remark('warning', "skipping entry $count due to invalid name parameter");
       next;
     }
 
@@ -382,6 +382,7 @@ sub server_load {
        unless exists $server->{$key}
        and defined $server->{$key};
     }
+    $server->{count} = $count;
 
     $servers->{$server->{name}} = $server;
   }
@@ -401,7 +402,11 @@ sub parse_aliases {
   for my $key (keys %$servers) {
     my $s = $servers->{$key};
     next unless defined $s->{alias};
-    for my $alias (split /,? /, $s->{alias}) {
+    for my $alias (split /\s+/, $s->{alias}) {
+      unless (defined $alias and $alias =~ /^[\w.-]+$/) {
+        remark('warning', "skipping alias for entry $s->{count} as invalid");
+	next;
+      }
       push @{$aliases{$alias}}, $s->{name};
     }
   }
