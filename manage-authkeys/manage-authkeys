@@ -138,9 +138,9 @@ exit;
 # shows what temporary keyfiles are available
 sub do_list {
   my @files = <*$temp_key_suffix>;
-  
+
   for (@files) {
-  
+
     # extract and untaint keyfile tidbits
     my ($hash, $keydata);
     m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
@@ -161,8 +161,6 @@ sub do_list {
     print $hash, ' ', $keydata, "\n";
   }
 }
-
-
 
 # pulls auth_key_file into individual files for better managablity
 # takes no arguments, returns true/false depending on result
@@ -216,24 +214,28 @@ sub do_extract {
 
 # merges temporary key files (if any) into auth_key_file
 sub do_merge {
-  my @files = <*$temp_key_suffix>;
-  if (@files) {
-    open KFILE, ">$auth_key_file"
-     or die "Could not write authorized key file: $!\n";
+  open KFILE, ">$auth_key_file"
+   or die "Could not write authorized key file: $!\n";
 
-    for (@files) {
-      open FILE, $_ or die "Could not read keyfile $_: $!\n";
-      print KFILE while <FILE>;
-      close FILE;
-    }
+  while (<*$temp_key_suffix>) {
+    m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
+    $_ = $1;
 
-    close KFILE;
+    open FILE, $_ or die "Could not read keyfile $_: $!\n";
+    print KFILE while <FILE>;
+    close FILE;
   }
+
+  close KFILE;
 }
 
 # removes any temporary key files
 sub do_clean {
-  unlink <*$temp_key_suffix>;
+  while (<*$temp_key_suffix>) {
+    m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
+    $_ = $1;
+    unlink if -f;
+  }
 }
 
 # a generic help blarb
@@ -267,7 +269,9 @@ ssh-authkey-manage.pl - manages an OpenSSH authorized_keys file
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+Get a listing of keys in the default authorized_keys file:
+
+  $ ssh-authkey-manage.pl -a extract list
 
 =head1 DESCRIPTION
 
@@ -301,7 +305,8 @@ are up-to-date.
 
 =item B<list>
 
-Shows what temporary keyfiles are available.
+Shows what temporary keyfiles are available, plus some general data
+about the public key in question.
 
 =item B<merge>
 
@@ -352,11 +357,7 @@ Requires an up-to-date version of OpenSSH; ancient versions may not
 have the B<-l> and B<-f> options required for ssh-keygen(1) to list
 all keytypes.
 
-Developed with OpenSSH 3.4 on Mac OS X with perl 5.8.
-
-=head1 FILES
-
-Any important files this script relies on?
+Developed with OpenSSH 3.4 on Mac OS X (10.1.5) with perl 5.8.
 
 =head1 BUGS
 
@@ -371,7 +372,14 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known bugs.
+Commands expecting arguments use tabs to separate the parameters. 
+Tabs are difficult to input on the command line, so STDIN is advised
+for commands that require arguments.
+
+=head1 TODO
+
+A means to lock the .ssh directory to only allow one invocation of
+this script to run, or at least a lock on the auth_key_file.
 
 =head1 SEE ALSO
 
