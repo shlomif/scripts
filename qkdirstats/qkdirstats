@@ -56,6 +56,11 @@ sub dirdata {
       next;
     }
 
+    if ( $_ =~ m/^\./ ) {
+      $keys{hidden} = 1;
+      next;
+    }
+
     if ( @overview <= $overview_max ) {
       push @overview, $_;
     } else {
@@ -70,7 +75,7 @@ sub output {
      join( ' ', sort(@overview), $overview_overflow ? '...' : () ), "\n";
   }
 
-  if ( $overview_overflow ) {
+  if ($overview_overflow) {
     print 'counts: ', join( ', ', map { "$_=$counts{$_}" } sort keys %counts ),
      "\n";
   }
