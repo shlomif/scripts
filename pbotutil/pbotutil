@@ -24,6 +24,8 @@ my $prefs_file = $ENV{PBOTUTILCONF} || '~/.pbotutil/servers';
 $prefs_file = tilde_expand($prefs_file);
 init($prefs_file) unless -e $prefs_file;
 my $servers = server_load({filename => $prefs_file});
+my @server_list =
+ sort { $servers->{$a}->{count} <=> $servers->{$b}->{count} } keys %$servers;
 my $aliases = parse_aliases($servers);
 
 # parse pre-verb command-line options
@@ -122,13 +124,13 @@ if ($verb eq 'get') {
            $servers->{$_}->{name} ne $primary->{name}
        and $servers->{$_}->{network} eq $primary->{network}
        and $servers->{$_}->{channel} eq $primary->{channel}
-    } keys %$servers;
+    } @server_list;
   }
 
   # can also fallback to entries without channels; these should not be
   # announced anywhere: better to paste somewhere than fail if all the
   # announcing ones are unavailable
-  push @potentials, grep { $servers->{$_}->{channel} eq '' } keys %$servers;
+  push @potentials, grep { $servers->{$_}->{channel} eq '' } @server_list;
 
   # screen out same url on assumption url being down more common than a
   # channel-specific problem with the paste site (the site having
@@ -370,7 +372,7 @@ sub parse_aliases {
   my $servers = shift;
   my %aliases;
 
-  for my $key (keys %$servers) {
+  for my $key (@server_list) {
     my $s = $servers->{$key};
     next unless defined $s->{alias};
     for my $alias (split /\s+/, $s->{alias}) {
@@ -531,8 +533,9 @@ The data of the paste will be sent to stdout.
 
 Aliases work for B<get>, though may not lead to the correct site if
 multiple entries share the same alias name. To avoid this problem,
-create entries named after the site in question, and get content using
-this name, while uploading using the failover alias.
+either create entries named after the site in question, and get content
+using the server name, or place the preferred upload site first in the
+preferences file.
 
 =item B<put> (default)
 
@@ -637,6 +640,9 @@ C<channel>, and C<network> may also be set. The C<alias> entry allows
 alternate names to be set for a particular server (space separated
 list). Aliases can be identical for multiple server entries, and the
 script will failover between the named sites.
+
+For failover and C<alias> choice, entries higher in the preferences file
+are preferred.
 
   # example config BEGIN
   # freenode.net, #perl
@@ -760,4 +766,3 @@ public domain.
   $Id$
 
 =cut
-
