@@ -6,11 +6,14 @@
 # Script to fix permissions/ownerships easily in one swoop, as
 # opposed to what I was doing at the command line:
 #
-# find . -exec chmod 2750 {} \;
+# find . -type d -exec chmod 2750 {} \;
+# find . -type f -exec chmod 640 {} \;
 # find . -exec chown foo:bar {} \;
 #
 # Which really isn't all that efficient or practical, if you
-# want to skip certain files, prune out directories, etc.
+# want to skip certain files, prune out directories, and
+# generally avoid rampaging over the filesystem three times
+# in a row.
 #
 # Distributed under the Artistic License:
 # http://www.sial.org/artistic_license.txt
@@ -26,16 +29,23 @@ use strict;
 # CONSTANTS
 
 my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid, $members, 
-    $verbose, %badgroups, %badperms);
+    $verbose, $quiet, %badgroups, %badperms);
+
+use vars qw:$VERSION:;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 # MAIN
 
 # deal with command line options
-getopts('h?p:s:d:f:u:g:v', \%opts);
+getopts('h?p:s:d:f:u:g:vq', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
 $verbose  = 1 if exists $opts{'v'};
+if (exists $opts{'q'}) {
+    $verbose = 0;
+    $quiet = 1;
+}
 
 # read in other arguments with error checking
 if (exists $opts{'d'}) {
@@ -78,20 +88,20 @@ foreach ( @ARGV ) {
 
 # now, report on who was a bad user (e.g. is setting the wrong group)
 # keys are the uid's of bad users
-if (keys %badgroups > 0) {
+if (keys %badgroups > 0 && ! $quiet) {
     print "\nUsers owning files with improper groups:\n";
     foreach ( keys %badgroups ) {
 	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
-	print '  ', $name, ':', $uid, ':', $gid, ':', $gcos, ':', $dir, "\n";
+	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', $dir, "\t", $badgroups{$_}, "\n";
     }
 }
 
 # and same for the permissions on files
-if (keys %badperms > 0) {
+if (keys %badperms > 0 && ! $quiet) {
     print "\nUsers owning files with improper permissions:\n";
     foreach ( keys %badperms ) {
 	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
-	print '  ', $name, ':', $uid, ':', $gid, ':', $gcos, ':', $dir, "\n";
+	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', $dir, "\t", $badperms{$_}, "\n";
     }
     print "\n";
 }
@@ -200,6 +210,7 @@ sub zapit {
 
 sub help {
      print <<"HELP";
+$0 v.$VERSION
 Usage: $0 [options] directories_to_fix_here
 
 $0 is a mode/group fixer for directories.
@@ -228,6 +239,7 @@ Options
          any stat() calls, to avoid race conditions.
 
   -v     Verbose mode, shows files fixing.
+  -q     Overrides -v, only output will be on chown/chmod failures.
 
 HELP
     exit;
