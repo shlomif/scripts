@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# xmllint of libxml2 does not accept input from STDIN, therefore
+# this wrapper.  Formatted output sent to STDOUT.
+
+myn=`basename $0`
+
+TMPFILE=`mktemp /tmp/${myn}.XXXXXXX` || exit 1
+cat > $TMPFILE
+xmllint --encode utf8 --format $TMPFILE
+rm $TMPFILE
