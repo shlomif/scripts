@@ -6,6 +6,13 @@
 # public domain.
 #
 # Maintains OpenSSH known_hosts data.
+#
+# TODO in-place edit support (via -i switch like perl -i) on
+# known_hosts file.
+#
+# TODO alternate output format, e.g. to show changes done. This would
+# allow easy ssh-keyscan runs over time to track/notify on host key
+# changes.
 
 use strict;
 use Fatal qw(open close);
