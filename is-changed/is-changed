@@ -55,6 +55,8 @@ my %handle = (
 
 remark('error', 'no resource listed to check') && exit 101 unless @ARGV;
 
+my $return_value = 1;  # 0 is for "something changed"
+
 for my $what (@ARGV) {
 
   # need to figure out what got passed
@@ -73,8 +75,7 @@ for my $what (@ARGV) {
   $handle{$uri->scheme}->{handle}->($uri);
 }
 
-# "no change" if reach here
-exit 1;
+exit $return_value;
 
 # handle routines need to generate hash on URI, and more importantly
 # figure out the modification date of the resource
@@ -89,7 +90,7 @@ sub handle_file {
   open my $fh, "< $file" or die "error: $file: $!\n";
 
   my $content_hash = Digest::SHA1->new->addfile($fh)->b64digest;
-  exit 0 if is_changed($uri->canonical, $content_hash);
+  $return_value = 0 if is_changed($uri->canonical, $content_hash);
 }
 
 sub handle_url {
@@ -105,7 +106,7 @@ sub handle_url {
   }
 
   my $content_hash = Digest::SHA1->new->add($response->content)->b64digest;
-  exit 0 if is_changed($url, $content_hash);
+  $return_value = 0 if is_changed($url, $content_hash);
 }
 
 sub is_changed {
