@@ -383,19 +383,19 @@ sub parse_mode {
 
 # expects file's current mode and a parse_mode array reference
 # returns the mode the file should be changed to
+#
+# see parse_mode for the format of the modes array
 sub apply_mode {
-    my $cur_mode = shift;
+    my $temp_mode = shift;
     my $r_mode   = shift;
 
-    my $temp_mode = $cur_mode;
-
-    foreach my $element ( @{$r_mode} ) {
+    for (@{$r_mode}) {
 	# &~ removes bitmask in element from file's permissions,
 	# | operator adds bitmask in if necessary
-	if ($element->[0] == 0) {
-	    $temp_mode &= ~$element->[1];
+	if ($_->[0] == 0) {
+	    $temp_mode &= ~$_->[1];
 	} else {
-	    $temp_mode |= $element->[1];
+	    $temp_mode |= $_->[1];
 	}
     }
 
