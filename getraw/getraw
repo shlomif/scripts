@@ -15,23 +15,76 @@ use Term::ReadKey;
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
+my $spec = 'Yy:+ Nn:- *:';
+
 my $prompt;
 $prompt->{first} = '';
 $prompt->{first} = $ENV{GETRAW1} if exists $ENV{GETRAW1};
-$prompt->{annoy} = 'Are you sure?';
+$prompt->{annoy} = 'Are you really sure? %s';
 $prompt->{annoy} = $ENV{GETRAW2} if exists $ENV{GETRAW2};
 
 use Getopt::Std;
 my %opts;
-getopts('h?W:w:R:r:m:aA:', \%opts);
+getopts('h?o:A:t:ar', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-$prompt->{first} = "@ARGV" if @ARGV;
+if (exists $opts{o}) {
+  parse_spec($opts{o});
+} else {
+  parse_spec($spec);
+}
+
+$prompt->{first} = "@ARGV"  if @ARGV;
 $prompt->{annoy} = $opts{A} if exists $opts{A};
+
+my $key = get_key();
 
 ######################################################################
 #
 # SUBROUTINES
+
+sub get_key {
+  ReadMode 4;
+  my $first;
+
+  # TODO add timeout support via -t timeout option
+  while (not defined($first = ReadKey(-1))) {
+
+    # not yet
+  }
+  if (exists $opts{r}) {
+
+    # TODO if print, need to send to tty to avoid polluting regular output?
+    #    print $first;
+    my $ret;
+
+    # wait for user to hit \r hit, but still take first key they type
+    do {
+
+      while (not defined($ret = ReadKey(-1))) {
+
+        # dum dee doo, user: where are you?
+      }
+    } until $ret eq "\n";
+  }
+  ReadMode 0;
+
+  return $first;
+}
+
+sub parse_spec {
+  my $string = shift;
+
+  for (split /(?<!\\)[ ,]+/, $string) {
+    my ($keys, $status) = /(.+?):(.)?$/;
+    $status ||= '';
+
+    # unescape backwhacked things (\r, etc.)
+    $keys =~ s/(\\.)/qq!"$1"!/eeg;
+
+    # DBG    print "k $keys   s $status\n";
+  }
+}
 
 # a generic help blarb
 sub help {
@@ -43,13 +96,11 @@ Means to prompt for human interaction.
 Options for version $VERSION:
   -h/-?  Display this message
 
-  -w kk  Want keys in list (positive)
-  -r kk  Want keys, with return to accept
-
-  -W kk  Want keys, negative return
-  -R kk  Require keys, negative
+  -o fmt Key mapping specification
 
   -a     Annoy with additional "Are you sure?"
+
+  -r     Require return key (default: on keystroke)
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -63,7 +114,7 @@ getraw - means to prompt for human interaction
 
 =head1 SYNOPSIS
 
-  $ getraw -wy 
+  $ getraw
 
 =head1 DESCRIPTION
 
@@ -136,3 +187,4 @@ program.  This version likely is substantially different.
   $Id$
 
 =cut
+
