@@ -65,13 +65,14 @@ while (<>) {
 # KLUGE replicate trailing \n on data if line with trailing \n
 # rejected (attempts workaround an 'echo a b c' -> c\n dropped -> no
 # \n after b problem)
-if (  $count
-  and $last ne $lastprinted
-  and $last =~ /\n$/
-  and $lastprinted !~ /\n$/) {
-
+#if (  $count
+#  and $last ne $lastprinted
+#  and $last =~ /\n$/
+#  and $lastprinted !~ /\n$/) {
+#
+# TODO if block trims out last item from print list; debug/test more!!
   print "\n";
-}
+#}
 
 # TODO only warn if verbose on?  use special exit code to denote
 # nothing printed?
