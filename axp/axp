@@ -15,11 +15,6 @@ use File::Basename qw(basename fileparse);
 use File::Spec ();
 my $basename = basename $0;
 
-# what to consider as a filename suffix seperator (all OS I've seen use
-# a period, but you never know...)
-my $suffix_char = '.';
-my $suffix_re   = qr/\./;
-
 my %defaults = ( quiet => 0 );
 
 use Getopt::Std;
