@@ -193,7 +193,7 @@ itself.
 =head1 HISTORY
 
 Based heavily on code found in the File::Mode module on CPAN by Idan
-Robbins, which did not do the filtering aspect well.
+Robbins.
 
 =head1 VERSION
 
