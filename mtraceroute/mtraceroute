@@ -85,8 +85,8 @@ foreach my $host (@ARGV) {
 		     (.*?)$/x	       # the probe times $3
 		     ) {
 
-		# extract probe times hackishly
-		my (@times) = split /[^0-9.]+/, $3;
+		# extract probe times manually
+		my (@times) = $3 =~ m/(\d+\.\d+)\sms\s/g;
 
 		# catch triple failed probes; mean/stddev don't like
 		# null arrays, as it turns out...
