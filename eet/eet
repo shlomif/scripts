@@ -148,7 +148,7 @@ To follow two log files at the same time:
 
 =head2 Overview
 
-This script does rougly the opposite of tee(1), reading in from
+This script does roughly the opposite of tee(1), reading in from
 multiple files and merging them all into STDOUT via
 L<File::Tail|File::Tail>.
 
