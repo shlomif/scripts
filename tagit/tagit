@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Prints intials/date in standard format I use when commenting files.
+
+ECHO="echo -n"
+
+# TODO options to print initials, date, or both?
+if [ $INITIALS ]; then
+  $ECHO $INITIALS
+fi
+$ECHO "`date +%Y-%m-%d`"
