@@ -1,16 +1,24 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
-# Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free software;
+# you can redistribute it and/or modify it under the same terms as
+# Perl itself.
 #
-# Use perldoc on this file for documentation/licensing information.
+# Run perldoc(1) on this file for additional documentation.
 #
 ######################################################################
 #
-# MODULES
+# REQUIREMENTS
 
 require 5;
+
+use strict;
+
+######################################################################
+#
+# MODULES
 
 use Carp;
 use Getopt::Std;
@@ -22,15 +30,16 @@ use FileHandle;
 use Fcntl qw(:DEFAULT :flock);
 use IO::Handle;
 
-use strict;
-
 ######################################################################
 #
-# CONSTANTS
+# VARIABLES
+
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year,
     $backup, @data, %folders, %folder_sizes, $oldest, $newest,
-    $total_messages, $total_size, $machine, $summary, $reverse);
+    $total_messages, $total_size, $machine, $summary, $reverse, $zap);
 
 # where to look for the procmailrc...
 $procmailrc = $ENV{'HOME'} . '/.procmailrc';
@@ -38,8 +47,6 @@ $procmailrc = $ENV{'HOME'} . '/.procmailrc';
 # for matching date field in from line
 $days_of_week = '(Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
 $months_of_year = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
-
-my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 # prefs for the humanize file size routine
 my %global_prefs = (
@@ -57,7 +64,7 @@ my %global_prefs = (
 		    # for better readability
 		    'max_human_length' => 2,
 		    # list of suffixes for human readable output
-		    'suffix' => [ ' b', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y' ],
+		    'suffix' => [ '', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
 		    );
 
 ######################################################################
@@ -67,10 +74,13 @@ my %global_prefs = (
 # parse command-line options
 getopts('h?srzb:m:', \%opts);
 
-help() if exists $opts{'h'} || exists $opts{'?'};
+help() if exists $opts{'h'} or exists $opts{'?'};
 
 # extract backup option, if any
 $backup = $opts{'b'} if exists $opts{'b'};
+
+# whether to zap logfile
+$zap = 1 if exists $opts{'z'};
 
 # summary only? (no message log)
 $summary = 1 if exists $opts{'s'};
@@ -85,14 +95,14 @@ $machine = $opts{'m'} if exists $opts{'m'};
 if (@ARGV) {
     $logfile = shift;
 } else {
-    $logfile = get_logfile_loc ($procmailrc);
+    $logfile = get_logfile_loc($procmailrc);
 }
 
 # parse through the logfile, feeding various global variables
 parse_logfile();
 
 # see whether there is any new mail to report about...
-if (keys %folders < 1) {
+unless (keys %folders) {
     print "No new mail.\n";
     exit;
 }
@@ -130,7 +140,7 @@ Count   Destination                                               Size
 commify($folders{$_}), $_, humanize($folder_sizes{$_})
 .
 
-    foreach (sort { $a cmp $b } keys %folders) {
+    for (sort { $a cmp $b } keys %folders) {
 	write;
     }
 
@@ -154,7 +164,7 @@ unless ($summary) {
     format_lines_left   STDOUT 0;
 
     my $order;
-    if (defined $reverse) {
+    if ($reverse) {
 	$order = 'newest-at-top';
     } else {
         $order = 'oldest-at-top';
@@ -182,7 +192,7 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
 
     @data = reverse (@data) if $reverse;
 
-    foreach (@data) {
+    for (@data) {
         # use strict complains if use funky calls, so de-ref 'em...
         $subject = $_->{'_subject'};
 	$from    = $_->{'_from'};
@@ -227,7 +237,7 @@ sub print_machine {
     seek     (FD, 0, 0) or die "Problem seeking $file_loc: $!\n";
     truncate (FD, 0) or die "Problem truncating $file_loc: $!\n";
     
-    my $oldfh = select(FD); $| = 1;
+    my $oldfh = select(FD);
 
     # global info
     print "global\tstart\t", $oldest, "\n";
@@ -236,13 +246,13 @@ sub print_machine {
     print "global\tsize\t", $total_size, "\n";
 
     # folder info
-    foreach (sort { $a cmp $b } keys %folders) {
+    for (sort { $a cmp $b } keys %folders) {
 	print "folder\t", $_, "\t", $folders{$_}, "\t", $folder_sizes{$_}, "\n";
     }
 
     # message info
     my $t_count = 0;
-    foreach (@data) {
+    for (@data) {
 	print "message", $t_count, "\tsubject\t", $_->{'_subject'}, "\n";
 	print "message", $t_count, "\tfrom\t", $_->{'_from'}, "\n";
 	print "message", $t_count, "\tfolder\t", $_->{'_folder'}, "\n";
@@ -271,7 +281,7 @@ sub parse_logfile {
     }
 
     # are we backing up the file?
-    if (defined $backup) {
+    if ($backup) {
 	open (BACK, ">$backup") or die "Error opening $backup: $!\n";
 	BACK->autoflush(1);
 
@@ -288,7 +298,7 @@ sub parse_logfile {
     # parse the file
     while (<FD>) {
 	# keep backup if necessary
-	print BACK $_ if defined $backup;
+	print BACK $_ if $backup;
 
 	chomp;
 
@@ -321,13 +331,13 @@ sub parse_logfile {
     }
 
     # this (optionally) erases the logfile
-    if (exists $opts{'z'}) {
+    if ($zap) {
 	seek     (FD, 0, 0) or die "Problem seeking $logfile: $!\n";
 	truncate (FD, 0) or die "Problem truncating $logfile: $!\n";
     }
     
     # clean up all our locks/open files
-    if (defined $backup) {
+    if ($backup) {
 	flock (BACK, LOCK_UN);
 	close (BACK);
     }
@@ -348,7 +358,7 @@ sub get_logfile_loc {
 
     my $logfile;
 
-    open (FILE, $procmailrc) or die "Error opening $procmailrc: $!\n";
+    open FILE, $procmailrc or die "Error opening $procmailrc: $!\n";
 
     while (<FILE>) {
 	chomp;
@@ -360,7 +370,7 @@ sub get_logfile_loc {
 	    $logfile = `echo $logfile_loc`;
 	}
     }
-    close (FILE);
+    close FILE;
 
     return $logfile;
 }
@@ -438,11 +448,11 @@ sub humanize {
 # a generic help blarb
 sub help {
     print <<"HELP";
-$0 v.$VERSION
 Usage: $0 [options] [LOGFILE]
-Purpose: procmail logfile parser.
 
-Options:
+Procmail logfile parser and reporter.
+
+Options for version $VERSION:
   -h/-?  Display this message
 
   -s     Summary mode only, don't print listing of messages.
@@ -453,7 +463,7 @@ Options:
 
   -m xx  Export "machine" style output to file xx.
 
-Run perldoc on this script for more documentation.
+Run perldoc(1) on this script for additional documentation.
 
 HELP
     exit;
@@ -463,11 +473,7 @@ __END__
 
 =head1 NAME
 
-fm.pl - procmail logfile parser.
-
-=head1 VERSION
-
-  $Id$
+fm.pl - procmail logfile parser and reporter.
 
 =head1 SYNOPSIS
 
@@ -475,87 +481,114 @@ Pretty simple, just run:
 
   $ fm.pl
 
-If you want backups and to zero the manually located logfile once done:
-
-  $ fm.pl -zb ~/.pm_logfile.old ~/.pm_logfile
-
 =head1 DESCRIPTION
 
-fm.pl is a simple procmail logfile parser that shows you how many
-messages of what size went where based on the contents of your
-procmail logfile.
+=head2 Overview
 
-Ideally, it should be run daily from cron to keep you informed of
-where your recent mail has gone, especially if you have folders that
-you do not check on a regular basis but might be interested if mail
-goes to them.
+fm.pl is a procmail(1) logfile parser that shows you how many messages
+of what size went where based on the contents of your procmail
+logfile.
 
-=head1 USAGE
+=head2 Normal Usage
 
   $ fm.pl [options] [LOGFILE]
 
-If you omit the path to your promail logfile, fm.pl will attempt to
-determine its location from your ~/.procmailrc file. Hence LOGFILE is
-an optional argument.
+See L<"OPTIONS"> for details on the command line switches supported.
+
+If you omit the logfile, fm.pl will attempt to determine its location
+from your ~/.procmailrc file.
 
 Certain preferences must currently be set inside the script itself,
-such as the options on the humanization of bytes.  There are plans to
-fix this.
+such as the options on the humanization of bytes.  This might be
+constrewed as a bug.
 
 =head1 OPTIONS
 
-fm.pl supports the following command line options:
+This script currently supports the following command line switches:
 
-  -h     Get a brief help blarb
+=over 4
 
-  -s     Print only the count and size summary of the logfile.
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-s>
+
+Print only the count and size summary of the logfile.
 
 By default, a listing of individual messages follows the leading count
 summary, which might take up more screen space for quick mail summary
 checks.
 
-  -r     Reverse sort the individual message listings.
+=item B<-r>
+
+Reverse sort the individual message listings.
 
 Setting the reverse mode prints the message listings in a
 newest-at-top format instead of the default format which has the most
 recent messages down at the bottom of the file.
 
-  -b xx  Save a backup of the LOGFILE to location xx.
+=item B<-b> I<backup-file>
+
+Save a backup of the LOGFILE to location I<backup-file>.
 
 By default, no backups of the logfile are made.
 
-  -z     Zap the logfile.
+=item B<-z>
 
-By default, the logfile is preserved.  Set the zap option to zero the
-logfile, e.g. when cron is mailing you a daily report.
+Zap the logfile.
 
-  -m xx  Save a machine-style output to file xx.
+By default, the logfile is preserved.  Set the zap option to empty out
+the current logfile.
 
-The machine-style probably could be improved, patches welcome. :)
+=item B<-m> I<machine-data>
 
-=head1 LICENSE
+Save a machine-style output to the file I<machine-data>.
 
-This script is distributed under the terms of the Artistic License:
+=back
 
-http://www.sial.org/artistic_license.txt
+=head1 EXAMPLES
+
+If you want backups and to zero the manually located logfile once done:
+
+  $ fm.pl -zb ~/.pm_logfile.old ~/.pm_logfile
+
+From cron, that would be something like:
+
+  15  6  *  *  *  /usr/local/bin/fm.pl -zb ~/.pm_logfile.old ~/.pm_logfile
 
 =head1 BUGS
 
-Since the .procmailrc may contain shell data for the logfile location,
-I'm currently using a unix subshell to expand out the path to a full
-string, e.g. $HOME/.pm_logfile to /home/user/.pm_logfile.  As long as
-you're on Unix, this should be fine...
+=head2 Reporting Bugs
 
-Please send any bug reports (preferably with a patch) to:
+Newer versions of this script may be available from:
 
-jmates@sial.org
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+Various other tweaks/massive rewrite might be prudent at some point,
+but hey, it gets the job done.
 
 =head1 SEE ALSO
 
-cron(1), perl(1), procmail(1), procmailrc(5)
+perl(1), procmail(1), procmailrc(5)
 
 =head1 AUTHOR
 
-Jeremy A. Mates, jmates@sial.org
+Jeremy A. Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
+you can redistribute it and/or modify it under the same terms as Perl
+itself.
+
+=head1 VERSION
+
+  $Id$
 
 =cut
