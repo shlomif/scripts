@@ -18,6 +18,7 @@ sub print_help;
 use Digest::SHA1 ();
 my $ctx = Digest::SHA1->new;
 
+use File::Basename;
 use File::Find;
 use YAML ();
 
@@ -65,16 +66,26 @@ exit;
 sub process {
   return unless -f;
 
+  my %filedata;
+
   # skip logfiles outside of processing window by modification time
-  my $mtime = (stat _)[9];
-  return if $mtime < $window;
+  $filedata{mtime} = (stat _)[9];
+  return if $filedata{mtime} < $window;
 
-  my $digest = filedigest $_;
-  return if exists $seen->{$digest};
+  # skip files with no digest, or a digest already seen
+  $filedata{digest} = filedigest $_;
+  return unless exists $filedata{digest};
+  return if exists $seen->{$filedata{digest}};
 
-  print "$_\n";
+  # various path information for future processing
+  $filedata{filename} = $_;
+  ($filedata{name}, $filedata{parent}) = fileparse $_;
 
-  $seen->{$digest} = {filename => $_, mtime => $mtime};
+  # just print full filename
+  print $filedata{filename}, "\n";
+
+  # update seen record with various file data
+  $seen->{$filedata{digest}} = {map { $_ => $filedata{$_} } qw(filename mtime)};
 }
 
 # takes filename, returns sha1 digest of file contents using
