@@ -15,7 +15,7 @@ use Term::ReadKey;
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my $default_spec = 'Yy:+ Nn:- *:';
+my $default_spec = 'Yy:+ Nn:-';
 my $spec;
 
 # "true" is 0 for shell exits, 1 for "false"
@@ -98,7 +98,7 @@ sub parse_spec {
       $status = 0;
     }
 
-    # unescaped * means "any key"
+    # unescaped * means "any key" e.g. the default action
     if ($keys =~ s/(?<!\\)\*//) {
       $spec->{default} = $status;
     }
@@ -112,10 +112,15 @@ sub parse_spec {
     }
   }
 
+  # sanity check on specification to prevent key-read stalls
+  # TODO need to write output to tty device?
+  die "invalid specification\n" unless $spec;
+  # TODO need more error checks (as spec could be "*:" - do nothing :)
+  
   # DBG
-  #  use Data::Dumper;
-  #  print Dumper $spec;
-
+#    use Data::Dumper;
+#    print Dumper $spec;
+#die;
   return $spec;
 }
 
