@@ -1,16 +1,16 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
-######################################################################
+# $Id$
 #
-# date2epoch.pl v.1.0 (December 9, 1999)
-# By Jeremy Mates <mailto:jmates@sial.org>
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
-# Given a date, will return the epoch time for that date.
-#
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+# Given a date, will attempt to return the epoch time for that date.
 
 use Date::Manip;
+use File::Basename qw(basename);
+my $basename = basename $0;
 
-$date = &ParseDate($ARGV[0]);
-print &UnixDate($date, "%s"), "\n";
+die "usage: $basename date\n" unless @ARGV;
+
+print UnixDate(ParseDate($ARGV[0]), "%s"), "\n";
