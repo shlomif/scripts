@@ -8,7 +8,11 @@
 # Reformats .ini style preference files in format supported by the
 # Config::Tiny perl module.
 #
-# TODO options to customize output.
+# TODO options to customize output (blank line handling, comment string,
+# indents, sorting).
+#
+# TODO means to avoid autoformat() of commented out blocks of code,
+# which then become very hard to untidy
 
 use strict;
 
@@ -114,7 +118,8 @@ for my $i ( 0 .. $#lines ) {
     print "\n" unless $i == $#lines;
 
   } elsif ( $entry->{type} eq 'statement' ) {
-    for my $statement ( @{ $entry->{lines} } ) {
+    for my $statement ( sort { $a->{key} cmp $b->{key} } @{ $entry->{lines} } )
+    {
       print $indent, $statement->{key},
        ' ' x ( 1 + $entry->{keylength} - length $statement->{key} ), '= ',
        $statement->{value}, "\n";
