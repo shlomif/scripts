@@ -87,8 +87,13 @@ my $servers = server_load({filename => $pfiles{servers}});
 
 # figure out what to do
 my $verb;
-if (defined $ARGV[0] and ($ARGV[0] eq "get" or $ARGV[0] eq "put")) {
-  $verb = shift;
+if (defined $ARGV[0]) {
+  if (exists $actions{$ARGV[0]}) {
+    $verb = shift;
+  } elsif (exists $servers->{$ARGV[0]}) {
+    $verb = 'put';
+    $opts{s} = shift;
+  }
 } else {
   $verb = 'put';
 }
