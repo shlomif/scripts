@@ -32,12 +32,7 @@ use File::Path;
 my $suffix_char = '.';
 my $suffix_re   = qr/\./;
 
-my %defaults = load_defaults();
-
-sub load_defaults {
-  my %defaults = ( class => 'expand', );
-  return %defaults;
-}
+my %defaults = ( class => 'expand' );
 
 my $prefs_file = $ENV{'OSMCONF'} || '~/.osm/prefs';
 $prefs_file = tilde_expand($prefs_file);
@@ -142,8 +137,7 @@ sub load_prefs {
    and exit 101;
 
   my %data;
-
-  my %tmp = load_defaults();
+  my %tmp = %defaults;
 
   while (<$fh>) {
     s/^\s+//;
@@ -190,7 +184,7 @@ sub pref_finish {
     }
   }
 
-  %$tmp = load_defaults();
+  %$tmp = %defaults;
 }
 
 sub init {
