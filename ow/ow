@@ -18,16 +18,17 @@ my $default_open = $ENV{OW_METHOD} || 'lynx';
 # TODO some means to pass options to say lwp-request and wget types?
 # TODO load these from prefs file?
 my %open = (
-  lynx          => [qw(lynx)],
-  links         => [qw(links)],
-  open          => [qw(open)],
-  omniweb       => [qw(open -a OmniWeb)],
-  safari        => [qw(open -a Safari)],
-  'omniweb-bg'  => \&open_omniweb_bg,
-  mozilla       => [qw(mozilla)],
   firefox       => [qw(open -a Firefox)],
+  links         => [qw(links)],
   lwp           => [qw(lwp-request)],
   'lwp-noproxy' => [qw(lwp-request -P)],
+  lynx          => [qw(lynx)],
+  mozilla       => [qw(mozilla)],
+  omniweb       => [qw(open -a OmniWeb)],
+  'omniweb-bg'  => \&open_omniweb_bg,
+  open          => [qw(open)],
+  pbcopy        => [qw(sgrax pbcopy)],
+  safari        => [qw(open -a Safari)],
   wget          => [qw(wget)],
 );
 
