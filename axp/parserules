@@ -6,20 +6,20 @@ my $file = shift || 'rules';
 my @rules;
 
 open my $fh, "< $file" or die "$!\n";
-while (<$fh>) {
-  next if /^\s*$/;
-  s/^\s+//;
-  next if /^#/;
-  chomp;
-  s/\s+$//;
+my $line;
+while ($line = <$fh>) {
+  next if $line =~ /^\s*$/;
+  $line =~ s/^\s+//;
+  next if $line =~ /^#/;
+  chomp $line;
+  $line =~ s/\s+$//;
 
-  if (s/\\$//) {
-    $_ .= <$fh>;
-    print "redo: $_\n";
+  if ($line =~ s/\\$//) {
+    $line .= <$fh>;
     redo unless eof;
   }
 
-  my @tokens = split /(?<!\\)\s+/, $_;
+  my @tokens = split /(?<!\\)\s+/, $line;
   # anything shorter does not make sense
   next unless @tokens >= 4;
   
