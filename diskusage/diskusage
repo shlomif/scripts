@@ -139,6 +139,12 @@ sub rundu {
       exit 103;
     }
 
+    # KLUGE fix reporting from du to be that of requested directory, not
+    # symlink target
+    if ( $targetdir ne $parentdir ) {
+      $duinfo{path} =~ s/^$targetdir/$parentdir/;
+    }
+
     # determine path excluding leading root
     $duinfo{subpath} = '';
     my $offset = index $duinfo{path}, $parentdir;
