@@ -132,11 +132,11 @@ sub print_report {
     $^L = '';
 
     format STDOUT_TOP = 
-Count   Destination                                               Size
+ Count  Destination                                               Size
 ----------------------------------------------------------------------
 .
     format STDOUT = 
-@>>>>   @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>
+@>>>>>  @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>
 commify($folders{$_}), $_, humanize($folder_sizes{$_})
 .
 
@@ -149,7 +149,7 @@ format_name         STDOUT "FOOTER";
 
 format FOOTER =
 ----------------------------------------------------------------------
-@>>>>                                                     @>>>>>>>>>>>
+@>>>>>                                                    @>>>>>>>>>>>
 commify($total_messages), humanize($total_size)
 
 .
