@@ -1,19 +1,19 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
-# Copyright (c) 2000, Jeremy Mates.  All Rights Reserved.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
-# Use perldoc on this file for documentation/licensing information.
+# Run perldoc(1) on this file for additional documentation.
 #
 ######################################################################
 #
 # REQUIREMENTS
 
-require 5.005;
+require 5;
 
 use strict;
-use warnings;
 
 ######################################################################
 #
@@ -32,7 +32,8 @@ use String::Approx qw'amatch aslice';
 my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $modifiers, $string);
-my $dict_file_loc = '/usr/dict/words';
+# TODO this can also be /usr/dict/words on certain systems
+my $dict_file_loc = '/usr/share/dict/words';
 
 ######################################################################
 #
@@ -52,15 +53,15 @@ $modifiers = $opts{'m'} if defined $opts{'m'};
 $string = shift;
 
 # parse dictionary file looking for near hits
-open (DICTFILE, $dict_file_loc) or die "Problem opening $dict_file_loc: $!\n";
+open DICTFILE, $dict_file_loc or die "Problem opening $dict_file_loc: $!\n";
 while (<DICTFILE>) {
-    unless (defined $modifiers) {
-	print if amatch($string);
-    } else {
-	print if amatch($string, [ "$modifiers%" ]);
-    }
+  unless (defined $modifiers) {
+    print if amatch($string);
+  } else {
+    print if amatch($string, ["$modifiers%"]);
+  }
 }
-close (DICTFILE);
+close DICTFILE;
 
 exit;
 
@@ -70,7 +71,7 @@ exit;
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [options]
 
 Options:
@@ -82,7 +83,7 @@ Options:
 Run perldoc on this script for more documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 __END__
@@ -93,13 +94,11 @@ __END__
 
 =head1 NAME
 
-fspell.pl - perl script to do fuzzy speling matching.
-
-$Id$
+fspell - perl script to do fuzzy speling matching.
 
 =head1 SYNOPSIS
 
-$ fspell.pl speling
+$ fspell speling
 
 To get a list of words similar to speling.
 
@@ -117,11 +116,11 @@ have the misfortune of being on a recent Microsoft OS.
 
 =head1 USAGE
 
-$ fspell.pl [OPTIONS] word
+$ fspell [OPTIONS] word
 
 =head1 OPTIONS
 
-The following optional options are supported by fspell.pl:
+The following optional options are supported by fspell:
 
   -h/?    Show a brief help page.
 
@@ -133,20 +132,30 @@ The following optional options are supported by fspell.pl:
 
 =head1 FILES
 
-/usr/dict/words - default dictionary file used; a modestly populated
-file available on every unix I've gone looking for the file on.
+/usr/share/dict/words - default dictionary file used; a modestly
+populated file available on every unix I've gone looking for the file
+on.
 
 =head1 BUGS
 
-For want of a TODO section:
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 TODO
 
 Need better way of passing in amatch() params.  Also want to be able
 to optionally show where the errors were made, so the person can use
 that feedback to spot patterns in their spelling errors.
-
-Please send any bug reports (preferably with a patch) to:
-
-jmates@sial.org
 
 =head1 SEE ALSO
 
@@ -154,14 +163,11 @@ perl(1).
 
 =head1 AUTHOR
 
-Jeremy Mates, jmates@sial.org
+Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000, Jeremy Mates.  All Rights Reserved.
-
-This file is licensed under the terms of the Artistic License:
-
-http://www.sial.org/artistic_license.txt
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =cut
