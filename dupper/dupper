@@ -3,7 +3,9 @@
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
 #
-# Removes duplicate files.  Perl only implementation.
+# Removes duplicate files, using no external programs to do
+# the checksums (via Digest::MD5).  Recursive by default,
+# but very customizable, use to -h option to see how.
 #
 # Distributed under the Artistic License:
 # http://www.sial.org/artistic_license.txt
@@ -24,22 +26,28 @@ use vars qw:$VERSION:;
 #
 # CONSTANTS
 
+# set version for CVS revision
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts, $verbose, %check);
+my (%opts, $verbose, $quiet, %check);
 
-my $dig = new Digest::MD5; # we reset this for each file
+# we reset this for each file to avoid OO overhead on each file
+my $dig = new Digest::MD5;
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?vp:s:', \%opts);
+getopts('h?vlgzuqp:s:', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
 $verbose = 1 if exists $opts{'v'};
+if (exists $opts{'q'}) {
+    $verbose = 0;
+    $quiet = 1;
+}
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -49,7 +57,14 @@ help() unless @ARGV;
 
 # loop over arguments which presumably are a bunch of directories
 foreach ( @ARGV ) {
-    parsedir($_, 0, $_) if -d;
+    unless (-d) {
+	warn 'Error: ', $_, " is not a directory.  Skipping.\n" unless $quiet;
+	next;
+    }
+    parsedir ($_);
+
+    # reset the %check hash between directories by default
+    %check = () unless exists $opts{'g'};
 }
 
 ######################################################################
@@ -58,11 +73,16 @@ foreach ( @ARGV ) {
 
 sub parsedir {
     my $dir = shift;
-    my $level = shift;
-    my $previous = shift;
 
+    my @to_parse; # subdirs we may need to recurse into later
+
+    # -z option allows checks to become single-directory
+    # specific, as opposed to the parent-dir globalness of default
+    # or the everywhere -g option
+    %check = () if exists $opts{'z'};
+    
     unless (opendir (DIR, $dir)) {
-	warn 'Problem reading ', $dir, ': ', $!, "\n";
+	warn 'Problem reading ', $dir, ': ', $!, "\n" unless $quiet;
 	return;
     }
 
@@ -103,15 +123,21 @@ sub parsedir {
 	    close (FILE);
 	    
 	    # either add new checksum to hash, or delete the duplicate file
-	    unless (exists $check{$sum}) {
-		$check{$sum} = $pti;
-	    } else {
+	    if (exists $check{$sum} && exists $opts{'u'}) {
 		# need an interactive mode, or at least a report mode!!
 		warn "unlink ", $pti, "\n" if $verbose;
+		warn '  due to: ', $check{$sum}->[0], "\n" if $verbose; #DBG
+
 		unless (unlink $pti) {
-		    warn 'Problem unlinking ', $pti, ' (dup ', $check{$sum}, '): ', $!, "\n";
-		}
+		    warn 'Problem unlinking ', $pti, 
+		    ' (dup ', $check{$sum}->[0], '): ', $!, "\n";
+		}		
 	    }
+
+	    # regardless, we add the file to the list of files
+	    # associated with this particular hash
+	    push (@{ $check{$sum} },  $pti);
+
 	} elsif (-d $pti) {
             # see whether this dir needs to be pruned from the search
             if (exists $opts{'p'}) {
@@ -127,9 +153,14 @@ sub parsedir {
                     next;
                 }
             }
+	    push(@to_parse, $pti) unless exists $opts{'l'};
+	}
+    }
 
-	    # recurse
-	    parsedir ($pti, $level + 1, $dir);
+    # before poping up a recursion level, deal with subdirs
+    unless (exists $opts{'l'}) {
+	foreach (@to_parse) {
+	    parsedir ($_);
 	}
     }
 }
@@ -138,13 +169,22 @@ sub parsedir {
 sub help {
     print <<"HELP";
 $0 v.$VERSION
-Usage: $0 [options]
+Usage: $0 [options] directory1 [dir2 .. dirN]
 
-Removes duplicate files based on checksum comparison.
+Removes duplicate files based on checksum comparison of
+file contents.
 
 Options:
   -h/-?  Display this message
   -v     Verbose mode, a little bit more chatty.
+  -q     Chat no more.  Overrides -v.
+
+  -u     Attempt to unlink any duplicates found past first.
+         (Default is not to unlink anything!)
+
+  -l     Local mode only, script does not recurse into subdirs.
+  -g     Make checksums apply across all directories on command line.
+  -z     Overrides g; makes %check only apply on a per-dir basis.
 
   -s xx  Perl expression that will result in the current file (stored in \$_)
          being skipped if the expression turns out to be "true."  Example:
@@ -159,7 +199,7 @@ Options:
          -p 'm/etc/'
 
          Both -s and -p expressions should use the shortcut _ operator in
-         any stat() calls to avoid race conditions.
+         any stat() calls to avoid race conditions. (Perhaps!)
 
 HELP
     exit;
