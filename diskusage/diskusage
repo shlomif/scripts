@@ -9,7 +9,7 @@
 
 # TODO load these from prefs for portability
 my @du_cmd = qw(du -k);
-my $du_re = qr/^(\d+) \s+ (\S+)/ox;
+my $du_re  = qr/^(\d+) \s+ (\S+)/ox;
 
 my $parentdir = shift || die "TODO usage notes";
 $parentdir =~ s, /+$ ,,x;
@@ -20,6 +20,8 @@ open FROMDU,      '-|'
  and exit 101;
 
 while (<FROMDU>) {
+
+  # gather output into a hash for easy access of data
   my %duinfo = ( parentdir => $parentdir );
   unless ( ( $duinfo{size}, $duinfo{path} ) = m/$du_re/ ) {
 
@@ -32,14 +34,22 @@ while (<FROMDU>) {
     exit 102;
   }
 
+  # determine path excluding leading root
   my $offset = index $duinfo{path}, $parentdir;
   if ( $offset > -1 ) {
     $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
   }
 
-  use Data::Dumper;
-  warn Dumper \%duinfo;
+  # DBG
+  #use Data::Dumper;
+  #warn Dumper \%duinfo;
 }
+close FROMDU
+ or remark(
+  'warning',
+  'problem closing pipe from du',
+  { errno => $!, dir => $parentdir }
+ );
 
 sub remark {
   my $priority   = shift;
