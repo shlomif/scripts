@@ -17,7 +17,8 @@
 #
 # TODO pipe support so can say ".gz" -> gzpipe, and then subsequent
 # lookup on next suffix to figure out what to do (e.g. dmg.gz, tar.gz,
-# etc., etc.)
+# etc., etc.) Would need flags "writes to pipe" and "accepts from pipe"
+# to join things up...
 #
 # TODO directory watching/recursion mode, so can undo .gz, recheck dir,
 # undo any other archive format, and so forth to a limit?
@@ -234,7 +235,11 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : ( $ENV{'HOME'} || $ENV{'LOGDIR'} )
+      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{'HOME'}
+        || remark('error',
+	     'could not lookup user or HOME not set',
+	     { file => $_ })
+	&& exit 104;
      }ex;
   }
   return wantarray ? @_ : "@_";
@@ -474,7 +479,7 @@ same filename suffixes.
 
   name pax
   suffix pax
-  exec pax -r -f %{file}
+  exec pax %{verbose} %{preserve} -r -f %{file}
   verbose -v
   preserve -p e
 
@@ -484,7 +489,19 @@ same filename suffixes.
   exec pax %{verbose} -f %{file}
   verbose -v
 
-  # disable as most users will not have this
+  name gzpax
+  suffix pax.gz
+  exec gunzip -c %{file} | pax %{verbose} %{preserve} -r
+  verbose -v
+  preserve -p e
+
+  name gzpax
+  class list
+  suffix pax.gz
+  exec gunzip -c %{file} | pax %{verbose}
+  verbose -v
+
+  # This uncommon command from Stuffit (commercial, for Mac OS X)
   #name unstuff
   #suffix sit bin hqx *
   #comment Stuffit utility available on Mac OS X, expands many formats
