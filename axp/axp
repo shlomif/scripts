@@ -5,7 +5,7 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Apply XSL files to XML data.
+# Apply XSL files to XML data via XML::ApplyXSLT module.
 #
 # Run perldoc(1) on this script for additional documentation.
 
@@ -24,20 +24,27 @@ my %defaults = ( quiet => 0 );
 
 use Getopt::Std;
 my %opts;
-getopts 'h?qc:s:p:o:', \%opts;
+getopts 'h?qc:s:P:o:p:', \%opts;
 print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
-my %user_prefs;
-$user_prefs{class} = $opts{c} if exists $opts{c};
-$user_prefs{style} = $opts{s} if exists $opts{s};
-$user_prefs{path}  = $opts{p} if exists $opts{p};
+# TODO also need some way to read in arbitrary data to defaults hash
+#
+# TODO might also need a "class.style" so can tab complete against a list?
+my %user_default = ();
+$user_default{class} = $opts{c} if exists $opts{c};
+$user_default{style} = $opts{s} if exists $opts{s};
+$user_default{path}  = $opts{P} if exists $opts{P};
 
 $defaults{quiet} = 1 if $opts{q};
 
-# TODO read param from user somehow. Ideally want macro expansion on
-# these, so things like "reqeust.uri" can be set based on the filename
-# details.
 my %user_params = ();
+if ( exists $opts{p} ) {
+  my @pairs = split /(?<!(?<!\\)\\) /, $opts{p};
+  for my $token (@pairs) {
+    my ( $k, $v ) = $token =~ m/^ \s* ([\w.-]+) = (.*) /x;
+    $user_params{$k} = $v if defined $k;
+  }
+}
 
 # technically optional, but what's the point without these?
 my $rules_file = tilde_expand( $ENV{AXP_RULES} || '~/.axp/rules' );
@@ -79,11 +86,11 @@ FILE: for my $file (@ARGV) {
 
   my ( $filedata, $defaults, $params ) = $xapply->study( $doc, $file );
 
-  %$defaults = ( %$defaults, %user_defaults );
-  %$params = ( %$params, %user_params );
+  %$defaults = ( %$defaults, %user_default );
+  %$params   = ( %$params,   %user_params );
 
   my ( $docref, $details ) =
-   $xapply->transform( $doc, default => $rule_defaults, param => $params );
+   $xapply->transform( $doc, default => $defaults, param => $params );
   unless ( defined $docref ) {
     remark(
       'error',
@@ -97,7 +104,7 @@ FILE: for my $file (@ARGV) {
   my $output_file;
   if ( exists $opts{o} ) {
     ( $output_file = $opts{o} ) =~
-     s/ %{ (\w+) } / $filedata->{$1} || $rule_prefs->{$1} || '' /egx;
+     s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || '' /egx;
 
     # TODO use IO::Atomic or something?
     open OUTPUT, "> $output_file"
@@ -151,9 +158,11 @@ Options:
   -h/-?  Display this message.
   -q     Quiet: emit fewer warnings.
 
+  -p pp  Specify XSL parameters as 'key=value key2=value2'
+
   -c cc  Set document 'class' preference.
   -s ss  Set document 'style' preference.
-  -p pp  Set stylesheet path option.
+  -P PP  Set stylesheet path option.
 
   -o tt  Use a custom file output template.
 
@@ -240,7 +249,7 @@ Prints a brief usage note about the script.
 
 Emit fewer warnings.
 
-=item B<-p> I<path-template>
+=item B<-P> I<path-template>
 
 Custom path to stylesheets. Could be static path, if only one
 stylesheet exists for a document type, or include C<%{class}> and
@@ -277,6 +286,13 @@ create a C<doc.html> from a C<doc.xml> input filename, use:
 
   -o '%{file}.html'
 
+=item B<-p> I<parameters>
+
+Read XSL parameters to be used in the document transformation.
+Specify as a space seperated list of key=value pairs. Use "\ " if a
+literal space is needed; backslash expansion will also allow the use
+of \n for a newline and similar.
+
 =back
 
 =head1 RULES
@@ -286,11 +302,7 @@ determine whether to handle a file and if so what options to set.
 The current ruleset language is simplistic and subject to change
 without notice.
 
-  # ignore files without .xml suffix
-  suffix not eq "xml" ignore
-
-  suffix eq "xml" continue \
-    path=/var/www/htdocs/xsl/%{class}/%{style}.xsl style=default
+  defaults: path=/var/www/htdocs/xsl/%{class}/%{style}.xsl style=default
 
   # differnt style repository for different website
   dirname sub "var/www/othersite" \
@@ -299,7 +311,8 @@ without notice.
   # class and style defaults for following types
   rootname eq "eolas" stop class=eolas
   rootname eq "changelog" stop class=cvs2cl
-  doctype eq "chapter" stop class=doctype
+
+  doctype eq "-//OASIS//DTD DocBook XML V4.2//EN" stop class=docbook42
 
 =head1 BUGS
 
