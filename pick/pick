@@ -55,7 +55,7 @@ while (<>) {
   $last = $_;
 
   # get raw keystroke, want 0 exit code to accept item
-  system qw(getraw -o), $spec, "$_";
+  system qw(getraw -no), $spec, "$_";
   if (0 == $? >> 8) {
     $count++;
     $lastprinted = $_;
