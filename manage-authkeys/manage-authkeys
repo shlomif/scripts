@@ -202,7 +202,7 @@ sub do_dump {
   remark('info', "dumping", scalar @keys, "keys");
   
   for (@keys) {
-    print $data->{$_}->{'key'}, "\n";
+    print data2keystring($data->{$_}), "\n";
   }
 }
 
@@ -218,7 +218,7 @@ sub do_write {
   remark('info', 'writing', scalar keys %$data, "keys to $auth_key_file");
 
   for (keys %$data) {
-    print $akfh $data->{$_}->{'key'}, "\n";
+    print $akfh, data2keystring($data->{$_}), "\n";
   }
 }
 
@@ -278,15 +278,15 @@ sub do_alter {
     $updates{$cmd} = $arg;
   }
   
+  if (exists $updates{'options'}) {
+    $updates{'options'} = parse_authkey_options($updates{'options'});
+  }
+  
   remark('info', 'altering', scalar @keys, "keys: @keys");
   
   for (@keys) {
-    my $alias = $data->{$_};
-    @{$alias}{keys %updates} = values %updates;
+    @{$data->{$_}}{keys %updates} = values %updates;
   }
-  
-  # TODO ergh, dump is taking the literal key from memory, not
-  # the updated values!!
 }
 
 # takes scalar containing key, tries to return hash reference with
@@ -336,7 +336,6 @@ sub parse_authkey {
   $values{'options'} = parse_authkey_options("@options");
 
   $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
-  $values{'key'}  = $authkey;
 
   return \%values;
 }
@@ -355,6 +354,25 @@ sub parse_authkey_options {
   }
 
   return $ak_opts;
+}
+
+# takes hash ref representing key, returns string suitable for
+# authorized keys file use
+sub data2keystring {
+  my $href = shift;
+  my $ks = '';
+  
+  if (exists $href->{'options'}) {
+    $ks .= authkey_options2str($href->{'options'}) . ' ';
+  }
+  
+  $ks .= $href->{'goodbit'};
+  
+  if (exists $href->{'comment'}) {
+    $ks .= ' ' . $href->{'comment'};
+  }
+  
+  return $ks;
 }
 
 # takes hash ref, returns scalar format of options
@@ -443,6 +461,11 @@ Get a listing of keys in the default authorized_keys file:
 
 Provides a scriptable means of listing, altering, and deleting keys
 out of an OpenSSH C<~/.ssh/authorized_keys> file.
+
+This script is intended to be talked to by other scripts which present
+a better interface to humans.  This script is a first draft prototype,
+and may need a rewrite to support additional functionality (like
+support for management of authorized keys for other ssh products).
 
 =head2 Normal Usage
 
