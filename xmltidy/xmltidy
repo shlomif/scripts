@@ -11,10 +11,14 @@
 
 myn=`basename $0`
 
-if [ ! -f $1 ]; then
+if [ $# -eq 0 ]; then
   TMPFILE=`mktemp /tmp/${myn}.XXXXXXX` || exit 1
   cat > $TMPFILE
 else
+  if [ ! -f $1 ]; then
+    echo "error: not a file: $1" >&2
+    exit 1
+  fi
   TMPFILE=$1
 fi
 xmllint --encode utf8 --format $TMPFILE
