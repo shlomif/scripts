@@ -216,7 +216,7 @@ Options:
   -s xx  Perl expression that will result in the current file (stored in \$_)
          being skipped if the expression turns out to be "true."  Example:
 
-         -s 'm/^\\.rsrc\$/ || -z $pti'
+         -s 'm/^\\.rsrc\$/ || -z \$pti'
 
          Would skip the checksum on files named '.rsrc', or files that are
          empty via the -z is-empty test.
