@@ -16,11 +16,9 @@ my $timeout = 3;
 use Cwd qw(getcwd);
 my $pwd = getcwd;
 
-use IO::String ();
-
 use Text::Wrap qw(wrap);
 # TODO could lookup from terminal information?
-$Text::Wrap::columns = 80;
+$Text::Wrap::columns = 78;
 
 # summary information in global vars
 my %keys;
@@ -29,7 +27,7 @@ my @overview;
 my $overview_max      = 50;
 my $overview_overflow = 0;
 
-my $output_max = 5;
+my $overview_max_lines = 5;
 
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
@@ -64,13 +62,11 @@ sub dirdata {
 
     $counts{total}++;
     if ( -f _ ) {
-      $counts{files}++;
+      $counts{file}++;
     } elsif ( -d _ ) {
-      $counts{dirs}++;
-      #      $_ .= '/';
+      $counts{dir}++;
     } elsif ( -l _ ) {
       $counts{link}++;
-      #      $_ .= '@';
     } else {
       $counts{other}++;
     }
@@ -103,26 +99,21 @@ sub output {
   push @metadata, map { "$_=$counts{$_}" } sort keys %counts
    unless exists $keys{empty};
 
-  my $output = '';
-
   # TODO this also needs to be wrapped on lines and limited...
   if (@metadata) {
-    $output = wrap( 'm  ', 'm  ', @metadata ) . "\n";
+    print wrap( 'm  ', 'm  ', @metadata ) . "\n";
   }
 
   # TODO encode filenames, form into lines, limit number of lines to show...
   if (@overview) {
-    $output .= wrap( 'f  ', 'f  ', sort @overview ) . "\n";
-  }
-
-  my $io = IO::String->new($output);
-  while (<$io>) {
-    if ( $. == $output_max ) {
-      $_ =~ s/(\S+)$/.../;
-      print;
-      last;
+    my $output = wrap( 'f  ', 'f  ', sort @overview );
+    my @lines = split /\n/, $output;
+    if ( @lines >= $overview_max_lines ) {
+      if ( @lines > $overview_max_lines ) {
+        $lines[ $overview_max_lines - 1 ] =~ s/(\S+)$/.../;
+      }
+      @lines = @lines[ 0 .. $overview_max_lines - 1 ];
     }
-
-    print;
+    print join( "\n", @lines ), "\n";
   }
 }
