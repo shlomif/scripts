@@ -45,6 +45,7 @@ $output_delim =~ s/(\\.)/qq!"$1"!/eeg;
 
 my ($last, $lastprinted);
 my $count = 0;
+my $buffer;
 
 # unbuffer output to play well when in a pipe chain?
 $| = 1;
@@ -52,34 +53,26 @@ $| = 1;
 while (<>) {
   chomp;
   $last = $_;
+
+  # get raw keystroke, want 0 exit code to accept item
   system qw(getraw -o), $spec, "$_";
   if (0 == $? >> 8) {
     $count++;
     $lastprinted = $_;
 
-    print $output_delim unless $count == 1;
-    print;
+    $buffer .= $output_delim unless $count == 1;
+    $buffer .= $_;
   }
 }
 
-# KLUGE replicate trailing \n on data if line with trailing \n
-# rejected (attempts workaround an 'echo a b c' -> c\n dropped -> no
-# \n after b problem)
-#if (  $count
-#  and $last ne $lastprinted
-#  and $last =~ /\n$/
-#  and $lastprinted !~ /\n$/) {
-#
-# TODO if block trims out last item from print list; debug/test more!!
-  print "\n";
-#}
-
 # TODO only warn if verbose on?  use special exit code to denote
 # nothing printed?
-unless ($count) {
+if ($count == 0) {
   warn "info: no lines printed\n" if exists $opts{v};
   exit 100;
 }
+
+print $buffer, "\n";
 
 exit 0;
 
