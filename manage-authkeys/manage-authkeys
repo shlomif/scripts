@@ -29,9 +29,10 @@ sub BEGIN {
 use Carp;         # better error reporting
 use Getopt::Std;  # command line option processing
 
-use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
+use Digest::MD5 qw(md5);        # Perl interface to the MD5 Algorithm
+use Fcntl qw(:DEFAULT :flock);  # file locking
 
-use Sys::Syslog;          # interface to the UNIX syslog(3) calls
+use Sys::Syslog;                # interface to the UNIX syslog(3) calls
 
 ######################################################################
 #
@@ -44,8 +45,16 @@ my (%opts);
 
 # path to authorized_keys file.  OpenSSH >= 3.0 should merge old
 # authorized_keys2 files into authorized_keys.
-my $auth_key_file       = "~/.ssh/authorized_keys";
+my $auth_key_file = "~/.ssh/authorized_keys";
+
+# to untaint filename with
 my $auth_key_file_chars = qr"^([\w\s.~/-]+)$";
+
+# filehandle of auth_key_file
+my $akfh;
+
+# where auth keys are stored in memory (Data::Dumper it for format)
+my $data;
 
 # registered commands
 my %command = (
@@ -60,7 +69,7 @@ my %command = (
 # MAIN
 
 # parse command-line options
-getopts('h?f:l:aiq', \%opts);
+getopts('h?f:l:aiqL', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
@@ -81,8 +90,45 @@ if ($auth_key_file =~ $auth_key_file_chars) {
   die "Invalid characters in filename.\n";
 }
 
-# read in keys
-my $data = extract($auth_key_file);
+# open with locking auth_key_file
+unless (exists $opts{'L'}) {
+  open $akfh, "+< $auth_key_file"
+   or remark('alert', "problem opening authorized key file: $!")
+   and die;
+
+  unless (flock $akfh, LOCK_EX | LOCK_NB) {
+    remark('notice', "waiting for write lock on $auth_key_file");
+    flock $akfh, LOCK_EX
+     or remark('alert', "write lock on $auth_key_file failed: $!")
+     and die;
+  }
+
+} else {
+  open $akfh, "+< $auth_key_file"
+   or remark('alert', "problem opening authorized key file: $!")
+   and die;
+}
+
+# read in authorized keys to data structure
+while (<$akfh>) {
+
+  # see sshd(8) for expected format of auth_key_file
+  next if m/^#/ or m/^\s*$/;
+
+  my $values = parse_authkey($_);
+
+  next unless defined $values;
+
+  if (exists $data->{$values->{'hash'}}) {
+    remark(
+      'warning',         "skipping duplicate key (hash:",
+      $values->{'hash'}, ") at $auth_key_file line $."
+    );
+    next;
+  }
+
+  $data->{$values->{'hash'}} = $values;
+}
 
 # clear out arguments unless we're reading commands from there
 @ARGV = () unless exists $opts{'a'};
@@ -114,6 +160,11 @@ for (@ARGV) {
   $command{$cmd}(@work);
 }
 
+unless (exists $opts{'L'}) {
+  flock $akfh, LOCK_UN;
+  close $akfh;
+}
+
 exit;
 
 ######################################################################
@@ -138,15 +189,18 @@ sub do_list {
 
 # merges keys into auth_key_file
 sub do_write {
-  open KFILE, ">$auth_key_file"
-   or remark('alert', "could not write authorized key file: $!")
+  seek $akfh, 0, 0
+   or remark('alert', "could not seek on $auth_key_file: $!")
+   and die;
+  truncate $akfh, 0
+   or remark('alert', "could not truncate $auth_key_file: $!")
    and die;
 
-  for (keys %$data) {
-    print KFILE $data->{$_}->{'key'}, "\n";
-  }
+  remark('info', 'writing', scalar keys %$data, "keys to $auth_key_file");
 
-  close KFILE;
+  for (keys %$data) {
+    print $akfh $data->{$_}->{'key'}, "\n";
+  }
 }
 
 sub do_delete {
@@ -190,41 +244,6 @@ sub do_add {
   }
 
   remark('info', 'adding', scalar @added, "keys: @added");
-}
-
-# pulls auth_key_file into individual files for better managablity
-# takes no arguments, returns a data structure of keys
-sub extract {
-  my $auth_key_file = shift;
-  my %data;
-
-  open KFILE, $auth_key_file
-   or remark('alert', "could not open authorized key file: $!")
-   and die;
-
-  while (<KFILE>) {
-
-    # see sshd(8) for expected format of auth_key_file
-    next if m/^#/ or m/^\s*$/;
-
-    my $values = parse_authkey($_);
-
-    next unless defined $values;
-
-    if (exists $data{$values->{'hash'}}) {
-      remark(
-        'warning',         "skipping duplicate key (hash:",
-        $values->{'hash'}, ") at $auth_key_file line $."
-      );
-      next;
-    }
-
-    $data{$values->{'hash'}} = $values;
-  }
-
-  close KFILE;
-
-  return \%data;
 }
 
 # takes scalar containing key, tries to return hash reference with
@@ -324,6 +343,7 @@ Options for version $VERSION:
   -h/-?  Display this message
 
   -f ff  Use specified authorized_keys file instead of default.
+  -L     Do not lock authorized keys file (default is to flock).
 
   -a     Allow commands on the command line.
   -i     Allow commands on STDIN.
@@ -413,7 +433,13 @@ Prints a brief usage note about the script.
 
 =item B<-f> I<auth_key_file>
 
-Use the specified authorized_keys file instead of the default.
+Use the specified authorized_keys file instead of the default. 
+Default is ~/.ssh/authorized_keys, unless changed in the script.
+
+=item B<-L>
+
+Do not lock the C<authorized_keys> file.  By default, the file will be
+locked using flock.
 
 =item B<-a>
 
