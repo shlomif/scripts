@@ -16,6 +16,7 @@ require 5;
 use strict;
 
 use File::Basename qw(basename);
+my $basename = basename $0;
 use POSIX qw(strftime);
 
 use Getopt::Std;
@@ -23,13 +24,12 @@ my %opts;
 getopts('ef:glq', \%opts);
 
 if (not @ARGV or (exists $opts{'g'} and exists $opts{'l'})) {
-  die "usage: $0 [-q] [-f fmt] [-g|-l] [-e] epoch [epoch ...]\n";
+  die "usage: $basename [-q] [-f fmt] [-g|-l] [-e] epoch [epoch ...]\n";
 }
 
 my $format = $opts{'f'} || "%Y-%m-%d %H:%M:%S";
 
 # gmtime or localtime, depending on program name or options supplied
-my $basename = basename $0;
 my $function = 'localtime';
 $function = 'gmtime'    if $basename eq 'epoch2gmdate';
 $function = 'localtime' if exists $opts{'l'};
