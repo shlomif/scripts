@@ -210,6 +210,19 @@ Enable preview mode, no changes will be made to disk.
 
 =back
 
+=head1 EXAMPLES
+
+Dealing with deep directories full of files to be changed can be
+tricky, especially if the pattern in question is renaming directories,
+which will throw off the rename of deeper files.
+
+The solution is to first change all the directories, then go after the
+files.  For example, to swap out "bad" characters with _ in a deep
+file tree:
+
+    $ find . -type d -exec rename.pl 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+    $ find . -exec rename.pl 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+
 =head1 BUGS
 
 =head2 Reporting Bugs
