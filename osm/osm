@@ -27,7 +27,7 @@ my $data       = load_prefs( tilde_expand($prefs_file) );
 
 use Getopt::Std;
 my %opts;
-getopts 'h?qpvc:d:', \%opts;
+getopts 'h?qnpvc:d:', \%opts;
 
 print_help() if $opts{'h'} or $opts{'?'} or not @ARGV;
 
@@ -43,24 +43,25 @@ $defaults{'class'}    = $opts{'c'} if exists $opts{'c'};
 $defaults{'dest'}     = $opts{'d'} if exists $opts{'d'};
 $defaults{'preserve'} = 1          if exists $opts{'p'};
 
-for my $file (@ARGV) {
-  # TODO support remote URL?  e.g. a download would be needed first...
+FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
-    remark( 'notice', 'skipping as does not exist', { file => $file } );
-    next;
+    remark( 'notice', 'skipping as does not exist', { file => $file } )
+     unless exists $defaults{'quiet'};
+    next FILE;
   }
 
- ATTEMPT: for my $suffix ( get_suffixes($file), '*' ) {
+  for my $suffix ( get_suffixes($file), '*' ) {
     if ( exists $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} ) {
       for my $index (
         @{ $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} } ) {
-        # TODO also need to pass in whether to use quiet, verbose, etc...
-        last ATTEMPT
+        next FILE
          if handle_file( { %defaults, file => $file },
           $data->{ $defaults{'class'} }->[$index] );
       }
     }
   }
+  remark( 'notice', 'no means to handle file', { file => $file } )
+   unless exists $defaults{'quiet'};
 }
 
 sub handle_file {
@@ -77,13 +78,17 @@ sub handle_file {
   $tmp{'exec'} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
   $tmp{'exec'} = [ split /\s+/, $tmp{'exec'} ];
 
-  system( @{ $tmp{'exec'} } ) == 0
-   or remark(
-    'warning',
-    'bad exit status',
-    { errno => $!, map { $_ => $tmp{$_} } qw(file name class) }
-   )
-   and return 0;
+  if ( exists $opts{'n'} ) {
+    print "@{$tmp{'exec'}}\n";
+  } else {
+    system( @{ $tmp{'exec'} } ) == 0
+     or remark(
+      'warning',
+      'bad exit status',
+      { errno => $!, map { $_ => $tmp{$_} } qw(file name class) }
+     )
+     and return 0;
+  }
 
   return 1;
 }
