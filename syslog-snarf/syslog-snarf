@@ -189,8 +189,13 @@ while (1) {
     )
      = ( $1, $2, $3, $4 );
 
-    $message{'TIMESTAMP'} = strftime $timestamp_template,
-     localtime str2time $message{'TIMESTAMP'};
+    my $epoch_time = str2time $message{'TIMESTAMP'};
+    if ($epoch_time) {
+      $message{'TIMESTAMP'} = strftime $timestamp_template,
+       localtime $epoch_time;
+    } else {
+      push @errors, 'could not convert TIMESTAMP to epoch';
+    }
   } else {
     push @errors, 'could not parse HEADER and MSG fields';
   }
@@ -400,3 +405,4 @@ header file.
 $Id$
 
 =cut
+
