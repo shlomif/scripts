@@ -99,7 +99,7 @@ if ($verb eq 'put') {
   }
 
   # look for entries we can fail over to if named site down
-  my $primary    = $servers->{$args{name}};
+  my $primary = $servers->{$args{name}};
   push @potentials, $args{name};
 
   # network and channel same mean multiple pastebots for channel
@@ -144,7 +144,7 @@ sub pb_get {
   my $url;
 
   # if get a URL, run with that; otherwise expect shortcut and paste id
-  my $urltmp = URI->new($id);
+  my $urltmp = URI->new($id . (($id !~ m,\?tx=on$,) ? '?tx=on' : ''));
 
   if (defined $urltmp and defined $urltmp->scheme) {
     $url = $urltmp->canonical;
@@ -167,7 +167,8 @@ sub pb_get {
         $url =
          URI->new($servers->{$opts{s}}->{url}
            . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
-           . $id)->canonical;
+           . $id
+           . '?tx=on')->canonical;
 
         unless (defined $url) {
           remark('alert', "could not determine url for: $id");
@@ -176,38 +177,17 @@ sub pb_get {
       }
     }
   }
-
-  # TODO use HTML::TokeParser below as may want to pull out the
-  # from/summary details for the post.  If not, or unavilable, we could
-  # use the ?tx=on parameter to the pastebot, which displays the paste
-  # in raw text format.
-
   my $content = get_url({url => $url});
-
-  if ($content) {
-    eval { require HTML::TokeParser; };
-    if ($@) {
-      remark('alert', "problem loading HTML::TokeParser: $@");
-
-      #print $$content, "\n";
-      exit 103;
-    } else {
-      my $p = HTML::TokeParser->new($content);
-
-      # TODO pull out "From" and "Summary" data if wanted?
-
-      # look for stuff in <pre>, pretty simple
-      $p->get_tag('pre');
-
-      # TODO option to dump to file named after id, instead of just stdout
-      my $text = $p->get_text('/pre');
-      print $text;
-
-      # KLUGE ensure trailing linefeed to prevent shell from gobbling
-      # something up
-      print "\n" if $text !~ m/\n$/;
-    }
+  unless ($content) {
+    remark('alert', "no data from $url");
+    exit 103;
   }
+
+  print $$content;
+
+  # KLUGE trailing newline if none to prevent shell from gobbling any
+  # last line
+  print "\n" if $$content !~ m/\n$/;
 }
 
 # uploads data to specified paste server
@@ -406,7 +386,7 @@ sub parse_aliases {
     for my $alias (split /\s+/, $s->{alias}) {
       unless (defined $alias and $alias =~ /^[\w.-]+$/) {
         remark('warning', "skipping alias for entry $s->{count} as invalid");
-	next;
+        next;
       }
       push @{$aliases{$alias}}, $s->{name};
     }
@@ -782,3 +762,4 @@ public domain.
   $Id$
 
 =cut
+
