@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
@@ -49,7 +49,7 @@ $months_of_year = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 # MAIN
 
 # parse command-line options
-getopts('h?sb:m:', \%opts);
+getopts('h?zb:m:', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
@@ -172,8 +172,32 @@ sub print_machine {
     seek     (FD, 0, 0) or die "Problem seeking $file_loc: $!\n";
     truncate (FD, 0) or die "Problem truncating $file_loc: $!\n";
     
-    # hmmm... format for machine style? :)
-    
+    my $oldfh = select(FD); $| = 1;
+
+    # global info
+    print "global\tstart\t", $oldest, "\n";
+    print "global\tfinish\t", $newest, "\n";
+    print "global\tcount\t", $total_messages, "\n";
+    print "global\tsize\t", $total_size, "\n";
+
+    # folder info
+    foreach (sort { $a cmp $b } keys %folders) {
+	print "folder\t", $_, "\t", $folders{$_}, "\t", $folder_sizes{$_}, "\n";
+    }
+
+    # message info
+    my $t_count = 0;
+    foreach (@data) {
+	print "message", $t_count, "\tsubject\t", $_->{'_subject'}, "\n";
+	print "message", $t_count, "\tfrom\t", $_->{'_from'}, "\n";
+	print "message", $t_count, "\tfolder\t", $_->{'_folder'}, "\n";
+	print "message", $t_count, "\tsize\t", $_->{'_size'}, "\n";
+	print "message", $t_count, "\tdate\t", $_->{'_date'}, "\n";
+	$t_count++;
+    }
+
+    select ($oldfh);
+
     flock (FD, LOCK_UN);
     close (FD);
 }
@@ -242,12 +266,12 @@ sub parse_logfile {
     }
 
     # this (optionally) erases the logfile
-    unless (exists $opts{'s'}) {
+    if (exists $opts{'z'}) {
 	seek     (FD, 0, 0) or die "Problem seeking $logfile: $!\n";
 	truncate (FD, 0) or die "Problem truncating $logfile: $!\n";
     }
     
-    # clean up
+    # clean up all our locks/open files
     if (defined $backup) {
 	flock (BACK, LOCK_UN);
 	close (BACK);
@@ -297,7 +321,9 @@ Options:
   -h/-?  Display this message
 
   -b xx  Make a backup of the LOGFILE, where xx is the (optional) target.
-  -s     Do not truncate logfile after parsing it.
+  -z     Truncate logfile after parsing it.
+
+  -m xx  Export "machine" style output to file xx.
 
 Run perldoc on this script for more documentation.
 
@@ -317,10 +343,15 @@ Pretty simple, just run:
 
   $ fm.pl
 
+If you want backups and to zero the manually located logfile once done:
+
+  $ fm.pl -zb ~/.pm_logfile.old ~/.pm_logfile
+
 =head1 DESCRIPTION
 
-fm.pl is a simple procmail logfile parser good for giving you summary
-reports about what procmail has been doing with your email.
+fm.pl is a simple procmail logfile parser that shows you how many
+messages of what size went where based on the contents of your
+procmail logfile.
 
 Ideally, it should be run daily from cron to keep you informed of
 where your recent mail has gone, especially if you have folders that
@@ -331,7 +362,7 @@ goes to them.
 
   $ fm.pl [options] [LOGFILE]
 
-If you omit the path to your promail LOGFILE, fm.pl will attempt to
+If you omit the path to your promail logfile, fm.pl will attempt to
 determine its location from your ~/.procmailrc file. Hence LOGFILE is
 an optional argument.
 
@@ -339,16 +370,20 @@ an optional argument.
 
 fm.pl supports the following command line options:
 
--h     Get a brief help blarb
+  -h     Get a brief help blarb
 
--b xx  Save a backup of the LOGFILE to location xx.
+  -b xx  Save a backup of the LOGFILE to location xx.
 
-By default, no backups of the logfile are made.  Caveat actor.
+By default, no backups of the logfile are made.
 
--s     Save the logfile.
+  -z     Zap the logfile.
 
-The default behaviour is to truncate the logfile down to nothing once
-done parsing it.  Setting -s will preserve the current logfile.
+By default, the logfile is preserved.  Set the zap option to zero the
+logfile, e.g. when cron is mailing you a daily report.
+
+  -m xx  Save a machine-style output to file xx.
+
+The machine-style probably could be improved, patches welcome. :)
 
 =head1 LICENSE
 
@@ -358,7 +393,10 @@ http://www.sial.org/artistic_license.txt
 
 =head1 BUGS
 
-Lots, probably.
+Since the .procmailrc may contain shell data for the logfile location,
+I'm currently using a unix subshell to expand out the path to a full
+string, e.g. $HOME/.pm_logfile -> /home/user/.pm_logfile.  As long as
+you're on Unix, this should be fine...
 
 =head1 SEE ALSO
 
