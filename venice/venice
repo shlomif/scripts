@@ -1,14 +1,15 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
-# Runs named command with higher priority, but without running the
-# command as superuser. Uses fork/exec and exec sudo from the parent to
-# both launch the child application and renice the child.
+# Runs a command with specified priority, like nice, but handles
+# negative priorities with sudo. Forks to avoid running the named
+# command as superuser; renice done via parent process as root.
 #
 # Example: venice open -a D2X
 #
-# On Mac OS X launches "Descent2 X" and renices it to a -10 priority.
+# On Mac OS X launches "Descent2 X" and renices it to the default
+# priority.
 
 my $default_nice = -10;
 my $nice_value   = $default_nice;
@@ -16,39 +17,53 @@ my $nice_value   = $default_nice;
 use File::Basename qw(basename);
 my $command = basename $0;
 
-# TODO figure out "-n 20 -h" handling. grrr!!@#$
+# need custom argument processing as standard Getopt Std/Long have
+# issues easily handling '-n +/-20' followed by the command to run
 while ( my $arg = shift @ARGV ) {
   if ( $arg eq '-?' or $arg =~ m/-h/ ) {
     print_help();
   } elsif ( $arg eq '-n' ) {
     $nice_value = shift @ARGV;
+
+    print_help()
+     if $nice_value !~ m/^[+-]?\d\d?$/
+     or $nice_value > 20
+     or $nice_value < -20;
+
+    next;
+  } elsif ( $arg eq '--' ) {
+    last;
   }
-  last unless $ARGV[0] =~ /^-(?!-$)/;
+
+  unshift @ARGV, $arg;
+  last;
 }
 
 print_help() unless @ARGV;
 
-if ( $nice_value !~ m/^-?\d\d?$/ or $nice_value > 20 or $nice_value < -20 ) {
-  warn "warning: nice value invalid, reverting to default\n";
-  $nice_value = $default_nice;
+# Command to renice with. Use sudo if negative, and test sudo to avoid
+# password prompt following the fork.
+my @renice = qw{renice};
+if ( $nice_value < 0 ) {
+  # TODO this returns -1 not 0 when verify works??
+  system qw{sudo -v};
+  unshift @renice, 'sudo';
 }
 
-# parent will not be waiting on child
-$SIG{CHLD} = 'IGNORE';
-
-# ensure password not prompted for after forking
-system qw(sudo -v);
-
+# TODO need to muck with CHLD signal handling or anything?
 if ( my $child_pid = fork ) {
-  select undef, undef, undef, 0.25;
-  exec qw(sudo renice $nice_value -p $child_pid) if kill 0, $child_pid;
-  warn "error: could not renice: errno=$!\n" unless $! eq 'No such process';
+
+  exec @renice, $nice_value, '-p', $child_pid;
+  die "error: could not renice: errno=$!\n";
+
 } else {
   exec @ARGV;
   warn "error: could not exec command: errno=$!\n";
 }
 
 sub print_help {
-  warn "usage: $command [-n increment] -- utility [argument ...]\n";
+  warn "\nusage: $command [-n increment] utility [argument ...]\n\n";
+  warn "  increment: -20 to 20, negative is higher priority\n";
+  warn "  utility:   Command to run with optional arguments\n\n";
   exit 100;
 }
