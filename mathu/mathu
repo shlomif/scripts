@@ -180,8 +180,6 @@ sub handle_distribution {
     do_dist(\@array, \@buckets);
   } elsif ($way =~ /^r/) {
     my @buckets = $results{min} .. $results{max};
-    print "@array\n";
-    print "@buckets\n";
     do_dist(\@array, \@buckets);
   }
 }
