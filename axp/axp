@@ -5,7 +5,7 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Applies XSLT styleseets to XML data.
+# Apply XSL files to XML data.
 #
 # Run perldoc(1) on this script for additional documentation.
 
@@ -20,12 +20,11 @@ my $basename = basename $0;
 my $suffix_char = '.';
 my $suffix_re   = qr/\./;
 
-# TODO load from file?
-my %defaults = ( quiet => 1 );
+my %defaults = ( quiet => 0 );
 
 use Getopt::Std;
 my %opts;
-getopts 'h?c:s:p:o:', \%opts;
+getopts 'h?qc:s:p:o:', \%opts;
 print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
 my %user_prefs;
@@ -33,31 +32,32 @@ $user_prefs{class} = $opts{c} if exists $opts{c};
 $user_prefs{style} = $opts{s} if exists $opts{s};
 $user_prefs{path}  = $opts{p} if exists $opts{p};
 
-# TODO read param from user somehow
+$defaults{quiet} = 1 if $opts{q};
+
+# TODO read param from user somehow. Ideally want macro expansion on
+# these, so things like "reqeust.uri" can be set based on the filename
+# details.
 my %param = ();
 
+# technically optional, but what's the point without these?
 my $rules_file = tilde_expand( $ENV{AXP_RULES} || '~/.axp/rules' );
 open my $rfh, "< $rules_file"
  or remark(
-  'error',
+  'warning',
   'cannot load rules file',
   { file => $rules_file, errno => $! }
- )
- and exit 103;
+ );
+
+my @new_args;
+push @new_args, 'rules', $rfh if $rfh;
 
 use XML::ApplyXSLT ();
-my $xapply = XML::ApplyXSLT->new(rules => $rfh, prefs =>
-  { path => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl' } );
+my $xapply = XML::ApplyXSLT->new(@new_args);
 
-close $rfh;
+close $rfh if $rfh;
 
 # TODO way to set these
 $xapply->config_libxml( { load_ext_dtd => 0 } );
-
-# TODO
-#my $prefs_file = $ENV{AXPCONF} || '~/.axp/prefs';
-#$prefs_file = tilde_expand($prefs_file);
-#my $data = load_prefs($prefs_file);
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
@@ -123,65 +123,6 @@ FILE: for my $file (@ARGV) {
   }
 }
 
-# TODO need this??
-sub load_prefs {
-  my $file = shift;
-
-  open my $fh, "< $file"
-   or remark( 'error', 'could not load preferences', { file => $file } )
-   and exit 101;
-
-  my %data;
-  my %tmp = %defaults;
-
-  while (<$fh>) {
-    s/^\s+//;
-    next if /^#/;
-    chomp;
-
-    if (/^$/) {
-      pref_finish( \%tmp, \%data ) if exists $tmp{name};
-      next;
-    }
-
-    s/\s+$//;
-
-    my ( $k, $v ) = split /\s+/, $_, 2;
-    unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
-      remark(
-        'warning',
-        'skipping invalid data',
-        { file => $file, line => $. }
-      );
-      next;
-    }
-    $tmp{$k} = $v;
-  }
-  pref_finish( \%tmp, \%data ) if exists $tmp{name};
-
-  return \%data;
-}
-
-sub pref_finish {
-  my $tmp  = shift;
-  my $data = shift;
-
-  if ( exists $tmp->{suffix} ) {
-    $tmp->{suffix} = [ map { s/^\.//; $_ } split / /, $tmp->{suffix} ];
-  }
-
-  push @{ $data->{ $tmp->{class} } }, {%$tmp};
-
-  if ( exists $tmp->{suffix} ) {
-    for my $suffix ( @{ $tmp->{suffix} } ) {
-      push @{ $data->{_suffixmap}->{ $tmp->{class} }->{$suffix} },
-       $#{ $data->{ $tmp->{class} } };
-    }
-  }
-
-  %$tmp = %defaults;
-}
-
 # expands ~username syntax to full home directory path
 sub tilde_expand {
   my @pathes = @_;
@@ -203,10 +144,17 @@ sub print_help {
   print <<"HELP";
 Usage: $basename [options] file [file2 ...]
 
-Applies XSLT styleseets to XML data.
+Apply XSL files to XML data.
 
 Options:
   -h/-?  Display this message.
+  -q     Quiet: emit fewer warnings.
+
+  -c cc  Set document 'class' preference.
+  -s ss  Set document 'style' preference.
+  -p pp  Set stylesheet path option.
+
+  -o tt  Use a custom file output template.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -237,19 +185,35 @@ __END__
 
 =head1 NAME
 
-axp - applies XSLT styleseets to XML data
+axp - apply XSL files to XML data
 
 =head1 SYNOPSIS
 
-TODO
+Parse document to standard out using ruleset defaults.
 
-  $ axp
+  $ axp index.xml
+
+Translate a set of XML documents into HTML files based on the input
+filename using C<safari> style.
+
+  $ axp -o '%{file}.html' -s safari *.xml
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-TODO
+Command line interface to L<XML::ApplyXSLT>. Assists in transforming XML
+data with Extensible Stylesheet Language (XSL) files. Best suited to
+cases where many different stylesheet files for various XML formats are
+logically laid out on a filesystem, and can be referenced by C<class> or
+C<style> statements. For simpler needs, xsltproc(1) from the XSLT C
+library for GNOME will be adequate.
+
+At minimum, a C<path> option will need to be set to lookup a XSL file;
+more complex needs can be met through macro expansion of C<class> and
+C<style> options againt the C<path>, and the use of a ruleset file to
+set options based on XML document metadata such as the location on the
+filesystem or the root element name.
 
 =head2 Normal Usage
 
@@ -257,7 +221,9 @@ TODO
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-TODO
+Specify one or more XML documents to transform. Output by default goes
+to standard out, even for multiple documents. Use the B<-o> option to
+save the output to file(s).
 
 =head1 OPTIONS
 
@@ -269,26 +235,91 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
+=item B<-q>
+
+Emit fewer warnings.
+
+=item B<-p> I<path-template>
+
+Custom path to stylesheets. Could be static path, if only one
+stylesheet exists for a document type, or include C<%{class}> and
+C<%{style}> macros to expand depending on document metadata or other
+command line options.
+
+  -p '/var/www/htdocs/xsl/%{class}/%{style}.xsl'
+
+Paths should be set in the rules file, so only class and style need to
+be altered from the command line. This is because the C<path> option
+tends to be static, long, and hard to tab complete.
+
+=item B<-c> I<class>
+
+Sets the C<class> option to be expanded in the C<path> option when
+looking up stylesheet files. The C<class> option should be a parent
+directory for any number of C<style> files suitable for transforming the
+XML format in question.
+
+=item B<-s> I<style>
+
+Sets the C<style> option to be expanded in the C<path> option when
+looking up stylesheet files. Should represent a filename. Different
+styles allows particular XML document format classes to be rendered in
+different ways, such as different HTML for different web browsers.
+
+=item B<-o> I<output-template>
+
+Normally all output is to standard out. This option directs output to a
+file. To create one output file for each input XML document, use a
+template format that will be expanded using the file metadata (C<file>,
+C<dirname>) or preference data (C<class>, C<style>). For instance, to
+create a C<doc.html> from a C<doc.xml> input filename, use:
+
+  -o '%{file}.html'
+
 =back
+
+=head1 RULES
+
+The C<rules> file is parsed into an internal format, then used to
+determine whether to handle a file and if so what options to set.
+The current ruleset language is simplistic and subject to change
+without notice.
+
+  # ignore files without .xml suffix
+  suffix not eq "xml" ignore
+
+  suffix eq "xml" continue \
+    path=/var/www/htdocs/xsl/%{class}/%{style}.xsl style=default
+
+  # differnt style repository for different website
+  dirname sub "var/www/othersite" \
+    path=/var/www/othersite/_xs/%{class}/%{style}.xsl style=default
+
+  # class and style defaults for following types
+  rootname eq "eolas" stop class=eolas
+  rootname eq "changelog" stop class=cvs2cl
+  doctype eq "chapter" stop class=doctype
 
 =head1 BUGS
 
 =head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://sial.org/code/perl/
 
 If the bug is in the latest version, send a report to the author.
 Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known issues.
+No way to specify certain configuration options, or pass XSL parameters.
+See source for TODO and other comments. Probably a lot of other things
+that can be improved, due to this tool being new.
 
 =head1 SEE ALSO
 
-perl(1), XML::ApplyXSLT
+perl(1), XML::ApplyXSLT, XML::LibXML, XML::LibXSLT
+
+The Extensible Stylesheet Language (XSL) specification:
+
+http://www.w3.org/TR/xsl/
 
 =head1 AUTHOR
 
