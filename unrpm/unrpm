@@ -11,7 +11,7 @@
 # instructions on creating a ~/.rpmmacros file and the required
 # directory structure.
 
-RPM_MACROS=$HOME/.RPM_MACROS
+RPM_MACROS=$HOME/.rpmmacros
 RPM_TOPDIR=/usr/src/redhat
 
 # exit code is set to a non-zero value if there are problems running
@@ -53,6 +53,7 @@ for file in "$@" ; do
   rpm2cpio $file | ( cd $RPM_SOURCES && cpio -id 2>/dev/null )
   if [ $? -ne 0 ]; then
     STATUS=$?
+    echo "warning: non-zero exit ($STATUS) when unpacking: $file" >&2
   fi
 done
 
