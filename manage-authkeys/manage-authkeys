@@ -50,10 +50,8 @@ my %command = (
   'list'   => \&do_list,
   'write'  => \&do_write,
   'delete' => \&do_delete,
+  'add'    => \&do_add,
 );
-
-#  'get'     => \&do_get,
-#  'put'     => \&do_put,
 
 ######################################################################
 #
@@ -166,6 +164,17 @@ sub get_hashids {
   return @keys;
 }
 
+# adds specified key(s) into memory (replaces preexistant keys by hash)
+sub do_add {
+  for (@_) {
+    my $values = parse_authkey($_);
+
+    next unless defined $values;
+
+    $data->{$values->{'hash'}} = $values;
+  }
+}
+
 # pulls auth_key_file into individual files for better managablity
 # takes no arguments, returns a data structure of keys
 sub extract {
@@ -180,55 +189,73 @@ sub extract {
     # see sshd(8) for expected format of auth_key_file
     next if m/^#/ or m/^\s*$/;
 
-    my (%values, @options);
+    my $values = parse_authkey($_);
 
-    # TODO: improve parser to get around boundary cases!
-    # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
-    # or even: ssh-rsa  AAAA...
+    next unless defined $values;
 
-    # try to pull apart key so we can do a checksum on the
-    # important bits (i.e. not the optional option and comment fields)
-    my @elements = split /\s/;
-    for my $i (0 .. $#elements) {
-
-      if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
-        and $elements[$i + 1] =~ m/^AAAA/) {
-
-        $values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
-        $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
-        $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
-
-        last;
-
-        } elsif ($elements[$i] =~ m/^\d+$/
-        and $elements[$i + 1] =~ m/^\d+$/
-        and $elements[$i + 2] =~ m/^\d+$/) {
-
-        $values{'type'}    = 'rsa1';
-        $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
-        $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
-
-        last;
-      }
-
-      push @options, $elements[$i];
-    }
-
-    unless (exists $values{'goodbit'}) {
-      warn "Could not parse key from: $_\n";
+    if (exists $data{$values->{'hash'}}) {
+      warn "Warning: skipping duplicate key (hash:", $values->{'hash'},
+       ") at $auth_key_file line $.\n";
       next;
     }
 
-    $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
-    $values{'options'} = "@options";
-    $values{'key'}     = $_;
-
-    $data{$values{'hash'}} = \%values;
+    $data{$values->{'hash'}} = $values;
   }
 
   close KFILE;
 
   return \%data;
+}
+
+# takes scalar containing key, tries to return hash reference with
+# various bits of info expanded out
+sub parse_authkey {
+  my $authkey = shift;
+
+  my (%values, @options);
+
+  # TODO: improve parser to get around boundary cases!
+  # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
+  # or even: ssh-rsa  AAAA...
+
+  # try to pull apart key so we can do a checksum on the
+  # important bits (i.e. not the optional option and comment fields)
+  my @elements = split /\s/, $authkey;
+  for my $i (0 .. $#elements) {
+
+    if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
+      and $elements[$i + 1] =~ m/^AAAA/) {
+
+      $values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
+      $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
+      $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
+
+      last;
+
+      } elsif ($elements[$i] =~ m/^\d+$/
+      and $elements[$i + 1] =~ m/^\d+$/
+      and $elements[$i + 2] =~ m/^\d+$/) {
+
+      $values{'type'}    = 'rsa1';
+      $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
+      $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
+
+      last;
+    }
+
+    push @options, $elements[$i];
+  }
+
+  unless (exists $values{'goodbit'}) {
+    warn "Could not parse key from: $authkey\n";
+    return;
+  }
+
+  $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
+  $values{'options'} = "@options";
+  $values{'key'}     = $authkey;
+
+  return \%values;
 }
 
 # a generic help blarb
@@ -297,16 +324,22 @@ additional arguments are supplied.
 
 The syntax of keymatch statements is either C<all> to match all keys,
 or a colon-separated element consisting of the internal hash key and
-an exact value to match, e.g. C<type:rsa1> or C<hash:a5e6d976>.
+an exact value to match, e.g. C<type:rsa> or C<hash:a5e6d976>.
 
 =item B<delete> I<keymatch statements>
 
 Deletes the specified keys from memory.  Delete requires a keymatch
 statement to do anything.
 
+=item B<add> I<keys>
+
+Adds the specified key(s) into memory.  The literal key must not
+contain tab characters.
+
 =item B<write>
 
-Overwrites the authorized_keys file with the keys in memory, if any.
+Overwrites the authorized_keys file with the keys in memory (or
+empties the file should none be in memory).
 
 =back
 
@@ -340,9 +373,9 @@ anything.
 
 =head1 EXAMPLES
 
-List only DSA keys with a BSD-compatible echo(1):
+List only SSH1 keys with a BSD-compatible echo(1):
 
-  $ echo -e "list\ttype:dsa" | ssh-authkey-manage.pl -i
+  $ echo -e "list\ttype:rsa1" | ssh-authkey-manage.pl -i
 
 Delete all keys:
 
@@ -350,11 +383,10 @@ Delete all keys:
 
 =head1 ENVIRONMENT
 
-Requires an up-to-date version of OpenSSH; ancient versions may not
-have the B<-l> and B<-f> options required for ssh-keygen(1) to list
-all keytypes.
-
-Developed with OpenSSH 3.4 on Mac OS X (10.1.5) with perl 5.8.
+Developed for OpenSSH (as of version 3.4); should work on any system
+with perl 5 and the required modules (e.g.
+L<Digest::MD5|Digest::MD5>).  Will most likely not work with other SSH
+server software.
 
 =head1 BUGS
 
