@@ -71,7 +71,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts('c:f:t:u:p:m', \%Opts)
+getopts('c:f:t:u:p:mg', \%Opts)
         or die "$Usage";
 die "$Usage\n"
         unless (@ARGV == 1);
@@ -139,6 +139,7 @@ ${Comment}
 print color 'bold red' if $Opts{m};
 print "Connecting to $Target_host ...\n";
 print color 'reset' if $Opts{m};
+system qw(getraw -o *:+) if $Opts{g};
 my $sock = IO::Socket::INET->new(
                 Proto => "tcp",
                 PeerAddr => $Target_host,
@@ -149,10 +150,15 @@ my $sock = IO::Socket::INET->new(
 $SIG{'ALRM'} = sub { die "$0: timeout waiting for socket I/O\n"; };
 $sock->autoflush(1);
 read_response($sock);
+system qw(getraw -o *:+) if $Opts{g};
 write_command($sock, "HELO $Hostname\n");
+system qw(getraw -o *:+) if $Opts{g};
 write_command($sock, "MAIL FROM:<$MailFrom_addr>\n");
+system qw(getraw -o *:+) if $Opts{g};
 write_command($sock, "RCPT TO:<$RcptTo_addr>\n");
+system qw(getraw -o *:+) if $Opts{g};
 write_command($sock, "DATA\n");
+system qw(getraw -o *:+) if $Opts{g};
 write_command($sock, $Mssg_body, "(message body)\n");
 my $code = write_command($sock, "QUIT\n");
 
