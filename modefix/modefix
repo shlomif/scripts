@@ -55,15 +55,12 @@ if (exists $opts{'q'}) {
 if (exists $opts{'d'}) {
     my $temp_dirmode = $opts{'d'};
 
-    if ($temp_dirmode =~ m/^\d+$/) {
-	# paranoid, what me?  never!
-	die "dirmode must be four numbers long, e.g. 0750\n" 
-	    if 4 != length $temp_dirmode;
-
+    if ($temp_dirmode =~ m/^\d{3,4}$/) {
 	# internal number in oct mode for chmod compatibility
 	$dirmode = oct $temp_dirmode;
+
     } else {
-	# function should return an array ref...
+	# or an array ref for apply_mode to use
 	$dirmode = parse_mode($temp_dirmode);
     }
 }
@@ -72,13 +69,9 @@ if (exists $opts{'d'}) {
 if (exists $opts{'f'}) {
     my $temp_filemode = $opts{'f'};
 
-    if ($temp_filemode =~ m/^\d+$/) {
-	# sanity checking on number supplied
-	die "filemode must be four numbers long, e.g. 0640\n" 
-	    if 4 != length $temp_filemode;
-
-	# mode stored in chmod-compatible oct format internally
+    if ($temp_filemode =~ m/^\d{3,4}$/) {
 	$filemode = oct $temp_filemode;
+
     } else {
 	$filemode = parse_mode($temp_filemode);
     }
@@ -415,7 +408,7 @@ Options for version $VERSION
   -q     Overrides -v, only output will be on serious failures.
     
   -d nn  Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
-  -f nn  File mode to set,      e.g. '0660' or 'ug+rw'
+  -f nn  File mode to set,      e.g. '660'  or 'ug+rw'
   -u uu  User name to set,      e.g. 'jdoe' or '42'
   -g gg  Group name to set,     e.g. 'goobers' or '1492'
 
@@ -444,7 +437,7 @@ modefix.pl - recursive permission and ownership changer.
 To manually set the directory and file permissions, as well as the
 ownerships under /home/john:
 
-  $ modefix.pl -d 2750 -f 0640 -u john -g doe /home/john
+  $ modefix.pl -d 750 -f 640 -u john -g doe /home/john
 
 To ensure all files are group writable, and that others do not have
 any access whatsoever to the files under the current directory:
@@ -580,7 +573,7 @@ be passed to eith the B<-f> or B<-d> command line switches.
 
 Both may take either a literal mode to set, such as:
 
-  0750  (sticky bit, user bit, group bit, other bit)
+  0750  (optional sticky bit, user bit, group bit, other bit)
 
 Or can take an interpreted expression of arbitrary length and complexity:
 
@@ -588,7 +581,7 @@ Or can take an interpreted expression of arbitrary length and complexity:
 
 Note that later operations can override earlier ones; for example, we
 remove all then add user back in, for the same effect as the octal
-mode of 0600:
+mode of 600:
 
   a-rwxs,u+rw
 
