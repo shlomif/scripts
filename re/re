@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Wrapper to screen(1) for easy resuming and management of named screen
+# sessions.
+
+SCREEN=screen
+SCREEN_ARGS="-A -d -R -O -U"
+
+NAME=default
+FORCE=no
+
+OPT=
+while getopts f OPT; do
+  case $OPT in
+    f)
+      FORCE=yes
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+if [ ! -z "$1" ]; then
+  NAME=$1
+fi
+
+# TODO really need parsed output of -ls so can make decision on what
+# needs to happen, exit status not giving enough if want $NAME
+# support...
+$SCREEN -q -ls
+STATUS=$?
+
+screen_run () {
+  exec $SCREEN $SCREEN_ARGS -S $NAME
+}
+
+screen_list () {
+  exec $SCREEN -ls
+}
+
+if [ $STATUS -eq 8 -o $STATUS -eq 9 ]; then
+  screen_run
+elif [ $STATUS -ge 10 ]; then
+  if [ $FORCE = "yes" ]; then
+    screen_run
+  else
+    screen_list
+  fi
+else
+  echo "warning: unknown exit from screen: status=$STATUS" >&2
+  exit $STATUS
+fi
