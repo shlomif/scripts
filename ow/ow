@@ -79,8 +79,9 @@ if (exists $opts{d}) {
 for (sort { length $b <=> length $a } keys %$dirmap) {
   my $pos = index $dir, $_;
   if ($pos > -1) {
-    my $frag = substr $dir, $pos + length $_;
+    my $frag = substr($dir, $pos + length $_) || '';
     $frag =~ s,^/+,, if $dirmap->{$_} =~ m,\Q/%@,;
+    $dirmap->{$_} =~ s,\Q%@/,%\@,g if $frag eq '';
     visit(expand($dirmap->{$_}, $frag));
   }
 }
