@@ -13,10 +13,10 @@
 use strict;
 
 # how to match Top Level Domains (TLD)
-my $tld_re = qr/( \.\w+ )/x;
+my $tld_re = qr/( \w+ )/x;
 
 # domain portion option so can handle just TLD input
-my $domain_re = qr/( (?:[\w-]+)? $tld_re )/x;
+my $domain_re = qr/( (?:[\w-]+\.)? $tld_re )/x;
 
 use Net::DNS;
 my $dns = Net::DNS::Resolver->new;
@@ -26,6 +26,13 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 
 for my $input (@ARGV) {
   my ($domain, $tld) = $input =~ / $domain_re \W* $ /x;
+
+  unless ($tld) {
+    warn "error: no TLD found in: $input\n";
+    next;
+  }
+  $tld = '.'.$tld unless $tld =~ /^\./;
+  $domain = '.'.$domain unless $domain =~ /^\./;
 
   # real TLD should have SOA records
   unless ($dns->query($tld, 'SOA')) {
