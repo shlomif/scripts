@@ -11,12 +11,13 @@
 # standard input is passed to standard out after the tidy is done.
 
 use strict;
+
+# command to tidy up XML; xmllint from libxml2 accepts the filename on
+# the command line and produces output to standard out
+my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);
+
 use File::Basename qw(basename dirname);
 use File::Temp qw(tempfile);
-
-# command to tidy up XML; xmllint from libxml2 produces output to
-# standard out
-my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);
 
 my $basename = basename $0;
 
@@ -25,6 +26,7 @@ use Getopt::Std;
 my %opts;
 getopts 'h?i', \%opts;
 
+# to preserve any $! from the tidy command out of a function call
 my $error;
 
 # no args, read file from stdin, write to temp file
@@ -42,6 +44,9 @@ unless (@ARGV) {
 } else {
   for my $file (@ARGV) {
     next unless -f $file;
+
+    # KLUGE transfer permissions from file to temporary file
+    my ($filemode) = (stat _)[2] & 07777;
 
     my $tfh = xmltidy($file);
     unless ($tfh) {
@@ -71,6 +76,9 @@ unless (@ARGV) {
      )
      and exit 103;
 
+    # KLUGE fix mode
+    chmod $filemode, $tmpfile;
+
     rename $tmpfile, $file
      or remark(
       'warning',
@@ -83,6 +91,8 @@ unless (@ARGV) {
 # accepts filename to tidy up, returns filehandle to play with
 sub xmltidy {
   my $tmpfile = shift;
+
+  undef $error;
 
   open my $tidyfh,       "-|"
    or exec @xmltidy_cmd, $tmpfile
