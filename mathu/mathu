@@ -80,10 +80,11 @@ sub handle_percent {
 }
 
 sub handle_max {
-  my $result = 0;
+  my $result;
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
+    $result = $_ unless defined $result;
     $result = $_ if $_ > $result;
   }
   $result = numbertidy($result) if $result =~ /\./;
@@ -91,10 +92,12 @@ sub handle_max {
 }
 
 sub handle_min {
-  my $result = 0;
+  my $result;
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
+
+    $result = $_ unless defined $result;
     $result = $_ if $_ < $result;
   }
   $result = numbertidy($result) if $result =~ /\./;
@@ -104,14 +107,17 @@ sub handle_min {
 sub handle_basic {
   my @array;
   my %results;
-  $results{min} = $results{max} = 0;
 
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
     $results{sum} += $_;
+
+    $results{min} = $_ unless exists $results{min};
+    $results{max} = $_ unless exists $results{max};
     $results{min} = $_ if $_ < $results{min};
     $results{max} = $_ if $_ > $results{max};
+
     push @array, $_;
   }
   $results{count} = $.;
@@ -128,13 +134,14 @@ sub handle_distribution {
   my @array;
   my %results;
 
-  my $way = shift @ARGV;
-
-  $results{min} = $results{max} = 0;
+  my $way    = shift @ARGV;
+  my $output = shift @ARGV;
 
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
+    $results{min} = $_ unless exists $results{min};
+    $results{max} = $_ unless exists $results{max};
     $results{min} = $_ if $_ < $results{min};
     $results{max} = $_ if $_ > $results{max};
     push @array, $_;
@@ -153,7 +160,7 @@ sub handle_distribution {
   } elsif ($way =~ /^d=?(\d[\d:]*)?/) {
     my $bucket = $1;
     my @buckets;
-    if ($bucket) {
+    if (defined $bucket) {
       my %seen;
       @buckets = sort { $a <=> $b } grep {
             defined
@@ -171,6 +178,11 @@ sub handle_distribution {
 
     push @buckets, $results{max} unless $buckets[-1] == $results{max};
     do_dist(\@array, \@buckets);
+  } elsif ($way =~ /^r/) {
+    my @buckets = $results{min} .. $results{max};
+    print "@array\n";
+    print "@buckets\n";
+    do_dist(\@array, \@buckets);
   }
 }
 
@@ -179,15 +191,12 @@ sub do_dist {
   my $bref  = shift;
 
   die "not enough buckets\n" unless @$bref > 1;
-  die "too many buckets\n" if @$bref >= @$array;
 
-  # TODO fix this algo for boundary cases
   # TODO support for different output modes (counts, literal
   # values in each bucket, percents of total)
   my $i     = 0;
   my $count = 0;
-  for my $j (0 .. $#{@$array}) {
-    my $v = $array->[$j];
+  for my $v (@$array) {
 
     # print "CUR: ", $v, " at $j and ", $bref->[$i], "\n";
     if ($v > $bref->[$i]) {
