@@ -387,6 +387,10 @@ paste needs, for instance to copy the URL of a lookup on Mac OS X:
 
   ow -l perldoc Term::CallEditor | pbcopy
 
+=item B<-o> I<browser-alias>
+
+Use specified browser alias instead of the default.
+
 =back
 
 =head1 SHORTCUTS
