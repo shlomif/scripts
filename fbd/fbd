@@ -42,6 +42,8 @@ if (exists $opts{'f'}) {
    or $src_date !~ /^\d+$/;
 }
 
+die "error: no source date or file to check against\n" unless $src_date;
+
 my $skip  = $opts{'s'} if exists $opts{'s'};
 my $prune = $opts{'p'} if exists $opts{'p'};
 
