@@ -10,7 +10,7 @@
 use Text::Autoformat;
 
 # these are the default preferences
-$default = {squeeze=>1,all=>1};
+$default = {squeeze=>1,all=>0};
 
 # merge in user prefs from command line
 $input = '$user = {'.$ARGV[0].'};';
