@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
@@ -8,6 +8,7 @@
 # Utility to manage and maintain OpenSSH known_hosts data.
 
 use strict;
+use Fatal qw(open close);
 
 #use Getopt::Std;
 #my %opts;
@@ -15,27 +16,37 @@ use strict;
 
 my $khf = shift;
 
-open my $file, "< $khf" or die;
-my $hkd = parse_known_hosts($file);
+open my $file, "< $khf";
+my $hkd   = parse_known_hosts($file);
 my $m_hkd = merge_host_keys($hkd);
-use Data::Dumper; print Dumper $m_hkd;
+
+sub print_known_hosts {
+  my $hkd = shift;
+}
 
 # takes hostname => public_key hash reference, returns new hash
 # reference with hostnames merged on identical public keys
 sub merge_host_keys {
   my $hkd = shift;
 
-  my (%keys2hosts, %hosts2keys);
-  
-  while (my ($host_spec, $public_key) = each %$hkd) {
-    push @{$keys2hosts{$public_key}}, split /,/, $host_spec;
+  my ( %keys2hosts, @host_keys );
+
+  for my $hkr (@$hkd) {
+    push @{ $keys2hosts{"$hkr->{key_type} $hkr->{public_key}"} },
+     @{ $hkr->{'hosts'} };
   }
 
-  for my $public_key (keys %keys2hosts) {
-    $hosts2keys{join ',', sort @{$keys2hosts{$public_key}}} = $public_key;
+  for my $key ( keys %keys2hosts ) {
+    my ( $key_type, $public_key ) = split ' ', $key;
+    push @host_keys,
+     {
+      key_type   => $key_type,
+      public_key => $public_key,
+      hosts      => \@{ $keys2hosts{$key} }
+     };
   }
 
-  return \%hosts2keys;
+  return \@host_keys;
 }
 
 # parses OpenSSH known_hosts file into hostname => public key hash
@@ -43,26 +54,26 @@ sub merge_host_keys {
 sub parse_known_hosts {
   my $what = shift;
 
-  my %hosts2keys;
-  
+  my @host_keys;
+
   # by filehandle
-  if (ref $what eq 'GLOB') {
+  if ( ref $what eq 'GLOB' ) {
     while (<$what>) {
       next if /^#/;
       chomp;
-      my ($host_spec, $public_key) = split / /, $_, 2;
-      next unless $host_spec and $public_key;
-      for my $host (split /,/, $host_spec) {
-        if (exists $hosts2keys{$host}) {
-          warn "warning: skipping duplicate host: host=$host, line=$.\n";
-          next;
-        }
-        $hosts2keys{$host} = $public_key;
-      }
+      my ( $host_spec, $key_type, $public_key ) = split ' ', $_, 3;
+      next unless $host_spec and $key_type and $public_key;
+
+      push @host_keys,
+       {
+        key_type   => $key_type,
+        public_key => $public_key,
+        hosts      => [ split ',', $host_spec ]
+       };
     }
   } else {
     die "error: do not know how to parse known_hosts from ", ref $what;
   }
 
-  return \%hosts2keys;
+  return \@host_keys;
 }
