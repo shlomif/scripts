@@ -37,7 +37,12 @@ if [ "$1" = "rpm" ]; then
   exit
 fi
 if [ "$1" = "dns" ]; then
-  date '+%Y%m%d'
+  if [ -z "$2" ]; then
+    SERIAL=01
+  else
+    SERIAL=$2
+  fi
+  date "+%Y%m%d$SERIAL"
   exit
 fi
 
