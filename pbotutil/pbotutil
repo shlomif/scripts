@@ -71,7 +71,10 @@ for (keys %pfiles) {
 my $servers = server_load({filename => $pfiles{servers}});
 
 # figure out what to do
-my $verb = shift || 'put';
+my $verb;
+if ($ARGV[0] eq "get" or $ARGV[0] eq "put") {
+  $verb = shift;
+}
 unless (exists $actions{$verb}) {
   remark('alert', "no such action: $verb") and exit 101;
 }
