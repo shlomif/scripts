@@ -38,25 +38,132 @@ use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my (%opts, @targets);
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?f:ht', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# keyfiles on ARGV after options, STDIN may (optionally) bear a
-# list of hosts to target (e.g. via -f -)
+# read target host(s) in
+push @targets, $opts{'t'} if exists $opts{'t'};
+if (exists $opts{'f'}) {
+  unless ($opts{'f'} eq "-") {
+    open STDIN, "< $opts{'f'}"
+     or remark('alert', "could not open $opts{'f'}: $!")
+     and die;
+  }
+  while (<STDIN>) {
+    chomp;
+    s/^\s+//;
+    next if /^#/;
+    s/\s+$//;
+    next if /^\s*/;
+
+    push @targets, $_;
+  }
+}
+
+# rest of argv keyfiles, load 'em up
+for (@ARGV) {
+
+}
 
 exit;
 
 ######################################################################
 #
 # SUBROUTINES
+
+# takes scalar containing key, tries to return hash reference with
+# various bits of info expanded out
+sub parse_authkey {
+  my $authkey = shift;
+
+  my (%values, @options);
+
+  # TODO: improve parser to get around boundary cases!
+  # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
+  # or even: ssh-rsa  AAAA...
+
+  # try to pull apart key so we can do a checksum on the
+  # important bits (i.e. not the optional option and comment fields)
+  my @elements = split /\s/, $authkey;
+  for my $i (0 .. $#elements) {
+
+    if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
+      and $elements[$i + 1] =~ m/^AAAA/) {
+
+      $values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
+      $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
+      $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
+
+      last;
+
+      } elsif ($elements[$i] =~ m/^\d+$/
+      and $elements[$i + 1] =~ m/^\d+$/
+      and $elements[$i + 2] =~ m/^\d+$/) {
+
+      $values{'type'}    = 'rsa1';
+      $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
+      $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
+
+      last;
+    }
+
+    push @options, $elements[$i];
+  }
+
+  unless (exists $values{'goodbit'}) {
+    remark('notice', "could not parse key from: $authkey");
+    return;
+  }
+
+  $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
+  $values{'options'} = "@options";
+  $values{'key'}     = $authkey;
+
+  return \%values;
+}
+
+# generic log handler
+sub remark {
+  my ($facility, $priority, $message);
+  $facility = 'user';
+
+  if (@_ > 1) {
+    $priority = shift;
+    $message  = "@_";
+  } else {
+    $priority = 'info';
+    $message  = "@_";
+  }
+
+  return 1 if exists $opts{'q'} and $priority eq 'info';
+
+  if (exists $opts{'l'}) {
+    if ($opts{'l'} eq "syslog") {
+      openlog($0, 'cons', $facility);
+      syslog($priority, $message);
+      closelog();
+
+    } elsif ($opts{'l'} eq "logger") {
+      system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
+
+    } else {
+      die "alert: unknown log handler: ", $opts{'l'};
+    }
+
+  } else {
+    warn $priority, ": ", $message, "\n";
+  }
+
+  return 1;
+}
 
 # a generic help blarb
 sub help {
@@ -67,6 +174,9 @@ Manages OpenSSH authorized key files.
 
 Options for version $VERSION:
   -h/-?  Display this message
+
+  -t hh  Target host tt.
+  -f ff  Read target host(s) from file ff; - for STDIN.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -108,6 +218,16 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note about the script.
+
+=item B<-t> I<host specification>
+
+Specify a target host to manage keys with.
+
+=item B<-f> I<filepath>
+
+Read target host(s) from specified file.  Setting the file to C<->
+will read from STDIN.  Lines beginning with # will be ignored; leading
+and trailing whitespace will be deleted, and empty lines skipped.
 
 =back
 
