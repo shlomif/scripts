@@ -37,7 +37,7 @@ my $maxinterval = 2;
 my $interval    = 1;
 my $adjustafter = 1;
 my $tail        = 0;
-my $reset_tail  = -1;
+my $reset_tail  = 0;
 
 # default to just printing input
 my $expression = "print";
