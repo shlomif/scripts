@@ -86,7 +86,7 @@ FILE: for my $file (@ARGV) {
 
   my ( $filedata, $defaults, $params ) = $xapply->study( $doc, $file );
 
-  %$defaults = ( %$defaults, %user_default );
+  %$defaults = ( %$filedata, %$defaults, %user_default );
   %$params   = ( %$params,   %user_params );
 
   my ( $docref, $details ) =
