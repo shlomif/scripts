@@ -28,9 +28,6 @@ use File::Find;   # recursive directory walking
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (
   %opts,     $dirmode, $filemode, $user,   $userid,
   $group,    $groupid, $verbose,  $quiet,  %badgroups,
@@ -459,7 +456,7 @@ $0 [options] file1 [file2 file3 .. fileN]
 
 A unix permissions and ownership changer.
 
-Options for version $VERSION
+Options:
   -h/?   See this text.
   -v     Verbose mode.
   -r     Print a little report summarizing changes.

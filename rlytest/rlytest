@@ -148,10 +148,10 @@ ${Comment}
 #
 # Connect and execute SMTP diaglog.
 #
-print color 'bold red' if $Opts{m};
+print color 'bold red' if $Opts{'m'};
 print "Connecting to $Target_host ...\n";
-print color 'reset' if $Opts{m};
-system qw(getraw -o *:+) if $Opts{g};
+print color 'reset' if $Opts{'m'};
+system qw(getraw -o *:+) if $Opts{'g'};
 my $sock = IO::Socket::INET->new(
                 Proto => "tcp",
                 PeerAddr => $Target_host,
@@ -162,15 +162,15 @@ my $sock = IO::Socket::INET->new(
 $SIG{'ALRM'} = sub { die "$0: timeout waiting for socket I/O\n"; };
 $sock->autoflush(1);
 read_response($sock);
-system qw(getraw -o *:+) if $Opts{g};
+system qw(getraw -o *:+) if $Opts{'g'};
 write_command($sock, "HELO $Hostname\n");
-system qw(getraw -o *:+) if $Opts{g};
+system qw(getraw -o *:+) if $Opts{'g'};
 write_command($sock, "MAIL FROM:<$MailFrom_addr>\n");
-system qw(getraw -o *:+) if $Opts{g};
+system qw(getraw -o *:+) if $Opts{'g'};
 write_command($sock, "RCPT TO:<$RcptTo_addr>\n");
-system qw(getraw -o *:+) if $Opts{g};
+system qw(getraw -o *:+) if $Opts{'g'};
 write_command($sock, "DATA\n");
-system qw(getraw -o *:+) if $Opts{g};
+system qw(getraw -o *:+) if $Opts{'g'};
 write_command($sock, $Mssg_body, "(message body)\n");
 my $code = write_command($sock, "QUIT\n");
 
@@ -189,9 +189,9 @@ sub write_command
         my $sock = shift;
         my $data = shift;
         my $mssg = shift || $data;
-	print color 'bold red' if $Opts{m};
+	print color 'bold red' if $Opts{'m'};
         print ">>> $mssg";
-	print color 'reset' if $Opts{m};
+	print color 'reset' if $Opts{'m'};
         $data =~ s/\n/\r\n/g;
         alarm($Timeout);
         $sock->print($data)
@@ -214,9 +214,9 @@ sub read_response
                 chop($_ = $sock->getline());
                 alarm(0);
                 ($code, $cont, $mssg) = /(\d\d\d)(.)(.*)/;
-		print color 'bold blue' if $Opts{m};
+		print color 'bold blue' if $Opts{'m'};
                 print "<<< ", $_, "\n";
-		print color 'reset' if $Opts{m};
+		print color 'reset' if $Opts{'m'};
         } while ($cont eq "-");
         return $code
                 if ($code >= 200 && $code < 400);

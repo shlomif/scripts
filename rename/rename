@@ -2,94 +2,86 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2002, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# This script is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#
+# Mangle files with perl expressions: rename, copy, or move.
 #
 # Run perldoc(1) on this file for additional documentation.
 
 require 5;
 use strict;
 
-use Carp;        # better error reporting
-use File::Copy;  # if want to copy instead of rename
+sub print_help;
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+use File::Copy;
 
-my %opts;
 use Getopt::Std;
+my %opts;
 getopts('h?cmifvp', \%opts);
+print_help if exists $opts{'h'} or exists $opts{'?'};
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+my $preview = exists $opts{'i'} or exists $opts{'p'} or exists $opts{'v'} ? 1 : 0;
+my $interactive = exists $opts{'i'} and not exists $opts{'f'} ? 1 : 0;
 
 # choose which function to use depending on argument; default is to
 # use the rename() function, but that can be changed to one of copy()
 # or move() from File::Copy if the name of the script is changed or
 # appropriate argument is supplied
 my $fn;
-$fn = $opts{'c'} || $0 eq "copy" ? "copy" : "rename";
-$fn = $opts{'m'} || $0 eq "move" ? "move" : $fn;
+$fn = $opts{'c'} || $0 eq 'copy' ? 'copy' : 'rename';
+$fn = $opts{'m'} || $0 eq 'move' ? 'move' : $fn;
 
 # perl expression to run the files by
-my $op = shift;
+my $op = shift || print_help;
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
 
 # and flag the help text if nothing from STDIN
-help() unless @ARGV;
+print_help unless @ARGV;
 
-# loop over the files
-for (@ARGV) {
+{
 
-  # allow more flexibility in eval statements
+  # loosen things up to ease off-the-cuff code on command line
   no strict;
   $^W = 0;
 
-  # record what the file was called
-  my $was = $_;
+  for (@ARGV) {
 
-  # evaluate the expression passed on the command line,
-  # operating on $_ (by default)
-  eval $op;
+    my $was = $_;
 
-  # keel over if something went wrong with the evaluation...
-  die $@ if $@;
+    eval $op;
+    die "error: unable to eval expression: $@" if $@;
 
-  # skip out early if the filename didn't change
-  next if $was eq $_;
+    next if $was eq $_;
 
-  # if required, print out what we intend to do
-  print $fn, ' ', $was, ' ', $_, "\n"
-   if $opts{'v'} || $opts{'i'} || $opts{'p'};
+    print $fn, ' ', $was, ' ', $_, "\n" if $preview;
 
-  # skip out early if we're in the "preview" mode
-  next if $opts{'p'};
+    next if exists $opts{'p'};
 
-  # check whether we should drop into interactive mode
-  # when a conflicting file exists
-  if (-e && $opts{'i'} && !$opts{'f'}) {
-    print "$_ exists.  Overwrite? (y/[n]) ";
-    next unless <STDIN> =~ /^[Yy]/;
-  }
+    # TODO use getraw instead?  Enhance getraw to support
+    # application-specific prefernces from a config file?
+    if (-e and $interactive) {
+      print "$_ exists.  Overwrite? (y/[n]) ";
+      next unless <STDIN> =~ /^[Yy]/;
+    }
 
-  # with error checking, actually attempt the rename or
-  # copy.
-  unless (eval "$fn(\$was, \$_)") {
-    warn "\U$fn\E ERROR $was -> $_ - $!\n";
-    next;
+    unless (eval "$fn(\$was, \$_)") {
+      warn "warning: could not $fn $was to $_: $!\n";
+      next;
+    }
   }
 }
 
 # a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
-Usage: $0 [opts] expression [file1 file2 .. fileN]
+Usage: $0 [opts] expression [file1 ...]
 
 Mangle filenames using perl expressions.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -p     preview mode (show changes only)
@@ -104,7 +96,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 100;
 }
 
 __END__
@@ -119,29 +111,35 @@ Append .old to a bunch of files:
 
   $ rename 's/$/.old/' *
 
-Fix the case on all .C files to lower, doing a preview of changes
-only:
+Fix the case on all .C files to lower, but only preview what would
+be changed:
 
   $ rename -p 'tr/A-Z/a-z/' *.C
 
 =head1 DESCRIPTION
 
-A file renamer that uses user-supplied perl expressions to rename
-files.  Optionally, the copy() or move() routines from File::Copy may
-be used instead of the builtin rename() function.
+A file renamer that uses user-supplied Perl expressions to rename files.
+Optionally, the copy() or move() routines from File::Copy may be used
+instead of the builtin rename() function.
 
 A preview mode is also available, to allow testing of expressions
-before any changes are allowed to go to disk.
+before any changes are allowed to go to the filesystem.
+
+Note that rename is primarily aimed at dealing with the files in the
+current working directory, given that the default rename function does
+not work across different filesystems, and renaming parent directories
+before dealing with any files deeper in the filesystem tree will not
+work by default (see L<"EXAMPLES"> for solutions).
 
 =head1 USAGE
 
-  $ rename [options] expression [file1 file2 .. fileN]
+  $ rename [options] expression [file1 ...]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
 If no files are mentioned on the command line, the script will attempt
 to read them from STDIN, allowing for easy interoperation with various
-shell utilities.  In this case, fix .htm files to .html:
+shell utilities. For example, to change .htm files to .html:
 
   $ find . ! -type d -name "*.htm" | rename '$_ .= "l"'
 
@@ -188,7 +186,7 @@ Force mode.  Does not prompt to replace existing files.
 
 =head1 EXAMPLES
 
-Remove upper case from a bunch of files:
+Remove upper case from all files in the working directory:
 
   $ rename '$_ = lc' *
 
@@ -200,8 +198,17 @@ The solution is to first change all the directories, then go after the
 files.  For example, to swap out "bad" characters with _ in a deep
 file tree:
 
-    $ find . -type d -exec rename 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
-    $ find . -exec rename 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+  $ find . -type d -exec rename 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+  $ find . -exec rename 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+
+A find-by-depth file search should also prevent directory rename
+problems, though the exact invocation of this depends on the find(1)
+varient being used.
+
+=head1 SECURITY
+
+This script should not be allowed to be run under elevated privileges,
+as it accepts and runs arbitrary user-supplied Perl code fragments.
 
 =head1 BUGS
 
@@ -216,7 +223,10 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-Bugs are left as an exercise to the expression writer. :)
+Bugs are left as an exercise to the expression writer.
+
+See the documentation for the rename function being used for any
+relevant warnings or limitations.
 
 =head1 SEE ALSO
 
@@ -228,19 +238,18 @@ Jeremy Mates, http://sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2002, Jeremy Mates.  This script is free
-software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+This script is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
 
 =head1 HISTORY
 
 This is a hacked up version of Larry Wall's original rename script
 distributed with perl under the eg directory, improved by Daniel
 V. Klien (copy option, interactive mode), and then polished into this
-form by Jeremy Mates (preview mode, comments in source, move support).
+form by Jeremy Mates (preview mode, move support, subversion support).
 
 =head1 VERSION
 
-$Id$
+  $Id$
 
 =cut

@@ -37,9 +37,6 @@ use Sys::Syslog;                # interface to the UNIX syslog(3) calls
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts);
 
 # path to authorized_keys file.  OpenSSH >= 3.0 should merge old
@@ -79,7 +76,7 @@ $auth_key_file = $opts{'f'} if exists $opts{'f'};
 # do ~ expansion on filename
 $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
                     { $1 ? (getpwnam($1))[7]
-                          : ( $ENV{HOME} || $ENV{LOGDIR}
+                          : ( $ENV{'HOME'} || $ENV{'LOGDIR'}
                               || (getpwuid($>))[7]
                               )
                           }ex;
@@ -422,7 +419,7 @@ Usage: $0 [opts]
 
 Command interface to OpenSSH authorized_keys file.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -f ff  Use specified authorized_keys file instead of default.

@@ -13,9 +13,6 @@
 require 5;
 use strict;
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 # what stat() colume to read time from (e.g. mtime, atime, ctime)
 my $timef = 9;
 
@@ -27,8 +24,8 @@ help() unless @ARGV;
 
 my $src_date;
 
-if (exists $opts{d}) {
-  $src_date = $opts{d} or die "error: could not parse empty date\n";
+if (exists $opts{'d'}) {
+  $src_date = $opts{'d'} or die "error: could not parse empty date\n";
 
   # treat all numeric as epoch date, otherwise attempt to parse
   unless ($src_date =~ /^\d+/) {
@@ -38,9 +35,9 @@ if (exists $opts{d}) {
   }
 }
 
-if (exists $opts{f}) {
-  $src_date = (lstat $opts{f})[$timef];
-  die "error: could not read date from $opts{f}\n"
+if (exists $opts{'f'}) {
+  $src_date = (lstat $opts{'f'})[$timef];
+  die "error: could not read date from $opts{'f'}\n"
    if not $src_date
    or $src_date !~ /^\d+$/;
 }
@@ -50,13 +47,13 @@ my $prune = $opts{'p'} if exists $opts{'p'};
 
 my ($fudge, $min_date, $max_date);
 
-if (exists $opts{a}) {
-  $fudge    = duration2seconds($opts{a});
+if (exists $opts{'a'}) {
+  $fudge    = duration2seconds($opts{'a'});
   $min_date = $src_date - $fudge;
   $max_date = $src_date + $fudge;
 }
-if (exists $opts{b}) {
-  $fudge    = duration2seconds($opts{b});
+if (exists $opts{'b'}) {
+  $fudge    = duration2seconds($opts{'b'});
   $min_date = $src_date - $fudge;
   $max_date = $src_date unless $max_date;
 }
@@ -66,7 +63,7 @@ use File::Find;
 for my $parent (
   grep {
     unless (-d) {
-      warn "notice: skipping as not directory: $_\n" unless exists $opts{q};
+      warn "notice: skipping as not directory: $_\n" unless exists $opts{'q'};
       undef
     }
   } @ARGV
@@ -101,7 +98,7 @@ sub handle_file {
   my $file_date = (lstat $_)[$timef];
   unless (defined $file_date) {
     warn "notice: skipping due to no date field: $File::Find::name\n"
-     unless exists $opts{q};
+     unless exists $opts{'q'};
     return;
   }
 
@@ -167,7 +164,7 @@ Usage: $0 [opts] searchdir1 [sd2 .. sdN]
 
 Finds files with similar date to specified date or file.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message.
 
   -f ff  Read modify time to compare with from specified file.

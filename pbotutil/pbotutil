@@ -19,13 +19,13 @@ use File::Basename;
 use File::Path;
 use URI;
 
-my $prefs_file = $ENV{PBOTUTILCONF} || '~/.pbotutil/servers';
+my $prefs_file = $ENV{'PBOTUTILCONF'} || '~/.pbotutil/servers';
 
 $prefs_file = tilde_expand($prefs_file);
 init($prefs_file) unless -e $prefs_file;
 my $servers = server_load({filename => $prefs_file});
 my @server_list =
- sort { $servers->{$a}->{count} <=> $servers->{$b}->{count} } keys %$servers;
+ sort { $servers->{$a}->{'count'} <=> $servers->{$b}->{'count'} } keys %$servers;
 my $aliases = parse_aliases($servers);
 
 # parse pre-verb command-line options
@@ -68,33 +68,23 @@ getopts('s:c:m:u:', \%postopts);
 my %postargs;
 @postargs{qw(name nick channel summary)} = @postopts{qw(s u c m)};
 
-# sanity check on args if any
-if (@ARGV) {
-  my @non = grep { not -f } @ARGV;
-  if (@non) {
-    remark('error',
-      'cannot upload non-existent file' . (@non == 1 ? '' : 's') . ": @non");
-    exit 101;
-  }
-}
-
 while (my ($k, $v) = each %postargs) {
   $args{$k} = $v if defined $v;
 }
 
 print_help()
- unless (exists $args{name} and defined $args{name})
+ unless (exists $args{'name'} and defined $args{'name'})
  or ($verb eq 'get' and defined $ARGV[0]);
 
 if ($verb eq 'get') {
   my $prefs;
 
   $prefs = $servers->{
-    exists $aliases->{$args{name}}
-    ? $aliases->{$args{name}}->[0]
-    : $args{name}
+    exists $aliases->{$args{'name'}}
+    ? $aliases->{$args{'name'}}->[0]
+    : $args{'name'}
    }
-   if defined $args{name};
+   if defined $args{'name'};
 
   # merge command-line prefs over server entry
   while (my ($k, $v) = each %args) {
@@ -105,18 +95,28 @@ if ($verb eq 'get') {
 
 } elsif ($verb eq 'put') {
 
+  # sanity check on args if any
+  if (@ARGV) {
+    my @non = grep { not -f } @ARGV;
+    if (@non) {
+      remark('error',
+        'cannot upload non-existent file' . (@non == 1 ? '' : 's') . ": @non");
+      exit 101;
+    }
+  }
+
   # deal with uploading data with put; trickier as can upload to any
   # number of pastebots
 
   # lookup aliases, pre-populate potential servers with name fields
   my @potentials;
-  if (exists $aliases->{$args{name}}) {
-    push @potentials, @{$aliases->{$args{name}}};
-    $args{name} = $aliases->{$args{name}}->[0];
+  if (exists $aliases->{$args{'name'}}) {
+    push @potentials, @{$aliases->{$args{'name'}}};
+    $args{'name'} = $aliases->{$args{'name'}}->[0];
   }
 
-  unless (exists $servers->{$args{name}}) {
-    remark('error', "no preferences entry for: $args{name}");
+  unless (exists $servers->{$args{'name'}}) {
+    remark('error', "no preferences entry for: $args{'name'}");
     exit 105;
   }
 
@@ -129,29 +129,29 @@ if ($verb eq 'get') {
   }
 
   # look for entries we can fail over to if named site down
-  my $primary = $servers->{$args{name}};
-  push @potentials, $args{name};
+  my $primary = $servers->{$args{'name'}};
+  push @potentials, $args{'name'};
 
   # network and channel same mean multiple pastebots for channel
-  if ($primary->{network} ne '') {
+  if ($primary->{'network'} ne '') {
     push @potentials, grep {
-           $servers->{$_}->{name} ne $primary->{name}
-       and $servers->{$_}->{network} eq $primary->{network}
-       and $servers->{$_}->{channel} eq $primary->{channel}
+           $servers->{$_}->{'name'} ne $primary->{'name'}
+       and $servers->{$_}->{'network'} eq $primary->{'network'}
+       and $servers->{$_}->{'channel'} eq $primary->{'channel'}
     } @server_list;
   }
 
   # can also fallback to entries without channels; these should not be
   # announced anywhere: better to paste somewhere than fail if all the
   # announcing ones are unavailable
-  push @potentials, grep { $servers->{$_}->{channel} eq '' } @server_list;
+  push @potentials, grep { $servers->{$_}->{'channel'} eq '' } @server_list;
 
   # screen out same url on assumption url being down more common than a
   # channel-specific problem with the paste site (the site having
   # removed support for the channel in question)
   {
     my %seen;
-    @potentials = grep { not $seen{$servers->{$_}->{url}}++ } @potentials;
+    @potentials = grep { not $seen{$servers->{$_}->{'url'}}++ } @potentials;
   }
 
   for my $prefs (map { $servers->{$_} } @potentials) {
@@ -181,7 +181,7 @@ sub pb_get {
 
     $url =
      URI->new(
-      $prefs->{url} . (($prefs->{url} !~ m,/$,) ? '/' : '') . $id . '?tx=on')
+      $prefs->{'url'} . (($prefs->{'url'} !~ m,/$,) ? '/' : '') . $id . '?tx=on')
      ->canonical;
 
     unless (defined $url) {
@@ -211,18 +211,18 @@ sub pb_put {
   my $paste = shift;
 
   my $url =
-   URI->new($prefs->{url} . (($prefs->{url} !~ m,/$,) ? '/' : '') . 'paste')
+   URI->new($prefs->{'url'} . (($prefs->{'url'} !~ m,/$,) ? '/' : '') . 'paste')
    ->canonical;
 
   unless (defined $url) {
-    remark('error', "could not determine url from $prefs->{url}");
+    remark('error', "could not determine url from $prefs->{'url'}");
     exit 104;
   }
 
   # ensure non-null channel prefixed with #
-  $prefs->{channel} =~ s/^/#/
-   if $prefs->{channel} ne ''
-   and $prefs->{channel} !~ /^#/;
+  $prefs->{'channel'} =~ s/^/#/
+   if $prefs->{'channel'} ne ''
+   and $prefs->{'channel'} !~ /^#/;
 
   eval { require LWP::UserAgent; };
   if ($@) {
@@ -238,12 +238,12 @@ sub pb_put {
        : ()
     } qw(channel nick summary);
 
-    $postargs{paste} = $$paste;
+    $postargs{'paste'} = $$paste;
 
     my $response = $ua->post($url, \%postargs);
 
     if ($response->is_success) {
-      if ($response->content and not exists $opts{q}) {
+      if ($response->content and not exists $opts{'q'}) {
         eval { require HTML::TokeParser; };
         if ($@) {
           remark('error', "problem loading HTML::TokeParser: $@");
@@ -284,16 +284,16 @@ sub get_url {
   } else {
     my $ua =
      LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
-    my $response = $ua->get($data->{url});
+    my $response = $ua->get($data->{'url'});
 
     unless ($response->is_success) {
       if ($response->is_error) {
         my $error;
         ($error) = $response->error_as_HTML =~ /^(\d{3}.+)/m;
-        remark('warning', "error fetching $data->{url}: $error");
+        remark('warning', "error fetching $data->{'url'}: $error");
         return;
       } else {
-        remark('warning', "error fetching $data->{url}: unknown error");
+        remark('warning', "error fetching $data->{'url'}: unknown error");
         return;
       }
     }
@@ -308,8 +308,8 @@ sub server_load {
 
   push @tmp, {};
 
-  open FILE, "< $data->{filename}"
-   or remark('error', "could not open $data->{filename} for reading: $!")
+  open FILE, "< $data->{'filename'}"
+   or remark('error', "could not open $data->{'filename'} for reading: $!")
    and exit 100;
 
   while (<FILE>) {
@@ -319,7 +319,7 @@ sub server_load {
 
     # treat blank lines as record seperators
     if (/^$/) {
-      push @tmp, {} if exists $tmp[-1]->{name} and exists $tmp[-1]->{url};
+      push @tmp, {} if exists $tmp[-1]->{'name'} and exists $tmp[-1]->{'url'};
       next;
     }
 
@@ -327,7 +327,7 @@ sub server_load {
 
     my ($k, $v) = split /\s+/, $_, 2;
     unless (defined $k and $k =~ /^[\w.-]+$/ and defined $v) {
-      remark('warning', "skipping invalid data at $data->{filename} line $.");
+      remark('warning', "skipping invalid data at $data->{'filename'} line $.");
       next;
     }
     $tmp[-1]->{$k} = $v;
@@ -340,25 +340,25 @@ sub server_load {
     next unless keys %{$server};
     $count++;
 
-    unless (exists $server->{name} and defined $server->{name}) {
+    unless (exists $server->{'name'} and defined $server->{'name'}) {
       remark('warning', "skipping entry $count due to missing name parameter");
       next;
     }
-    unless ($server->{name} =~ /^[\w.-]+$/) {
+    unless ($server->{'name'} =~ /^[\w.-]+$/) {
       remark('warning', "skipping entry $count due to invalid name parameter");
       next;
     }
 
-    unless (exists $server->{url} and defined $server->{url}) {
+    unless (exists $server->{'url'} and defined $server->{'url'}) {
       remark('warning',
-"skipping entry $count named $server->{name} due to missing url parameter"
+"skipping entry $count named $server->{'name'} due to missing url parameter"
       );
       next;
     }
 
-    if (exists $servers->{$server->{name}}) {
+    if (exists $servers->{$server->{'name'}}) {
       remark('warning',
-        "skipping entry $count due to previous entry named $server->{name}");
+        "skipping entry $count due to previous entry named $server->{'name'}");
       next;
     }
 
@@ -368,13 +368,13 @@ sub server_load {
        unless exists $server->{$key}
        and defined $server->{$key};
     }
-    $server->{count} = $count;
+    $server->{'count'} = $count;
 
-    $servers->{$server->{name}} = $server;
+    $servers->{$server->{'name'}} = $server;
   }
 
   unless (keys %$servers) {
-    remark('error', "no entries found in preferences file $data->{filename}");
+    remark('error', "no entries found in preferences file $data->{'filename'}");
     exit 100;
   }
   return $servers;
@@ -387,13 +387,13 @@ sub parse_aliases {
 
   for my $key (@server_list) {
     my $s = $servers->{$key};
-    next unless defined $s->{alias};
-    for my $alias (split /\s+/, $s->{alias}) {
+    next unless defined $s->{'alias'};
+    for my $alias (split /\s+/, $s->{'alias'}) {
       unless (defined $alias and $alias =~ /^[\w.-]+$/) {
-        remark('warning', "skipping alias for entry $s->{count} as invalid");
+        remark('warning', "skipping alias for entry $s->{'count'} as invalid");
         next;
       }
-      push @{$aliases{$alias}}, $s->{name};
+      push @{$aliases{$alias}}, $s->{'name'};
     }
   }
 
@@ -406,7 +406,7 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
+      $1 ? (getpwnam($1))[7] : ( $ENV{'HOME'} || $ENV{'LOGDIR'} )
      }ex;
   }
   return wantarray ? @_ : "@_";

@@ -26,9 +26,6 @@ use Getopt::Std;  # command line option processing
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, %data, %stats, $traceroute);
 
 # change to suit your needs
@@ -165,7 +162,7 @@ Usage: $0 [options] [host1 host2 .. hostN]
 
 A mass tracerouter that summarizes the results.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
 Run perldoc(1) on this script for more documentation.

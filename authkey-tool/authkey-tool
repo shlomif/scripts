@@ -36,9 +36,6 @@ use Data::Dumper;         # DBG
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, $data, @targets, $comment, $keyopts);
 
 ######################################################################
@@ -246,7 +243,7 @@ Usage: $0 [opts] keyfile1 [keyfile2 .. keyfileN]
 
 Manages OpenSSH authorized key files.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -t hh  Target host tt.

@@ -55,20 +55,20 @@ for (
 
   if (/^\+([rwx]+)$/) {
     my $perms = $1;
-    for ($perms =~ /(.)/g) { $opts{perms}->{$_} = 1 }
-    $opts{constraint} = 1;
+    for ($perms =~ /(.)/g) { $opts{'perms'}->{$_} = 1 }
+    $opts{'constraint'} = 1;
     next;
   }
 
   if (/^-([\w]+)$/) {
     my $opts = $1;
-    for ($opts =~ /(.)/g) { $opts{options}->{$_} = 1 }
+    for ($opts =~ /(.)/g) { $opts{'options'}->{$_} = 1 }
     next;
   }
 
   if (/^(user|group)=($match_username)$/) {
 
-    if (exists $opts{role}) {
+    if (exists $opts{'role'}) {
       warn "notice: ignoring extra role: $_\n";
       next;
     }
@@ -76,62 +76,62 @@ for (
     my $what = $1;
     my $who  = $2;
 
-    $opts{role} = determine_role $what, $who;
-    $opts{constraint} = 1;
+    $opts{'role'} = determine_role $what, $who;
+    $opts{'constraint'} = 1;
     next;
   }
 
   if (/^file=(.+)$/) {
-    if (exists $opts{path}) {
+    if (exists $opts{'path'}) {
       warn "notice: skipping as already have path: $_\n";
       next;
     }
-    $opts{path} = resolve_path $1;
+    $opts{'path'} = resolve_path $1;
     next;
   }
 
-  if (exists $opts{path}) {
+  if (exists $opts{'path'}) {
     warn "notice: skipping as already have path: $_\n";
     next;
   }
-  $opts{path} = resolve_path $_;
+  $opts{'path'} = resolve_path $_;
 }
 
-print_help if exists $opts{options}->{h};
+print_help if exists $opts{'options'}->{'h'};
 
-$opts{path} = resolve_path '.' unless exists $opts{path};
-unless (exists $opts{path} and defined $opts{path}) {
+$opts{'path'} = resolve_path '.' unless exists $opts{'path'};
+unless (exists $opts{'path'} and defined $opts{'path'}) {
   warn "error: no path to work with\n";
   exit 101;
 }
 
-$opts{constraint} = 1
- if exists $opts{options}->{u}
- or exists $opts{options}->{g}
- or exists $opts{options}->{R};
+$opts{'constraint'} = 1
+ if exists $opts{'options'}->{'u'}
+ or exists $opts{'options'}->{'g'}
+ or exists $opts{'options'}->{'R'};
 
 # verbose list by default unless checking something specific
-$opts{options}->{l} = 1 unless exists $opts{constraint};
+$opts{'options'}->{'l'} = 1 unless exists $opts{'constraint'};
 
 # use current user if constrained and no user set
-if (exists $opts{constraint} and not exists $opts{role}) {
-  if (exists $opts{options}->{g}) {
-    $opts{role} = determine_role 'group', split / /,
-     exists $opts{options}->{R} ? $( : $);
+if (exists $opts{'constraint'} and not exists $opts{'role'}) {
+  if (exists $opts{'options'}->{'g'}) {
+    $opts{'role'} = determine_role 'group', split / /,
+     exists $opts{'options'}->{'R'} ? $( : $);
   } else {
-    $opts{role} = determine_role 'user', exists $opts{options}->{R} ? $< : $>;
+    $opts{'role'} = determine_role 'user', exists $opts{'options'}->{'R'} ? $< : $>;
   }
 }
-if (exists $opts{constraint} and not exists $opts{perms}) {
-  $opts{perms}->{r} = 1;
+if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
+  $opts{'perms'}->{'r'} = 1;
 }
 
 # fix perms hash to use array for easier subsequent work
-$opts{perms} = [sort keys %{$opts{perms}}];
+$opts{'perms'} = [sort keys %{$opts{'perms'}}];
 
-my @pathbits = File::Spec->splitdir($opts{path});
+my @pathbits = File::Spec->splitdir($opts{'path'});
 unless (@pathbits) {
-  warn "error: unable to split realpath: $opts{path}";
+  warn "error: unable to split realpath: $opts{'path'}";
   exit 101;
 }
 
@@ -146,15 +146,15 @@ for my $i (0 .. $#pathbits) {
   }
 
   # TODO means of supplying output fields and their order?
-  if (exists $opts{options}->{l}) {
+  if (exists $opts{'options'}->{'l'}) {
     print join " ", map $filedata->{$_},
      qw(type unix_mode_octal unix_user unix_group name);
-    print ' -> ', $filedata->{link} if exists $filedata->{link};
+    print ' -> ', $filedata->{'link'} if exists $filedata->{'link'};
     print "\n";
   }
 
-  if (exists $opts{constraint}) {
-    check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{perms};
+  if (exists $opts{'constraint'}) {
+    check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{'perms'};
   }
 }
 
@@ -162,7 +162,7 @@ exit $exit_status;
 
 sub resolve_path {
   my $potential = shift;
-  if (exists $opts{options}->{r}) {
+  if (exists $opts{'options'}->{'r'}) {
     my $tmp = realpath($potential);
     defined $tmp
      ? return $tmp
@@ -196,34 +196,34 @@ sub determine_role {
 
       next if exists $seen{"$type.$who"};
 
-      $userdata{name} = eval qq{$function("$who")};
-      unless (defined $userdata{name}) {
+      $userdata{'name'} = eval qq{$function("$who")};
+      unless (defined $userdata{'name'}) {
 
         # TODO figure out how unix deals with [gu]id that does not exist..
         # treat in "other" category??
         warn "warning: no data from $function $who\n";
-        $userdata{name} = $who;
+        $userdata{'name'} = $who;
       }
-      $userdata{id}       = $who;
-      $userdata{type}     = $type;
+      $userdata{'id'}       = $who;
+      $userdata{'type'}     = $type;
       $seen{"$type.$who"} = 1;
     } else {
       $function .= 'nam';
-      $userdata{id} = eval qq{$function("$who")};
-      unless (defined $userdata{id}) {
+      $userdata{'id'} = eval qq{$function("$who")};
+      unless (defined $userdata{'id'}) {
         warn "error: could not determine id from $function $who\n";
         exit 102;
       }
-      next if exists $seen{"$type.$userdata{id}"};
-      $userdata{name}              = $who;
-      $userdata{type}              = $type;
-      $seen{"$type.$userdata{id}"} = 1;
+      next if exists $seen{"$type.$userdata{'id'}"};
+      $userdata{'name'}              = $who;
+      $userdata{'type'}              = $type;
+      $seen{"$type.$userdata{'id'}"}   = 1;
     }
     push @userdata, \%userdata;
   }
 
   if ($type eq 'user') {
-    my $id = (getpwuid $userdata[0]->{id})[3];
+    my $id = (getpwuid $userdata[0]->{'id'})[3];
     unless (exists $seen{"group.$id"}) {
 
       my $name = getgrgid $id;
@@ -238,7 +238,7 @@ sub determine_role {
 
     # TODO iterate groups for which user has membership in...
     while (my ($name, $pw, $gid, $members) = getgrent) {
-      if (grep { $_ eq $userdata[0]->{name} } split " ", $members) {
+      if (grep { $_ eq $userdata[0]->{'name'} } split " ", $members) {
         unless (exists $seen{"group.$gid"}) {
           push @userdata,
            {
@@ -260,20 +260,20 @@ sub getfileinfo {
   my $file = shift;
 
   my %filedata;
-  $filedata{name} = $file;
+  $filedata{'name'} = $file;
   @filedata{qw(unix_mode unix_uid unix_gid)} = (lstat $file)[2, 4, 5];
 
-  return unless defined $filedata{unix_mode};
+  return unless defined $filedata{'unix_mode'};
 
   # TODO means of converting unix mode to drwx------ format?
 
-  $filedata{unix_mode_octal} = sprintf "%04o", $filedata{unix_mode} & 07777;
+  $filedata{'unix_mode_octal'} = sprintf "%04o", $filedata{'unix_mode'} & 07777;
 
-  $filedata{type} = $filetype{sprintf "%07o", $filedata{unix_mode} & 0170000};
-  $filedata{link} = readlink $file if $filedata{type} eq 'l';
+  $filedata{'type'} = $filetype{sprintf "%07o", $filedata{'unix_mode'} & 0170000};
+  $filedata{'link'} = readlink $file if $filedata{'type'} eq 'l';
 
-  $filedata{unix_user}  = getpwuid $filedata{unix_uid} || $filedata{unix_uid};
-  $filedata{unix_group} = getgrgid $filedata{unix_gid} || $filedata{unix_gid};
+  $filedata{'unix_user'}  = getpwuid $filedata{'unix_uid'} || $filedata{'unix_uid'};
+  $filedata{'unix_group'} = getgrgid $filedata{'unix_gid'} || $filedata{'unix_gid'};
 
   return \%filedata;
 }
@@ -282,20 +282,20 @@ sub check_access {
   my $filedata = shift;
   my $perms    = shift;
 
-  for my $role (@{$opts{role}}) {
-    if ($role->{name} eq $filedata->{"unix_" . $role->{type}}) {
+  for my $role (@{$opts{'role'}}) {
+    if ($role->{'name'} eq $filedata->{"unix_" . $role->{'type'}}) {
 
       my @fails;
       for my $bit (@$perms) {
-        unless ($filedata->{unix_mode} & $modemap{$role->{type} . $bit}) {
+        unless ($filedata->{'unix_mode'} & $modemap{$role->{'type'} . $bit}) {
           push @fails, $bit;
           $exit_status = 10;
         }
       }
-      warn 'info: ', $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
-       ' fails: ', $filedata->{type}, ' ', $filedata->{unix_mode_octal}, ' ',
-       $filedata->{name},
-       (exists $filedata->{link} ? ' -> ' . $filedata->{link} : ''), "\n"
+      warn 'info: ', $role->{'type'}, ' ', $role->{'name'}, ' +', join('', @fails),
+       ' fails: ', $filedata->{'type'}, ' ', $filedata->{'unix_mode_octal'}, ' ',
+       $filedata->{'name'},
+       (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n"
        if @fails;
 
       # unix, once gets match on user or group, stops looking at subsequent
@@ -306,14 +306,14 @@ sub check_access {
   # if drop off to here without being restricted, need to check "other"
   my @fails;
   for my $bit (@$perms) {
-    unless ($filedata->{unix_mode} & $modemap{'other' . $bit}) {
+    unless ($filedata->{'unix_mode'} & $modemap{'other' . $bit}) {
       push @fails, $bit;
       $exit_status = 10;
     }
   }
-  warn 'info: other +', join('', @fails), ' fails: ', $filedata->{type}, ' ',
-   $filedata->{unix_mode_octal}, ' ', $filedata->{name},
-   (exists $filedata->{link} ? ' -> ' . $filedata->{link} : ''), "\n"
+  warn 'info: other +', join('', @fails), ' fails: ', $filedata->{'type'}, ' ',
+   $filedata->{'unix_mode_octal'}, ' ', $filedata->{'name'},
+   (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n"
    if @fails;
 }
 

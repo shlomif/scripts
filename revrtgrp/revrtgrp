@@ -28,9 +28,6 @@ use File::Find;   # recursive directory walking
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, $verbose, %u2g, %n2u, %groups);
 
 ######################################################################
@@ -145,7 +142,7 @@ Usage: $0 [options] dir1 dir2 .. dirN
 
 Recursive group ownership fixing utility.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
   -v     Show files group was changed on, and previous and new gid settings.
 

@@ -5,102 +5,122 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
+# Fuzzy spellchecker of words.
+#
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
 
 require 5;
-
 use strict;
 
-######################################################################
-#
-# MODULES
+use DBI;
 
-use Carp;
+use Text::Levenshtein;    # qw(distance);
+use Text::WagnerFischer;  # qw(distance);
+use Text::Metaphone;
+
+my $dbh =
+ DBI->connect("dbi:SQLite:/home/jmates/.fspell/words.db", '', '',
+  {AutoCommit => 0, PrintError => 1, RaiseError => 1});
+
+sub print_help;
+
 use Getopt::Std;
+my %opts;
+getopts('h?a', \%opts);
+print_help if exists $opts{'h'} or exists $opts{'?'};
 
-# no OO interface, so import routines we need
-use String::Approx qw'amatch aslice';
+# TODO means of doing/selecting/adding more entries to
+#_init() unless -s 'words.db' > 5000;
 
-######################################################################
-#
-# VARIABLES
+#my $findexact = $dbh->prepare(q{SELECT word FROM words WHERE word = ?});
+#my $findlike  = $dbh->prepare(q{SELECT word FROM words WHERE word LIKE ?});
+my $findmeta = $dbh->prepare(q{SELECT word FROM words WHERE metaphone LIKE ?});
 
-my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+my $string    = shift or print_help;
+my $metaphone = Metaphone $string;
 
-my (%opts, $modifiers, $string);
-# TODO this can also be /usr/dict/words on certain systems
-my $dict_file_loc = '/usr/share/dict/words';
-
-######################################################################
-#
-# MAIN
-
-# parse command-line options
-getopts('h?f:m:', \%opts);
-
-help() if exists $opts{'h'} or exists $opts{'?'};
-
-$dict_file_loc = $opts{'f'} if defined $opts{'f'};
-
-# better to make these CSV so can easily translate to amatch args??
-$modifiers = $opts{'m'} if defined $opts{'m'};
-
-# pull word in question off of ARGV
-$string = shift;
-
-# parse dictionary file looking for near hits
-open DICTFILE, "< $dict_file_loc" or die "Problem opening $dict_file_loc: $!\n";
-while (<DICTFILE>) {
-  unless (defined $modifiers) {
-    print if amatch($string);
+$findmeta->execute(Metaphone $string);
+my @results;
+while (my @row = $findmeta->fetchrow_array) {
+  my $tl = Text::Levenshtein::distance("$string", $row[0]);
+  if ($tl == 0 and not exists $opts{'a'}) {
+    print $string, "\n";
+    exit;
   } else {
-    print if amatch($string, ["$modifiers%"]);
+    push @results, [$row[0], $tl];
   }
+
+#  print $row[0], " tl ", Text::Levenshtein::distance("$string", $row[0]), " tw ", Text::WagnerFischer::distance($string, $row[0]), "\n";
 }
-close DICTFILE;
 
-exit;
+print join "\n",
+ map { $_->[0] . " " . $_->[1] } sort { $a->[1] <=> $b->[1] } @results;
+print "\n";
 
-######################################################################
-#
-# SUBROUTINES
+sub _init {
+  my $dict_file = '/usr/share/dict/words';
+
+  $dbh->do(
+q{CREATE TABLE words (word VARCHAR(64) PRIMARY KEY, metaphone VARCHAR(64))}
+  );
+  $dbh->do(
+q{CREATE INDEX idx_words_metaphone ON words (metaphone)}
+  );
+
+  my $insert =
+   $dbh->prepare(q{INSERT INTO words (word, metaphone) VALUES (?, ?)});
+
+  my %seen;
+
+  # might need to walk over multiple files... use <> for this??
+  open DF, "< $dict_file" or die "error: could not read $dict_file: $!\n";
+  warn "info: converting $dict_file...\n";
+  while (<DF>) {
+    chomp;
+
+    $_ = lc;
+
+    next if exists $seen{$_};
+
+    if (/[^a-z]/) {
+      warn "notice: skipping due to non-alphabetics: $_\n";
+      next;
+    }
+
+    $insert->execute($_, Metaphone $_);
+    $seen{$_}++;
+    $dbh->commit if $. % 1000 == 0;
+  }
+  $dbh->commit;
+}
+
+# TODO figure out _init, "word" or "word fragments" to lookup.
 
 # a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
 Usage: $0 [options]
+
+Fuzzy spellchecker of words.
 
 Options:
   -h/-?  Display this message
 
-  -f xx  Use alternate dictionary file location.
-  -m xx  Number used as percentage fuzzyness allowed.
-
-Run perldoc on this script for more documentation.
+Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 100;
 }
-
-__END__
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
-fspell - perl script to do fuzzy speling matching.
+fspell - fuzzy spellchecker of words
 
 =head1 SYNOPSIS
 
-$ fspell speling
+To get a list of words similar to "speling".
 
-To get a list of words similar to speling.
+$ fspell speling
 
 =head1 DESCRIPTION
 
@@ -108,33 +128,21 @@ This script is aimed at certain people who cannot spell words well,
 especially when they don't know the first few letters of a word and
 end up bouncing around in a dictionary for ages.
 
-A modern spelling checker will probably do a better job, but that
-usually involves getting to an application that has the spelling
-checker, writing the word into a new document, then finding the spell
-check option, and potentially fending off obnoxious paper clips if you
-have the misfortune of being on a recent Microsoft OS.
-
 =head1 USAGE
 
-$ fspell [OPTIONS] word
+TODO
 
 =head1 OPTIONS
 
-The following optional options are supported by fspell:
+The following options are supported by fspell:
 
   -h/?    Show a brief help page.
-
-  -f xx   Use alternate words file, located at xx.  Default is
-          /usr/dict/words.
-
-  -m xx   Percentage fuzzyness.  Default is 10, which is usually
-          good enough; 20-30 is usually enough for tricky words.
 
 =head1 FILES
 
 /usr/share/dict/words - default dictionary file used; a modestly
-populated file available on every unix I've gone looking for the file
-on.
+populated file available on every unix, though some hide it under
+/usr/dict/words or elsewhere.
 
 =head1 BUGS
 
@@ -151,12 +159,6 @@ Patches that fix problems or add new features are welcome.
 
 No known bugs.
 
-=head1 TODO
-
-Need better way of passing in amatch() params.  Also want to be able
-to optionally show where the errors were made, so the person can use
-that feedback to spot patterns in their spelling errors.
-
 =head1 SEE ALSO
 
 perl(1).
@@ -171,3 +173,4 @@ The author disclaims all copyrights and releases this script into the
 public domain.
 
 =cut
+

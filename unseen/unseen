@@ -57,7 +57,7 @@ if ($seen_file and -f $seen_file) {
 
   # throw out older entries from seen data
   for my $key (keys %$seen) {
-    delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
+    delete $seen->{$key} if $seen->{$key}->{'mtime'} < $window;
   }
 }
 
@@ -76,32 +76,32 @@ sub process {
   my %filedata;
 
   # skip logfiles outside of processing window by modification time
-  $filedata{mtime} = (stat _)[9];
-  return if $filedata{mtime} < $window;
+  $filedata{'mtime'} = (stat _)[9];
+  return if $filedata{'mtime'} < $window;
 
   # skip files modified today if needed
   if ($midnight) {
-    return if $filedata{mtime} > $midnight;
+    return if $filedata{'mtime'} > $midnight;
   }
 
   # untaint filename (paranoia)
-  $filedata{filename} = untaintpath $_
+  $filedata{'filename'} = untaintpath $_
    or remark 'alert', "could not untaint logfile name: $_"
    and exit 1;
 
   # skip files with no digest, or a digest already seen
-  $filedata{digest} = filedigest $filedata{filename};
-  return unless exists $filedata{digest};
-  return if exists $seen->{$filedata{digest}};
+  $filedata{'digest'} = filedigest $filedata{'filename'};
+  return unless exists $filedata{'digest'};
+  return if exists $seen->{$filedata{'digest'}};
 
   # various path information for future processing
-  ($filedata{name}, $filedata{parent}) = fileparse $_;
+  ($filedata{'name'}, $filedata{'parent'}) = fileparse $_;
 
   # just print full filename
-  print $filedata{filename}, "\n";
+  print $filedata{'filename'}, "\n";
 
   # update seen record with selected file data
-  $seen->{$filedata{digest}} = {map { $_ => $filedata{$_} } qw(filename mtime)};
+  $seen->{$filedata{'digest'}} = {map { $_ => $filedata{$_} } qw(filename mtime)};
 }
 
 # untaints data, restricts what filenames may contain. Accepts 1 or more

@@ -12,9 +12,6 @@ use strict;
 
 use Term::ReadKey;
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my $default_spec = 'Yy:+ Nn:-';
 my $spec;
 
@@ -42,10 +39,10 @@ my %opts;
 getopts('h?o:t:n', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-$spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
+$spec = parse_spec(exists $opts{'o'} ? $opts{'o'} : $default_spec);
 
-if (exists $opts{t}) {
-  $timeout = duration2seconds($opts{t});
+if (exists $opts{'t'}) {
+  $timeout = duration2seconds($opts{'t'});
 }
 
 # prompt (may not be formatted properly due to raw modes)
@@ -53,13 +50,13 @@ print $writeto "@ARGV" if @ARGV;
 
 eval {
   if ($timeout > 0) {
-    local $SIG{ALRM} = sub { die "alarm\n" };
+    local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm $timeout;
   }
 
   while (1) {
     my $key = get_key($readfrom);
-    my $ref = $spec->{keys};
+    my $ref = $spec->{'keys'};
 
     # KLUGE unset to avoid "Use of uninitialized value in string ne"
     # warnings being printed
@@ -68,11 +65,11 @@ eval {
     # check for specific key, default action, or default to nothing for
     # the key in question
     if (exists $ref->{$key} and $ref->{$key} ne '') {
-      print $writeto "\n" if exists $opts{n};
+      print $writeto "\n" if exists $opts{'n'};
       exit $ref->{$key};
-    } elsif (exists $spec->{default} and $spec->{default} ne '') {
-      print $writeto "\n" if exists $opts{n};
-      exit $spec->{default};
+    } elsif (exists $spec->{'default'} and $spec->{'default'} ne '') {
+      print $writeto "\n" if exists $opts{'n'};
+      exit $spec->{'default'};
     }
   }
 
@@ -113,7 +110,7 @@ sub parse_spec {
     my ($keys, $status) = /(.+?):(.)?$/;
     $status ||= '';  # "do nothing" status, no return code
 
-    $spec->{human}->{$status} .= $keys;
+    $spec->{'human'}->{$status} .= $keys;
 
     if (exists $status_map->{$status}) {
       $status = $status_map->{$status};
@@ -127,7 +124,7 @@ sub parse_spec {
 
     # unescaped * means "any key" e.g. the default action
     if ($keys =~ s/(?<!\\)\*//) {
-      $spec->{default} = $status;
+      $spec->{'default'} = $status;
     }
 
     # unescape backwhacked things (\r, etc.)
@@ -135,7 +132,7 @@ sub parse_spec {
 
     # quick lookup map for key typed
     for (split //, $keys) {
-      $spec->{keys}->{$_} = $status;
+      $spec->{'keys'}->{$_} = $status;
     }
   }
 
@@ -144,8 +141,8 @@ sub parse_spec {
     remark('error', "unable to parse specification '$string'");
     exit 103;
   } else {
-    unless (grep { defined and /^\d$/ } $spec->{default},
-      values %{$spec->{keys}}) {
+    unless (grep { defined and /^\d$/ } $spec->{'default'},
+      values %{$spec->{'keys'}}) {
       remark('error', "no valid exit codes in specification '$string'");
       exit 103;
     }
@@ -220,7 +217,7 @@ Usage: $0 [opts] [prompt message]
 
 Means to prompt for human interaction.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -o ss  Key mapping specification

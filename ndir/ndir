@@ -8,7 +8,7 @@
 # Creates new directories. Acts like 'mkdir -p' to create parent
 # directories by default, even on platforms whose mkdir does not support
 # the -p option. Additionally, will perform 'cvs add' on the new
-# directories should CVS be detected.
+# directories should CVS be detected or likewise for Subversion.
 
 VERBOSE=no
 
@@ -29,45 +29,77 @@ done
 shift $(($OPTIND - 1))
 
 for f in "$@"; do
-  # create at depth (not all mkdir support -p, and we do CVS tests
-  # subshell () is to allow cd recursion to work
-  (
-    IFS='/'
-    for part in $f; do
+(
+  OLDIFS=$IFS
+  IFS='/'
 
-      # dirs with leading slash lead to inital null element to skip
-      if [ -z "$part" ]; then
-        cd /
-        continue
-      fi
+  # create at depth not all mkdir support -p, and we do extra CVS and
+  # Subversion stuff.
+  for part in $f; do
 
-      if [ ! -e $part ]; then
-        mkdir -- $part
-        if [ $? -ne 0 ]; then
-          echo "error: could not create $part of $f" >&2
-          exit 1
-        fi
-      elif [ -d $part ]; then
-        # fall through to CVS tests below
-        :
-      else
-        echo "error: $part of $f not a directory" >&2
+    # dirs with leading slash lead to inital null element to skip
+    if [ -z "$part" ]; then
+      cd /
+      continue
+    fi
+
+    if [ ! -e $part ]; then
+      mkdir -- $part
+      if [ $? -ne 0 ]; then
+        echo "error: could not create $part of $f" >&2
         exit 1
       fi
+    elif [ -d $part ]; then
+      # fall through to CVS tests below
+      :
+    else
+      echo "error: $part of $f not a directory" >&2
+      exit 1
+    fi
 
-      # add dir to CVS automagically if CVS available
-      if [ -f CVS/Root -a ! -f "$part/CVS/Root" ]; then
-        cvs add -- $part >/dev/null
-        if [ $? -ne 0 ]; then
-          echo "error: could not add $part of $1 to CVS" >&2
-          exit 1
-        fi
+    # add dir to CVS automagically if CVS available
+    if [ -f CVS/Root -a ! -f "$part/CVS/Root" ]; then
+      if test $VERBOSE = yes ; then
+        echo "notice: adding $part to CVS" >&2
       fi
+      cvs add -- $part >/dev/null
+      STATUS=$?
+      if [ $STATUS -ne 0 ]; then
+        IFS=$OLDIFS
+        echo "error: could not add $part of $f to CVS" >&2
+        exit $STATUS
+      fi
+    fi
 
-      cd -- $part
-    done
-  )
+    # Subversion
+    # TODO store up a fragment and do single svn add to just the first
+    # in-subversion-and-new directory to save on svn calls
+    if [ -f .svn/entries -a ! -f "$part/.svn/entries" ]; then
+      if test $VERBOSE = yes ; then
+        echo "notice: adding $part to subversion" >&2
+      fi
+      svn add -- $part >/dev/null
+      STATUS=$?
+      if [ $STATUS -ne 0 ]; then
+        IFS=$OLDIFS
+        echo "error: could not add $part of $f to Subversion" >&2
+        exit $STATUS
+      fi
+    fi
+
+    cd -- $part
+    STATUS=$?
+    if [ $STATUS -ne 0 ]; then
+      IFS=$OLDIFS
+      echo "error: could not chdir to $part of $f" >&2
+      exit $STATUS
+    fi
+  done
+
+  IFS=$OLDIFS
+
   if test $VERBOSE = yes ; then
     echo $f
   fi
+)
 done

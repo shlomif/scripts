@@ -12,7 +12,7 @@
 
 use URI;
 
-my $default_open = "omniweb-bg";
+my $default_open = $ENV{'OW_METHOD'} || 'lynx';
 
 # what to launch URLs with (but see sub visit below)
 my %open = (
@@ -22,6 +22,7 @@ my %open = (
   omniweb      => [qw(open -a OmniWeb)],
   safari       => [qw(open -a Safari)],
   'omniweb-bg' => \&open_omniweb_bg,
+  mozilla      => [qw(mozilla)],
 );
 
 my %pfiles = (
@@ -39,8 +40,8 @@ for (keys %pfiles) {
 }
 
 # -d flag does directory->web map lookup (if possible)
-if (exists $opts{d}) {
-  my $dirmap = loadconfig($pfiles{dirmap});
+if (exists $opts{'d'}) {
+  my $dirmap = loadconfig($pfiles{'dirmap'});
 
   require Cwd;
 
@@ -83,13 +84,13 @@ if (exists $opts{d}) {
   exit;
 }
 
-my $scuts = loadconfig($pfiles{shortcuts});
+my $scuts = loadconfig($pfiles{'shortcuts'});
 
 # for _T_ab completion lookups on hash keys
-if (exists $opts{T}) {
-  if ($opts{T} eq 'open') {
+if (exists $opts{'T'}) {
+  if ($opts{'T'} eq 'open') {
     print join "\n", sort keys %open;
-  } elsif ($opts{T} eq 'shortcuts') {
+  } elsif ($opts{'T'} eq 'shortcuts') {
     # need to cut out the "*" and "google@" stuff
     my %seen;
     @seen{map { /(\w+)/ } keys %$scuts} = ();
@@ -177,12 +178,12 @@ sub visit {
   my $url = shift;
   return unless $url;
 
-  if (exists $opts{l}) {
+  if (exists $opts{'l'}) {
     print $url, "\n";
     return;
   }
 
-  my $method = exists $opts{o} ? $opts{o} : $default_open;
+  my $method = exists $opts{'o'} ? $opts{'o'} : $default_open;
   die "error: unknown open method: $method\n" unless exists $open{$method};
 
   # TODO dispatch table for this
@@ -234,7 +235,7 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
+      $1 ? (getpwnam($1))[7] : ( $ENV{'HOME'} || $ENV{'LOGDIR'} )
      }ex;
   }
   return wantarray ? @_ : "@_";
@@ -248,12 +249,11 @@ sub loadconfig {
   open F, "< $f" or die "error: unable to open $f: $!\n";
   while (<F>) {
     chomp;
-    next if /^#/;
-    s/^\s+//;
+    next if /^\s*#/;
     s/\s+$//;
     next if /^$/;
 
-    my ($k, $v) = split /\t/, $_, 2;
+    my ($k, $v) = split ' ', $_, 2;
     if ($k and $v) {
 
       # convert tabs in key back to literal, if needed (unlikely)

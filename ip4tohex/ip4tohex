@@ -22,17 +22,17 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 for my $input (@ARGV) {
   my $sin = inet_aton $input;
   unless (defined $sin) {
-    warn "notice: skipping as could not translate: $input\n" unless $opts{q};
+    warn "notice: skipping as could not translate: $input\n" unless $opts{'q'};
     next;
   }
   my $string = unpack "H*", $sin;
 
   # optionally tidy up for IPv6-ish use
-  if ($opts{6}) {
+  if ($opts{'6'}) {
     $string =~ s/^(.+)(....)/$1:$2/g;
     $string =~ s/:0+/:/g;
     $string = '::' . uc $string;
   }
 
-  print exists $opts{o} ? "$input " : "", $string, "\n";
+  print exists $opts{'o'} ? "$input " : "", $string, "\n";
 }

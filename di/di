@@ -25,8 +25,26 @@ diff_cvs () {
 #  fi
 }
 
+diff_svn () {
+  svn diff $@
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    if [ -z "$1" ]; then
+      echo "Bad exit status ($STATUS) from svn diff" >&2
+    else
+      echo "Bad exit status ($STATUS) from $2 svn diff on $1" >&2
+    fi
+    RETURN=$STATUS
+  fi
+}
+
 if [ -d CVS -a -f CVS/Root ]; then
   diff_cvs $@
+  exit $RETURN
+fi
+
+if [ -d .svn ]; then
+  diff_svn $@
   exit $RETURN
 fi
 

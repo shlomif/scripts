@@ -29,9 +29,6 @@ use Fcntl qw(:DEFAULT :flock);
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, %locks, $duration);
 
 ######################################################################
@@ -43,11 +40,11 @@ getopts('h?wd:', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
-if (exists $opts{d}) {
-  if ($opts{d} =~ /^\d+$/) {
-    $duration = $opts{d};
+if (exists $opts{'d'}) {
+  if ($opts{'d'} =~ /^\d+$/) {
+    $duration = $opts{'d'};
 
-  } elsif (my @matches = $opts{d} =~ /(\d+\s*[wdhms])/g) {
+  } elsif (my @matches = $opts{'d'} =~ /(\d+\s*[wdhms])/g) {
     my %factor = (
       'w' => 604800,
       'd' => 86400,
@@ -62,7 +59,7 @@ if (exists $opts{d}) {
       $duration += $1 * $factor{$2};
     }
   } else {
-    die "error: could not parse duration: $opts{d}\n";
+    die "error: could not parse duration: $opts{'d'}\n";
   }
 }
 
@@ -72,7 +69,7 @@ for (@ARGV) {
     next;
   }
 
-  if (exists $opts{w}) {
+  if (exists $opts{'w'}) {
     sysopen $locks{$_}, $_, O_RDWR or die "error: could not open $_: $!\n";
     unless (flock $locks{$_}, LOCK_NB | LOCK_EX) {
       warn "notice: waiting for write lock on $_\n";

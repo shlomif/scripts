@@ -26,9 +26,6 @@ use Getopt::Std;  # command line option processing
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, %features, $t0);
 
 # how to convert short human durations into seconds  
@@ -74,7 +71,7 @@ my $pid = open WATCH, "-|";
 
 if ($pid) {  # parent
   eval {
-    local $SIG{ALRM} = sub { die "alarm\n" };
+    local $SIG{'ALRM'} = sub { die "alarm\n" };
 
     alarm $timeout;
 
@@ -96,7 +93,7 @@ if ($pid) {  # parent
   if ($@) {
     die unless $@ eq "alarm\n";
 
-    warn "Error: timeout ($duration) exceeded: killing pid $pid\n" unless exists $opts{q};
+    warn "Error: timeout ($duration) exceeded: killing pid $pid\n" unless exists $opts{'q'};
 
     for my $signal (qw(TERM INT HUP KILL)) {
       last if kill $signal, $pid;
@@ -175,7 +172,7 @@ Usage: $0 duration program [program args]
 Stops operation of long running programs.  Duration is either seconds,
 or a shorthand format of "2m3s" for 123 seconds.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -v     Verbose.  Prints program run time unless timeout is hit.

@@ -26,9 +26,6 @@ use Getopt::Std;  # command line option processing
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, $base, $regex);
 
 # default to working on runs of 4 or more digits
@@ -182,7 +179,7 @@ Usage: $0 [options] [values]
 
 Script to humanize numbers in data.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -b nn  Integer to offset incoming data by.

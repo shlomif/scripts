@@ -33,9 +33,6 @@ my $protoname = 'tcp';
 my $port      = getservbyname($service, $protoname);
 my $proto     = getprotobyname($protoname);
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts);
 
 ######################################################################
@@ -71,7 +68,7 @@ while (<STDIN>) {
   my $output;
 
   eval {
-    local $SIG{ALRM} = sub { die "timed out\n" };
+    local $SIG{'ALRM'} = sub { die "timed out\n" };
     alarm(3);
     recv(SOCK, $output, 9999, 0);
     alarm(0);
@@ -102,7 +99,7 @@ sub do_connect {
 
   my $sin = sockaddr_in($port, inet_aton("$ip"));
   eval {
-    local $SIG{ALRM} = sub { die "timed out\n" };
+    local $SIG{'ALRM'} = sub { die "timed out\n" };
     alarm(3);
     $o = connect(SOCK, $sin);
     alarm(0);
@@ -118,7 +115,7 @@ Usage: $0 < nmap-scan-output
 
 nmap(1) output should be in -oG or -oM format.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
 Run perldoc(1) on this script for additional documentation.

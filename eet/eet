@@ -28,9 +28,6 @@ use File::Tail 0.91;    # tail -f on steroids
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, @files, $prefix);
 
 # various File::Tail object preferences.  listen much faster than default
@@ -111,7 +108,7 @@ Usage: $0 [opts] [file1 file2 .. fileN]
 
 Merges growing files into single stream
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
   -f     Prefix output with source filename (buggy)

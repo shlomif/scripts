@@ -41,33 +41,33 @@ while (<STDIN>) {
      /x;
 
     # sanity checks
-    next unless defined $tmp{blocks} and $tmp{blocks} =~ m/^\d+$/;
-    next unless defined $tmp{files}  and $tmp{files}  =~ m/^\d+$/;
+    next unless defined $tmp{'blocks'} and $tmp{'blocks'} =~ m/^\d+$/;
+    next unless defined $tmp{'files'}  and $tmp{'files'}  =~ m/^\d+$/;
 
     print join(' ', "fs=$cur_filesys", "type=$cur_type",
      map { $_ . '=' . $tmp{$_} } sort keys %tmp), "\n";
 
     # for debugging, reference
-    $tmp{orig} = $_;
+    $tmp{'orig'} = $_;
 
-    $data->{$cur_filesys}->{$cur_type}->{$tmp{name}} = \%tmp;
+    $data->{$cur_filesys}->{$cur_type}->{$tmp{'name'}} = \%tmp;
 
     next;
   }
 
   # match block headers and update data structure pointers
   if (/^\*\*\* Report for (user|group) quotas on (\S+) \(([^)]+)\)/) {
-    $cur_type                       = $1;
-    $cur_filesys                    = $2;
-    $data->{$cur_filesys}->{device} = $3;
+    $cur_type                         = $1;
+    $cur_filesys                      = $2;
+    $data->{$cur_filesys}->{'device'} = $3;
 
     # for debugging, reference
-    $data->{$cur_filesys}->{orig} = $_;
+    $data->{$cur_filesys}->{'orig'} = $_;
     next;
   }
 
   # catch unmatched lines for debugging, reference
-  push @{$data->{skipped}}, $_;
+  push @{$data->{'skipped'}}, $_;
 }
 
 #print Dumper $data;

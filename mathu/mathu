@@ -28,7 +28,7 @@ my %opts;
 getopts('lf:', \%opts);
 
 # lists abilities, good for tab completion systems to query
-if (exists $opts{l}) {
+if (exists $opts{'l'}) {
   print join (" ", sort keys %ability), "\n";
   exit 1;
 }
@@ -36,9 +36,9 @@ if (exists $opts{l}) {
 my $action = shift;
 die "error: no such action: $action\n" unless exists $ability{$action};
 
-$format = $opts{f} if exists $opts{f};
+$format = $opts{'f'} if exists $opts{'f'};
 
-$ability{$action}->{handle}();
+$ability{$action}->{'handle'}->();
 
 sub handle_sum {
   my $result;
@@ -111,18 +111,18 @@ sub handle_basic {
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
-    $results{sum} += $_;
+    $results{'sum'} += $_;
 
-    $results{min} = $_ unless exists $results{min};
-    $results{max} = $_ unless exists $results{max};
-    $results{min} = $_ if $_ < $results{min};
-    $results{max} = $_ if $_ > $results{max};
+    $results{'min'} = $_ unless exists $results{'min'};
+    $results{'max'} = $_ unless exists $results{'max'};
+    $results{'min'} = $_ if $_ < $results{'min'};
+    $results{'max'} = $_ if $_ > $results{'max'};
 
     push @array, $_;
   }
-  $results{count} = $.;
-  $results{mean}  = mean(\@array, $results{sum});
-  $results{sdev}  = standard_deviation(\@array, $results{mean});
+  $results{'count'} = $.;
+  $results{'mean'}  = mean(\@array, $results{'sum'});
+  $results{'sdev'}  = standard_deviation(\@array, $results{'mean'});
 
   print map {
     $_ . " "
@@ -140,10 +140,10 @@ sub handle_distribution {
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
-    $results{min} = $_ unless exists $results{min};
-    $results{max} = $_ unless exists $results{max};
-    $results{min} = $_ if $_ < $results{min};
-    $results{max} = $_ if $_ > $results{max};
+    $results{'min'} = $_ unless exists $results{'min'};
+    $results{'max'} = $_ unless exists $results{'max'};
+    $results{'min'} = $_ if $_ < $results{'min'};
+    $results{'max'} = $_ if $_ > $results{'max'};
     push @array, $_;
   }
 
@@ -152,9 +152,9 @@ sub handle_distribution {
   if ($way =~ /^b=?(\d*)/) {
     my $bucket = $1 || 2;
     $bucket = $#array if $bucket > $#array;
-    my $diff     = $results{max} - $results{min};
+    my $diff     = $results{'max'} - $results{'min'};
     my $interval = $diff / $bucket;
-    my @buckets  = map { $results{min} + $interval * $_ } 1 .. $bucket;
+    my @buckets  = map { $results{'min'} + $interval * $_ } 1 .. $bucket;
     do_dist(\@array, \@buckets);
 
   } elsif ($way =~ /^d=?(\d[\d:]*)?/) {
@@ -165,25 +165,25 @@ sub handle_distribution {
       @buckets = sort { $a <=> $b } grep {
             defined
          && /^\d+$/
-         && $_ >= $results{min}
-         && $_ <= $results{max}
+         && $_ >= $results{'min'}
+         && $_ <= $results{'max'}
          && not $seen{$_}++
       } split /:/, $1;
     }
 
     unless (@buckets) {
-      my $diff = $results{max} - $results{min};
-      push @buckets, $results{min} + $diff / 2;
+      my $diff = $results{'max'} - $results{'min'};
+      push @buckets, $results{'min'} + $diff / 2;
     }
 
-    push @buckets, $results{max} unless $buckets[-1] == $results{max};
+    push @buckets, $results{'max'} unless $buckets[-1] == $results{'max'};
     do_dist(\@array, \@buckets);
   } elsif ($way =~ /^r/) {
 
     # ensure range goes to 1 higher than floating point numbers
-    my $max = $results{max};
+    my $max = $results{'max'};
     $max = 1 + int($max) if $max =~ /\./;
-    my @buckets = $results{min} .. $max;
+    my @buckets = $results{'min'} .. $max;
 
     do_dist(\@array, \@buckets);
   }

@@ -27,9 +27,6 @@ use File::Spec;
 #
 # VARIABLES
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
 my (%opts, $verbose, $quiet, %check);
 
 # we reset this for each file to avoid OO overhead on each file
@@ -205,7 +202,7 @@ Usage: $0 [opts] [dir1 dir2 .. dirN]
 
 Removes duplicate files based on checksum comparison of files.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
   -v     Verbose mode, a little bit more chatty.
   -q     Quiet.  Overrides -v, suppresses reporting.
