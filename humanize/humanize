@@ -31,39 +31,6 @@ my $VERSION;
 
 my (%opts, $base, $regex);
 
-# various parameters that adjust how the humanization is done
-# these really should be able to be specified on the command line, or
-# read in from a prefs file somewhere, as nobody will agree as to what
-# "proper" human output should look like... :)
-my %format = (
-
-  # include decimals in output? (e.g. 25.8 K vs. 26 K)
-  'decimal' => 1,
-
-  # include .0 in decmail output?
-  'decimal_zero' => 1,
-
-  # what to divide file sizes down by
-  # 1024 is generally "Kilobytes," while 1000 is
-  # "kilobytes," technically
-  'factor' => 1024,
-
-  # percentage above which will be bumped up
-  # (e.g. 999 bytes -> 1 K as within 5% of 1024)
-  # set to undef to turn off
-  'fudge' => 0.95,
-
-  # lengths above which decimals will not be included
-  # for better readability
-  'max_human_length' => 2,
-
-  # list of suffixes for human readable output
-  'suffix' => ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
-);
-
-# default conversion to do nothing
-$base = 1;
-
 # default to working on runs of 4 or more digits
 $regex = '(-?\d{4,})';
 
@@ -106,9 +73,40 @@ exit;
 # takes a number, returns formatted string.
 sub humanize {
   my $num = shift;
+  my $base = shift||1;
 
   # error checking on input...
   return $num unless $num =~ m/^-?\d+$/;
+
+  # various parameters that adjust how the humanization is done
+  # these really should be able to be specified on the command line, or
+  # read in from a prefs file somewhere, as nobody will agree as to what
+  # "proper" human output should look like... :)
+  my %format = (
+  
+    # include decimals in output? (e.g. 25.8 K vs. 26 K)
+    'decimal' => 1,
+  
+    # include .0 in decmail output?
+    'decimal_zero' => 1,
+  
+    # what to divide file sizes down by
+    # 1024 is generally "Kilobytes," while 1000 is
+    # "kilobytes," technically
+    'factor' => 1024,
+  
+    # percentage above which will be bumped up
+    # (e.g. 999 bytes -> 1 K as within 5% of 1024)
+    # set to undef to turn off
+    'fudge' => 0.95,
+  
+    # lengths above which decimals will not be included
+    # for better readability
+    'max_human_length' => 2,
+  
+    # list of suffixes for human readable output
+    'suffix' => ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+  );
 
   # some local working variables
   my $count    = 0;
