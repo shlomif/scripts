@@ -1,0 +1,228 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Finds files with same (or similar) modification times as specified
+# file or user-supplied date.
+
+require 5;
+use strict;
+
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+# what stat() colume to read time from (e.g. mtime, atime, ctime)
+my $timef = 9;
+
+use Getopt::Std;
+my %opts;
+getopts('h?f:d:a:b:', \%opts);
+help() if exists $opts{'h'} or exists $opts{'?'};
+help() unless @ARGV;
+
+my $src_date;
+
+if (exists $opts{d}) {
+  $src_date = $opts{d} or die "error: could not parse empty date\n";
+
+  # treat all numeric as epoch date, otherwise attempt to parse
+  unless ($src_date =~ /^\d+/) {
+    require Date::Parse;
+    $src_date = Date::Parse::str2time($src_date);
+    die "error: could not parse supplied date\n" unless $src_date;
+  }
+
+}
+
+if (exists $opts{f}) {
+  $src_date = (stat $opts{f})[$timef];
+  die "error: could not read date from $opts{f}\n"
+   if not $src_date
+   or $src_date !~ /^\d+$/;
+}
+
+my ($fudge, $min_date, $max_date);
+
+if (exists $opts{a}) {
+  $fudge    = duration2seconds($opts{a});
+  $min_date = $src_date - $fudge;
+  $max_date = $src_date + $fudge;
+}
+if (exists $opts{b}) {
+  $fudge    = duration2seconds($opts{b});
+  $min_date = $src_date - $fudge;
+  $max_date = $src_date unless $max_date;
+}
+
+use File::Find;
+
+find sub {
+  my $file_date = (stat $_)[$timef];
+
+  if ($fudge and ($file_date >= $min_date and $file_date <= $max_date)
+    or ($file_date eq $src_date)) {
+    print $File::Find::name, "\n";
+  }
+}, @ARGV;
+
+######################################################################
+#
+# SUBROUTINES
+
+# takes duration such as "2m3s" and returns number of seconds.
+sub duration2seconds {
+  my $tmpdur = shift;
+  my $seconds;
+
+  # how to convert short human durations into seconds
+  my %factor = (
+    w => 604800,
+    d => 86400,
+    h => 3600,
+    m => 60,
+    s => 1,
+  );
+
+  # assume raw seconds for plain number
+  if ($tmpdur =~ m/^\d+$/) {
+    $seconds = $tmpdur * 60;
+
+  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+
+    # match "2m 5s" style input and convert to seconds
+    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
+      $seconds += $1 * $factor{$2};
+    }
+  } else {
+    die "Error: unknown characters in duration.\n";
+  }
+
+  unless (defined $seconds and $seconds =~ m/^\d+$/) {
+    die "Error: unable to parse duration.\n";
+  }
+
+  return $seconds;
+}
+
+# a generic help blarb
+sub help {
+  print <<"HELP";
+Usage: $0 [opts] searchdir1 [sd2 .. sdN]
+
+Finds files with similar date to specified date or file.
+
+Options for version $VERSION:
+  -h/-?  Display this message.
+
+  -f ff  Read modify time to compare with from specified file.
+  -d dd  Specify modify time manually.
+
+  -a xx  Allow xx seconds or shorthand duration fuzz around lookup time.
+  -b yy  Allow xx seconds before lookup (makes -a "after time")
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit;
+}
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+fbd - find files by date
+
+=head1 SYNOPSIS
+
+Find files in /etc with the same modification date as /etc/passwd.
+
+  $ fbd -f /etc/passwd /etc
+
+List files under /tmp modified within five minutes of the current date.
+
+  $ fbd -d "`date`" -a 5m /tmp
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Provides means to list files under specified search directories that
+have or have similar modification (mtime) dates set.
+
+=head2 Normal Usage
+
+  $ fbd [opts] searchdir1 [sd2 .. sdN]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-f> I<file>
+
+Read modification time from the specified file.
+
+=item B<-d> I<date>
+
+Uses specified time in epoch or Date::Parse-compatible format for the
+value to compare other files with.
+
+=item B<-a> I<duration>
+
+Without B<-b>, allows files modified within I<duration> to match. The
+duraction can either be in raw seconds or a short-hand "2m5s" format.
+
+With B<-b>, allows files modified I<duration> after the target
+date to match.
+
+=item B<-b> I<duration>
+
+Allows files modified I<duration> before the target date to match.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
