@@ -1,31 +1,33 @@
 #!/usr/bin/perl
 #
-######################################################################
+# $Id$
 #
-# epoch2date.pl v.1.0b (May 25, 1999)
-# By Jeremy Mates <mailto:jmates@sial.org>
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
-# Given an epoch time, will return the human-readable date that the
-# number represents.  Uses localtime().
-#
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+# Converts epoch times to human parsable dates.
+
+require 5;
+use strict;
 
 use POSIX qw(strftime);
 
-die "usage: epoch2date epoch [epoch2 .. epochN]\n" unless @ARGV;
+use Getopt::Std;
+my %opts;
+getopts('ef:gl', \%opts);
 
-  for my $thingy (@ARGV) {
-    ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) =
-     localtime($thingy);
+my $format = $opts{'f'} || "%Y-%m-%d %H:%M:%S";
 
-    $month = (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)[$mon];
-    $dayofweek = (Sun, Mon, Tue, Wed, Thu, Fri, Sat)[$wday];
+# gmtime or localtime, depending on program name or options supplied
+my $function = 'localtime';
+$function = 'gmtime' if $0 eq 'epoch2gmdate';
+$function = ($opts{'g'}) ? 'gmtime' : 'localtime';
+$function = ($opts{'l'}) ? 'localtime' : 'gmtime';
 
-    $mon++;
+die "usage: $0 [-f fmt] [-g|-l] [-e] epoch [epoch ...]\n" unless @ARGV;
 
-    print "Epoch time of $thingy is:\n";
-    print
-"  Date: $month $mday, $year at $hour:$min:$sec  ($month is number $mon)\n";
-    print "  $dayofweek, the $yday day of the year.\n";
-  }
+for my $epoch (@ARGV) {
+  print $epoch, ' ' if $opts{'e'};
+  print strftime $format, eval "$function $epoch";
+  print "\n";
+}
