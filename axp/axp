@@ -37,7 +37,7 @@ $defaults{quiet} = 1 if $opts{q};
 # TODO read param from user somehow. Ideally want macro expansion on
 # these, so things like "reqeust.uri" can be set based on the filename
 # details.
-my %param = ();
+my %user_params = ();
 
 # technically optional, but what's the point without these?
 my $rules_file = tilde_expand( $ENV{AXP_RULES} || '~/.axp/rules' );
@@ -77,12 +77,13 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
-  my ( $filedata, $rule_prefs ) = $xapply->study( $doc, $file );
+  my ( $filedata, $defaults, $params ) = $xapply->study( $doc, $file );
 
-  %$rule_prefs = ( %$rule_prefs, %user_prefs );
+  %$defaults = ( %$defaults, %user_defaults );
+  %$params = ( %$params, %user_params );
 
   my ( $docref, $details ) =
-   $xapply->transform( $doc, prefs => $rule_prefs, param => {} );
+   $xapply->transform( $doc, default => $rule_defaults, param => $params );
   unless ( defined $docref ) {
     remark(
       'error',
