@@ -1,37 +1,49 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/perl -w
 #
 # $Id$
-# By Jeremy Mates <mailto:jmates@sial.org>
 #
-# A recursive group fixer that parses a directory tree, correcting
-# the group on each file to the default group of the owner.
+# Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
+# you can redistribute it and/or modify it under the same terms as
+# Perl itself.
 #
-# (To fix munged group permissions when certain restores-from-
-# tar fail horribly...)
+# Run perldoc(1) on this file for additional documentation.
 #
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+######################################################################
+#
+# REQUIREMENTS
 
-# MODULES
-
-use Carp;           # to die for
-use File::Find;
-use Getopt::Std;    # command line option handling
+require 5;
 
 use strict;
 
-# CONSTANTS
+######################################################################
+#
+# MODULES
+
+use Carp;                       # better error reporting
+use Getopt::Std;                # command line option processing
+
+use File::Find;			# recursive directory walking
+
+######################################################################
+#
+# VARIABLES
+
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $verbose, %u2g, %n2u, %groups);
 
+######################################################################
+#
 # MAIN
 
 # parse command-line options
 getopts('h?vp:s:g', \%opts);
 
-help() if exists($opts{'h'}) || exists($opts{'?'});
+help() if exists $opts{'h'} or exists $opts{'?'};
 
-$verbose  = 1 if exists $opts{'v'};
+$verbose = 1 if exists $opts{'v'};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -51,7 +63,7 @@ while (my ($user, undef, $uid, $gid) = getpwent()) {
 if (exists $opts{'g'}) {
     while (my (undef, undef, $gid, $members) = getgrent()) {
 	# need convert space delimited list to uid's...
-	foreach (split ' ', $members) {
+	for (split ' ', $members) {
 	    my $uid = $n2u{$_};
 
 	    # make a hash of hashes so we can use quick lookups
@@ -62,7 +74,7 @@ if (exists $opts{'g'}) {
 }
 
 # loop over the remaining input, looking for dirs and parsing them
-foreach ( @ARGV ) {
+for (@ARGV) {
     unless (-d $_) {
         warn "error: $_ not a directory, skipping\n";
         next;
@@ -78,15 +90,15 @@ sub do_stuff {
     my ($uid, $gid) = (lstat)[4,5];
 
     # see if we should "prune" this directory
-    if (exists $opts{'p'} && -d) {
+    if (exists $opts{'p'} && -d _) {
         my $results = eval "return 1 if( " . $opts{'p'} . " );";
 
-        if($@) {
-            chomp($@);
+        if ($@) {
+            chomp $@;
             die "Prune error: ", $@; # croak on errors
         }
 
-        if($results) {
+        if ($results) {
             $File::Find::prune = 1;
             return;
         }
@@ -96,12 +108,12 @@ sub do_stuff {
     if (exists $opts{'s'}) {
         my $result = eval "return 1 if( " . $opts{'s'} . " );";
 
-        if($@) {
-            chomp($@);
+        if ($@) {
+            chomp $@;
             die "Skip error: ", $@; # croak on errors
         }
 
-        if($result) {
+        if ($result) {
             return;
         }
     }
@@ -128,9 +140,9 @@ sub help {
     print <<"HELP";
 Usage: $0 [options] dir1 dir2 .. dirN
 
-$0 is a recursive group fixing utility.
+Recursive group ownership fixing utility.
 
-Options:
+Options for version $VERSION:
   -h/-?  Display this message
   -v     Show files group was changed on, and previous and new gid settings.
 
@@ -138,56 +150,127 @@ Options:
          default group the file is set to.
 
   -s xx  Perl expression that will result in the current item (stored in \$_)
-         being skipped if the expression turns out to be "true."  Example:
-
-         -s '-d || m/^\\.rsrc\$/' .
-
-         Would skip applying the group change to directories or '.rsrc' files.
-         (But would still traverse down into any "skipped" directories!)
+         being skipped if the expression turns out to be "true."
 
   -p xx  Perl expression that will result in the current directory (stored in 
-	 \$_) being pruned out of the tree, e.g. to skip dot directories:
+	 \$_) being pruned out of the tree.
 
-         -p 'm/^\\../' .
-
-	 Both -s and -p expressions should use the shortcut _ operator in
-	 any stat() calls, to avoid race conditions.
+Run perldoc(1) on this script for additional documentation.
 
 HELP
     exit;
 }
 
-__END__
+######################################################################
+#
+# DOCUMENTATION
 
-$Log$
-Revision 1.7  2000/02/09 23:52:19  jmates
-Added debugging code to catch odd uninitialized value errors I'm still seeing.
+=head1 NAME
 
-Revision 1.6  2000/02/09 23:41:40  jmates
-Changed stat() to lstat() to prevent copious uninitialized value errors as null links are looked up.
+revertgrp.pl - recursive group ownership fixing utility.
 
-Revision 1.5  2000/02/09 23:29:34  jmates
-Added -g option to skip chgrp if group of file is valid for user, by parsing
-the user's presence from the getgrent() call.
+=head1 SYNOPSIS
 
-Fixed missing , bug in $verbose print statement.
+Fix group settings on a bunch of files under /home/user/restore:
 
-Updated help docs.
+  $ revertgrp.pl /home/user/restore
 
-Revision 1.4  2000/02/09 21:47:03  jmates
-Added -s and -p skip/prune options for fine grained control over what files
-are to be excluded.
+=head1 DESCRIPTION
 
-Updated documentation to reflect new options, cleaned it up some.
+=head2 Overview
 
-Revision 1.3  2000/02/09 19:39:29  jmates
-Fixed bug where -v option wasn't implemented properly.
+A recursive group fixer that parses a directory tree, correcting the
+group on each file to the default group of the owner.
 
-Revision 1.2  2000/02/09 19:35:21  jmates
-Added getpwent() routine to form a hash of uid -> default group info.
+=head2 Normal Usage
 
-Added chown routine to change the group to the default if needed.
+  $ revertgrp.pl [options] [dir1 dir2 .. dirN]
 
-Revision 1.1  2000/02/09 18:19:08  jmates
-Initial work import
+See L<"OPTIONS"> for details on the command line switches supported.
 
+Any number of directories can be supplied, including none.  In that
+case, the script will attempt to read directories from STDIN.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-v>
+
+Show files group was changed on, and previous and new gid settings.
+
+=item B<-g>
+
+Skip changing group if user belongs to this non-default group on the
+file in question.
+
+=item B<-s> I<expression>
+
+Perl expression that will result in the current item (stored in $_)
+being skipped if the expression turns out to be true.  Example:
+
+  -s '-d || m/^\.rsrc$/'
+
+Would skip applying the changes to any directories or items named
+'.rsrc'. B<Warning>: skip only counts towards whether or not any
+actions are performed; modefix.pl will happily apply changes below a
+"skipped" directory.
+
+=item B<-p> I<expression>
+
+Perl expression that will result in the current directory (stored in
+$_) and anything below that directory being "pruned" from the search.
+
+For example, one can easily prune out all directories lower than the
+one supplied as an argument by using the special $parent variable to
+check against the current directory; essentially, this turns off the
+default recursive behaviour of File::Find:
+
+  -p '$parent ne $_'
+
+=back
+
+Note: Expressions should use the shortcut _ operator in any stat()
+calls, to avoid race conditions.  See the entry for stat under
+perlfunc(1) for the gory details.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
