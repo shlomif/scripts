@@ -236,13 +236,13 @@ HELP
 
 =head1 NAME
 
-dupper.pl - finds duplicate files, optionally removes them
+dupper - finds duplicate files, optionally removes them
 
 =head1 SYNOPSIS
 
 To get a list of duplicate files in a particular directory:
 
-  $ dupper.pl ~/public_html/images
+  $ dupper ~/public_html/images
 
 =head1 DESCRIPTION
 
@@ -253,7 +253,7 @@ directories.  Duplicates are spotted though the use of MD5 checksums.
 
 =head2 Normal Usage
 
-  $ dupper.pl [options] [dir1 dir2 .. dirN]
+  $ dupper [options] [dir1 dir2 .. dirN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -331,7 +331,7 @@ case you were wondering.)
 To remove duplicate files under a web area via cron, skipping html
 documents, matching only in local directories, and being very quiet:
 
-  21 6 * * * dupper.pl -uqzs 'm/\.html$/' /www/example/images
+  21 6 * * * dupper -uqzs 'm/\.html$/' /www/example/images
 
 =head1 BUGS
 
