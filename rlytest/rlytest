@@ -2,36 +2,6 @@
 #
 # $Id$
 #
-# $Log$
-# Revision 1.1  2003/02/23 17:54:23  jmates
-# Import of http://www.unicom.com/sw/rlytest/rlytest version 1.22.
-#
-# Revision 1.22  2001/10/22 22:02:48  chip
-# updated message
-#
-# Revision 1.21  2001/10/22 19:57:38  chip
-# updated URLs
-#
-# Revision 1.20  2000/06/21 09:02:09  chip
-# Produce useful diagnostic if socket fails.
-# Thanks to Paul Ewing Jr. <ewing@ima.umn.edu>
-#
-# Revision 1.19  2000/06/11 06:21:49  chip
-# now uses exit status 2 to indicate successful relay submission
-# added $EX_RELAY_ACCEPTED $EX_RELAY_REJECTED $EX_PROGRAM_ERROR
-#
-# Revision 1.18  2000/04/04 08:25:32  chip
-# changed default domain from acme.com to example.com
-#
-# Revision 1.17  1999/08/20 07:11:54  chip
-# moved uid=0 check before calculate_fqdn is called (oof!)
-# thanks to Paul David Fardy <pdf@morgan.ucs.mun.ca> for catching that
-#
-# Revision 1.16  1999/05/25 15:51:57  chip
-# added $Root_check to avoid running as root
-# remove $! from socket creation failure, people were finding it confusing
-#
-#
 # rlytest - test mail host for third-party relay
 # (see POD documentation at end)
 #
@@ -39,18 +9,21 @@
 # Unicom Systems Development
 # <chip@unicom.com>
 #
+# Jeremy Mates localized rlytest 1.22 into sial.org scripts repository
+# to apply patch to allow rlytest to work against arbitrary ports
+# instead of just 25 on 2003-02-23.
 
 require 5.002;
 use strict;
 use Getopt::Std;
-use IO::Socket;	# warning - IO::Socket was an optional add-on prior to 5.004
+use IO::Socket; # warning - IO::Socket was an optional add-on prior to 5.004
 use Time::gmtime;
 use vars qw($Usage $Dflt_hostname $Dflt_domain $Root_check %Opts
-	$Target_host $Timeout $Hostname $Username $Comment
-	$Actual_sender $MailFrom_addr $RcptTo_addr $Mssg_body);
+        $Target_host $Port $Timeout $Hostname $Username $Comment
+        $Actual_sender $MailFrom_addr $RcptTo_addr $Mssg_body);
 
 $0 =~ s!.*/!!;
-$Usage = "usage: $0 [-f sender_addr] [-u recip_addr] [-c comment] [-t timeout] target_host";
+$Usage = "usage: $0 [-f sender_addr] [-u recip_addr] [-c comment] [-t timeout] [-p port] target_host";
 
 use vars qw($EX_RELAY_ACCEPTED $EX_RELAY_REJECTED $EX_PROGRAM_ERROR);
 $EX_RELAY_REJECTED = 0;
@@ -78,15 +51,15 @@ $EX_PROGRAM_ERROR = 1;
 $Root_check = 1;
 
 if ($Root_check && $> == 0) {
-	print STDERR q[
+        print STDERR q[
 You should not be running this as root!
 Recommend you abort and run as a nonprivileged user.
 Pausing 10 seconds.];
-	foreach $_ (1 .. 10) {
-		print STDERR ".";
-		sleep 1;
-	}
-	print STDERR "\n";
+        foreach $_ (1 .. 10) {
+                print STDERR ".";
+                sleep 1;
+        }
+        print STDERR "\n";
 }
 
 #
@@ -97,10 +70,10 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts('c:f:t:u:', \%Opts)
-	or die "$Usage";
+getopts('c:f:t:u:p:', \%Opts)
+        or die "$Usage";
 die "$Usage\n"
-	unless (@ARGV == 1);
+        unless (@ARGV == 1);
 $Target_host = shift;
 
 #
@@ -108,32 +81,33 @@ $Target_host = shift;
 #
 $Timeout = $Opts{'t'} || 60;
 $Hostname = calculate_fqdn()
-	or die "$0: cannot determine FQDN\n";
+        or die "$0: cannot determine FQDN\n";
+$Port = $Opts{'p'} || 25;               # default to SMTP port
 $Username = $ENV{'LOGNAME'} || $ENV{'USER'} || die "$0: LOGNAME undefined\n";
 $Actual_sender = $Username . "\@" . $Hostname;
 $RcptTo_addr = $Opts{'u'} || $Actual_sender;
 $Comment = $Opts{'c'} . "\n"
-	if ($Opts{'c'});
+        if ($Opts{'c'});
 
 if ($Opts{'f'} ne "") {
-	$MailFrom_addr = $Opts{'f'};
+        $MailFrom_addr = $Opts{'f'};
 } elsif ($Target_host =~ /^\d+\.\d+\.\d+\.\d+$/) {
-	$MailFrom_addr = "nobody\@[${Target_host}]";
+        $MailFrom_addr = "nobody\@[${Target_host}]";
 } else {
-	$MailFrom_addr = "nobody\@${Target_host}";
+        $MailFrom_addr = "nobody\@${Target_host}";
 }
 
 #
 # Construct the test message.
 #
 $Mssg_body =
-	"To: $RcptTo_addr\n"
-	. "From: $MailFrom_addr\n"
-	. "Subject: test for susceptibility to third-party mail relay\n"
-	. "Date: " .  arpa_date(time()) . "\n"
-	. "Message-Id: <rlytest-" . time() . "-" . $$ . "\@$Hostname>\n"
-	. "Sender: $Actual_sender\n"
-	. qq[
+        "To: $RcptTo_addr\n"
+        . "From: $MailFrom_addr\n"
+        . "Subject: test for susceptibility to third-party mail relay\n"
+        . "Date: " .  arpa_date(time()) . "\n"
+        . "Message-Id: <rlytest-" . time() . "-" . $$ . "\@$Hostname>\n"
+        . "Sender: $Actual_sender\n"
+        . qq[
 This message is a test probe, to ensure that your mail server is secured
 against third-party mail relay.  This is NOT an attempt to hack or
 crack your system, but just to ensure the system are secured against
@@ -163,11 +137,11 @@ ${Comment}
 #
 print "Connecting to $Target_host ...\n";
 my $sock = IO::Socket::INET->new(
-		Proto => "tcp",
-		PeerAddr => $Target_host,
-		PeerPort => "smtp(25)",
-		Timeout => $Timeout)
-	or die "$0: socket failed: cannot connect to $Target_host: $@\n";
+                Proto => "tcp",
+                PeerAddr => $Target_host,
+                PeerPort => $Port,
+                Timeout => $Timeout)
+        or die "$0: socket failed: cannot connect to $Target_host: $@\n";
 
 $SIG{'ALRM'} = sub { die "$0: timeout waiting for socket I/O\n"; };
 $sock->autoflush(1);
@@ -191,16 +165,16 @@ exit($EX_RELAY_ACCEPTED);
 #
 sub write_command
 {
-	my $sock = shift;
-	my $data = shift;
-	my $mssg = shift || $data;
-	print ">>> $mssg";
-	$data =~ s/\n/\r\n/g;
-	alarm($Timeout);
-	$sock->print($data)
-		or die "$0: socket write failed [$!]\n";
-	alarm(0);
-	return read_response($sock);
+        my $sock = shift;
+        my $data = shift;
+        my $mssg = shift || $data;
+        print ">>> $mssg";
+        $data =~ s/\n/\r\n/g;
+        alarm($Timeout);
+        $sock->print($data)
+                or die "$0: socket write failed [$!]\n";
+        alarm(0);
+        return read_response($sock);
 }
 
 
@@ -209,24 +183,24 @@ sub write_command
 #
 sub read_response
 {
-	my $sock = shift;
-	my($code, $cont, $mssg);
+        my $sock = shift;
+        my($code, $cont, $mssg);
 
-	do {
-		alarm($Timeout);
-		chop($_ = $sock->getline());
-		alarm(0);
-		($code, $cont, $mssg) = /(\d\d\d)(.)(.*)/;
-		print "<<< ", $_, "\n";
-	} while ($cont eq "-");
-	return $code
-		if ($code >= 200 && $code < 400);
+        do {
+                alarm($Timeout);
+                chop($_ = $sock->getline());
+                alarm(0);
+                ($code, $cont, $mssg) = /(\d\d\d)(.)(.*)/;
+                print "<<< ", $_, "\n";
+        } while ($cont eq "-");
+        return $code
+                if ($code >= 200 && $code < 400);
 
-	alarm($Timeout);
-	$sock->print("QUIT\r\n");
-	alarm(0);
-	warn "$0: relay rejected - final response code $code\n";
-	exit($EX_RELAY_REJECTED);
+        alarm($Timeout);
+        $sock->print("QUIT\r\n");
+        alarm(0);
+        warn "$0: relay rejected - final response code $code\n";
+        exit($EX_RELAY_REJECTED);
 }
 
 
@@ -235,22 +209,22 @@ sub read_response
 #
 sub calculate_fqdn
 {
-	my @trycmds = ("hostname", "hostname -f", "uname -n");
-	my $cmd;
-	my $hostname;
+        my @trycmds = ("hostname", "hostname -f", "uname -n");
+        my $cmd;
+        my $hostname;
 
-	return $Dflt_hostname
-		if ($Dflt_hostname);
+        return $Dflt_hostname
+                if ($Dflt_hostname);
 
-	foreach $cmd (@trycmds) {
-		chop($hostname = `$cmd`);
-		return $hostname
-			if ($hostname =~ /\./);
-		return $hostname . "." . $Dflt_domain
-			if ($hostname && $Dflt_domain);
-	}
+        foreach $cmd (@trycmds) {
+                chop($hostname = `$cmd`);
+                return $hostname
+                        if ($hostname =~ /\./);
+                return $hostname . "." . $Dflt_domain
+                        if ($hostname && $Dflt_domain);
+        }
 
-	die "$0: cannot determine FQDN - please set \$Dflt_domain or \$Dflt_hostname\n"
+        die "$0: cannot determine FQDN - please set \$Dflt_domain or \$Dflt_hostname\n"
 }
 
 
@@ -259,16 +233,16 @@ sub calculate_fqdn
 #
 sub arpa_date
 {
-	my $gm = gmtime(shift);
-	my @Day_name = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat");
-	my @Month_name = (
-		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
+        my $gm = gmtime(shift);
+        my @Day_name = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat");
+        my @Month_name = (
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
 
-	sprintf("%-3s, %02d %-3s %4d %02d:%02d:%02d GMT",
-		$Day_name[$gm->wday],
-		$gm->mday, $Month_name[$gm->mon], 1900+$gm->year,
-		$gm->hour, $gm->min, $gm->sec);
+        sprintf("%-3s, %02d %-3s %4d %02d:%02d:%02d GMT",
+                $Day_name[$gm->wday],
+                $gm->mday, $Month_name[$gm->mon], 1900+$gm->year,
+                $gm->hour, $gm->min, $gm->sec);
 
 }
 
@@ -286,6 +260,7 @@ B<rlytest>
 [B<-u> recip_addr]
 [B<-c> I<comment>]
 [B<-t> I<timeout>]
+[B<-p> I<port>]
 I<target_host>
 
 =head1 DESCRIPTION
@@ -326,6 +301,11 @@ and want to insert cookies into the messages.
 
 Sets the timeout value (default is 60 seconds) for certain
 operations.
+
+=item B<-p> I<port>
+
+Connects to the SMTP server on the specified port instead of the
+default port 25.
 
 =back
 
@@ -379,4 +359,3 @@ smtpd(8)
 
   $Id$
   See http://www.unicom.com/sw/#rlytest for latest version.
-
