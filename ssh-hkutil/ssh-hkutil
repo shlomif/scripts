@@ -19,9 +19,16 @@ my $khf = shift;
 open my $file, "< $khf";
 my $hkd   = parse_known_hosts($file);
 my $m_hkd = merge_host_keys($hkd);
+print_known_hosts($m_hkd);
 
 sub print_known_hosts {
   my $hkd = shift;
+
+  for my $hkr ( sort { $a->{'hosts'}->[0] cmp $b->{'hosts'}->[0] } @$hkd ) {
+    my $host_spec = join ',', @{ $hkr->{'hosts'} };
+    print join( ' ', $host_spec, $hkr->{'key_type'}, $hkr->{'public_key'} ),
+     "\n";
+  }
 }
 
 # takes hostname => public_key hash reference, returns new hash
@@ -37,12 +44,12 @@ sub merge_host_keys {
   }
 
   for my $key ( keys %keys2hosts ) {
-    my ( $key_type, $public_key ) = split ' ', $key;
+    my ( $key_type, $public_key ) = split ' ', $key, 2;
     push @host_keys,
      {
       key_type   => $key_type,
       public_key => $public_key,
-      hosts      => \@{ $keys2hosts{$key} }
+      hosts      => [ sort { $b cmp $a } @{ $keys2hosts{$key} } ]
      };
   }
 
@@ -68,7 +75,7 @@ sub parse_known_hosts {
        {
         key_type   => $key_type,
         public_key => $public_key,
-        hosts      => [ split ',', $host_spec ]
+        hosts      => [ sort { $b cmp $a } split ',', $host_spec ]
        };
     }
   } else {
