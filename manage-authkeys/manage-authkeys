@@ -48,7 +48,7 @@ my $auth_key_file_chars = '[\w\s.~/-]';
 # registered commands
 my %command = (
   'list'   => \&do_list,
-  'merge'  => \&do_merge,
+  'write'  => \&do_write,
   'delete' => \&do_delete,
 );
 
@@ -132,7 +132,7 @@ sub do_list {
 }
 
 # merges keys into auth_key_file
-sub do_merge {
+sub do_write {
   open KFILE, ">$auth_key_file"
    or die "Could not write authorized key file: $!\n";
 
@@ -275,7 +275,7 @@ STDIN.  Current commands are:
 Shows what temporary keyfiles are available, plus some general data
 about the public key in question.
 
-=item B<merge>
+=item B<write>
 
 Overwrites the authorized_keys file with the keys in memory, if any.
 
