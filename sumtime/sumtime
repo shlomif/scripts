@@ -5,81 +5,85 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
+# Totals up short-hand time durations such as 3h20m.
+#
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
 
 require 5;
-
 use strict;
-
-######################################################################
-#
-# MODULES
-
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-######################################################################
-#
-# VARIABLES
 
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts, $duration);
+my $duration;
 
 # how to convert various time units to seconds
 my %factor = (
-  'w' => 604800,
-  'd' => 86400,
-  'h' => 3600,
-  'm' => 60,
-  's' => 1,
+  y => 31536000,
+  M => 2592000,
+  w => 604800,
+  d => 86400,
+  h => 3600,
+  m => 60,
+  s => 1,
 );
 
-# support y for years and M for Month, based on the current date
+# tie y, M to current year and month if possible
 eval { require Date::Calc; };
 unless ($@) {
-  require Date::Calc;
-  my ($month, $year) = (localtime)[4,5];
-  $year += 1900; $month++;
+  my ($month, $year) = (localtime)[4, 5];
+  $year += 1900;
+  $month++;
 
-  $factor{y} = Date::Calc::Days_in_Year($year, $month) * $factor{d};
-  $factor{M} = Date::Calc::Days_in_Month($year, $month) * $factor{d};
+  $factor{y} = Date::Calc::Days_in_Year($year, 12) * $factor{d}
+   or die "error: could not calculate days in year\n";
+  $factor{M} = Date::Calc::Days_in_Month($year, $month) * $factor{d}
+   or die "error: could not calculate days in month\n";
 }
 
-######################################################################
-#
-# MAIN
+my $factors = join '', keys %factor;
 
 # parse command-line options
+use Getopt::Std;
+my %opts;
 getopts('h?', \%opts);
-
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-while (<>) {
-  for (/(\d+\s*[ywdhms])/g) {
-    /(\d+)\s*(\w)/;
-    $duration += $1 * $factor{$2};
+if (@ARGV) {
+  $_ = "@ARGV";
+  parse_line();
+} else {
+  while (<STDIN>) {
+    parse_line();
   }
 }
 
-die "error: no parseable duration found\n" unless $duration;
+sub parse_line {
+ LOOP: {
+
+    # match "3h" or "45 m"
+    $duration += $1 * $factor{$2}, redo LOOP
+     if /\G(\d+) ?([$factors])(?=\b|\d)/gco;
+
+    # treat unmatched numbers as seconds
+    $duration += $1, redo LOOP if /\G(\d+)/gc;
+
+    # or skip to next interesting bit
+    redo LOOP if /\G\D+/gc;
+  }
+}
+
+die "error: no parseable duration found\n"
+ unless defined $duration
+ and $duration =~ /^\d+$/;
 
 print deltatimefmt($duration), "\n";
-
 exit;
 
-######################################################################
-#
-# SUBROUTINES
-
 sub deltatimefmt {
-  my $difference = shift;
-  $difference = int($difference);
+  my $difference = int(shift);
+
+  return "0s" if $difference == 0;
 
   my $seconds = $difference % 60;
   $difference = ($difference - $seconds) / 60;
@@ -104,7 +108,7 @@ sub deltatimefmt {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts] [files]
+Usage: $0 [opts] [time specifications]
 
 Totals up short hand time durations.
 
@@ -117,9 +121,7 @@ HELP
   exit;
 }
 
-######################################################################
-#
-# DOCUMENTATION
+__END__
 
 =head1 NAME
 
@@ -127,7 +129,7 @@ sumtime - totals up short-hand time durations
 
 =head1 SYNOPSIS
 
-  $ echo 27h 71s | sumtime
+  $ sumtime 27h 71s
   1d 3h 1m 11s
 
   $ (echo 1m 2m; echo 3m 4m) | sumtime
@@ -141,10 +143,10 @@ Short description of what script is intended to do.
 
 =head2 Normal Usage
 
-  $ sumtime [options] [files]
+  $ sumtime [options] [time specifications]
 
-Input is either taken from the filenames mentioned on the command line,
-or from STDIN.
+Input is either taken from the data on the command line, or failing
+that, from STDIN.
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -159,10 +161,6 @@ This script currently supports the following command line switches:
 Prints a brief usage note.
 
 =back
-
-=head1 EXAMPLES
-
-None yet.
 
 =head1 BUGS
 
@@ -184,11 +182,6 @@ No known bugs.
 Output formatting, e.g. raw seconds, or ability to select output time
 format (e.g. hours only, and so forth).  Ability to set a default
 input factor, e.g. when passing in unadorned hours or minutes.
-
-Ability to read in raw seconds (or whatever?) on input.
-
-Verbose mode to trace processing, warn about Date::Calc not being
-available?
 
 =head1 SEE ALSO
 
