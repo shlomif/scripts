@@ -58,7 +58,7 @@ help() unless @ARGV;
 # in case of '* * *' timeout, usual ip/host/times will be undef,
 # so be sure to check for it!
 
-# ref on stats, which holds additional info...
+# ref on stats, which holds additional (global) info...
 # %stats = (
 # 'hostname' => {
 #    'timeouts' = count of number of timeouts (* * *) along path
@@ -69,12 +69,15 @@ foreach my $host (@ARGV) {
     unless (open (TRACE, "$traceroute $host 2>/dev/null |")) {
 	die "Problem with traceroute on $host: $!\n";
     } else {
+	$stats{$host}->{'timeouts'} = 0;
+
 	while (<TRACE>) {
-#	    print;		# DBG
+	    print;		# DBG
 
 	    # head off timeouts at the pass, otherwise rip by regex
 	    if (m/\* \* \*$/) {
 		push(@{$data{$host}}, undef);
+		$stats{$host}->{'timeouts'}++;
 
 	    } elsif (m/^\s*\d+\s+    # optional leading whitespace & index
 		     (\S+)\s+	     # hostname   $1
@@ -86,34 +89,58 @@ foreach my $host (@ARGV) {
 
 #		print "Got $5\n"; # DBG
 
+		my @times = ($3, $4, $5);
+
 		# righty, form up data thingy...
 		push(@{$data{$host}}, {
 		    'ip' => $2,
 		    'hostname' => $1,
-		    'times' => [ $3, $4, $5, ]
+		    'times'    => \@times,
+		    'mean'     => mean(\@times),
+		    'stddev'   => standard_deviation_data(\@times),
 		});
-	    }
+	    }			# elsif
+	}			# while
+
+	close (TRACE);
+
+	# now a good time to store some stats...
+	if (defined $data{$host}) {
+	    $stats{$host}->{'maxhops'} = scalar @{$data{$host}};
 	}
-    }
+
+    }				# else
 }
 
-exit;
-
-# prints the full data gained
-#foreach my $key (sort keys %data) {
-#    print "$key\t@{$data{$key}}\n";
-#}
-
-# print highest traceroute number (last element of data array)
-#foreach my $key (sort keys %data) {
-#    print $data{$key}[$#{$data{$key}}], "\t", $key, "\n";
-#}
+foreach my $host (@ARGV) {
+    print "Stats for $host:\n";
+    print "  Maxhops: ", $stats{$host}->{'maxhops'}, "\n";
+    print "  Errors: ", $stats{$host}->{'timeouts'}, "\n\n";
+}
 
 exit;
 
 ######################################################################
 #
 # SUBROUTINES
+
+# $sd = standard_deviation_data(\@array) computes the standard
+# deviation of an array of numbers.
+#
+sub standard_deviation_data {
+    my $arrayref = shift;
+    my $mean = mean($arrayref);
+    return sqrt( mean( [map $_ ** 2, @$arrayref] ) - ($mean ** 2) );
+}
+
+# $mean = mean(\@array) computes the mean of an array of numbers.
+#
+sub mean {
+    my ($arrayref) = shift;
+    my $result;
+    foreach (@$arrayref) { $result += $_ }
+    return $result / @$arrayref;
+}
 
 # a generic help blarb
 sub help {
