@@ -738,6 +738,17 @@ An Emacs interface is available:
 
 http://tierra.dyndns.org:81/emacs/pastebot
 
+If vi is more your style, one can paste the entire contents of a vi
+buffer use the following:
+
+  :w !pbotutil -s server -m "some comment"
+
+Sections in vi can be passed to pbotutil, though an "undo" is required
+to revert the changes:
+
+  :.,+3!pbotutil -s server -m "four lines"
+  u
+
 =head1 DIAGNOSTICS
 
 There are magic number exit codes. See source.
