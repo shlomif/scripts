@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Reveals files in the Finder.
+
+if [ -z "$1" ]; then
+  echo "usage: `basename $0` files"
+  exit 1
+fi
+open -a Finder "$@"
