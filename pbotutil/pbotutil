@@ -664,6 +664,12 @@ are preferred.
   channel #perl
   network freenode
 
+  # SpamAssassin channel on irc.freenode.net
+  name spamassassin
+  alias sa
+  url http://sial.org/pbot/
+  channel #spamassassin
+
   # for non-announced pastes or testing
   name sial
   alias nochan test
