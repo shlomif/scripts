@@ -16,7 +16,8 @@ use File::Basename;
 use File::Path;
 use URI;
 
-my $prefs_file = '~/.pbotutil/servers';
+my $prefs_file = $ENV{PBOTUTILCONF} || '~/.pbotutil/servers';
+
 $prefs_file = tilde_expand($prefs_file);
 init($prefs_file) unless -e $prefs_file;
 my $servers = server_load({filename => $prefs_file});
@@ -668,14 +669,19 @@ http://www.catb.org/~esr/faqs/smart-questions.html
 
 =head1 FILES
 
-A preferences file is used to store server definitions. Server entries
-are key/value listings that specify at minimum a C<name> for the server
-(for the B<-s> command line option), the URL of the pastebot site in
-question, and a C<type>. A default C<nick>, C<channel>, and C<network>
-may also be set. The C<alias> entry allows alternate names to be set
-for a particular server (space separated list). Aliases can be
-identical for multiple server entries, and the script will failover
-between the named sites.
+A preferences file is used to store server definitions. The location
+of the preferences file can be set with the C<PBOTUTILCONF>
+environment variable; otherwise, a default file location will be used.
+The preferences file will be created using built-in defaults should
+none be found.
+
+The file currently uses key/value listings that specify at minimum a
+C<name> for the server (for the B<-s> command line option), the URL of
+the pastebot site in question, and a C<type>. A default C<nick>,
+C<channel>, and C<network> may also be set. The C<alias> entry allows
+alternate names to be set for a particular server (space separated
+list). Aliases can be identical for multiple server entries, and the
+script will failover between the named sites.
 
   # freenode.net, #perl
   name perl
@@ -704,8 +710,6 @@ overridden by the appropriate command line options. The C<network> field
 allows this script to figure out alternative servers to attempt to paste
 to, should the specified site be down. The C<type> entry is reserved for
 potential future support of other pastebot-style sites.
-
-A default preference file will be created should none be found.
 
 =head1 EXAMPLES
 
