@@ -59,10 +59,25 @@ for (keys %pfiles) {
   unless (-e $pfiles{$_}) {
     remark('info', "creating preference file: $pfiles{$_}");
     mkpath(dirname($pfiles{$_}));
-    open TOUCH, ">$pfiles{$_}"
-     or remark('alert', "could not touch preference file $pfiles{$_}: $!")
+    open FILE, ">$pfiles{$_}"
+     or remark('alert', "could not create preference file $pfiles{$_}: $!")
      and exit 100;
-    close TOUCH;
+
+    if ($_ eq 'servers') {
+      print FILE <<"SERVERDEFAULT";
+# irc.freenode.net, #perl
+name perl
+url http://dragon.cbi.tamucc.edu:8080/
+channel #perl
+
+# benchwarmer (backup) pastebot for #perl
+name altperl
+url http://sial.org:8888/
+channel #perl
+SERVERDEFAULT
+    }
+
+    close FILE;
   }
 }
 
@@ -72,7 +87,7 @@ my $servers = server_load({filename => $pfiles{servers}});
 
 # figure out what to do
 my $verb;
-if ($ARGV[0] eq "get" or $ARGV[0] eq "put") {
+if (defined $ARGV[0] and ($ARGV[0] eq "get" or $ARGV[0] eq "put")) {
   $verb = shift;
 } else {
   $verb = 'put';
@@ -161,7 +176,7 @@ sub pb_put {
       $channel = $server->{channel} if exists $server->{channel};
     }
   } else {
-    my $tmpurl = shift;
+    my $tmpurl = shift || help();
     $url =
      URI->new($tmpurl . (($tmpurl !~ m,/$,) ? '/' : '') . 'paste')->canonical;
   }
@@ -187,7 +202,8 @@ sub pb_put {
     # KLUGE add # to front of channel, as # and some shells disagree
     $channel =~ s/^/#/ if $channel ne '' and $channel !~ /^#/;
   } else {
-    remark('warning', 'no channel specified, using null channel');
+
+    #    remark('warning', 'no channel specified, using null channel');
     $channel = '';
   }
 
@@ -219,7 +235,7 @@ sub pb_put {
     );
 
     if ($response->is_success) {
-      if ($response->content) {
+      if ($response->content and not exists $opts{q}) {
         eval { require HTML::TokeParser; };
         if ($@) {
           remark('alert', "problem loading HTML::TokeParser: $@");
@@ -413,14 +429,19 @@ sub remark {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [global-opts] action [args]
+Usage for version $VERSION.
 
-Interacts with pastebot sites.
+  Download (to stdout):
 
-Options for version $VERSION:
-  -h/-?  Display this message
+$0 -s shortcut get pasteid
 
-Run perldoc(1) on this script for additional documentation.
+  Upload (from files or stdin).  Shortcut is name field from
+  a server preferences file entry.
+
+$0 -s shortcut [-c channel] [-m summary] [-u nick] [files]
+
+  Run perldoc(1) on this script for additional documentation, and also
+  see the preferences file: $pfiles{servers}
 
 HELP
   exit;
@@ -436,29 +457,28 @@ pbotutil - interacts with pastebot sites
 
 =head1 SYNOPSIS
 
-Get first post, either by server name or fully qualified URL.
+Get post number 1 using the "perl" shortcut, save to "file":
 
-  $ pbotutil -s server get 1
-  $ pbotutil get http://example.org:8080/1
+  $ pbotutil -s perl get 1 > file
 
-Put data to a server.  The channel will have # prefixed if needed.  The
-put verb is optional.  Again, either -s server or or full URL.
+Post contents of "file" to the #linux channel available on the same
+server that is referenced by the "perl" shortcut.
 
-  $ pbotutil -s server -c perl file
-  $ pbotutil put http://example.org:8080 channel < file
+  $ pbotutil -s perl -c linux -u mynick file
 
-Use the null channel when testing, to avoid pestering a real channel
-with upload messages.
-
-  $ date | pbotutil -s server -c ''
+See L<"FILES"> for details on the preferences file, where shortcuts
+are defined.
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-Provides a command line interface to pastebot sites: allows posting
-to and downloading from such sites.  For more information on
-pastebots, see:
+Provides a command line interface to pastebot sites offered by various
+IRC channels to prevent paste floods.  Methods to upload files to
+pastebots or download specific entries are provided, to spare command
+line junkies the trouble of copying and pasting into a browser.
+
+For more information on pastebots, see:
 
 http://sourceforge.net/projects/pastebot/
 
@@ -467,26 +487,48 @@ http://sourceforge.net/projects/pastebot/
   $ pbotutil [global-options] action [args]
 
 The C<action> can be one of get or put at present.  The put verb is the
-default option.
+default option, and will be assumed if left out.
 
 =over 4
 
 =item B<get>
 
-  $ pbotutil [-s server] get [pasteid|URL]
+The get verb accepts two mutually exclusive formats: a shortcut lookup
+plus a pasteid (number) or a fully qualified URL to download.
+
+  $ pbotutil -s shortcut get pasteid
+
+  $ pbotutil get URL
 
 Output will be sent to stdout by default.
 
 =item B<put> (default)
 
-  $ pbotutil [-s server] [-c channel] [-m summary] [-u nick] \
-    [put] [URL] [-c|-m|-u] [files|-]
+Like get, put accepts two formats, either a shortcut lookup or a URL of
+a pastebot intro page to post to.  The text "put" is optional, and will
+be assumed if left out.  If multiple files are specified on the command
+line, they will be joined together and then pasted.  Otherwise, input
+will be read from stdin.
 
-Attempts to upload the combined files or stdin to the server in
-question.  -s and the URL argument are exclusive.  Some options appear
-on either side of the optional put verb due to command line processing;
-options after the verb override those before the verb, and command line
-options trump any server preference settings.
+The paste URL will be returned to stdout, unless the quiet mode is on.
+
+  $ pbotutil -s shortcut [-c channel] [-m summary] [-u nick] \
+   [put] [-c channel] [-m summary] [-u nick] [files]
+
+  $ pbotutil [-c channel] [-m summary] [-u nick] \
+   [put] URL [-c channel] [-m summary] [-u nick] [files]
+
+The -s and the URL arguments are exclusive, though one is required to
+obtain a pastebot URL to talk to.  Some options appear on either side of
+the optional put verb: options after the verb (if specified) override
+those before the verb, and command line options trump any server
+preference settings.
+
+This allows shell aliases to be created while still offering the ability
+to override the defaults, to avoid obvious social blunders.
+
+  $ alias pbup='pbotutil -s perl -u perlguru put'
+  $ pbup -c python -u pythonguru foo.py
 
 =back
 
@@ -500,27 +542,37 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note.
 
-=item B<-s> I<server>
+=item B<-q>
 
-Use I<server> definition to get URL, default nickname, and other details
-from the preference file.  Optional, as the get and put commands accept
-fully qualified URL, though recommended to simplify useage.
+Makes the script less chatty about various things.
+
+=item B<-s> I<shortcut>
+
+Use a I<shortcut> definition to get the URL, default nickname, and other
+details from the preference file.  Optional, as the get and put commands
+accept fully qualified URL, though recommended to simplify useage.
+
+See L<"FILES"> for details on the preference file format.
 
 =item B<-c> I<channel>
 
-Channel to target.  Overrides preference file setting.  Setting it to an
-empty string will target the "null" channel, which avoids channel
-announcements: good for testing.
+Channel the pastebot should send the "new paste" notice to.  Overrides
+preference file setting, if any.  Setting it to an empty string will
+target the "null" channel, which avoids channel announcements; this good
+for testing.
+
+  $ date | pbotutil -s test -c ''
 
 =item B<-u> I<nick>
 
-Use I<nick> as username when posting.  Will override preference file
-setting, if any.
+Use I<nick> as username when posting.  Will override the preference file
+setting, if any.  This allows channel members to associate a paste with
+your nick.
 
 =item B<-m> I<summary>
 
-Short, descriptive summary about the data being pasted.  This doe not
-include things like "help!"
+Short, descriptive summary about the data being pasted.  This does not
+include things like "help!"  For more details on asking questions, see:
 
 http://www.catb.org/~esr/faqs/smart-questions.html
 
@@ -535,13 +587,13 @@ names, or a list of key/value blocks representing pastebot servers.
   # easy reference to perl
   name     perl
   url      http://example.org:8080
-  nick     mumble
+  nick     yournick
   channel  #perl
 
   # ditto linux
   name     linux
   url      http://example.org:8080
-  nick     mumble
+  nick     yournick
   channel  #linux
 
   # for testing this script, no channel -> null channel by default
@@ -549,17 +601,28 @@ names, or a list of key/value blocks representing pastebot servers.
   url      http://example.org:8080
   nick     testing
 
-  # nick, channel optional, though recommended
+  # nick and channel are optional, though highly recommended
   name     other
   url      http://example.net:8888/
 
-The name field is for the -s option for easy reference to a particular
-server (and optionally channel/nick, as the same server can be
-referenced with different names).  The channel and nick provide
+The name field is for the -s option, and provides easy reference to a
+particular server (and optionally channel or nick, as the same server
+can be referenced with different names).  The channel and nick provide
 defaults to use, though will be overridden by the appropriate command
 line options.
 
 The preference file will be created automagically if it cannot be found.
+
+=head1 EXAMPLES
+
+The script can be used on the command line, or called from an IRC
+program.  For instance, the following allows one to type or paste input
+into the terminal for upload.
+
+  /exec gnome-terminal -e "pastebot -s perl -m '&2' put"
+
+Consult your IRC program's manual for more details on how to
+invoke scripts.
 
 =head1 DIAGNOSTICS
 
@@ -591,6 +654,8 @@ perl(1)
 =head1 AUTHOR
 
 Jeremy Mates, http://sial.org/contact/
+
+Patches, examples from evilgwynie of #perl on irc.freenode.net.
 
 =head1 COPYRIGHT
 
