@@ -24,26 +24,41 @@ my $status_map = {'+' => 0, '-' => 1};
 # by default wait forever
 my $timeout = -1;
 
+# return value for timeout
+my $timeout_status = 1;
+
 use Getopt::Std;
 my %opts;
-getopts('h?o:t:r', \%opts);
+getopts('h?o:t:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 $spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
 
-# TODO only allow non--1 timeouts if non-null default action exists
-if (exists $opts{t} and exists $spec->{default} and $spec->{default} =~ /^\d+$/)
-{
+if (exists $opts{t}) {
   $timeout = duration2seconds($opts{t});
 }
 
-while (1) {
-  my $key = get_key();
-  if (exists $spec->{keys}->{$key} and $spec->{keys}->{$key} =~ /^\d+$/) {
-    exit $spec->{keys}->{$key};
-  } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
-    exit $spec->{default};
+eval {
+  if ($timeout > 0) {
+    local $SIG{ALRM} = sub { die "alarm\n" };
+    alarm $timeout;
   }
+
+  while (1) {
+    my $key = get_key();
+    if (exists $spec->{keys}->{$key} and $spec->{keys}->{$key} =~ /^\d+$/) {
+      exit $spec->{keys}->{$key};
+    } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
+      exit $spec->{default};
+    }
+  }
+  alarm 0 if $timeout > 0;
+};
+if ($@) {
+  die unless $@ eq "alarm\n";
+
+  # TODO figure out why zsh handles the alarm/sets exit to 142 for me
+  exit $timeout_status;
 }
 
 ######################################################################
@@ -51,28 +66,14 @@ while (1) {
 # SUBROUTINES
 
 sub get_key {
-  ReadMode 4;
   my $first;
 
-  do {
+  ReadMode 4;
 
-    # TODO way to spot timeouts and break the loop?
-    $first = ReadKey($timeout);
+  do {
+    $first = ReadKey(-1);
   } until defined $first;
 
-  if (exists $opts{r}) {
-
-    # TODO if print, need to send to tty to avoid polluting regular output?
-    #    print $first;
-    my $ret;
-
-    # wait for user to hit \r hit, but still take first key they type
-    do {
-      do {
-        $ret = ReadKey($timeout);
-      } until defined $ret;
-    } until $ret eq "\n";
-  }
   ReadMode 0;
 
   return $first;
@@ -112,8 +113,8 @@ sub parse_spec {
   }
 
   # DBG
-#  use Data::Dumper;
-#  print Dumper $spec;
+  #  use Data::Dumper;
+  #  print Dumper $spec;
 
   return $spec;
 }
@@ -165,7 +166,7 @@ Options for version $VERSION:
   -o ss  Key mapping specification
 
   -r     Require return key (default: on keystroke)
-  -t dd  Timeout to default after dd seconds
+  -t dd  Timeout after dd seconds
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -204,6 +205,40 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note.
 
+=item B<-o> I<specification>
+
+Custom keystroke option specification.  The format is groups of space or
+comma separated keystrokes and the exit status they correspond to.  A
+colon separates the keys from the exit status.
+
+  -o 'Yy:+ Nn:- *:'
+
+Maps Y and y to + (translated to a "true" value internally), N and n to
+a false value, and everything else to a null value.  Keys tied to a null
+exit do nothing.  Order is important; groups earlier in the list take
+precedence over later entries.  To specify a literal *, or special keys
+such as space, tab, or return, backslash the entry.
+
+  -o '\n:+ \ :-'    # newline yes, space no
+
+Bear in mind the specification will likely have to be enclosed in quotes
+to prevent shell interpolation.
+
+The + and - status values are easy, though a numeric code can be
+specified if the calling application is configured to support such.
+
+  -o 'asdf:0 zxcv:1 qwer:2 *:3'
+
+Says to exit with 0 for asdf, 1 for zxcv, and 2 for qwer.  Every other
+key will result with a 3 exit code.  This allows for complex choices
+beyond yes or no.
+
+=item B<-t> I<duration>
+
+Timeout wait-for-keypress after the specified time.  I<duration>
+may either be raw seconds, or a short hand human format "1m3s" for
+63 seconds.
+
 =back
 
 =head1 BUGS
@@ -219,13 +254,11 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-The -t timeout option does not really work, as I currently know no
-way to detect that a Term::ReadKey timeout has occured soas to break
-the read key loop.
+See source for TODO notes and similar.
 
 =head1 TODO
 
-Write own alarm signal handler to replace Term::ReadKey one.
+See source for TODO notes.
 
 =head1 SEE ALSO
 
