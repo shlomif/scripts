@@ -16,16 +16,11 @@ fi
 
 KHF=$1
 
-if [ ! -w $KHF ]; then
-  echo "error: cannot write to known hosts file: file=$KHF" >&2
-  exit 1
-fi
-
 TMPFILE=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
 trap "rm -f $TMPFILE" 0 1 2 13 15
 
 awk '{print $1}' $KHF | \
-  ssh-keyscan -t rsa,dsa -f - 2>/dev/null | \
+  ssh-keyscan -t rsa,dsa,rsa1 -f - 2>/dev/null | \
   ssh-hkutil -v $KHF - > $TMPFILE || exit 1
 
 if [ ! -s $TMPFILE ]; then
