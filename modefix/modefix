@@ -57,29 +57,34 @@ if (exists $opts{'q'}) {
 
 # get directory mode to set
 if (exists $opts{'d'}) {
-    if ($opts{'d'} =~ m/^\d+$/) {
-	$dirmode  = $opts{'d'};
+    my $temp_dirmode = $opts{'d'};
 
+    if ($temp_dirmode =~ m/^\d+$/) {
 	# paranoid, what me?  never!
 	die "dirmode must be four numbers long, e.g. 0750\n" 
-	    if 4 != length $dirmode;
+	    if 4 != length $temp_dirmode;
 
+	# internal number in oct mode for chmod compatibility
+	$dirmode = oct $temp_dirmode;
     } else {
-	# attempt new ug+rwx method here...
-	die "method not done";
+	# function should return an array ref...
+	$dirmode = parse_mode($temp_dirmode);
     }
 }
 
 # get file mode to set
 if (exists $opts{'f'}) {
-    if ($opts{'f'} =~ m/^\d+$/) {
-	$filemode = $opts{'f'};
-	die "filemode must be four numbers long, e.g. 0640\n" 
-	    if 4 != length $filemode;
+    my $temp_filemode = $opts{'f'};
 
+    if ($temp_filemode =~ m/^\d+$/) {
+	# sanity checking on number supplied
+	die "filemode must be four numbers long, e.g. 0640\n" 
+	    if 4 != length $temp_filemode;
+
+	# mode stored in chmod-compatible oct format internally
+	$filemode = oct $temp_filemode;
     } else {
-	# other mode...
-	die "method not done";
+	$filemode = parse_mode($temp_filemode);
     }
 }
 
@@ -172,6 +177,8 @@ if (keys %badperms > 0 && ! $quiet) {
 ######################################################################
 #
 # SUBROUTINES
+#
+# zapit is the File::Find subroutine that gets called for each file
 
 sub zapit {
     # get current user/group ids off of item
@@ -214,14 +221,14 @@ sub zapit {
 
 	# apply mode changes as needed to directory
 	if (defined $dirmode) {
-	    if (oct ($dirmode) != $cur_mode) {
+	    if ($dirmode != $cur_mode) {
 		# show the offending file if verbose on
 		print 'MODE', "\t", 
 		sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 
 		# attempt the change
-		my $result = chmod oct ($dirmode), $_;
+		my $result = chmod $dirmode, $_;
 		warn "error: chmod on ", 
 		$File::Find::name, " failed\n" if $result == 0;
 
@@ -247,13 +254,13 @@ sub zapit {
 
 	# set file modes if needed
 	if (defined $filemode) {
-	    if (oct ($filemode) != $cur_mode) {
+	    if ($filemode != $cur_mode) {
 		# show the offending file if verbose on
 		print 'MODE', "\t", 
 		sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 
-		my $result = chmod oct ($filemode), $_;
+		my $result = chmod $filemode, $_;
 
 		warn "error: chmod on ", 
 		$File::Find::name, " failed\n" if $result == 0;
@@ -264,8 +271,7 @@ sub zapit {
 	}
     }
 
-    # same group-change code for both dirs and files here
-    # need to merge in the userid change into here as well..
+    # same user/group-changing code for both dirs and files here
     if ((defined $groupid && $groupid != $cur_gid) || 
 	(defined $userid && $userid != $cur_uid)) {
 
@@ -287,12 +293,13 @@ sub zapit {
     }
 }
 
+# a standardized help blarb: should move some of this into perldoc
+# format so the blarb is a bit shorter...
 sub help {
      print <<"HELP";
-$0 v.$VERSION
-Usage: $0 [options] directories_to_fix_here
-
-$0 is a mode/group fixer for directories.
+$0 version $VERSION
+Usage:   $0 [options] dir1 [dir2 dir3 .. dirN]
+Purpose: A recursive permissions/ownership fixer.
 
 Options
   -h/?   See this text.  
