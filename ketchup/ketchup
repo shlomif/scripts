@@ -8,6 +8,8 @@
 # Wrapper to do CVS "update" or Subversion "status"/"update" on working
 # directories as appropriate. Add -f "force" argument to do cvs up -Ad
 # or svn update.
+#
+# Used to be called 'up' but that conflicts with a tool from OpenAFS.
 
 # should be 0, if errors will be that of last error to occur
 RETURN=0
