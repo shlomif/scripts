@@ -11,6 +11,6 @@ ECHO="echo -n"
 
 # TODO options to print initials, date, or both?
 if [ $INITIALS ]; then
-  $ECHO $INITIALS
+  $ECHO "$INITIALS "
 fi
 $ECHO "`date +%Y-%m-%d`"
