@@ -37,6 +37,9 @@ $/ = $opts{d} if exists $opts{d};
 my ($last, $lastprinted);
 my $count = 0;
 
+# unbuffer output to play well when in a pipe chain?
+$| = 1;
+
 while (<>) {
   $last = $_;
   system qw(getraw -o), $spec;
