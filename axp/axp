@@ -79,6 +79,9 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
+  # TODO this is where the "parent" must be supplied, but for the shell
+  # there is no handy "here is the parent directory" I suspect will be
+  # available from mod_perl
   my ( $filedata, $defaults, $params ) = $xapply->study( $doc, $file );
 
   %$defaults = ( %$filedata, %$defaults, %user_default );
