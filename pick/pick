@@ -22,7 +22,7 @@ my $spec = $specs->{y};
 
 use Getopt::Std;
 my %opts;
-getopts('h?qyn0o:d:f:', \%opts);
+getopts('h?vyn0o:d:f:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 if (exists $opts{n}) {
@@ -76,7 +76,7 @@ if (  $count
 # TODO only warn if verbose on?  use special exit code to denote
 # nothing printed?
 unless ($count) {
-  warn "info: no lines printed\n";
+  warn "info: no lines printed\n" if exists $opts{v};
   exit 100;
 }
 
@@ -97,6 +97,8 @@ Options for version $VERSION:
   -h/-?  Display this message.
 
   -d dd  Split records on dd instead of default (\$/).
+  -f dd  Output records with delimitor dd (default \$/).
+  -0     Use NUL as record delimitors (like xargs(1)).
 
   -y     Default to "yes" to accept item with space/return.
   -n     Default to "no" to skip item.
@@ -115,7 +117,7 @@ pick - pick or reject items from a list of input data
 
 =head1 SYNOPSIS
 
-  $ echo a b c | pick
+  $ echo a b c | pick -d ' '
 
 =head1 DESCRIPTION
 
@@ -140,17 +142,59 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note.
 
+=item B<d> I<delimitor>
+
+Break incoming data on the specified delimitor.  Without B<-d>, $/ is
+used (\n by default).  Backslash interpolation will take place on the
+I<delimitor>, which allows things like the following.
+
+  -d '\n\n'   # break on "paragraphs"
+
+  -d '\0'     # break on NUL.
+
+=item B<f> I<delimitor>
+
+Optional output delimitor for data.  Default is the value for B<-d>.
+Allows one to accept a list in one format and output in another.
+
+=item B<-0>
+
+Shorthand for C<-d '\0'> for compatibility with C<-print0> and
+C<xargs -0>.
+
+  $ find . -type f -print0 | pick -0 | xargs -0 rm
+
+The B<-d> and B<-f> options trump the B<-0> option.
+
 =item B<-y>
 
-Default to accepting items, Nn to reject.
+Default to accepting items (with Y, y, space, or return), N or n
+to reject.
 
 =item B<-n>
 
-Default to rejecting items, Yy to accept.
+Default to rejecting items, Y or y to accept.
 
 =item B<-o> I<specification>
 
 Custom specification to pass to getraw.
+
+=item B<-v>
+
+Be verbose about things.  Only a informational note to STDERR if no
+items selected, at present.
+
+=back
+
+=head1 DIAGNOSTICS
+
+Currently defined non-zero (error condition) exit codes.
+
+=over 4
+
+=item B<100>
+
+No records from input were printed to output.
 
 =back
 
@@ -182,22 +226,15 @@ Jeremy Mates, http://www.sial.org/contact/
 The author disclaims all copyrights and releases this script into the
 public domain.
 
-=head1 SEE ALSO
+=head1 HISTORY
 
-perl(1)
+Based on pick command examples presented in "The Unix Programming
+Environment" (ISBN 0-13-937681-X).
 
-=head1 AUTHOR
-
-Jeremy Mates, http://www.sial.org/contact/
-
-=head1 COPYRIGHT
-
-The author disclaims all copyrights and releases this script into the
-public domain.
+http://cm.bell-labs.com/cm/cs/upe/
 
 =head1 VERSION
 
   $Id$
 
 =cut
-
