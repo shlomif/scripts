@@ -3,7 +3,7 @@
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
 #
-# 
+# Parses procmail logfiles.
 # 
 # For documentation, use the -h option or run perldoc on this script.
 #
@@ -24,7 +24,10 @@ use vars qw:$VERSION:;
 #
 # CONSTANTS
 
-my (%opts);
+my (%opts, $procmailrc, $logfile);
+
+# where to look for the procmailrc...
+$procmailrc = $ENV{'HOME'} . '/.procmailrc';
 
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
@@ -37,11 +40,21 @@ getopts('h?', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
-# read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
+# first, we find out where the logfile is
+open (FILE, $procmailrc) or die "Error opening $procmailrc: $!\n";
+while (<FILE>) {
+    chomp;
+    # not too sure about formatting allowed in .procmailrc...
+    if (m/LOGFILE\s*=\s*(.*)$/) {
+	my $logfile_loc = $1;
+	# convert (potentially) shell-notational logfile loc
+	# to a full pathname (e.g. $HOME/.pm_log -> /home/user/.pm_log)
+	$logfile = `echo $logfile_loc`;
+    }
+}
+close (FILE);
 
-# and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+# parse procmail's logfile
 
 ######################################################################
 #
@@ -52,11 +65,10 @@ sub help {
     print <<"HELP";
 $0 v.$VERSION
 Usage: $0 [options]
-Purpose: 
+Purpose: procmail logfile parser.
 
 Options:
   -h/-?  Display this message
-
 
 Run perldoc on this script for more documentation.
 
@@ -68,36 +80,46 @@ __END__
 
 =head1 NAME
 
-thingy - one line description.
+fm.pl - procmail logfile parser.
 
 =head1 SYNOPSIS
 
-Quick usage notes...
+Pretty simple, just run:
+
+  $ fm.pl
 
 =head1 DESCRIPTION
 
-1-2 paragraph blarb on what it does
+fm.pl is a simple procmail logfile parser good for giving you summary
+reports about what procmail has been doing with your email.
 
-This module is distributed under the terms of the Artistic License:
-http://www.sial.org/artistic_license.txt
+Ideally, it should be run daily from cron to keep you informed of
+where your recent mail has gone, especially if you have folders that
+you do not check on a regular basis but might be interested if mail
+goes to them.
 
 =head1 USAGE
 
-Brief summary of OPTIONS and general useage
+Typically...
+
+  $ fm.pl
 
 =head1 OPTIONS
 
-Complete summary of what all the various options do...
+None at the moment.
 
-=head1 INTERNALS
+=heal1 LICENSE
 
-How any data structures work, why chosen, etc.
+This script is distributed under the terms of the Artistic License:
+http://www.sial.org/artistic_license.txt
 
 =head1 BUGS
 
+Lots, probably.
+
 =head1 SEE ALSO
 
-perl(1).
+cron(1), perl(1), procmail(1), procmailrc(5)
 
 =head1 AUTHOR
 
