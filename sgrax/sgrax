@@ -5,7 +5,17 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Converts arguments into standard input for first argument.
+# Converts arguments into standard input for command given as first
+# argument. Useful where a utility can only run a named command without
+# passing input; this utility can accept input on the command line, and
+# pass it on standard input to something else. This is limited by the
+# maximum limit allowed for command line length, and opposite of the
+# xargs(1) utility.
+#
+# Example: my 'ow' script only runs a named command followed by the URL,
+# while pbcopy on Mac OS X only converts standard input to the
+# clipboard. Ergo, running 'sgrax pbcopy $URL' properly gets the URL
+# into the clipboard.
 
 if [ -z "$1" ]; then
   echo "usage: `basename $0` command standard input ..."
