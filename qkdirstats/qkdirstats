@@ -67,10 +67,10 @@ sub dirdata {
       $counts{files}++;
     } elsif ( -d _ ) {
       $counts{dirs}++;
-#      $_ .= '/';
+      #      $_ .= '/';
     } elsif ( -l _ ) {
       $counts{link}++;
-#      $_ .= '@';
+      #      $_ .= '@';
     } else {
       $counts{other}++;
     }
@@ -100,9 +100,8 @@ sub dirdata {
 
 sub output {
   my @metadata = sort keys %keys;
-  #if ($overview_overflow) {
-    push @metadata, map { "$_=$counts{$_}" } sort keys %counts;
-  #}
+  push @metadata, map { "$_=$counts{$_}" } sort keys %counts
+   unless exists $keys{empty};
 
   my $output = '';
 
@@ -114,8 +113,7 @@ sub output {
   # TODO encode filenames, form into lines, limit number of lines to show...
   if (@overview) {
     $output .=
-     wrap( 'f  ', 'f  ', sort(@overview),
-      $overview_overflow ? '...' : () )
+     wrap( 'f  ', 'f  ', sort(@overview), $overview_overflow ? '...' : () )
      . "\n";
   }
 
