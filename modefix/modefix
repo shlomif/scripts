@@ -3,17 +3,7 @@
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
 #
-# Script to fix permissions/ownerships easily in one fell swoop, as 
-# opposed to what I was doing at the command line:
-#
-# find . -type d -exec chmod 2750 {} \;
-# find . -type f -exec chmod 640 {} \;
-# find . -exec chown foo:bar {} \;
-#
-# Which really isn't all that efficient or practical, if you want to
-# skip certain files, prune out certain directories, avoid rampaging 
-# over the filesystem three times in a row, and not exec chmod/chown
-# a few thousand times.
+# For documentation, try the -h option or run perldoc on this file.
 #
 # Distributed under the Artistic License:
 # http://www.sial.org/artistic_license.txt
@@ -92,11 +82,13 @@ if (exists $opts{'f'}) {
 if (exists $opts{'u'}) {
     my $temp_user = $opts{'u'};
 
-    # by userid, otherwise attemp by user name
+    # by userid, otherwise attempt by user name
     if ($temp_user =~ m/^\d+$/) {
 	# check that this userid exists in passwd file
-	$user = getpwuid $temp_user or 
-	    warn 'warning: userid ', $temp_user, " not found on system\n";
+	unless ($user = getpwuid $temp_user) { 
+	    warn 'warning: userid ', $temp_user, " not found on system\n"
+		unless $quiet;
+	}
 	$userid = $temp_user;
 
     } else {
@@ -115,9 +107,10 @@ if (exists $opts{'g'}) {
 
     # by groupid, otherwise attempt by group name
     if ($temp_group =~ m/^\d+$/) {
-	($group, undef, $groupid, $members) = getgrgid $temp_group or 
-	    warn 'warning: groupid ', $temp_group, " not found on system\n";
-
+	unless (($group, undef, $groupid, $members) = getgrgid $temp_group) {
+	    warn 'warning: groupid ', $temp_group, " not found on system\n"
+		unless $quiet;
+	}
     } else {
 	# extract more info on the group they gave us
 	($group, undef, $groupid, $members) = getgrnam $temp_group or 
@@ -129,7 +122,8 @@ if (exists $opts{'g'}) {
     if (exists $opts{'u'} && defined $members) {
 	# username had better appear as a word in $members...
 	unless ( $members =~ m/\b$user\b/o ) {
-	    warn 'warning: ', $user, ' not member of group ', $group, "\n";
+	    warn 'warning: ', $user, ' not member of group ', $group, "\n"
+		unless $quiet;
 	}
     }
 }
@@ -234,7 +228,7 @@ sub zapit {
 	    # code below being identical...
 	    if ($new_mode != $cur_mode) {
 		# show the offending file if verbose on
-		print 'MODE', "\t", 
+		print 'OLDMODE', "\t", 
 		sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 
@@ -277,7 +271,7 @@ sub zapit {
 	    # only perform the chmod if modes are different...
 	    if ($new_mode != $cur_mode) {
 		# show the offending file if verbose on
-		print 'MODE', "\t", 
+		print 'OLDMODE', "\t", 
 		sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 		
@@ -302,7 +296,7 @@ sub zapit {
 	my $gid_temp = (defined $groupid) ? $groupid : $cur_gid;
 	
 	# yak if verbose
-	print 'OLD', "\t", $cur_uid, "\t", $cur_gid, "\t", 
+	print 'OLDUID/GID', "\t", $cur_uid, "\t", $cur_gid, "\t", 
 	$File::Find::name, "\n" if $verbose;
 	
 	my $result = chown $uid_temp, $gid_temp, $_;
@@ -327,8 +321,6 @@ sub parse_mode {
     @temp = split ',', $temp_mode;
 
     for ($i = 0; $i < scalar @temp; $i++) {
-	warn "dealing with $temp[$i]\n";
-
 	my ($what, $operator, $flags) = split /([+-])/, $temp[$i];
 
 	# test for remove bit, otherwise assume add bit
@@ -404,31 +396,198 @@ Usage:   $0 [options] dir1 [dir2 dir3 .. dirN]
 Purpose: A recursive permissions/ownership fixer.
 
 Options
-  -h/?   See this text.  
-  -d     Directory mode to set, e.g. '2770'
-  -f     File mode to set,      e.g. '0660'
-  -u     User name to set,      e.g. 'jdoe'
-  -g     Group name to set,     e.g. 'goobers'
-
-  -s xx  Perl expression that will result in the current item (stored in \$_)
-         being skipped if the expression turns out to be "true."  Example:
-
-         -s '-d || m/^\\.rsrc\$/' .
-
-         Would skip applying the group change to directories or '.rsrc' files.
-         (But would still traverse down into any "skipped" directories!)
-
-  -p xx  Perl expression that will result in the current directory (stored in 
-         \$_) being pruned out of the tree, e.g. to skip dot directories:
-
-         -p 'm/^\\../' .
-
-         Both -s and -p expressions should use the shortcut _ operator in
-         any stat() calls, to avoid race conditions.
-
+  -h/?   See this text.
   -v     Verbose mode, shows files fixing.
-  -q     Overrides -v, only output will be on chown/chmod failures.
+  -q     Overrides -v, only output will be on serious failures.
+    
+  -d     Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
+  -f     File mode to set,      e.g. '0660' or 'ug+rw'
+  -u     User name to set,      e.g. 'jdoe' or '42'
+  -g     Group name to set,     e.g. 'goobers' or '1492'
+
+  -s xx  Perl expression that will result in the current item
+         (stored in \$_) being skipped if the expression turns
+         out to be "true."
+
+  -p xx  Perl expression that will result in the current directory
+         (stored in \$_) being pruned out of the tree.
+
+Use perldoc on this script for more help.
 
 HELP
     exit;
 }
+
+__END__
+
+=head1 NAME
+
+B<modefix.pl> - recursive permission and ownership changer.
+
+=head1 SYNOPSIS
+
+To manually set the directory and file permissions, as well as the
+ownerships under /home/john:
+
+B<$ modefix.pl -d 2750 -f 0640 -u john -g doe /home/john>
+
+To ensure all files are group writable, and that "others" do not have
+any access whatsoever to the files under the current directory:
+
+B<$ modefix.pl -f g+w,o-rwx .>
+
+=head1 DESCRIPTION
+
+B<modefix.pl> is a pure-perl implementation of the following three shell
+commands I was getting tired of typing:
+
+    $ find . -type d -exec chmod 2750 {} \;
+    $ find . -type f -exec chmod 640 {} \;
+    $ find . -exec chown john:doe {} \;
+
+Which really isn't all that efficient or practical, if you want to
+skip certain items, prune out a few directories, avoid rampaging 
+over the file system three times in a row, and not exec chmod/chown
+a few thousand times.
+
+I also don't trust the -R flag on certain unix utilities.  See the
+B<BUGS> section for more details.
+
+This module is distributed under the terms of the Artistic License:
+
+http://www.sial.org/artistic_license.txt
+
+=head1 SYNTAX
+
+The general syntax for calling modefix.pl is:
+
+B<$ modefix.pl [options] dir1 [dir2 dir3 .. dirN]>
+
+B<modefix.pl> also looks for input on STDIN if it runs out of
+command line arguments before finding something to work with.
+
+=head1 OPTIONS
+
+B<modefix.pl> accepts a variety of command line options, broken down
+into B<Useful Options>, B<Actions>, and B<Search Customization>.
+
+B<Useful Options>:
+
+ -h/?   View a brief help blarb.
+
+ -v     Verbose mode, shows files being changed.  Good if
+        you want an audit trail of what the system looked like
+        before the script ran.
+
+ -q     Overrides -v, only output will be on chown/chmod failures.
+
+The default is to print various warnings, and to generate a little
+summary report at the end of what was done.
+
+B<Actions>:
+
+At least one of the following four actions is needed to make
+the script do something:
+
+ -d xx  Directory mode to set.
+ -f xx  File mode to set.
+ 
+        Both mode flags take either a literal mode to set,
+        such as:
+        
+        0750  (sticky bit, user bit, group bit, other bit)
+        
+        Or can take an interpreted expression of arbitrary
+        length and complexity:
+        
+        ug+rw,o-rw,o+s  (mode, operator, flags)
+        
+        Note that later operations can override earlier ones;
+        for example, we remove all then add user back in:
+        
+        -rwxs,u+rw
+        
+        The various modes are:
+        
+        u  user bit
+        g  group bit
+        o  other bit
+        a  shorthand for 'ugo', can also be specified by
+           leaving off the mode flag, which has the same
+           effect as 'ugo' or 'a'
+        
+        There are only two operators:
+        
+        +  ensure flags are added to mode
+        -  ensure flags are removed from mode
+        
+        And four different flags:
+        
+        x  execute bit (1)
+        r  read bit (2)
+        w  write bit (4)
+        s  set sticky bit, based on mode in expression.
+        
+        The sticky bit acts as follows:
+        
+        u+s  set the suid flag
+        g+s  set the sgid flag - atalkd(8) likes this on dirs.
+        o+s  set the chmod(1) 't' flag, like on /tmp
+        
+        See chmod(1) for the background on these arguments.
+ 
+ -u xx  User name to set
+ -g xx  Group name to set
+
+        User and group names can either be by name, or by id.
+        If done by name, chown need's an id to work with, so
+        there had better be a corresponding system entry for
+        the name supplied.
+        
+        Also, unless quiet mode is on, modefix.pl warns if you
+        enter id's that do not exist on the system, or if the
+        user is not a member of the specified group.
+        
+B<Search Customization>:
+
+Use the following options to ignore various items in the file system
+using perl expressions that get eval'ed:
+
+ -s xx  Perl expression that will result in the current
+        item (stored in $_) being skipped if the expression
+        turns out to be true. Example:         
+
+        -s '-d || m/^\.rsrc$/'
+
+        Would skip applying the changes to any directories or
+        items named '.rsrc'.  Warning skip only counts towards
+        whether or not any actions are performed; modefix.pl
+        will happily apply changes below a "skipped" directory.
+
+ -p xx  Perl expression that will result in the current directory
+        (stored in $_) and anything below that directory being
+        utterly removed from examination, in this case any "dot"
+        directories:
+
+        -p 'm/^\../' .
+
+        Both -s and -p expressions should use the shortcut _ operator
+        in any stat() calls, to avoid race conditions.
+
+=head1 BUGS
+
+B<modefix.pl> doesn't deal well with soft linked directories.
+
+This can be considered a feature, as I've seen systems taken out by
+rampant chmod -R invocations.  Well, a single Solaris system, and it was
+the kid's first week on the job-- wasn't me, and I'm not telling who. :)
+
+=head1 SEE ALSO
+
+chmod(1), chown(1), find(1), perl(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=cut
