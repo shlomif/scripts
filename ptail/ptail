@@ -84,9 +84,9 @@ exit;
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [opts] file [expression]
 
-Help for a generic script template.
+tails a file and applies perl expression to each line
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -103,23 +103,34 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+ptail.pl - follows a file and applies a perl expression to each line
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+Follow a logfile, and print any lines mentioning ipmon:
+
+  $ ptail.pl /var/log/messages print if m/ipmon/
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-Short description of what script is intended to do.
+This script is the functional equivalent of the tail(1) utility
+running in follow mode, with the additional ability to apply an
+arbitrary perl expression to each line seen in the file being tracked.
+
+The primary use seen for this script is to extract out and manipulate
+specific lines of interest from a busy logfile.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ ptail.pl [options] file [expression]
 
 See L<"OPTIONS"> for details on the command line switches supported.
+
+The file to watch is required, and the expression defaults to "print"
+to emulate the behaviour of a tail -f.  The expression is built from
+any number of arguments following the file, for greater flexibility.
 
 =head1 OPTIONS
 
@@ -133,19 +144,9 @@ Prints a brief usage note about the script.
 
 =back
 
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
-
 =head1 EXAMPLES
 
-Additional examples/helpfull hints expanding on SYNOPSIS.
-
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
+None yet.
 
 =head1 BUGS
 
@@ -162,13 +163,9 @@ Patches that fix problems or add new features are welcome.
 
 No known bugs.
 
-=head1 TODO
-
-Replace default stub POD entries with real documentation.
-
 =head1 SEE ALSO
 
-perl(1)
+File::Tail, perl(1)
 
 =head1 AUTHOR
 
@@ -179,11 +176,6 @@ Jeremy A. Mates, http://www.sial.org/contact/
 Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
 you can redistribute it and/or modify it under the same terms as Perl
 itself.
-
-=head1 HISTORY
-
-A blank perl template I threw together to make writing new scripts
-easier.
 
 =head1 VERSION
 
