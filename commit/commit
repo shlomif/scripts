@@ -42,7 +42,7 @@ my ( %tocommit, @unknown );
 for my $file (@ARGV) {
   my ( $filename, $filepath, undef ) = fileparse($file);
 
-  if ( -f File::Spec->catfile( $filepath, qw{CVS ROOT} ) ) {
+  if ( -f File::Spec->catfile( $filepath, qw{CVS Root} ) ) {
 
     push @{ $tocommit{cvs} }, $file unless $file eq 'CVS';
 
