@@ -11,7 +11,7 @@
 
 use strict;
 
-use File::Basename qw(basename dirname fileparse);
+use File::Basename qw(basename fileparse);
 my $basename = basename $0;
 
 # what to consider as a filename suffix seperator (all OS I've seen use
@@ -36,7 +36,7 @@ $xapply->config(
 
 use Getopt::Std;
 my %opts;
-getopts 'h?c:s:', \%opts;
+getopts 'h?c:s:o:', \%opts;
 
 my %user_prefs;
 $user_prefs{class} = $opts{c} if exists $opts{c};
@@ -96,9 +96,11 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
-  $filedata{filename} = $file;
-  $filedata{dirname}  = dirname $file;
-  $filedata{suffix}   = [ get_suffixes($file) ];
+  (
+    $filedata{dirname}, $filedata{filename},
+    $filedata{file},    $filedata{suffix}
+  )
+   = filedata($file);
 
   # TODO only load docheaders details if needed by rules?
   %filedata = ( %filedata, %{ $xapply->docheaders } );
@@ -113,23 +115,19 @@ FILE: for my $file (@ARGV) {
   print $$docref, "\n";
 }
 
-# given filename such as "foo.zip" or "bar.tar.gz" returns list of
-# suffixes, longest first (e.g. qw(zip) or qw(tar.gz gz) for the
-# previous example filenames).
-sub get_suffixes {
-  my $file = shift;
+# given filename (or path to file) returns path to file, filename with
+# extension, filename without extension, extension
+#
+# foo.tar.gz -> './', 'foo.tar.gz', 'foo', 'tar.gz'
+sub filedata {
+  my $filename = shift;
 
-  my @portions = split /$suffix_re/, fileparse($file);
-  return unless @portions > 1;
+  my ( $name, $path, undef ) = fileparse $filename;
+  my @portions = split /$suffix_re/, $name;
+  return $path, $name, $portions[0] if @portions == 1;
 
-  return ( $portions[-1] ) if @portions == 2;
-
-  my @suffixes;
   local $" = $suffix_char;
-  for my $i ( 1 .. $#portions ) {
-    push @suffixes, "@portions[$i..$#portions]"
-  }
-  return @suffixes;
+  return $path, $name, $portions[0], "@portions[1..$#portions]";
 }
 
 sub parse_rules {
