@@ -1,0 +1,73 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# Little test script used to develop humanize routine.
+
+print humanize(-56990456345), "\n";
+print humanize(0), "\n";
+print humanize(500), "\n";
+print humanize(8700), "\n";
+print humanize(999999), "\n";
+print humanize(1048500), "\n";
+print humanize(26223559), "\n";
+print humanize(133456345), "\n";
+print humanize(56990456345), "\n";
+
+# Inspired from GNU's df -h output, which fixes 133456345 bytes
+# to be something human readable.
+sub humanize {
+	my $num = shift;
+	my $count = 0;
+	my $prefix = '';
+	my $tmp = '';
+	
+	######################################################################
+	#
+	# CONSTANTS
+	#
+	# move these to global if in module land...
+	
+	# what to tack onto resulting numbers; bytes unmarked in this list
+	my @suffix = ('', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y');
+
+	# how to break down large values, could also be 1000 with suffix changes
+	my $factor = 1024;
+
+	# if number is within following percentage of factor, round it up
+	my $fudge = 0.95;
+
+	# if number is longer than the following, no .[1-9] will be added
+	my $max_human_length = 2;
+	
+	
+	# handle negatives
+	if ($num < 0 ) {
+		$num = abs $num;
+		$prefix = '-';
+	}
+
+	# reduce number to something readable by factor specified	
+	while ($num > $factor) {
+		$num /= $factor;
+		$count++;
+	}
+
+	# fudge "near" values up to next higher level
+	if ($num > ($fudge * $factor)) {
+		$count++;
+		$num /= $factor;
+	}
+	
+	# no .[1-9] decimal on longer numbers for easier reading
+	if (length sprintf("%.f", $num) > $max_human_length) {
+		$tmp = sprintf("%.f", $num);
+	} else {
+		$tmp = sprintf("%.1f", $num);
+		# hack trailing .0 as is not needed
+		$tmp =~ s/\.0$//;
+	}
+	
+	return $prefix . $tmp . $suffix[$count];
+}
+
