@@ -1,0 +1,18 @@
+#!/usr/bin/perl -l
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Converts hex format IP address into IPv4 address humans like.
+
+use Getopt::Std;
+my %opts;
+getopts('ul', \%opts);
+
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+for (@ARGV) {
+  print $opts{l} ? lc : uc;
+}
