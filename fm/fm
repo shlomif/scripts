@@ -90,7 +90,7 @@ if (@ARGV) {
 parse_logfile();
 
 # see whether there is any new mail to report about...
-if (scalar @data < 1) {
+if (keys %folders < 1) {
     print "No new mail.\n";
     exit;
 }
