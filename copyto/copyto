@@ -34,7 +34,7 @@ sub remark;
 use Getopt::Std;
 my %opts;
 getopts 'h?fq', \%opts;
-print_help if exists $opts{'h'} or exists $opts{'?'};
+print_help if exists $opts{h} or exists $opts{?};
 
 print_usage unless @ARGV > 1;
 
@@ -89,7 +89,7 @@ my %files;
       next;
     }
     if (  $target_exists
-      and not exists $opts{'f'}
+      and not exists $opts{f}
       and -e File::Spec->catfile($target_dir, $file)) {
 
       # TODO other options to handle already existing target file?
@@ -102,7 +102,7 @@ my %files;
 
       # need URL, so copies from other repositories work right
       if (my $svn_url = get_subversion_url $file) {
-        push @{$files{'svn'}}, $svn_url;
+        push @{$files{svn}}, $svn_url;
         next;
       }
     }
@@ -131,7 +131,7 @@ for my $method (keys %files) {
 }
 
 # for use by subsequent cd, if any
-print $target_dir, "\n" unless exists $opts{'q'};
+print $target_dir, "\n" unless exists $opts{q};
 
 exit;
 
@@ -185,7 +185,7 @@ sub remark {
   my $priority = shift;
   my $message  = shift;
 
-  return if exists $opts{'q'} and $priority eq 'notice';
+  return if exists $opts{q} and $priority eq 'notice';
 
   warn "$priority: $message\n";
 }

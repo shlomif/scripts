@@ -15,7 +15,7 @@ use strict;
 # clean up env for taint mode ("perldoc perlsec" for more information)
 sub BEGIN {
   delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
-  $ENV{'PATH'} = '/bin:/usr/bin:/usr/local/bin';
+  $ENV{PATH} = '/bin:/usr/bin:/usr/local/bin';
 }
 
 use Digest::MD5 qw(md5);
@@ -28,24 +28,24 @@ my %opts;
 getopts('h?f:C:o:O:t', \%opts);
 
 # various key-munging options
-$comment = $opts{'C'} if exists $opts{'C'};
+$comment = $opts{C} if exists $opts{C};
 
-if (exists $opts{'o'}) {
-  $keyopts->{'required'} = parse_authkey_options($opts{'o'});
+if (exists $opts{o}) {
+  $keyopts->{required} = parse_authkey_options($opts{o});
 }
 
-if (exists $opts{'O'}) {
-  $keyopts->{'exclusive'} = parse_authkey_options($opts{'O'});
+if (exists $opts{O}) {
+  $keyopts->{exclusive} = parse_authkey_options($opts{O});
 }
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
 # read target host(s) in
-push @targets, $opts{'t'} if exists $opts{'t'};
-if (exists $opts{'f'}) {
-  unless ($opts{'f'} eq "-") {
-    open STDIN, "< $opts{'f'}"
-     or remark('alert', "could not open $opts{'f'}: $!")
+push @targets, $opts{t} if exists $opts{t};
+if (exists $opts{f}) {
+  unless ($opts{f} eq "-") {
+    open STDIN, "< $opts{f}"
+     or remark('alert', "could not open $opts{f}: $!")
      and die;
   }
   while (<STDIN>) {
@@ -78,24 +78,24 @@ for (@ARGV) {
 
     next unless defined $values;
 
-    if (exists $data->{$values->{'hash'}}) {
+    if (exists $data->{$values->{hash}}) {
       remark('warning', "skipping duplicate key (hash:",
-        $values->{'hash'}, ") at $_ line $.");
+        $values->{hash}, ") at $_ line $.");
       next;
     }
 
     # munge keys as called for
-    $values->{'comment'} = $comment if defined $comment;
+    $values->{comment} = $comment if defined $comment;
 
-    if (exists $keyopts->{'exclusive'}) {
-      $values->{'options'} = $keyopts->{'exclusive'};
+    if (exists $keyopts->{exclusive}) {
+      $values->{options} = $keyopts->{exclusive};
 
-    } elsif (exists $keyopts->{'required'}) {
-      %{$values->{'options'}} =
-       (%{$values->{'options'}}, %{$keyopts->{'required'}});
+    } elsif (exists $keyopts->{required}) {
+      %{$values->{options}} =
+       (%{$values->{options}}, %{$keyopts->{required}});
     }
 
-    $data->{$values->{'hash'}} = $values;
+    $data->{$values->{hash}} = $values;
   }
 
   close KEYFILE;
@@ -122,9 +122,9 @@ sub parse_authkey {
     if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
       and $elements[$i + 1] =~ m/^AAAA/) {
 
-      $values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
-      $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
-      $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
+      $values{type} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
+      $values{goodbit} = join " ", @elements[$i .. $i + 1];
+      $values{comment} = join " ", @elements[$i + 2 .. $#elements];
 
       last;
 
@@ -132,9 +132,9 @@ sub parse_authkey {
       and $elements[$i + 1] =~ m/^\d+$/
       and $elements[$i + 2] =~ m/^\d+$/) {
 
-      $values{'type'}    = 'rsa1';
-      $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
-      $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
+      $values{type}    = 'rsa1';
+      $values{goodbit} = join " ", @elements[$i .. $i + 2];
+      $values{comment} = join " ", @elements[$i + 3 .. $#elements];
 
       last;
     }
@@ -142,15 +142,15 @@ sub parse_authkey {
     push @options, $elements[$i];
   }
 
-  unless (exists $values{'goodbit'}) {
+  unless (exists $values{goodbit}) {
     remark('notice', "could not parse key from: $authkey");
     return;
   }
 
-  $values{'options'} = parse_authkey_options("@options");
+  $values{options} = parse_authkey_options("@options");
 
-  $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
-  $values{'key'}  = $authkey;
+  $values{hash} = sprintf "%08x", unpack "N", md5($values{goodbit});
+  $values{key}  = $authkey;
 
   return \%values;
 }
@@ -190,19 +190,19 @@ sub remark {
     $message  = "@_";
   }
 
-  return 1 if exists $opts{'q'} and $priority eq 'info';
+  return 1 if exists $opts{q} and $priority eq 'info';
 
-  if (exists $opts{'l'}) {
-    if ($opts{'l'} eq "syslog") {
+  if (exists $opts{l}) {
+    if ($opts{l} eq "syslog") {
       openlog($0, 'cons', $facility);
       syslog($priority, $message);
       closelog();
 
-    } elsif ($opts{'l'} eq "logger") {
+    } elsif ($opts{l} eq "logger") {
       system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
 
     } else {
-      die "alert: unknown log handler: ", $opts{'l'};
+      die "alert: unknown log handler: ", $opts{l};
     }
 
   } else {

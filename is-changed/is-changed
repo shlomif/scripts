@@ -20,13 +20,13 @@ use URI;
 use URI::file;
 
 my $cache_file =
- $ENV{'IS_CHANGED_CACHE'} ? $ENV{'IS_CHANGED_CACHE'} : '~/.is-changed-cache';
+ $ENV{IS_CHANGED_CACHE} ? $ENV{IS_CHANGED_CACHE} : '~/.is-changed-cache';
 
 use Getopt::Std;
 my %opts;
 getopts('h?c:', \%opts);
 
-$cache_file = $opts{'c'} if exists $opts{'c'};
+$cache_file = $opts{c} if exists $opts{c};
 $cache_file = tilde_expand($cache_file);
 my $dbh = init($cache_file);
 my %sql = (
@@ -70,7 +70,7 @@ for my $what (@ARGV) {
   unless (exists $handle{$uri->scheme}) {
     remark('error', "no scheme handler for: $what") && exit 102;
   }
-  $handle{$uri->scheme}->{'handle'}->($uri);
+  $handle{$uri->scheme}->{handle}->($uri);
 }
 
 # "no change" if reach here
@@ -112,14 +112,14 @@ sub is_changed {
   my $what = shift;
   my $hash = shift;
 
-  $sql{'gethash'}->execute($what);
-  my @result = $sql{'gethash'}->fetchrow_array;
+  $sql{gethash}->execute($what);
+  my @result = $sql{gethash}->fetchrow_array;
   unless (@result) {
-    $sql{'insert'}->execute($what, $hash);
+    $sql{insert}->execute($what, $hash);
     return 1;
   } else {
     if ($result[0] ne $hash) {
-      $sql{'update'}->execute($hash, $what);
+      $sql{update}->execute($hash, $what);
       return 1;
     } else {
       return 0;
@@ -133,7 +133,7 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : ( $ENV{'HOME'} || $ENV{'LOGDIR'} )
+      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
      }ex;
   }
   return wantarray ? @_ : "@_";
@@ -170,7 +170,7 @@ sub remark {
     $message  = "@_";
   }
 
-  return 1 if exists $opts{'q'} and $priority eq 'info';
+  return 1 if exists $opts{q} and $priority eq 'info';
 
   warn $priority, ": ", $message, "\n";
 

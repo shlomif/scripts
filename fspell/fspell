@@ -27,7 +27,7 @@ sub print_help;
 use Getopt::Std;
 my %opts;
 getopts('h?a', \%opts);
-print_help if exists $opts{'h'} or exists $opts{'?'};
+print_help if exists $opts{h} or exists $opts{?};
 
 # TODO means of doing/selecting/adding more entries to
 #_init() unless -s 'words.db' > 5000;
@@ -43,7 +43,7 @@ $findmeta->execute(Metaphone $string);
 my @results;
 while (my @row = $findmeta->fetchrow_array) {
   my $tl = Text::Levenshtein::distance("$string", $row[0]);
-  if ($tl == 0 and not exists $opts{'a'}) {
+  if ($tl == 0 and not exists $opts{a}) {
     print $string, "\n";
     exit;
   } else {

@@ -28,7 +28,7 @@ my (
 );
 
 # where to look for the procmailrc...
-$procmailrc = $ENV{'HOME'} . '/.procmailrc';
+$procmailrc = $ENV{HOME} . '/.procmailrc';
 
 # for matching date field in from line
 $days_of_week   = '(Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
@@ -62,27 +62,27 @@ my %global_prefs = (
 use Getopt::Std;
 getopts( 'h?srzb:m:t:', \%opts );
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
 # extract backup option, if any
-$backup = $opts{'b'} if exists $opts{'b'};
+$backup = $opts{b} if exists $opts{b};
 
 # whether to zap logfile
-$zap = 1 if exists $opts{'z'};
+$zap = 1 if exists $opts{z};
 
 # summary only? (no message log)
-$summary = 1 if exists $opts{'s'};
+$summary = 1 if exists $opts{s};
 
 # reverse sort message log?
-$reverse = 1 if exists $opts{'r'};
+$reverse = 1 if exists $opts{r};
 
 # "machine" output style required?
-$machine = $opts{'m'} if exists $opts{'m'};
+$machine = $opts{m} if exists $opts{m};
 
 # special counting patterns "tags"
 # TODO input validation/checking of some sort?
-if ( exists $opts{'t'} ) {
-  for my $kv ( split ';', $opts{'t'} ) {
+if ( exists $opts{t} ) {
+  for my $kv ( split ';', $opts{t} ) {
     my ( $name, $regex ) = split ',', $kv;
     next unless $name and $regex;
 
@@ -210,11 +210,11 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
     for (@data) {
 
       # use strict complains if use funky calls, so de-ref 'em...
-      $subject = $_->{'_subject'};
-      $from    = $_->{'_from'};
-      $folder  = $_->{'_folder'};
-      $size    = $_->{'_size'};
-      $date    = $_->{'_date'};
+      $subject = $_->{_subject};
+      $from    = $_->{_from};
+      $folder  = $_->{_folder};
+      $size    = $_->{_size};
+      $date    = $_->{_date};
 
       # only show size if above certain amount (should be a constant,
       # or even better based on standard deviation above average size!)
@@ -269,11 +269,11 @@ sub print_machine {
   # message info
   my $t_count = 0;
   for (@data) {
-    print "message", $t_count, "\tsubject\t", $_->{'_subject'}, "\n";
-    print "message", $t_count, "\tfrom\t",    $_->{'_from'},    "\n";
-    print "message", $t_count, "\tfolder\t",  $_->{'_folder'},  "\n";
-    print "message", $t_count, "\tsize\t",    $_->{'_size'},    "\n";
-    print "message", $t_count, "\tdate\t",    $_->{'_date'},    "\n";
+    print "message", $t_count, "\tsubject\t", $_->{_subject}, "\n";
+    print "message", $t_count, "\tfrom\t",    $_->{_from},    "\n";
+    print "message", $t_count, "\tfolder\t",  $_->{_folder},  "\n";
+    print "message", $t_count, "\tsize\t",    $_->{_size},    "\n";
+    print "message", $t_count, "\tdate\t",    $_->{_date},    "\n";
     $t_count++;
   }
 
@@ -332,18 +332,18 @@ $months_of_year \s+
       $count++;
 
       # and tack various info into anon hash in @data array...
-      $data[$count]->{'_from'} = $1;
-      $data[$count]->{'_date'} = $2;
+      $data[$count]->{_from} = $1;
+      $data[$count]->{_date} = $2;
     }
 
     if (m/^\s*Subject:\s+(.*)$/) {
-      $data[$count]->{'_subject'} = $1;
+      $data[$count]->{_subject} = $1;
     }
     if ( my ( $folder, $size ) = m/^\s*Folder:\s+(.+?)\s+(\d+)$/ ) {
       $folder =~ s:/new.+::;
 
-      $data[$count]->{'_folder'} = $folder;
-      $data[$count]->{'_size'}   = $size;
+      $data[$count]->{_folder} = $folder;
+      $data[$count]->{_size}   = $size;
 
       # keep separate track of folder locs for ease
       # of lookup at cost of more memory
@@ -381,8 +381,8 @@ $months_of_year \s+
 
   # finally, extract out the oldest & newest dates from
   # the data array using a lot of assumptions
-  $oldest = $data[0]->{'_date'};
-  $newest = $data[$#data]->{'_date'};
+  $oldest = $data[0]->{_date};
+  $newest = $data[$#data]->{_date};
 }
 
 # automagically gets logfile location from .procmailrc file,
@@ -451,23 +451,23 @@ sub humanize {
   }
 
   # reduce number to something readable by factor specified
-  while ( $num > $prefs{'factor'} ) {
-    $num /= $prefs{'factor'};
+  while ( $num > $prefs{factor} ) {
+    $num /= $prefs{factor};
     $count++;
   }
 
   # optionally fudge "near" values up to next higher level
-  if ( defined $prefs{'fudge'} ) {
-    if ( $num > ( $prefs{'fudge'} * $prefs{'factor'} ) ) {
+  if ( defined $prefs{fudge} ) {
+    if ( $num > ( $prefs{fudge} * $prefs{factor} ) ) {
       $count++;
-      $num /= $prefs{'factor'};
+      $num /= $prefs{factor};
     }
   }
 
   # no .[1-9] decimal on longer numbers for easier reading
   # only show decimal if prefs say so
-  if ( length sprintf( "%.f", $num ) > $prefs{'max_human_length'}
-    || !$prefs{'decimal'} ) {
+  if ( length sprintf( "%.f", $num ) > $prefs{max_human_length}
+    || !$prefs{decimal} ) {
 
     $tmp = sprintf( "%.0f", $num );
 
@@ -475,11 +475,11 @@ sub humanize {
     $tmp = sprintf( "%.1f", $num );
 
     # optionally hack trailing .0 as is not needed
-    $tmp =~ s/\.0$// unless $prefs{'decimal_zero'};
+    $tmp =~ s/\.0$// unless $prefs{decimal_zero};
   }
 
   # return number with proper style applied
-  return $prefix . $tmp . $prefs{'suffix'}->[$count];
+  return $prefix . $tmp . $prefs{suffix}->[$count];
 }
 
 # a generic help blarb

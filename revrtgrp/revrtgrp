@@ -37,9 +37,9 @@ my (%opts, $verbose, %u2g, %n2u, %groups);
 # parse command-line options
 getopts('h?vp:s:g', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
-$verbose = 1 if exists $opts{'v'};
+$verbose = 1 if exists $opts{v};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -56,7 +56,7 @@ while (my ($user, undef, $uid, $gid) = getpwent()) {
 }
 
 # if needed, add user's membership in other groups to the list
-if (exists $opts{'g'}) {
+if (exists $opts{g}) {
   while (my (undef, undef, $gid, $members) = getgrent()) {
 
     # need convert space delimited list to uid's...
@@ -88,8 +88,8 @@ sub do_stuff {
   my ($uid, $gid) = (lstat)[4, 5];
 
   # see if we should "prune" this directory
-  if (exists $opts{'p'} && -d _) {
-    my $results = eval "return 1 if( " . $opts{'p'} . " );";
+  if (exists $opts{p} && -d _) {
+    my $results = eval "return 1 if( " . $opts{p} . " );";
 
     if ($@) {
       chomp $@;
@@ -103,8 +103,8 @@ sub do_stuff {
   }
 
   # (try to) figure out what to skip
-  if (exists $opts{'s'}) {
-    my $result = eval "return 1 if( " . $opts{'s'} . " );";
+  if (exists $opts{s}) {
+    my $result = eval "return 1 if( " . $opts{s} . " );";
 
     if ($@) {
       chomp $@;
@@ -126,7 +126,7 @@ sub do_stuff {
   if ($gid != $u2g{$uid}) {
 
     # and optionally whether other group is valid for the user
-    if (exists $opts{'g'}) {
+    if (exists $opts{g}) {
       return if exists $groups{$uid}->{$gid};
     }
     print $File::Find::name, ' ', $gid, ' to ', $u2g{$uid}, "\n" if $verbose;

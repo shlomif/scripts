@@ -34,7 +34,7 @@ my $suffix_re   = qr/\./;
 
 my %defaults = ( class => 'expand' );
 
-my $prefs_file = $ENV{'OSMCONF'} || '~/.osm/prefs';
+my $prefs_file = $ENV{OSMCONF} || '~/.osm/prefs';
 $prefs_file = tilde_expand($prefs_file);
 init($prefs_file) unless -e $prefs_file;
 my $data = load_prefs($prefs_file);
@@ -43,45 +43,45 @@ use Getopt::Std;
 my %opts;
 getopts 'h?qnpvc:d:', \%opts;
 
-print_help() if $opts{'h'} or $opts{'?'} or not @ARGV;
+print_help() if $opts{h} or $opts{?} or not @ARGV;
 
-if ( exists $opts{'q'} ) {
-  $defaults{'quiet'} = 1;
-  delete $defaults{'verbose'};
-} elsif ( exists $opts{'v'} ) {
-  delete $defaults{'quiet'};
-  $defaults{'verbose'} = 1;
+if ( exists $opts{q} ) {
+  $defaults{quiet} = 1;
+  delete $defaults{verbose};
+} elsif ( exists $opts{v} ) {
+  delete $defaults{quiet};
+  $defaults{verbose} = 1;
 }
 
-$defaults{'class'}    = $opts{'c'} if exists $opts{'c'};
-$defaults{'dest'}     = $opts{'d'} if exists $opts{'d'};
-$defaults{'preserve'} = 1          if exists $opts{'p'};
+$defaults{class}    = $opts{c} if exists $opts{c};
+$defaults{dest}     = $opts{d} if exists $opts{d};
+$defaults{preserve} = 1          if exists $opts{p};
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
     remark( 'notice', 'skipping as does not exist', { file => $file } )
-     unless exists $defaults{'quiet'};
+     unless exists $defaults{quiet};
     next FILE;
   }
 
   my $file_quoted = quotemeta $file;
 
   for my $suffix ( get_suffixes($file), '*' ) {
-    if ( exists $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} ) {
+    if ( exists $data->{_suffixmap}->{ $defaults{class} }->{$suffix} ) {
       for my $index (
-        @{ $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} } ) {
+        @{ $data->{_suffixmap}->{ $defaults{class} }->{$suffix} } ) {
         next FILE
          if handle_file( { %defaults, file => $file_quoted },
-          $data->{ $defaults{'class'} }->[$index] );
+          $data->{ $defaults{class} }->[$index] );
       }
     }
   }
   remark(
     'notice',
     'no means to handle file',
-    { file => $file, class => $defaults{'class'} }
+    { file => $file, class => $defaults{class} }
    )
-   unless exists $defaults{'quiet'};
+   unless exists $defaults{quiet};
 }
 
 sub handle_file {
@@ -89,18 +89,18 @@ sub handle_file {
   my $config = shift;
 
   my %tmp = %$config;
-  $tmp{'file'} = $param->{'file'};
+  $tmp{file} = $param->{file};
   for my $option (qw(quiet verbose preserve dest)) {
     delete $tmp{$option} unless exists $param->{$option};
   }
-  delete $tmp{'destopt'} unless exists $param->{'dest'};
+  delete $tmp{destopt} unless exists $param->{dest};
 
-  $tmp{'exec'} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
+  $tmp{exec} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
 
-  if ( exists $opts{'n'} ) {
-    print "@{$tmp{'exec'}}\n";
+  if ( exists $opts{n} ) {
+    print "@{$tmp{exec}}\n";
   } else {
-    system( $tmp{'exec'} ) == 0
+    system( $tmp{exec} ) == 0
      or remark(
       'warning',
       'bad exit status',
@@ -147,7 +147,7 @@ sub load_prefs {
     chomp;
 
     if (/^$/) {
-      pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
+      pref_finish( \%tmp, \%data ) if exists $tmp{name};
       next;
     }
 
@@ -164,7 +164,7 @@ sub load_prefs {
     }
     $tmp{$k} = $v;
   }
-  pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
+  pref_finish( \%tmp, \%data ) if exists $tmp{name};
 
   return \%data;
 }
@@ -173,16 +173,16 @@ sub pref_finish {
   my $tmp  = shift;
   my $data = shift;
 
-  if ( exists $tmp->{'suffix'} ) {
-    $tmp->{'suffix'} = [ map { s/^\.//; $_ } split / /, $tmp->{'suffix'} ];
+  if ( exists $tmp->{suffix} ) {
+    $tmp->{suffix} = [ map { s/^\.//; $_ } split / /, $tmp->{suffix} ];
   }
 
-  push @{ $data->{ $tmp->{'class'} } }, {%$tmp};
+  push @{ $data->{ $tmp->{class} } }, {%$tmp};
 
-  if ( exists $tmp->{'suffix'} ) {
-    for my $suffix ( @{ $tmp->{'suffix'} } ) {
-      push @{ $data->{'_suffixmap'}->{ $tmp->{'class'} }->{$suffix} },
-       $#{ $data->{ $tmp->{'class'} } };
+  if ( exists $tmp->{suffix} ) {
+    for my $suffix ( @{ $tmp->{suffix} } ) {
+      push @{ $data->{_suffixmap}->{ $tmp->{class} }->{$suffix} },
+       $#{ $data->{ $tmp->{class} } };
     }
   }
 
@@ -231,7 +231,7 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{'HOME'}
+      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
         || remark('error',
 	     'could not lookup user or HOME not set',
 	     { file => $_ })
@@ -250,7 +250,7 @@ Generic interface to many archive formats.
 Options:
   -h/-?  Display this message.
 
-  -c cc  Use class 'cc' instead of default ($defaults{'class'}).
+  -c cc  Use class 'cc' instead of default ($defaults{class}).
 
   -n     Do nothing; instead, show command(s) that would have been run.
 

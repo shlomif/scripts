@@ -14,5 +14,5 @@ getopts('ul', \%opts);
 chomp(@ARGV = <STDIN>) unless @ARGV;
 
 for (@ARGV) {
-  print $opts{'l'} ? lc : uc;
+  print $opts{l} ? lc : uc;
 }

@@ -31,9 +31,9 @@ unless ($@) {
   $year += 1900;
   $month++;
 
-  $factor{'y'} = Date::Calc::Days_in_Year($year, 12) * $factor{'d'}
+  $factor{y} = Date::Calc::Days_in_Year($year, 12) * $factor{d}
    or die "error: could not calculate days in year\n";
-  $factor{'M'} = Date::Calc::Days_in_Month($year, $month) * $factor{'d'}
+  $factor{M} = Date::Calc::Days_in_Month($year, $month) * $factor{d}
    or die "error: could not calculate days in month\n";
 }
 
@@ -42,7 +42,7 @@ my $factors = join '', keys %factor;
 use Getopt::Std;
 my %opts;
 getopts('h?', \%opts);
-print_help() if exists $opts{'h'} or exists $opts{'?'};
+print_help() if exists $opts{h} or exists $opts{?};
 
 my $duration;
 

@@ -38,7 +38,7 @@ $traceroute = '/usr/sbin/traceroute';
 # parse command-line options
 getopts('h?', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -66,14 +66,14 @@ for my $host (@ARGV) {
   unless (open TRACE, "$traceroute $host 2>/dev/null |") {
     die "Problem with traceroute on $host: $!\n";
   } else {
-    $stats{$host}->{'timeouts'} = 0;
+    $stats{$host}->{timeouts} = 0;
 
     while (<TRACE>) {
 
       # head off timeouts at the pass, otherwise rip by regex
       if (m/^\s*\d+\s+\* \* \*$/) {
         push @{$data{$host}}, undef;
-        $stats{$host}->{'timeouts'}++;
+        $stats{$host}->{timeouts}++;
 
       } elsif (
         m/^\s*\d+[ *]+    # optional leading whitespace & index
@@ -105,7 +105,7 @@ for my $host (@ARGV) {
 
     # now a good time to store some stats...
     if (defined $data{$host}) {
-      $stats{$host}->{'maxhops'} = @{$data{$host}};
+      $stats{$host}->{maxhops} = @{$data{$host}};
     } else {
       warn "Warning: no data gained for $host\n";
     }
@@ -115,11 +115,11 @@ for my $host (@ARGV) {
 # simple display until I can figure out better stuff to do with
 # the data...
 for (@ARGV) {
-  next unless $stats{$_}->{'maxhops'};
+  next unless $stats{$_}->{maxhops};
 
-  print $stats{$_}->{'maxhops'}, " hops to host ", $_;
-  if ($stats{$_}->{'timeouts'} > 0) {
-    print " errors ", $stats{$_}->{'timeouts'};
+  print $stats{$_}->{maxhops}, " hops to host ", $_;
+  if ($stats{$_}->{timeouts} > 0) {
+    print " errors ", $stats{$_}->{timeouts};
   } else {
     print " no errors";
   }
@@ -127,7 +127,7 @@ for (@ARGV) {
 
   # and let's look at some specific stuff
   #    foreach my $info (@{$data{$_}}) {
-  #     print $info->{'mean'}, "\t", $info->{'stddev'}, "\n";
+  #     print $info->{mean}, "\t", $info->{stddev}, "\n";
   #    }
 }
 

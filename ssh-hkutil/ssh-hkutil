@@ -16,7 +16,7 @@ use Getopt::Std;
 my %opts;
 getopts 'h?mMv', \%opts;
 
-print_help() if $opts{'h'} or $opts{'?'};
+print_help() if $opts{h} or $opts{?};
 
 my $khf   = shift || print_help();
 my $extra = shift;
@@ -39,9 +39,9 @@ if ($extra) {
   $hkd = resolve_host_keys( $hkd, $ehkd );
 }
 
-if ( $opts{'M'} ) {
+if ( $opts{M} ) {
   $hkd = unmerge_host_keys($hkd);
-} elsif ( $opts{'m'} or $extra ) {
+} elsif ( $opts{m} or $extra ) {
   $hkd = merge_host_keys($hkd);
 }
 
@@ -60,18 +60,18 @@ sub resolve_host_keys {
   for my $i ( 0 .. $#$hkd ) {
     my $hkr = $hkd->[$i];
 
-    for my $host ( @{ $hkr->{'hosts'} } ) {
-      $hostmap{"$hkr->{'type'} $host"}      = $i;
-      $keymap{"$host $hkr->{'public_key'}"} = $i;
+    for my $host ( @{ $hkr->{hosts} } ) {
+      $hostmap{"$hkr->{type} $host"}      = $i;
+      $keymap{"$host $hkr->{public_key}"} = $i;
     }
   }
 
   my ( %delete, @delete );
   for my $hkr (@$ehkd) {
-    for my $host ( @{ $hkr->{'hosts'} } ) {
-      if ( exists $hostmap{"$hkr->{'type'} $host"}
-        and not exists $keymap{"$host $hkr->{'public_key'}"} ) {
-        $delete{ $hostmap{"$hkr->{'type'} $host"} } = 1;
+    for my $host ( @{ $hkr->{hosts} } ) {
+      if ( exists $hostmap{"$hkr->{type} $host"}
+        and not exists $keymap{"$host $hkr->{public_key}"} ) {
+        $delete{ $hostmap{"$hkr->{type} $host"} } = 1;
       }
     }
   }
@@ -80,29 +80,29 @@ sub resolve_host_keys {
   for my $i ( 0 .. $#$hkd ) {
     my $hkr = $hkd->[$i];
     if ( $delete{$i} ) {
-      push @delete, $hkr if $opts{'v'};
+      push @delete, $hkr if $opts{v};
     } else {
       push @host_keys, $hkr;
     }
   }
 
-  if ( $opts{'v'} ) {
+  if ( $opts{v} ) {
     my $dhkd = merge_host_keys( \@delete );
     for my $hkr (@$dhkd) {
       local $" = ',';
       warn "notice: key deleted: ",
-       join( ', ', "type=$hkr->{'type'}", "hosts=@{$hkr->{'hosts'}}" ), "\n";
+       join( ', ', "type=$hkr->{type}", "hosts=@{$hkr->{hosts}}" ), "\n";
     }
   }
 
   $ehkd = merge_host_keys($ehkd);
   for my $hkr (@$ehkd) {
-    unless ( exists $keymap{"$hkr->{'hosts'}->[0] $hkr->{'public_key'}"} ) {
+    unless ( exists $keymap{"$hkr->{hosts}->[0] $hkr->{public_key}"} ) {
       push @host_keys, $hkr;
       local $" = ',';
       warn "notice: key added: ",
-       join( ', ', "type=$hkr->{'type'}", "hosts=@{$hkr->{'hosts'}}" ), "\n"
-       if $opts{'v'};
+       join( ', ', "type=$hkr->{type}", "hosts=@{$hkr->{hosts}}" ), "\n"
+       if $opts{v};
     }
   }
 
@@ -115,12 +115,12 @@ sub print_known_hosts {
   # sort by first hostname, then by key type
   for my $hkr (
     sort {
-          $a->{'hosts'}->[0] cmp $b->{'hosts'}->[0]
-       || $a->{'type'} cmp $b->{'type'}
+          $a->{hosts}->[0] cmp $b->{hosts}->[0]
+       || $a->{type} cmp $b->{type}
     } @$hkd
    ) {
 
-    my $host_spec = join ',', clean_hosts( @{ $hkr->{'hosts'} } );
+    my $host_spec = join ',', clean_hosts( @{ $hkr->{hosts} } );
 
     # KLUGE sanity check for missing host I saw once...
     if ( not $host_spec or $host_spec eq '' ) {
@@ -131,7 +131,7 @@ sub print_known_hosts {
       next;
     }
 
-    print join( ' ', $host_spec, $hkr->{'type'}, $hkr->{'public_key'} ), "\n";
+    print join( ' ', $host_spec, $hkr->{type}, $hkr->{public_key} ), "\n";
   }
 }
 
@@ -139,7 +139,7 @@ sub unmerge_host_keys {
   my $hkd = shift;
   my @host_keys;
   for my $hkr (@$hkd) {
-    my @hosts = @{ $hkr->{'hosts'} };
+    my @hosts = @{ $hkr->{hosts} };
     for my $host (@hosts) {
       push @host_keys, { (%$hkr), hosts => [$host] };
     }
@@ -156,7 +156,7 @@ sub merge_host_keys {
 
   for my $hkr (@$hkd) {
     push @{ $keys2hosts{"$hkr->{type} $hkr->{public_key}"} },
-     @{ $hkr->{'hosts'} };
+     @{ $hkr->{hosts} };
   }
 
   for my $key ( keys %keys2hosts ) {

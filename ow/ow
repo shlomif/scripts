@@ -13,7 +13,7 @@
 use URI;
 
 # read method from env if possible (allows easy override)
-my $default_open = $ENV{'OW_METHOD'} || 'lynx';
+my $default_open = $ENV{OW_METHOD} || 'lynx';
 
 # what to launch URLs with (but see sub visit below)
 # TODO some means to pass options to say lwp-request and wget types?
@@ -45,8 +45,8 @@ for ( keys %pfiles ) {
 }
 
 # -d flag does directory->web map lookup (if possible)
-if ( exists $opts{'d'} ) {
-  my $dirmap = loadconfig( $pfiles{'dirmap'} );
+if ( exists $opts{d} ) {
+  my $dirmap = loadconfig( $pfiles{dirmap} );
 
   require Cwd;
 
@@ -89,13 +89,13 @@ if ( exists $opts{'d'} ) {
   exit;
 }
 
-my $scuts = loadconfig( $pfiles{'shortcuts'} );
+my $scuts = loadconfig( $pfiles{shortcuts} );
 
 # for _T_ab completion lookups on hash keys
-if ( exists $opts{'T'} ) {
-  if ( $opts{'T'} eq 'open' ) {
+if ( exists $opts{T} ) {
+  if ( $opts{T} eq 'open' ) {
     print join "\n", sort keys %open;
-  } elsif ( $opts{'T'} eq 'shortcuts' ) {
+  } elsif ( $opts{T} eq 'shortcuts' ) {
     # need to cut out the "*" and "google@" stuff
     my %seen;
     @seen{ map { /(\w+)/ } keys %$scuts } = ();
@@ -183,12 +183,12 @@ sub visit {
   my $url = shift;
   return unless $url;
 
-  if ( exists $opts{'l'} ) {
+  if ( exists $opts{l} ) {
     print $url, "\n";
     return;
   }
 
-  my $method = exists $opts{'o'} ? $opts{'o'} : $default_open;
+  my $method = exists $opts{o} ? $opts{o} : $default_open;
   die "error: unknown open method: $method\n" unless exists $open{$method};
 
   # TODO dispatch table for this
@@ -240,7 +240,7 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : ( $ENV{'HOME'} || $ENV{'LOGDIR'} )
+      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
      }ex;
   }
   return wantarray ? @_ : "@_";

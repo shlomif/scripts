@@ -45,15 +45,15 @@ my $reset_tail  = -1;
 # parse command-line options
 getopts('h?m:i:a:t:r:f', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
-$maxinterval = $opts{'m'} if exists $opts{'m'} and $opts{'m'} =~ /^\d+$/;
-$interval    = $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
-$adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
-$tail        = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
-$reset_tail  = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+$maxinterval = $opts{m} if exists $opts{m} and $opts{m} =~ /^\d+$/;
+$interval    = $opts{i} if exists $opts{i} and $opts{i} =~ /^\d+$/;
+$adjustafter = $opts{a} if exists $opts{a} and $opts{a} =~ /^\d+$/;
+$tail        = $opts{t} if exists $opts{t} and $opts{t} =~ /^-?\d+$/;
+$reset_tail  = $opts{r} if exists $opts{r} and $opts{r} =~ /^-?\d+$/;
 
-$prefix = 1 if exists $opts{'f'};
+$prefix = 1 if exists $opts{f};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;

@@ -38,25 +38,25 @@ $regex = '(-?\d{4,})';
 # parse command-line options
 getopts('h?kb:m:r', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
 # set the base conversion factor
-if (exists $opts{'b'}) {
-  ($base) = $opts{'b'} =~ m/(\d+)/;
+if (exists $opts{b}) {
+  ($base) = $opts{b} =~ m/(\d+)/;
   die "Error: base should be a positive integer\n" unless $base;
 }
 
-$base = 1024 if exists $opts{'k'};
+$base = 1024 if exists $opts{k};
 
 # set different regex if requried, add matching parens if none
 # detected in input, as we need to match *something*
-$regex = $opts{'m'} if exists $opts{'m'};
+$regex = $opts{m} if exists $opts{m};
 $regex = '(' . $regex . ')' unless $regex =~ m/\(.+\)/;
 
 @ARGV = <STDIN> unless @ARGV;
 
 for (@ARGV) {
-  if (exists $opts{'r'}) {
+  if (exists $opts{r}) {
     while (m/$regex/go) {
       my $orig = $1;
       my $human = humanize($orig, {base => $base});
@@ -139,26 +139,26 @@ sub humanize {
   }
 
   # adjust number to proper base
-  $num *= $defaults{'base'};
+  $num *= $defaults{base};
 
   # reduce number to something readable by factor specified
-  while ($num > $defaults{'factor'}) {
-    $num /= $defaults{'factor'};
+  while ($num > $defaults{factor}) {
+    $num /= $defaults{factor};
     $count++;
   }
 
   # optionally fudge "near" values up to next higher level
-  if ($defaults{'fudge'}) {
-    if ($num > ($defaults{'fudge'} * $defaults{'factor'})) {
+  if ($defaults{fudge}) {
+    if ($num > ($defaults{fudge} * $defaults{factor})) {
       $count++;
-      $num /= $defaults{'factor'};
+      $num /= $defaults{factor};
     }
   }
 
   # no .[1-9] decimal on longer numbers for easier reading
   # only show decimal if format say so
-  if (length sprintf("%.f", $num) > $defaults{'max_human_length'}
-    || !$defaults{'decimal'}) {
+  if (length sprintf("%.f", $num) > $defaults{max_human_length}
+    || !$defaults{decimal}) {
 
     $tmp = sprintf("%.0f", $num);
 
@@ -166,10 +166,10 @@ sub humanize {
     $tmp = sprintf("%.1f", $num);
 
     # optionally hack trailing .0
-    $tmp =~ s/\.0$// unless $defaults{'decimal_zero'};
+    $tmp =~ s/\.0$// unless $defaults{decimal_zero};
   }
 
-  return $prefix . $tmp . $defaults{'suffix'}->[$count];
+  return $prefix . $tmp . $defaults{suffix}->[$count];
 }
 
 # a generic help blarb

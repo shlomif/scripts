@@ -35,7 +35,7 @@ my (%opts, $zero, $lzero);
 # parse command-line options
 getopts('h?0', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
 # mangle all input
 while (<>) {
@@ -51,7 +51,7 @@ while (<>) {
     $lzero += 1 if $6 and $6 =~ /[Tt]/;
   }
 
-  undef $lzero if $lzero == 0 and not exists $opts{'0'};
+  undef $lzero if $lzero == 0 and not exists $opts{0};
 
   $^W = 0;  # hide uninit warnings on $lzero
 

@@ -43,38 +43,38 @@ my $recursive = 1;
 # deal with command line options
 getopts('h?p:s:d:f:u:g:Grvql', \%opts);
 
-help() if exists $opts{'h'} || exists $opts{'?'};
+help() if exists $opts{h} || exists $opts{?};
 
 # make sure we got valid arguments...
-unless (exists $opts{'u'}
-  or exists $opts{'g'}
-  or exists $opts{'f'}
-  or exists $opts{'d'}) {
+unless (exists $opts{u}
+  or exists $opts{g}
+  or exists $opts{f}
+  or exists $opts{d}) {
   die "Error: no action flag(s) specified\n";
 }
-if (exists $opts{'G'} and !exists $opts{'u'}) {
+if (exists $opts{G} and !exists $opts{u}) {
   die "Error: the -G flag requires -u\n";
 }
 
 # set some misc. options...
-$verbose = 1 if exists $opts{'v'};
-$report  = 1 if exists $opts{'r'};
-if (exists $opts{'q'}) {
+$verbose = 1 if exists $opts{v};
+$report  = 1 if exists $opts{r};
+if (exists $opts{q}) {
   $verbose = 0;
   $report  = 0;
   $quiet   = 1;
 }
 
-$recursive = 0 if exists $opts{'l'};
+$recursive = 0 if exists $opts{l};
 
-$skip  = $opts{'s'} if exists $opts{'s'};
-$prune = $opts{'p'} if exists $opts{'p'};
+$skip  = $opts{s} if exists $opts{s};
+$prune = $opts{p} if exists $opts{p};
 
 # read in action flags
 
 # get directory mode to set
-if (exists $opts{'d'}) {
-  my $temp_dirmode = $opts{'d'};
+if (exists $opts{d}) {
+  my $temp_dirmode = $opts{d};
 
   if ($temp_dirmode =~ m/^\d{3,4}$/) {
 
@@ -91,8 +91,8 @@ if (exists $opts{'d'}) {
 }
 
 # get file mode to set
-if (exists $opts{'f'}) {
-  my $temp_filemode = $opts{'f'};
+if (exists $opts{f}) {
+  my $temp_filemode = $opts{f};
 
   if ($temp_filemode =~ m/^\d{3,4}$/) {
     $filemode = oct $temp_filemode;
@@ -105,8 +105,8 @@ if (exists $opts{'f'}) {
 }
 
 # user to set
-if (exists $opts{'u'}) {
-  my $temp_user = $opts{'u'};
+if (exists $opts{u}) {
+  my $temp_user = $opts{u};
 
   # check whether user:group notation in use...
   ($temp_user, $group) = split ':', $temp_user, 2;
@@ -131,10 +131,10 @@ if (exists $opts{'u'}) {
   }
 }
 
-unless (exists $opts{'G'}) {
+unless (exists $opts{G}) {
 
   # need to undefine $groupid, unless there's -g or $group crap
-  unless (exists $opts{'g'} || defined $group) {
+  unless (exists $opts{g} || defined $group) {
     undef $groupid;
 
   } else {
@@ -142,14 +142,14 @@ unless (exists $opts{'G'}) {
     my $temp_group;
     $temp_groupid = $groupid if defined $groupid;
 
-    if (exists $opts{'g'} || defined $group) {
+    if (exists $opts{g} || defined $group) {
 
       # if group already defined, using -u user:group notation,
       # ignore the -g option!
       if (defined $group) {
         $temp_group = $group;
       } else {
-        $temp_group = $opts{'g'};
+        $temp_group = $opts{g};
       }
 
       # by groupid, otherwise attempt by group name
@@ -170,7 +170,7 @@ unless (exists $opts{'G'}) {
       # some user/group sanity checking: check whether user is a member
       # of the group in question
       if ( (defined $temp_groupid && $temp_groupid != $groupid)
-        && exists $opts{'u'}
+        && exists $opts{u}
         && defined $members) {
 
         # username had better appear as a word in $members...

@@ -94,10 +94,10 @@ use Getopt::Std;
 my %opts;
 getopts 'h?lvb:p:t:f:', \%opts;
 
-print_help() if exists $opts{'h'} or exists $opts{'?'};
+print_help() if exists $opts{h} or exists $opts{?};
 
 # list known elements might be in %message for templating needs
-if ( $opts{'l'} ) {
+if ( $opts{l} ) {
   print join(
     "\n",
     qw{raw MSG time_recv TIMESTAMP priority length HOSTNAME facility facility_code peerport HEADER priority_code peerhost PRI}
@@ -107,13 +107,13 @@ if ( $opts{'l'} ) {
 }
 
 # no input checking as let IO::Socket handle any errors
-my (@bind) = ( 'LocalAddr', $opts{'b'} ) if exists $opts{'b'};
-$port = $opts{'p'} if exists $opts{'p'};
+my (@bind) = ( 'LocalAddr', $opts{b} ) if exists $opts{b};
+$port = $opts{p} if exists $opts{p};
 
-$message_template   = $opts{'f'} if exists $opts{'f'};
-$timestamp_template = $opts{'t'} if exists $opts{'t'};
+$message_template   = $opts{f} if exists $opts{f};
+$timestamp_template = $opts{t} if exists $opts{t};
 
-$SIG{'INT'} = sub { exit 0 };  # control+c handler
+$SIG{INT} = sub { exit 0 };  # control+c handler
 
 # start up the syslog server
 my $sock = IO::Socket::INET->new(
@@ -131,46 +131,46 @@ while (1) {
   %message = ();
   @errors  = ();
 
-  next unless $sock->recv( $message{'raw'}, $max_msg_len );
+  next unless $sock->recv( $message{raw}, $max_msg_len );
 
-  $message{'time_recv'} = strftime $timestamp_template, localtime time;
+  $message{time_recv} = strftime $timestamp_template, localtime time;
 
   # get various info on the packet in question
-  $message{'peerhost'} = gethostbyaddr( $sock->peeraddr, AF_INET )
+  $message{peerhost} = gethostbyaddr( $sock->peeraddr, AF_INET )
    || $sock->peerhost;
-  $message{'peerport'} = $sock->peerport;
+  $message{peerport} = $sock->peerport;
 
   # see [RFC 3164] for syslog message format details
-  $message{'length'} = length( $message{'raw'} );
+  $message{length} = length( $message{raw} );
   push @errors, "message exceeds length of $msg_len_warn"
-   if $message{'length'} > $msg_len_warn;
+   if $message{length} > $msg_len_warn;
 
-  if ( $message{'length'} == 0 ) {
+  if ( $message{length} == 0 ) {
     push @errors, 'message contains no data';
     next;
   }
 
   my $header_msg = '';
 
-  if ( $message{'raw'} =~ m/$PRI_data_re/o ) {
-    ( $message{'PRI'}, $header_msg ) = ( $1, $2 );
+  if ( $message{raw} =~ m/$PRI_data_re/o ) {
+    ( $message{PRI}, $header_msg ) = ( $1, $2 );
 
     # decode facility/priority (see [RFC 2234] for PRI part values
-    if ( $message{'PRI'} ) {
-      $message{'priority_code'} = $message{'PRI'} % 8;
-      if ( exists $syslog_priorities{ $message{'priority_code'} } ) {
-        $message{'priority'} = $message{'priority_code'};
-        $message{'priority'} = $syslog_priorities{ $message{'priority_code'} };
+    if ( $message{PRI} ) {
+      $message{priority_code} = $message{PRI} % 8;
+      if ( exists $syslog_priorities{ $message{priority_code} } ) {
+        $message{priority} = $message{priority_code};
+        $message{priority} = $syslog_priorities{ $message{priority_code} };
       } else {
-        push @errors, "no name for priority $message{'priority_code'}";
+        push @errors, "no name for priority $message{priority_code}";
       }
 
-      $message{'facility_code'} = int( $message{'PRI'} / 8 );
-      if ( exists $syslog_facilities{ $message{'facility_code'} } ) {
-        $message{'facility'} = $syslog_facilities{ $message{'facility_code'} };
+      $message{facility_code} = int( $message{PRI} / 8 );
+      if ( exists $syslog_facilities{ $message{facility_code} } ) {
+        $message{facility} = $syslog_facilities{ $message{facility_code} };
       } else {
-        $message{'facility'} = $message{'facility_code'};
-        push @errors, "no name for facility $message{'facility_code'}";
+        $message{facility} = $message{facility_code};
+        push @errors, "no name for facility $message{facility_code}";
       }
     }
 
@@ -184,14 +184,14 @@ while (1) {
 
   if ( $header_msg =~ m/$HEADER_MSG_re/o ) {
     (
-      $message{'HEADER'},   $message{'TIMESTAMP'},
-      $message{'HOSTNAME'}, $message{'MSG'}
+      $message{HEADER},   $message{TIMESTAMP},
+      $message{HOSTNAME}, $message{MSG}
     )
      = ( $1, $2, $3, $4 );
 
-    my $epoch_time = str2time $message{'TIMESTAMP'};
+    my $epoch_time = str2time $message{TIMESTAMP};
     if ($epoch_time) {
-      $message{'TIMESTAMP'} = strftime $timestamp_template,
+      $message{TIMESTAMP} = strftime $timestamp_template,
        localtime $epoch_time;
     } else {
       push @errors, 'could not convert TIMESTAMP to epoch';

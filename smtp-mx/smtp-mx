@@ -32,7 +32,7 @@ for (@ARGV) {
   if (/^-([\w]+)$/) {
     my $opts = $1;
     for ($opts =~ /(.)/g) { $opts{$_} = 1 }
-    print_help if exists $opts{'h'} or exists $opts{'?'};
+    print_help if exists $opts{h} or exists $opts{?};
     next;
   }
 
@@ -69,11 +69,11 @@ sub get_mx {
 
     # if no MX use A record for domain (assumes domain exists!)
     warn "notice: no MX records found, using A for $domain\n"
-     unless exists $opts{'q'};
+     unless exists $opts{q};
     push @mx, $domain;
   }
 
-  if (exists $opts{'1'}) {
+  if (exists $opts{1}) {
     @mx = $mx[0];
   }
 

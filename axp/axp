@@ -30,7 +30,7 @@ $xapply->config_libxml( { load_ext_dtd => 0 } );
 $xapply->config(
   { path => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl' } );
 
-#my $prefs_file = $ENV{'AXPCONF'} || '~/.axp/prefs';
+#my $prefs_file = $ENV{AXPCONF} || '~/.axp/prefs';
 #$prefs_file = tilde_expand($prefs_file);
 #my $data = load_prefs($prefs_file);
 
@@ -75,12 +75,12 @@ my @rules = (
   },
 );
 
-print_help() if $opts{'h'} or $opts{'?'} or not @ARGV;
+print_help() if $opts{h} or $opts{?} or not @ARGV;
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
     remark( 'notice', 'skipping as does not exist', { file => $file } )
-     unless exists $defaults{'quiet'};
+     unless exists $defaults{quiet};
     next FILE;
   }
 
@@ -92,13 +92,13 @@ FILE: for my $file (@ARGV) {
       'could not parse file',
       { file => $file, errno => $xapply->errorstring }
      )
-     unless exists $defaults{'quiet'};
+     unless exists $defaults{quiet};
     next FILE;
   }
 
-  $filedata{'filename'} = $file;
-  $filedata{'dirname'}  = dirname $file;
-  $filedata{'suffix'}   = [ get_suffixes($file) ];
+  $filedata{filename} = $file;
+  $filedata{dirname}  = dirname $file;
+  $filedata{suffix}   = [ get_suffixes($file) ];
 
   # TODO only load docheaders details if needed by rules??
   %filedata = ( %filedata, %{ $xapply->docheaders } );
@@ -205,7 +205,7 @@ sub load_prefs {
     chomp;
 
     if (/^$/) {
-      pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
+      pref_finish( \%tmp, \%data ) if exists $tmp{name};
       next;
     }
 
@@ -222,7 +222,7 @@ sub load_prefs {
     }
     $tmp{$k} = $v;
   }
-  pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
+  pref_finish( \%tmp, \%data ) if exists $tmp{name};
 
   return \%data;
 }
@@ -231,16 +231,16 @@ sub pref_finish {
   my $tmp  = shift;
   my $data = shift;
 
-  if ( exists $tmp->{'suffix'} ) {
-    $tmp->{'suffix'} = [ map { s/^\.//; $_ } split / /, $tmp->{'suffix'} ];
+  if ( exists $tmp->{suffix} ) {
+    $tmp->{suffix} = [ map { s/^\.//; $_ } split / /, $tmp->{suffix} ];
   }
 
-  push @{ $data->{ $tmp->{'class'} } }, {%$tmp};
+  push @{ $data->{ $tmp->{class} } }, {%$tmp};
 
-  if ( exists $tmp->{'suffix'} ) {
-    for my $suffix ( @{ $tmp->{'suffix'} } ) {
-      push @{ $data->{'_suffixmap'}->{ $tmp->{'class'} }->{$suffix} },
-       $#{ $data->{ $tmp->{'class'} } };
+  if ( exists $tmp->{suffix} ) {
+    for my $suffix ( @{ $tmp->{suffix} } ) {
+      push @{ $data->{_suffixmap}->{ $tmp->{class} }->{$suffix} },
+       $#{ $data->{ $tmp->{class} } };
     }
   }
 
@@ -253,7 +253,7 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{'HOME'}
+      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
         || remark('error',
              'could not lookup user or HOME not set',
              { file => $_ })

@@ -15,26 +15,26 @@ my $specs = {
   y => 'Yy\ \n:+ Nn:-',
   n => 'Nn\ \n:- Yy:+'
 };
-my $spec = $specs->{'y'};
+my $spec = $specs->{y};
 
 use Getopt::Std;
 my %opts;
 getopts('h?vyn0o:d:f:', \%opts);
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
-if (exists $opts{'n'}) {
-  $spec = $specs->{'n'};
-} elsif (exists $opts{'o'}) {
-  $spec = $opts{'o'};
+if (exists $opts{n}) {
+  $spec = $specs->{n};
+} elsif (exists $opts{o}) {
+  $spec = $opts{o};
 }
 
 my $output_delim;
 
 # xargs -0 style handling
-$output_delim = $/ = '\0' if exists $opts{'0'};
+$output_delim = $/ = '\0' if exists $opts{0};
 
-$/ = $opts{'d'} if exists $opts{'d'};
-$output_delim = (exists $opts{'f'}) ? $opts{'f'} : $/;
+$/ = $opts{d} if exists $opts{d};
+$output_delim = (exists $opts{f}) ? $opts{f} : $/;
 
 # escape \'ed things to allow \0 -> null character
 $/ =~ s/(\\.)/qq!"$1"!/eeg;
@@ -65,7 +65,7 @@ while (<>) {
 # TODO only warn if verbose on?  use special exit code to denote
 # nothing printed?
 if ($count == 0) {
-  warn "info: no lines printed\n" if exists $opts{'v'};
+  warn "info: no lines printed\n" if exists $opts{v};
   exit 100;
 }
 

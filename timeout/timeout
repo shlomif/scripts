@@ -51,10 +51,10 @@ unless ($@) {
 # parse command-line options
 getopts('h?vq', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
-if (exists $opts{'v'}) {
-  $features{'verbose'} = 1;
+if (exists $opts{v}) {
+  $features{verbose} = 1;
 }
 
 # regular program arguments
@@ -65,13 +65,13 @@ help() unless @ARGV;
 my $timeout = duration2seconds($duration);
 $duration = seconds2duration($timeout);
 
-$t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'} and $features{'verbose'};
+$t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'} and $features{verbose};
 
 my $pid = open WATCH, "-|";
 
 if ($pid) {  # parent
   eval {
-    local $SIG{'ALRM'} = sub { die "alarm\n" };
+    local $SIG{ALRM} = sub { die "alarm\n" };
 
     alarm $timeout;
 
@@ -86,14 +86,14 @@ if ($pid) {  # parent
     # so one knows how long positive runs take
     warn "Info: program ran for ",
      sprintf("%.1f", Time::HiRes::tv_interval($t0)), " seconds\n"
-     if $features{'Time::HiRes'} and $features{'verbose'};
+     if $features{'Time::HiRes'} and $features{verbose};
 
     alarm 0;
   };
   if ($@) {
     die unless $@ eq "alarm\n";
 
-    warn "Error: timeout ($duration) exceeded: killing pid $pid\n" unless exists $opts{'q'};
+    warn "Error: timeout ($duration) exceeded: killing pid $pid\n" unless exists $opts{q};
 
     for my $signal (qw(TERM INT HUP KILL)) {
       last if kill $signal, $pid;

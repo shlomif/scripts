@@ -42,7 +42,7 @@ my (%opts);
 # parse command-line options
 getopts('h?', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
 while (<STDIN>) {
 
@@ -68,7 +68,7 @@ while (<STDIN>) {
   my $output;
 
   eval {
-    local $SIG{'ALRM'} = sub { die "timed out\n" };
+    local $SIG{ALRM} = sub { die "timed out\n" };
     alarm(3);
     recv(SOCK, $output, 9999, 0);
     alarm(0);
@@ -99,7 +99,7 @@ sub do_connect {
 
   my $sin = sockaddr_in($port, inet_aton("$ip"));
   eval {
-    local $SIG{'ALRM'} = sub { die "timed out\n" };
+    local $SIG{ALRM} = sub { die "timed out\n" };
     alarm(3);
     $o = connect(SOCK, $sin);
     alarm(0);

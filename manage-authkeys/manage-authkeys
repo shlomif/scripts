@@ -15,7 +15,7 @@ use strict;
 # clean up env for taint mode ("perldoc perlsec" for more information)
 sub BEGIN {
   delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
-  $ENV{'PATH'} = '/bin:/usr/bin:/usr/local/bin';
+  $ENV{PATH} = '/bin:/usr/bin:/usr/local/bin';
 }
 
 use Digest::MD5 qw(md5);
@@ -50,14 +50,14 @@ use Getopt::Std;
 my %opts;
 getopts('h?f:l:aiqL', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
-$auth_key_file = $opts{'f'} if exists $opts{'f'};
+$auth_key_file = $opts{f} if exists $opts{f};
 
 # do ~ expansion on filename
 $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
                     { $1 ? (getpwnam($1))[7]
-                          : ( $ENV{'HOME'} || $ENV{'LOGDIR'}
+                          : ( $ENV{HOME} || $ENV{LOGDIR}
                               || (getpwuid($>))[7]
                               )
                           }ex;
@@ -70,7 +70,7 @@ if ($auth_key_file =~ $auth_key_file_chars) {
 }
 
 # open with locking auth_key_file
-unless (exists $opts{'L'}) {
+unless (exists $opts{L}) {
   open $akfh, "+< $auth_key_file"
    or remark('alert', "problem opening authorized key file: $!")
    and die;
@@ -99,22 +99,22 @@ while (<$akfh>) {
 
   next unless defined $values;
 
-  if (exists $data->{$values->{'hash'}}) {
+  if (exists $data->{$values->{hash}}) {
     remark(
       'warning',         "skipping duplicate key (hash:",
-      $values->{'hash'}, ") at $auth_key_file line $."
+      $values->{hash}, ") at $auth_key_file line $."
     );
     next;
   }
 
-  $data->{$values->{'hash'}} = $values;
+  $data->{$values->{hash}} = $values;
 }
 
 # clear out arguments unless we're reading commands from there
-@ARGV = () unless exists $opts{'a'};
+@ARGV = () unless exists $opts{a};
 
 # read commands from STDIN if specified
-if (exists $opts{'i'}) {
+if (exists $opts{i}) {
   my @tmp;
   chomp(@tmp = <STDIN>);
   push @ARGV, @tmp;
@@ -140,7 +140,7 @@ for (@ARGV) {
   $command{$cmd}(@work);
 }
 
-unless (exists $opts{'L'}) {
+unless (exists $opts{L}) {
   flock $akfh, LOCK_UN
    or remark('notice', "problem unlocking $auth_key_file: $!");
 }
@@ -158,10 +158,10 @@ sub do_list {
 
   for (@keys) {
     print join ("\t",
-      $data->{$_}->{'hash'},
-      $data->{$_}->{'type'},
-      $data->{$_}->{'comment'},
-      authkey_options2str($data->{$_}->{'options'})),
+      $data->{$_}->{hash},
+      $data->{$_}->{type},
+      $data->{$_}->{comment},
+      authkey_options2str($data->{$_}->{options})),
      "\n";
   }
 }
@@ -227,12 +227,12 @@ sub do_add {
 
     next unless defined $values;
 
-    push @added, $values->{'hash'};
+    push @added, $values->{hash};
 
-    if (exists $data->{$values->{'hash'}}) {
-      remark('notice', 'replacing key', $values->{'hash'});
+    if (exists $data->{$values->{hash}}) {
+      remark('notice', 'replacing key', $values->{hash});
     }
-    $data->{$values->{'hash'}} = $values;
+    $data->{$values->{hash}} = $values;
   }
 
   remark('info', 'adding', scalar @added, "keys: @added");
@@ -251,8 +251,8 @@ sub do_alter {
     $updates{$cmd} = $arg;
   }
   
-  if (exists $updates{'options'}) {
-    $updates{'options'} = parse_authkey_options($updates{'options'});
+  if (exists $updates{options}) {
+    $updates{options} = parse_authkey_options($updates{options});
   }
   
   remark('info', 'altering', scalar @keys, "keys: @keys");
@@ -281,9 +281,9 @@ sub parse_authkey {
     if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
       and $elements[$i + 1] =~ m/^AAAA/) {
 
-      $values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
-      $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
-      $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
+      $values{type} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
+      $values{goodbit} = join " ", @elements[$i .. $i + 1];
+      $values{comment} = join " ", @elements[$i + 2 .. $#elements];
 
       last;
 
@@ -291,9 +291,9 @@ sub parse_authkey {
       and $elements[$i + 1] =~ m/^\d+$/
       and $elements[$i + 2] =~ m/^\d+$/) {
 
-      $values{'type'}    = 'rsa1';
-      $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
-      $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
+      $values{type}    = 'rsa1';
+      $values{goodbit} = join " ", @elements[$i .. $i + 2];
+      $values{comment} = join " ", @elements[$i + 3 .. $#elements];
 
       last;
     }
@@ -301,14 +301,14 @@ sub parse_authkey {
     push @options, $elements[$i];
   }
 
-  unless (exists $values{'goodbit'}) {
+  unless (exists $values{goodbit}) {
     remark('notice', "could not parse key from: $authkey");
     return;
   }
 
-  $values{'options'} = parse_authkey_options("@options");
+  $values{options} = parse_authkey_options("@options");
 
-  $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
+  $values{hash} = sprintf "%08x", unpack "N", md5($values{goodbit});
 
   return \%values;
 }
@@ -335,14 +335,14 @@ sub data2keystring {
   my $href = shift;
   my $ks = '';
   
-  if (exists $href->{'options'}) {
-    $ks .= authkey_options2str($href->{'options'}) . ' ';
+  if (exists $href->{options}) {
+    $ks .= authkey_options2str($href->{options}) . ' ';
   }
   
-  $ks .= $href->{'goodbit'};
+  $ks .= $href->{goodbit};
   
-  if (exists $href->{'comment'}) {
-    $ks .= ' ' . $href->{'comment'};
+  if (exists $href->{comment}) {
+    $ks .= ' ' . $href->{comment};
   }
   
   return $ks;
@@ -367,19 +367,19 @@ sub remark {
     $message  = "@_";
   }
 
-  return 1 if exists $opts{'q'} and $priority eq 'info';
+  return 1 if exists $opts{q} and $priority eq 'info';
 
-  if (exists $opts{'l'}) {
-    if ($opts{'l'} eq "syslog") {
+  if (exists $opts{l}) {
+    if ($opts{l} eq "syslog") {
       openlog($0, 'cons', $facility);
       syslog($priority, $message);
       closelog();
 
-    } elsif ($opts{'l'} eq "logger") {
+    } elsif ($opts{l} eq "logger") {
       system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
 
     } else {
-      die "alert: unknown log handler: ", $opts{'l'};
+      die "alert: unknown log handler: ", $opts{l};
     }
 
   } else {

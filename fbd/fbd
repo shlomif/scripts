@@ -19,13 +19,13 @@ my $timef = 9;
 use Getopt::Std;
 my %opts;
 getopts('h?f:d:a:b:p:s:q', \%opts);
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 help() unless @ARGV;
 
 my $src_date;
 
-if (exists $opts{'d'}) {
-  $src_date = $opts{'d'} or die "error: could not parse empty date\n";
+if (exists $opts{d}) {
+  $src_date = $opts{d} or die "error: could not parse empty date\n";
 
   # treat all numeric as epoch date, otherwise attempt to parse
   unless ($src_date =~ /^\d+/) {
@@ -35,27 +35,27 @@ if (exists $opts{'d'}) {
   }
 }
 
-if (exists $opts{'f'}) {
-  $src_date = (lstat $opts{'f'})[$timef];
-  die "error: could not read date from $opts{'f'}\n"
+if (exists $opts{f}) {
+  $src_date = (lstat $opts{f})[$timef];
+  die "error: could not read date from $opts{f}\n"
    if not $src_date
    or $src_date !~ /^\d+$/;
 }
 
 die "error: no source date or file to check against\n" unless $src_date;
 
-my $skip  = $opts{'s'} if exists $opts{'s'};
-my $prune = $opts{'p'} if exists $opts{'p'};
+my $skip  = $opts{s} if exists $opts{s};
+my $prune = $opts{p} if exists $opts{p};
 
 my ($fudge, $min_date, $max_date);
 
-if (exists $opts{'a'}) {
-  $fudge    = duration2seconds($opts{'a'});
+if (exists $opts{a}) {
+  $fudge    = duration2seconds($opts{a});
   $min_date = $src_date - $fudge;
   $max_date = $src_date + $fudge;
 }
-if (exists $opts{'b'}) {
-  $fudge    = duration2seconds($opts{'b'});
+if (exists $opts{b}) {
+  $fudge    = duration2seconds($opts{b});
   $min_date = $src_date - $fudge;
   $max_date = $src_date unless $max_date;
 }
@@ -65,7 +65,7 @@ use File::Find;
 for my $parent (
   grep {
     unless (-d) {
-      warn "notice: skipping as not directory: $_\n" unless exists $opts{'q'};
+      warn "notice: skipping as not directory: $_\n" unless exists $opts{q};
       undef
     }
   } @ARGV
@@ -100,7 +100,7 @@ sub handle_file {
   my $file_date = (lstat $_)[$timef];
   unless (defined $file_date) {
     warn "notice: skipping due to no date field: $File::Find::name\n"
-     unless exists $opts{'q'};
+     unless exists $opts{q};
     return;
   }
 

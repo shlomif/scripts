@@ -9,9 +9,9 @@ no warnings 'utf8';
 use Getopt::Std;
 my %opts;
 getopts 'h?p:', \%opts;
-help() if exists $opts{'h'} or exists $opts{'?'};
+help() if exists $opts{h} or exists $opts{?};
 
-$opts{'p'} = 'XML' unless exists $opts{'p'};
+$opts{p} = 'XML' unless exists $opts{p};
 
 # figure out where document lives
 my $document = shift || help();
@@ -60,7 +60,7 @@ eval {
     SGML => 'parse_sgml_file',
   );
 
-  my $method = $parse_method{uc $opts{'p'}} || 'parse_file';
+  my $method = $parse_method{uc $opts{p}} || 'parse_file';
   $doc = $parser->$method($file)
 };
 if ($@) {

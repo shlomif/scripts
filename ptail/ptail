@@ -52,15 +52,15 @@ my $preop = "";
 # parse command-line options
 getopts('h?m:i:a:t:r:p:', \%opts);
 
-help() if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
+help() if exists $opts{h} or exists $opts{?} or not @ARGV;
 
-$maxinterval = $opts{'m'} if exists $opts{'m'} and $opts{'m'} =~ /^\d+$/;
-$interval    = $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
-$adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
-$tail        = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
-$reset_tail  = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+$maxinterval = $opts{m} if exists $opts{m} and $opts{m} =~ /^\d+$/;
+$interval    = $opts{i} if exists $opts{i} and $opts{i} =~ /^\d+$/;
+$adjustafter = $opts{a} if exists $opts{a} and $opts{a} =~ /^\d+$/;
+$tail        = $opts{t} if exists $opts{t} and $opts{t} =~ /^-?\d+$/;
+$reset_tail  = $opts{r} if exists $opts{r} and $opts{r} =~ /^-?\d+$/;
 
-$preop = $opts{'p'} if exists $opts{'p'};
+$preop = $opts{p} if exists $opts{p};
 
 # filename to tail on and perl expression to apply to each line
 $filename   = shift;

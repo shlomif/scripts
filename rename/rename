@@ -19,18 +19,18 @@ use File::Copy;
 use Getopt::Std;
 my %opts;
 getopts('h?cmifvp', \%opts);
-print_help if exists $opts{'h'} or exists $opts{'?'};
+print_help if exists $opts{h} or exists $opts{?};
 
-my $preview = exists $opts{'i'} or exists $opts{'p'} or exists $opts{'v'} ? 1 : 0;
-my $interactive = exists $opts{'i'} and not exists $opts{'f'} ? 1 : 0;
+my $preview = exists $opts{i} or exists $opts{p} or exists $opts{v} ? 1 : 0;
+my $interactive = exists $opts{i} and not exists $opts{f} ? 1 : 0;
 
 # choose which function to use depending on argument; default is to
 # use the rename() function, but that can be changed to one of copy()
 # or move() from File::Copy if the name of the script is changed or
 # appropriate argument is supplied
 my $fn;
-$fn = $opts{'c'} || $0 eq 'copy' ? 'copy' : 'rename';
-$fn = $opts{'m'} || $0 eq 'move' ? 'move' : $fn;
+$fn = $opts{c} || $0 eq 'copy' ? 'copy' : 'rename';
+$fn = $opts{m} || $0 eq 'move' ? 'move' : $fn;
 
 # perl expression to run the files by
 my $op = shift || print_help;
@@ -58,7 +58,7 @@ print_help unless @ARGV;
 
     print $fn, ' ', $was, ' ', $_, "\n" if $preview;
 
-    next if exists $opts{'p'};
+    next if exists $opts{p};
 
     # TODO use getraw instead?  Enhance getraw to support
     # application-specific prefernces from a config file?

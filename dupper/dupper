@@ -39,10 +39,10 @@ my $dig = Digest::SHA1->new;
 # parse command-line options
 getopts('h?vlgzuqp:s:', \%opts);
 
-help() if exists($opts{'h'}) or exists($opts{'?'});
+help() if exists($opts{h}) or exists($opts{?});
 
-$verbose = 1 if exists $opts{'v'};
-if (exists $opts{'q'}) {
+$verbose = 1 if exists $opts{v};
+if (exists $opts{q}) {
   $verbose = 0;
   $quiet   = 1;
 }
@@ -62,7 +62,7 @@ for (@ARGV) {
   parsedir($_);
 
   # reset the %check hash between directories by default
-  unless (exists $opts{'g'} || exists $opts{'z'}) {
+  unless (exists $opts{g} || exists $opts{z}) {
     report(\%check, $_);
     %check = ();
   }
@@ -84,7 +84,7 @@ sub parsedir {
   # -z option allows checks to become single-directory
   # specific, as opposed to the parent-dir globalness of default
   # or the everywhere -g option
-  %check = () if exists $opts{'z'};
+  %check = () if exists $opts{z};
 
   unless (opendir DIR, $dir) {
     warn 'Problem reading ', $dir, ': ', $!, "\n" unless $quiet;
@@ -102,8 +102,8 @@ sub parsedir {
     if (-f $pti) {
 
       # first check whether we skip this file
-      if (exists $opts{'s'}) {
-        my $result = eval "return 1 if( " . $opts{'s'} . " );";
+      if (exists $opts{s}) {
+        my $result = eval "return 1 if( " . $opts{s} . " );";
 
         if ($@) {
           chomp($@);
@@ -131,7 +131,7 @@ sub parsedir {
       close FILE;
 
       # either add new checksum to hash, or delete the duplicate file
-      if (exists $check{$sum} && exists $opts{'u'}) {
+      if (exists $check{$sum} && exists $opts{u}) {
 
         # show unlink statement, plus the file this one is dup'ing
         warn "unlink ", $pti, "\t(", $check{$sum}->[0], ")\n"
@@ -149,8 +149,8 @@ sub parsedir {
     } elsif (-d $pti) {
 
       # see whether this dir needs to be pruned from the search
-      if (exists $opts{'p'}) {
-        my $results = eval "return 1 if( " . $opts{'p'} . " );";
+      if (exists $opts{p}) {
+        my $results = eval "return 1 if( " . $opts{p} . " );";
 
         if ($@) {
           chomp($@);
@@ -162,15 +162,15 @@ sub parsedir {
           next;
         }
       }
-      push @to_parse, $pti unless exists $opts{'l'};
+      push @to_parse, $pti unless exists $opts{l};
     }
   }
 
   # print a report if we're doing the local-dir-only thing
-  report(\%check, $dir) if exists $opts{'z'};
+  report(\%check, $dir) if exists $opts{z};
 
   # before poping up a recursion level, deal with subdirs
-  unless (exists $opts{'l'}) {
+  unless (exists $opts{l}) {
     for (@to_parse) {
       parsedir($_);
     }
@@ -184,7 +184,7 @@ sub report {
   my $dir = shift;
 
   # quit out early if no-yak mode turned on
-  return if exists $opts{'q'};
+  return if exists $opts{q};
 
   # rummage through hash, printing out only hash entries
   # that have more than 1 file associated with them
