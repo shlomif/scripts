@@ -1,18 +1,26 @@
 #!/usr/bin/perl -w
 use strict;
 
-# supposed to mark filehandles, so would have to dick around with
-# converting whatever the XML is in into utf8 or something...
-# (this avoids a 'Wide character in ...' warning)
+# KLUGE supposed to mark filehandles, so would have to muck around with
+# converting whatever the XML is in into utf8 or something... (this
+# avoids a 'Wide character in ...' warning)
 no warnings 'utf8';
 
+use Getopt::Std;
+my %opts;
+getopts 'h?p:', \%opts;
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+$opts{'p'} = 'XML' unless exists $opts{'p'};
+
 # figure out where document lives
+my $document = shift || help();
 use URI;
-my $target = URI->new(shift);
+my $target = URI->new($document);
 my $file;
 
 # XPath query to search document for
-my $query = shift || die "usage: $0 document xpath-expression\n";
+my $query = shift || help();
 
 # get document into filehandle
 # TODO URL lookup needs more error checking
@@ -36,22 +44,27 @@ if ($target->scheme) {
 
 use XML::LibXML;
 my $parser = XML::LibXML->new;
+
 # try to allow for crummy *ML documents
+# TODO make these command line arguments?
 $parser->recover(1);
 $parser->load_ext_dtd(0);
 $parser->expand_entities(0);
 $parser->complete_attributes(0);
 
 my $doc;
-eval { $doc = $parser->parse_file($file); };
+eval {
+  my %parse_method = (
+    XML  => 'parse_file',
+    HTML => 'parse_html_file',
+    SGML => 'parse_sgml_file',
+  );
 
-# TODO need better way to detect if HTML, File::MMagic calls my XML
-# documents text/html :(
+  my $method = $parse_method{uc $opts{'p'}} || 'parse_file';
+  $doc = $parser->$method($file)
+};
 if ($@) {
-  eval { $doc = $parser->parse_html_file($file); };
-  if ($@) {
-    die "error: failure parsing $file: $@\n";
-  }
+  die "error: could not parse $document: $@\n";
 }
 
 # search resulting tree with XPath
@@ -61,4 +74,19 @@ my $xc = XML::LibXML::XPathContext->new($doc);
 my $nodelist = $xc->find($query);
 for my $node ($nodelist->get_nodelist) {
   print $node->toString, "\n";
+}
+
+sub help {
+  print <<"HELP";
+Usage: $0 [opts] document xpath-query
+
+Run XPath expressions against the specified document.
+
+Options:
+  -h/-?  Display this message
+
+  -p xx  Parse using method xx (XML, HTML, SGML). Default is XML.
+
+HELP
+  exit 100;
 }
