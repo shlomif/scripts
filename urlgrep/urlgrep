@@ -296,10 +296,13 @@ custom output template.
 =head2 Overview
 
 Provides a means to list URL in a given HTML document, limited by an
-optional Perl regular expression. Useful when one is looking for a
-specific (matchable) set of documents listed on a page, where there are
-too many or too large false positives to justify simply downloading all
-links from a page.
+optional Perl regular expression. Useful when a specific (matchable) set
+of documents are listed on a page, but there are too many false
+positives to justify simply downloading all links from a page.
+
+The HTML elements and attributes to be searched for can be changed
+on the fly, and the output customized to suit subsequent use of
+the results.
 
 =head2 Normal Usage
 
@@ -400,6 +403,42 @@ following.
 
   source    - URL or filename of original document.
   text      - Text inside any C<a href> element, if any.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item C<quoteurl>
+
+To list URL followed by the text contained by the link, use the
+following shell script wrapper.
+
+  #!/bin/sh
+  if [ -z "$1" ]; then
+    echo "usage: `basename $0` URL [regular-expression]"
+    exit 100
+  fi
+  urlgrep -o '%{url} "%{text}"' $1 $2
+
+This allows quick matches of links to forward to others, for example via
+the C<pbcopy> utility on Mac OS X to move the link and text to the
+clipboard, in this case the first found on C<sial.org>.
+
+  $ quoteurl http://www.memepool.com/ | head -1 | pbcopy
+
+=item B<MySQL download problems>
+
+This script was inspired from the annoying MySQL download process, where
+microscopic text links must be followed through a maze of mirror sites,
+and at some point the URL edited to get to a index page on a mirror
+site. From this page, a slew of hard to click links must be followed,
+which becomes tedious when attempting to download all the C<i386.rpm>
+files, but none of the many other files listed.
+
+  $ urlgrep $SOME_MYSQL_MIRROR '.(i386|src).rpm$' | \
+    xargs wget
 
 =back
 
