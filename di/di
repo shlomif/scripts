@@ -38,7 +38,11 @@ else
   # extensions, either diff all or list other diff commands to run if
   # more than one alternative...
   for file in "$@"; do
-    diff -u $file.orig $file
+    if [ -f $file.orig ]; then
+      diff -u $file.orig $file
+    elif [ -f $file.old ]; then
+      diff -u $file.old $file
+    fi
   done
 fi
 
