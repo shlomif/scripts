@@ -425,7 +425,6 @@ HEADER
 
   # pull default preferences from POD to avoid duplication here
   my $boundary = qr/^\s+# example config/;
-  seek DATA, 0, 0;
   while (<DATA>) {
     if (/$boundary/ .. /$boundary END/) {
       next     if /$boundary/;
@@ -560,20 +559,19 @@ and using preferences file entries that contain the required details.
 
 Provides a list of C<name> (and C<alias>) entries from the preferences
 file. For tab completion systems needing to complete the value of the
-B<-s> option. For instance, a bare bones zsh compdef entry to tab
-complete on the B<-s> option:
+B<-s> option. For instance, a minimal zsh compdef entry:
 
   #compdef pbotutil
-
-  local expl ret=1
-
-  if [[ ${words[CURRENT-1]} = "-s" ]]; then
-    _wanted openmethod expl 'server names' compadd "$@" - \
-      $(_call_program openm pbotutil list-servers) && ret=0
-  else
-    _files
-  fi
-
+  
+  local ret=1
+  
+  _arguments -C -s \
+    '-s[name or alias]:name:($(_call_program openm pbotutil list-servers))' \
+    '-m[summary]:summary:' \
+    '-c[channel]:channel:' \
+    '-u[nickname]:nickname:' \
+    '*:file:_files' && ret=0
+  
   return ret
 
 =back
