@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2002, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -495,23 +494,23 @@ __END__
 
 =head1 NAME
 
-modefix.pl - a unix permission and ownership changer.
+modefix - a unix permission and ownership changer.
 
 =head1 SYNOPSIS
 
 To manually set the directory and file permissions, as well as the
 ownerships under /home/john:
 
-  $ modefix.pl -d 750 -f 640 -u john -g doe /home/john
+  $ modefix -d 750 -f 640 -u john -g doe /home/john
 
 To ensure all files are group writable, and that others do not have
 any access whatsoever to the files under the current directory:
 
-  $ modefix.pl -f g+w,o-rwx .
+  $ modefix -f g+w,o-rwx .
 
 =head1 DESCRIPTION
 
-modefix.pl is a pure-perl implementation of the following three shell
+modefix is a pure-perl implementation of the following three shell
 commands I got tired of running over large filesystems:
 
   $ find . -type d | xargs chmod 2750
@@ -522,14 +521,14 @@ Which really is not all that efficient or practical, if you want to
 skip certain items, prune out a few directories, and only walk over
 the same files once.
 
-modefix.pl also does not suffer from the fork penalty find(1) incurs
+modefix also does not suffer from the fork penalty find(1) incurs
 when xargs(1) does not work and -exec must be used; nor does it run
 the risk of ruining your filesystem like a careless recursive chmod(1)
 can.
 
 =head2 Normal Usage
 
-  $ modefix.pl [options] [file1 file2 file3 .. fileN]
+  $ modefix [options] [file1 file2 file3 .. fileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -538,7 +537,7 @@ case, the script will attempt to read directories from STDIN.
 
 =head1 OPTIONS
 
-modefix.pl accepts a variety of command line options, broken down
+modefix accepts a variety of command line options, broken down
 into B<Useful Options>, B<Actions>, and B<Search Customization>.
 
 =head2 Useful Options
@@ -608,7 +607,7 @@ User and group names can either be by name, or by id.  If done by
 name, chown requires an id to work with, so there had better be a
 corresponding system entry for the name supplied.
 
-Also, unless quiet mode is on, modefix.pl warns if you enter a id that
+Also, unless quiet mode is on, modefix warns if you enter a id that
 does not exist on the system, or if the user is not a member of the
 specified group.
 
@@ -619,7 +618,7 @@ Overrides the B<-g> flag.  This allows one to fix the ownerships in a
 directory without having to consult what the default group is for the
 user:
 
-  $ modefix.pl -G -u john /home/john
+  $ modefix -G -u john /home/john
 
 =back
 
@@ -639,7 +638,7 @@ being skipped if the expression turns out to be true.  Example:
 
 Would skip applying the changes to any directories or items named
 '.rsrc'. B<Warning>: skip only counts towards whether or not any
-actions are performed; modefix.pl will happily apply changes below a
+actions are performed; modefix will happily apply changes below a
 "skipped" directory.
 
 =item B<-p> I<expression>
@@ -725,7 +724,7 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-modefix.pl does not deal well with soft links.  Well, File::Find has
+modefix does not deal well with soft links.  Well, File::Find has
 trouble with softlinked directories, and I am using lstat, and chmod
 support on softlinks appears to vary by OS.
 
