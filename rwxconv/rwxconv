@@ -23,8 +23,6 @@ use strict;
 use Carp;			# better error reporting
 use Getopt::Std;		# command line option processing
 
-
-
 ######################################################################
 #
 # VARIABLES
@@ -44,10 +42,10 @@ getopts('h?', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 # read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
 # and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+help() unless @ARGV;
 
 
 
@@ -60,9 +58,9 @@ exit;
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [opts] [file1 .. fileN]
 
-Help for a generic script template.
+Converts rwx-style permission listings into octal format.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -79,21 +77,33 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+rwxconv.pl - converts rwx-style permission listings into octal format.
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+To filter the output of a long directory listing:
+
+  $ ls -al | rwxconv.pl
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
-Short description of what script is intended to do.
+This script accepts input, searches for -rwxr-xr-x style elements, and
+converts said strings into octal format, e.g. 0755.
+
+Generally, this script will be used to feed data into other programs
+that operate on octal mode data, where the input is only available in
+the rwx-form.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ rwxconv.pl [options] [file1 .. fileN]
+
+This script will read from STDIN if no files are mentioned on the
+command line.
+
+Output will be done to STDOUT.
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -109,19 +119,11 @@ Prints a brief usage note about the script.
 
 =back
 
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
-
 =head1 EXAMPLES
 
-Additional examples/helpfull hints expanding on SYNOPSIS.
+Anywhere rwx-style output is produced, this script can convert:
 
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
+  $ tar tvf foo.tar | rwxconv.pl
 
 =head1 BUGS
 
@@ -138,13 +140,9 @@ Patches that fix problems or add new features are welcome.
 
 No known bugs.
 
-=head1 TODO
-
-Replace default stub POD entries with real documentation.
-
 =head1 SEE ALSO
 
-perl(1)
+File::Mode, perl(1)
 
 =head1 AUTHOR
 
@@ -158,8 +156,8 @@ itself.
 
 =head1 HISTORY
 
-A blank perl template I threw together to make writing new scripts
-easier.
+Based heavily on code found in the File::Mode module on CPAN by Idan
+Robbins, which did not do the filtering aspect well.
 
 =head1 VERSION
 
