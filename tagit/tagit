@@ -7,7 +7,7 @@
 #
 # Prints intials/date in standard format I use when commenting files.
 
-INITIALS=$INITIALS
+INITIALS=$MY_INITIALS
 DATE=`date +%Y-%m-%d`
 
 DOINITIALS=no
