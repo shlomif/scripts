@@ -13,11 +13,16 @@ RETURN=0
 
 diff_cvs () {
   cvs diff $@
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo "Bad exit status ($STATUS) from $2 diff on $1" >&2
-    RETURN=$STATUS
-  fi
+# JAM 2003-02-25 too many false positives on this, so disabled
+#  STATUS=$?
+#  if [ $STATUS -ne 0 ]; then
+#    if [ -z "$1" ]; then
+#      echo "Bad exit status ($STATUS) from cvs-diff" >&2
+#    else
+#      echo "Bad exit status ($STATUS) from $2 cvs-diff on $1" >&2
+#    fi
+#    RETURN=$STATUS
+#  fi
 }
 
 if [ -d CVS -a -f CVS/Root ]; then
