@@ -22,12 +22,12 @@ use strict;
 
 # CONSTANTS
 
-my (%opts, $verbose, %u2g);
+my (%opts, $verbose, %u2g, %n2u, %groups);
 
 # MAIN
 
 # parse command-line options
-getopts('h?vp:s:', \%opts);
+getopts('h?vp:s:g', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
@@ -40,8 +40,25 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 help() unless @ARGV;
 
 # build a lookup table of user -> default group from passwd file
-while(my (undef, undef, $uid, $gid) = getpwent()) {
+while (my ($user, undef, $uid, $gid) = getpwent()) {
     $u2g{$uid} = $gid;
+
+    # and a hash for converting group members to uid's
+    $n2u{$user} = $uid;
+}
+
+# if needed, add user's membership in other groups to the list
+if (exists $opts{'g'}) {
+    while (my (undef, undef, $gid, $members) = getgrent()) {
+	# need convert space delimited list to uid's...
+	foreach (split ' ', $members) {
+	    my $uid = $n2u{$_};
+
+	    # make a hash of hashes so we can use quick lookups
+	    # instead of looping over an array for each file
+	    $groups{$uid}->{$gid} = 1 if defined $uid;
+	}
+    }
 }
 
 # loop over the remaining input, looking for dirs and parsing them
@@ -89,9 +106,14 @@ sub do_stuff {
         }
     }
 
+    # see whether gid of this file exists in our lookup hash
     if ($gid != $u2g{$uid}) {
-	print $File::Find::name, ' ', $gid ' to ', $u2g{$uid}, "\n" if $verbose;
-
+	# and optionally whether other group is valid for the user
+	if (exists $opts{'g'}) {
+	    return if exists $groups{$uid}->{$gid};
+	}
+	print $File::Find::name, ' ', $gid, ' to ', $u2g{$uid}, "\n" if $verbose;
+	
 	my $result = chown $uid, $u2g{$uid}, $_;
 	warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
     }
@@ -106,7 +128,9 @@ $0 is a recursive group fixing utility.
 Options:
   -h/-?  Display this message
   -v     Show files group was changed on, and previous and new gid settings.
-  -g     Do not change group to default group if user belongs to group.
+
+  -g     Do not change group to default group if user belongs to the non-
+         default group the file is set to.
 
   -s xx  Perl expression that will result in the current item (stored in \$_)
          being skipped if the expression turns out to be "true."  Example:
@@ -131,6 +155,14 @@ HELP
 __END__
 
 $Log$
+Revision 1.5  2000/02/09 23:29:34  jmates
+Added -g option to skip chgrp if group of file is valid for user, by parsing
+the user's presence from the getgrent() call.
+
+Fixed missing , bug in $verbose print statement.
+
+Updated help docs.
+
 Revision 1.4  2000/02/09 21:47:03  jmates
 Added -s and -p skip/prune options for fine grained control over what files
 are to be excluded.
