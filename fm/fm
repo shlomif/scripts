@@ -14,6 +14,7 @@
 #
 # MODULES
 
+#use Date::Calc qw(Decode_Month);
 use Carp;
 use Getopt::Std;
 
@@ -100,12 +101,12 @@ sub print_report {
     $^L = '';
 
     format STDOUT_TOP = 
-Count   Destination                                       Size (bytes)
+Count   Destination                                               Size
 ----------------------------------------------------------------------
 .
     format STDOUT = 
 @>>>>   @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>
-$folders{$_}, $_, $folder_sizes{$_}
+commify($folders{$_}), $_, commify($folder_sizes{$_})
 .
 
     foreach (sort { $a cmp $b } keys %folders) {
@@ -118,7 +119,7 @@ format_name         STDOUT "FOOTER";
 format FOOTER =
 ----------------------------------------------------------------------
 @>>>>                                                     @>>>>>>>>>>>
-$total_messages, $total_size
+commify($total_messages), commify($total_size)
 
 .
     write;
@@ -139,22 +140,22 @@ unless ($summary) {
     }
 
     format MESSAGE_TOP =
-Message Summaries by Date (@<<<<<<<<<<<<)                 Size (bytes)
+Message Summaries by Date (@<<<<<<<<<<<<)                    Time/Size
 $order
 ----------------------------------------------------------------------
 .
 
 format MESSAGE =
-Subject:  ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+Subject:  ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
+          $subject, $date
+~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
           $subject
-~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
-          $subject
-From:     ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+From:     ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           $from
-~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
+~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
           $from
 To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
-          $folder, $size
+          $folder, commify($size)
 
 .
 
@@ -167,7 +168,24 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
 	$folder  = $_->{'_folder'};
 	$size    = $_->{'_size'};
 	$date    = $_->{'_date'};
-	
+
+	# only show size if above certain amount (should be a constant,
+	# or even better based on standard deviation above average size!)
+	$size = undef unless $size > 10000;
+
+	# format date to my liking, e.g. YYYY-MM-DD HH:MM format
+	# just HH:MM now, as that's all I need to see...
+	my ($wday, $mon, $day, $time, $year) = split /\s+/, $date;
+
+	# remove seconds from time
+	$time =~ s/:\d+$//;
+
+	# convert month to number using Date::Calc
+#	$mon = Decode_Month($mon);
+
+#	$date = sprintf("%04d-%02d-%02d %s", $year, $mon, $day, $time);
+	$date = $time;
+
 	write;
     }
 }
@@ -326,6 +344,13 @@ sub get_logfile_loc {
     close (FILE);
 
     return $logfile;
+}
+
+# little generic add commas to data routine...
+sub commify {
+    my $text = reverse $_[0];
+    $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
+    return scalar reverse $text;
 }
 
 # a generic help blarb
