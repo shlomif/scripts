@@ -5,3 +5,66 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
+# Parses output from repquota(8) into formats suitable for further
+# processing such as SQL upload or insertion into RRDTool files.
+
+require 5;
+use strict;
+
+use Data::Dumper;
+
+my ($data, $cur_filesys, $cur_type);
+
+while (<STDIN>) {
+  chomp;
+
+  # loose match on user/group list data
+  if (/^[a-z\d]+\s/) {
+    die "error: no current filesystem and type\n"
+     unless $cur_filesys and $cur_type;
+
+    # hash lookup of columns in quota report output
+    my %tmp;
+    @tmp{
+      qw(name blocks blocks-soft blocks-hard files files-soft files-hard)
+     } = m/^
+     ([a-z\d]+) \s+  # username, groupname or numeric equiv
+     -- \s+          # KLUGE no idea what this is for...
+     (\d+) \s+       # used (blocks, 1K)
+     (\d+) \s+       # blocks, soft limit
+     (\d+) \s+       # blocks, hard limit
+     \s*             # KLUGE empty blocks grace column?
+     (\d+) \s+       # files (inodes?)
+     (\d+) \s+       # files, soft limit
+     (\d+) \s*       # files, hard
+                     # KLUGE empty files grace column?
+     /x;
+
+    # sanity checks
+    next unless defined $tmp{blocks} and $tmp{blocks} =~ m/^\d+$/;
+    next unless defined $tmp{files}  and $tmp{files}  =~ m/^\d+$/;
+
+    # for debugging, reference
+    $tmp{orig} = $_;
+
+    $data->{$cur_filesys}->{$cur_type}->{$tmp{name}} = \%tmp;
+
+    next;
+  }
+
+  # match block headers and update data structure pointers
+  if (/^\*\*\* Report for (user|group) quotas on (\S+) \(([^)]+)\)/) {
+    $cur_type                       = $1;
+    $cur_filesys                    = $2;
+    $data->{$cur_filesys}->{device} = $3;
+
+    # for debugging, reference
+    $data->{$cur_filesys}->{orig} = $_;
+    next;
+  }
+
+  # catch unmatched lines for debugging, reference
+  push @{$data->{skipped}}, $_;
+}
+
+#print Dumper $data;
