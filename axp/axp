@@ -82,7 +82,10 @@ FILE: for my $file (@ARGV) {
   my ( $filedata, $defaults, $params ) = $xapply->study( $doc, $file );
 
   %$defaults = ( %$filedata, %$defaults, %user_default );
+
+  # macro expansion as well on XSL params
   %$params   = ( %$params,   %user_params );
+  $params = $xapply->expand($params, $defaults);
 
   my ( $docref, $details ) =
    $xapply->transform( $doc, default => $defaults, param => $params );
