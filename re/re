@@ -29,7 +29,13 @@ my ( $sessions, $shortnames ) = get_screen_sessions();
 
 # listing of screen sessions, for autocomplete needs
 if ( exists $opts{l} ) {
-  my @sessions = (keys %$sessions, keys %$shortnames);
+  my ( @sessions, %seen );
+  for ( keys %$shortnames ) {
+    push @sessions, $_;
+    $seen{ $shortnames->{$_}->{name} } = 1;
+  }
+  push @sessions, grep { not exists $seen{$_} } keys %$sessions;
+
   print join( "\n", sort @sessions ), "\n" if @sessions;
   exit;
 }
@@ -63,7 +69,8 @@ remark(
   'error',
   'existing session attatched elsewhere',
   { session => $param{name} }
-) unless exists $opts{q};
+ )
+ unless exists $opts{q};
 exit 1;
 
 # how screen is run. Requires '-d -R' to automagically create or resume
@@ -87,10 +94,11 @@ sub get_screen_sessions {
       my $name  = $1;
       my $state = $2 eq 'Attached' ? 1 : 0;
 
-      my ($shortname) = $name =~ m/\. ([^.]+) $/x;
+      my ($shortname) = $name =~ m/^ \d+ \. ([^.]+) $/x;
 
       $sessions{$name} = { state => $state };
-      $shortnames{$shortname} = { state => $state, name => $name };
+      $shortnames{$shortname} = { state => $state, name => $name }
+       if defined $shortname;
     }
   }
 
