@@ -14,6 +14,7 @@ sub filedigest;
 sub duration2seconds;
 sub remark;
 sub print_help;
+sub untaintpath;
 
 use Digest::SHA1 ();
 my $ctx = Digest::SHA1->new;
@@ -29,32 +30,30 @@ print_help and exit 1 if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
 my $seen_file;
 if (exists $opts{'s'}) {
-  $opts{'s'} =~ m,^([\w./ -]+)$,;
-  if (not defined $1 or $opts{'s'} ne $1) {
-    remark 'alert', "could not untaint -s seen filename" and exit 1;
-  }
-  $seen_file = $1;
+  $seen_file = untaintpath $opts{'s'}
+   or remark 'alert', "could not untaint seen filename"
+   and exit 1;
 }
+
+my @dirs = untaintpath @ARGV;
+remark 'alert', "untaint on search directories failed" and exit 1 unless @dirs;
+remark 'warning',
+ "removed "
+ . (scalar @ARGV - scalar @dirs)
+ . " tainted search directory from argument list"
+ if @dirs != @ARGV;
 
 my $window = $^T - duration2seconds $opts{'w'} || '2w';
-my $seen = YAML::LoadFile $seen_file if $seen_file and -f $seen_file;
 
-# throw out older entries from seen data
-for my $key (keys %$seen) {
-  delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
-}
+my $seen;
+if ($seen_file and -f $seen_file) {
+  $seen = YAML::LoadFile $seen_file;
 
-# process log files under given directories on command line
-my @dirs = grep { defined } map {
-  $_ =~ m,^([\w./ -]+)$,;
-  if (not defined $1 or $_ ne $1) {
-    remark 'warning', "skipping as could not untaint: $_\n";
-    $_ = undef;
+  # throw out older entries from seen data
+  for my $key (keys %$seen) {
+    delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
   }
-  $_ = $1;
-} @ARGV;
-
-remark 'alert', "no directories to search" and exit 1 unless @dirs;
+}
 
 find {wanted => \&process, no_chdir => 1}, @dirs;
 
@@ -72,20 +71,45 @@ sub process {
   $filedata{mtime} = (stat _)[9];
   return if $filedata{mtime} < $window;
 
+  # untaint filename (paranoia)
+  $filedata{filename} = untaintpath $_
+   or remark 'alert', "could not untaint logfile name: $_"
+   and exit 1;
+
   # skip files with no digest, or a digest already seen
-  $filedata{digest} = filedigest $_;
+  $filedata{digest} = filedigest $filedata{filename};
   return unless exists $filedata{digest};
   return if exists $seen->{$filedata{digest}};
 
   # various path information for future processing
-  $filedata{filename} = $_;
   ($filedata{name}, $filedata{parent}) = fileparse $_;
 
   # just print full filename
   print $filedata{filename}, "\n";
 
-  # update seen record with various file data
+  # update seen record with selected file data
   $seen->{$filedata{digest}} = {map { $_ => $filedata{$_} } qw(filename mtime)};
+}
+
+# untaints data, restricts what filenames may contain. Accepts 1 or more
+# file paths, returns undef or 1 or more paths depending on the results
+# of the tests.
+sub untaintpath {
+  my @paths = grep { defined } map {
+
+    # characters allows in filenames, paths
+    m,^([A-Za-z0-9_./-]+)$,;
+
+    # path good only if exists and same as untainted version
+    $_ = (defined $1 and $_ eq $1) ? $1 : undef;
+
+    # KLUGE other attacks make use of ../../../ runs, though such might be
+    # legitimate (though discouraged) means of locating files
+    $_ = (defined and m,\Q../..,) ? undef: $_;
+
+  } @_;
+
+  return wantarray ? @paths : $paths[0];
 }
 
 # takes filename, returns sha1 digest of file contents using
