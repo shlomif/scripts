@@ -138,18 +138,18 @@ HELP
 
 =head1 NAME
 
-rename.pl - mangle filenames using perl expressions
+rename - mangle filenames using perl expressions
 
 =head1 SYNOPSIS
 
 Append .old to a bunch of files:
 
-  $ rename.pl 's/$/.old/' *
+  $ rename 's/$/.old/' *
 
 Fix the case on all .C files to lower, doing a preview of changes
 only:
 
-  $ rename.pl -p 'tr/A-Z/a-z/' *.C
+  $ rename -p 'tr/A-Z/a-z/' *.C
 
 =head1 DESCRIPTION
 
@@ -162,7 +162,7 @@ before any changes are allowed to go to disk.
 
 =head1 USAGE
 
-  $ rename.pl [options] expression [file1 file2 .. fileN]
+  $ rename [options] expression [file1 file2 .. fileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -170,7 +170,7 @@ If no files are mentioned on the command line, the script will attempt
 to read them from STDIN, allowing for easy interoperation with various
 shell utilities.  In this case, fix .htm files to .html:
 
-  $ find . ! -type d -name "*.htm" | rename.pl '$_ .= "l"'
+  $ find . ! -type d -name "*.htm" | rename '$_ .= "l"'
 
 =head1 OPTIONS
 
@@ -217,7 +217,7 @@ Force mode.  Does not prompt to replace existing files.
 
 Remove upper case from a bunch of files:
 
-  $ rename.pl '$_ = lc' *
+  $ rename '$_ = lc' *
 
 Dealing with deep directories full of files to be changed can be
 tricky, especially if the pattern in question is renaming directories,
@@ -227,8 +227,8 @@ The solution is to first change all the directories, then go after the
 files.  For example, to swap out "bad" characters with _ in a deep
 file tree:
 
-    $ find . -type d -exec rename.pl 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
-    $ find . -exec rename.pl 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+    $ find . -type d -exec rename 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
+    $ find . -exec rename 's/[^A-Za-z0-9,.\/_-]/_/g' {} \;
 
 =head1 BUGS
 
