@@ -2,26 +2,31 @@
 #
 # $Id$
 #
-# Fisher Yates Shuffle input data to stdout.
+# The author disclaims all copyrights and releases this script into
+# the public domain.
+#
+# Print input data in random order.
+#
+# TODO FYS algorithm works on in-memory array; way to shuffle while
+# streaming over the input, similar to "print random line from file?"
 
-while (<STDIN>) {
-  push @array, $_;
-}
+# read from file(s) on command line, or stdin via <>.
+my @input = <>;
 
-die "No input\n" unless @array;
+die "error: no data supplied to shuffle\n" unless @input;
 
-fisher_yates_shuffle(\@array);
+fisher_yates_shuffle(\@input);
 
-print for @array;
+print for @input;
 
 # fisher_yates_shuffle( \@array ) : generate a random permutation
 # of @array in place
 sub fisher_yates_shuffle {
-    my $array = shift;
-    my $i;
-    for ($i = @$array; --$i;) {
-        my $j = int rand ($i+1);
-        next if $i == $j;
-        @$array[$i,$j] = @$array[$j,$i];
-    }
+  my $array = shift;
+  my $i;
+  for ($i = @$array; --$i;) {
+    my $j = int rand($i + 1);
+    next if $i == $j;
+    @$array[$i, $j] = @$array[$j, $i];
+  }
 }
