@@ -10,6 +10,8 @@
 #
 # MODULES
 
+require 5;
+
 use Carp;
 use Getopt::Std;
 
@@ -37,7 +39,7 @@ $procmailrc = $ENV{'HOME'} . '/.procmailrc';
 $days_of_week = '(Sun|Mon|Tue|Wed|Thu|Fri|Sat)';
 $months_of_year = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 
-our $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 # prefs for the humanize file size routine
 my %global_prefs = (
