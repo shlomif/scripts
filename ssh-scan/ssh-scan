@@ -146,9 +146,9 @@ Simply pipe in nmap(1) output of the B<-oG> or B<-oM> format:
 =head1 DESCRIPTION
 
 This script takes nmap output, extracts out what look like open SSH
-servers, and attempts to connect to the IP Address in quetion to
-obtain the SSH version string (via the Socket module).  Network and
-broadcast addresses will be skipped.
+servers, and attempts to connect to the IP Address in question to obtain
+the SSH version string (via the Socket module).  Network and broadcast
+addresses will be skipped.
 
 Output consists of the IP Address, hostname, and server version for
 each running SSH daemon found, in tab-separated value format.  The
@@ -218,4 +218,3 @@ public domain.
 $Id$
 
 =cut
-
