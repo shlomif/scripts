@@ -12,7 +12,6 @@
 KNOWN_HOSTS_FILES="$HOME/.ssh/known_hosts /etc/ssh/ssh_known_hosts"
 
 {
-  local f
   for f in $KNOWN_HOSTS_FILES; do
     if [ -f $f ]; then
       awk '{n = $1; split(n, a, ","); for (val in a) print a[val]}' $f
