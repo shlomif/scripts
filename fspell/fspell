@@ -14,7 +14,6 @@ require 5.005;
 
 use strict;
 use warnings;
-#no warnings qw(uninitialized);
 
 ######################################################################
 #
@@ -23,30 +22,45 @@ use warnings;
 use Carp;
 use Getopt::Std;
 
+# no OO interface, so import routines we need
+use String::Approx qw'amatch aslice';
+
 ######################################################################
 #
 # VARIABLES
 
 my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my (%opts, $modifiers, $string);
+my $dict_file_loc = '/usr/dict/words';
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?f:m:', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
-# and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+$dict_file_loc = $opts{'f'} if defined $opts{'f'};
 
+# better to make these CSV so can easily translate to amatch args??
+$modifiers = $opts{'m'} if defined $opts{'m'};
 
+# pull word in question off of ARGV
+$string = shift;
+
+# parse dictionary file looking for near hits
+open (DICTFILE, $dict_file_loc) or die "Problem opening $dict_file_loc: $!\n";
+while (<DICTFILE>) {
+    unless (defined $modifiers) {
+	print if amatch($string);
+    } else {
+	print if amatch($string, [ "$modifiers%" ]);
+    }
+}
+close (DICTFILE);
 
 exit;
 
@@ -62,6 +76,9 @@ Usage: $0 [options]
 Options:
   -h/-?  Display this message
 
+  -f xx  Use alternate dictionary file location.
+  -m xx  Number used as percentage fuzzyness allowed.
+
 Run perldoc on this script for more documentation.
 
 HELP
@@ -76,27 +93,56 @@ __END__
 
 =head1 NAME
 
-blank.pl - a stub perl script.
+fspell.pl - perl script to do fuzzy speling matching.
 
 $Id$
 
 =head1 SYNOPSIS
 
+$ fspell.pl speling
+
+To get a list of words similar to speling.
+
 =head1 DESCRIPTION
+
+This script is aimed at certain people who cannot spell words well,
+especially when they don't know the first few letters of a word and
+end up bouncing around in a dictionary for ages.
+
+A modern spelling checker will probably do a better job, but that
+usually involves getting to an application that has the spelling
+checker, writing the word into a new document, then finding the spell
+check option, and potentially fending off obnoxious paper clips if you
+have the misfortune of being on a recent Microsoft OS.
 
 =head1 USAGE
 
+$ fspell.pl [OPTIONS] word
+
 =head1 OPTIONS
 
-=head1 ENVIRONMENT
+The following optional options are supported by fspell.pl:
 
-No environment details.
+  -h/?    Show a brief help page.
+
+  -f xx   Use alternate words file, located at xx.  Default is
+          /usr/dict/words.
+
+  -m xx   Percentage fuzzyness.  Default is 10, which is usually
+          good enough; 20-30 is usually enough for tricky words.
 
 =head1 FILES
 
-No file dependancies.
+/usr/dict/words - default dictionary file used; a modestly populated
+file available on every unix I've gone looking for the file on.
 
 =head1 BUGS
+
+For want of a TODO section:
+
+Need better way of passing in amatch() params.  Also want to be able
+to optionally show where the errors were made, so the person can use
+that feedback to spot patterns in their spelling errors.
 
 Please send any bug reports (preferably with a patch) to:
 
