@@ -20,7 +20,7 @@ use strict;
 use Carp;         # better error reporting
 use Getopt::Std;  # command line option processing
 
-use Digest::MD5;
+use Digest::SHA1;
 use File::Spec;
 
 ######################################################################
@@ -33,7 +33,7 @@ my $VERSION;
 my (%opts, $verbose, $quiet, %check);
 
 # we reset this for each file to avoid OO overhead on each file
-my $dig = Digest::MD5->new;
+my $dig = Digest::SHA1->new;
 
 ######################################################################
 #
