@@ -245,7 +245,7 @@ sub zapit {
   $cur_mode = $cur_mode & 07777;
 
   # deal with directories
-  if (-d) {
+  if (-d _) {
 
     # see if we should "prune" this directory first
     if (defined $prune) {
@@ -307,7 +307,7 @@ sub zapit {
       }
     }
 
-  } elsif (-f) {
+  } elsif (-f _) {
 
     # see whether to skip this file
     if (defined $skip) {
