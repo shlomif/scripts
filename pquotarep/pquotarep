@@ -44,6 +44,9 @@ while (<STDIN>) {
     next unless defined $tmp{blocks} and $tmp{blocks} =~ m/^\d+$/;
     next unless defined $tmp{files}  and $tmp{files}  =~ m/^\d+$/;
 
+    print join(' ', "fs=$cur_filesys", "type=$cur_type",
+     map { $_ . '=' . $tmp{$_} } sort keys %tmp), "\n";
+
     # for debugging, reference
     $tmp{orig} = $_;
 
