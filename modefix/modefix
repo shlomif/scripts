@@ -32,7 +32,7 @@ use File::Find;			# recursive directory walking
 my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid,
-    $verbose, $quiet, %badgroups, %badperms);
+    $verbose, $quiet, %badgroups, %badperms, $skip, $prune);
 
 ######################################################################
 #
@@ -48,6 +48,9 @@ if (exists $opts{'q'}) {
     $verbose = 0;
     $quiet = 1;
 }
+
+$skip = $opts{'s'} if exists $opts{'s'};
+$prune = $opts{'p'} if exists $opts{'p'};
 
 # read in primary arguments (e.g. bits to set on various files...)
 
@@ -202,8 +205,8 @@ sub zapit {
     # deal with directories
     if (-d) {
 	# see if we should "prune" this directory first
-	if (exists $opts{'p'}) {
-	    my $result = eval "return 1 if (" . $opts{'p'} . ");";
+	if (defined $prune) {
+	    my $result = eval "return 1 if (" . $prune . ");";
 	    
 	    if ($@) {
 		chomp $@;
@@ -218,8 +221,8 @@ sub zapit {
 	}
 
 	# or whether simply "skipped" over
-	if (exists $opts{'s'}) {
-	    my $result = eval "return 1 if (" . $opts{'s'} . ");";
+	if (defined $skip) {
+	    my $result = eval "return 1 if (" . $skip . ");";
 	    
 	    if($@) {
 		chomp $@;
@@ -262,8 +265,8 @@ sub zapit {
 
     } elsif (-f) {
 	# see whether to skip this file
-	if (exists $opts{'s'}) {
-	    my $result = eval "return 1 if (" . $opts{'s'} . ");";
+	if (defined $skip) {
+	    my $result = eval "return 1 if (" . $skip . ");";
 	    
 	    if ($@) {
 		chomp $@;
