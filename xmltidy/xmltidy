@@ -5,8 +5,8 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# xmllint of libxml2 does not accept input from STDIN, therefore
-# this wrapper.  Formatted output sent to STDOUT.
+# xmllint of libxml2 does not presently accept input from STDIN,
+# therefore this wrapper.  Formatted output sent to STDOUT.
 
 myn=`basename $0`
 
