@@ -10,3 +10,168 @@
 # Run perldoc(1) on this file for more documentation.
 
 use strict;
+
+use DBI;
+use Digest::SHA1;
+use File::Basename;
+use File::Path;
+use LWP::UserAgent;
+use URI;
+use URI::file;
+
+my $cache_file =
+ $ENV{IS_CHANGED_CACHE} ? $ENV{IS_CHANGED_CACHE} : '~/.is-changed-cache';
+
+use Getopt::Std;
+my %opts;
+getopts('h?c:', \%opts);
+
+$cache_file = $opts{c} if exists $opts{c};
+$cache_file = tilde_expand($cache_file);
+my $dbh = init($cache_file);
+my %sql = (
+  gethash => $dbh->prepare(
+    q{
+SELECT hash FROM seen WHERE what = ?
+}
+  ),
+  insert => $dbh->prepare(
+    q{
+INSERT INTO seen (what, hash) VALUES (?,?)
+}
+  ),
+  update => $dbh->prepare(
+    q{
+UPDATE seen SET hash = ? WHERE what = ?
+}
+  ),
+);
+
+my $what = shift || remark('error', 'no resource listed to check') && exit 101;
+
+# need to figure out what got passed
+my $uri = URI->new($what);
+if (not $uri->scheme and -e $what) {
+  $uri = URI->new($what);
+  $uri->scheme('file');
+}
+unless ($uri->scheme) {
+  remark('error', "no scheme found for: $what") && exit 102;
+}
+
+my %handle = (
+  file => {handle => \&handle_file},
+  http => {handle => \&handle_url},
+  ftp  => {handle => \&handle_url},
+);
+
+unless (exists $handle{$uri->scheme}) {
+  remark('error', "no scheme handler for: $what") && exit 102;
+}
+$handle{$uri->scheme}->{handle}->($uri);
+
+# handle routines need to generate hash on URI, and more importantly
+# figure out the modification date of the resource
+#
+# TODO support for other things besides mod date?  Like digest for
+# remote, which would trigger if checksum is different.
+sub handle_file {
+  my $uri = shift;
+  my $url = $uri->canonical;
+
+  # we use mtime for files
+  # TODO option to use checksum instead?
+  exit is_changed($uri->canonical, (stat $uri->path)[9]) ? 0 : 1;
+}
+
+sub handle_url {
+  my $uri = shift;
+  my $url = $uri->canonical;
+
+  my $ua = LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
+  my $response = $ua->get($url);
+
+  unless ($response->is_success) {
+    remark('error', 'could not get ' . $url . ': ' . $response->status_line);
+    exit 103;
+  }
+
+  my $content_hash = Digest::SHA1->new->add($response->content)->b64digest;
+  exit is_changed($url, $content_hash) ? 0 : 1;
+}
+
+sub is_changed {
+  my $what = shift;
+  my $hash = shift;
+
+  $sql{gethash}->execute($what);
+  my @result = $sql{gethash}->fetchrow_array;
+  unless (@result) {
+    $sql{insert}->execute($what, $hash);
+    return 1;
+  } else {
+    if ($result[0] ne $hash) {
+      $sql{update}->execute($hash, $what);
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+}
+
+# expands ~username syntax to full home directory path
+sub tilde_expand {
+  for (@_) {
+    s{^ ~      # leading tilde
+      ([^/]*)  # preserve following data
+     }{
+      $1 ? (getpwnam($1))[7] : ( $ENV{HOME} || $ENV{LOGDIR} )
+     }ex;
+  }
+  return wantarray ? @_ : "@_";
+}
+
+sub init {
+  my $cache_file = shift;
+  my $create_table;
+  unless (-e $cache_file) {
+    remark('notice', "creating new cache file: $cache_file");
+    $create_table = 1;
+  }
+  my $dbh = DBI->connect("dbi:SQLite:dbname=$cache_file", '', '');
+  if ($create_table) {
+    $dbh->do(
+      q{
+CREATE TABLE seen (what VARCHAR(512) NOT NULL UNIQUE, hash VARCHAR(64))
+}
+    );
+  }
+  return $dbh;
+}
+
+# generic message handler
+sub remark {
+  my ($facility, $priority, $message);
+  $facility = 'user';
+
+  if (@_ > 1) {
+    $priority = shift;
+    $message  = "@_";
+  } else {
+    $priority = 'info';
+    $message  = "@_";
+  }
+
+  return 1 if exists $opts{'q'} and $priority eq 'info';
+
+  warn $priority, ": ", $message, "\n";
+
+  return 1;
+}
+
+END {
+  if ($dbh) {
+    $_->finish for values %sql;
+    $dbh->disconnect;
+  }
+}
