@@ -12,6 +12,7 @@
 use strict;
 
 use File::Basename qw(basename fileparse);
+use File::Spec ();
 my $basename = basename $0;
 
 # what to consider as a filename suffix seperator (all OS I've seen use
@@ -48,6 +49,9 @@ my %param = ();
 # TODO need preferences file format for these...
 # what about fallback should the requested style not exist, but the
 # default does?
+#
+# TODO alos need to set default action (continue) if not specified to
+# avoid uninit warnings
 my @rules = (
   {
     subject  => 'suffix',
@@ -55,6 +59,13 @@ my @rules = (
     value    => 'xml',
     action   => 'ignore',
     negate   => 1
+  },
+  {
+    subject  => 'dirname',
+    operator => 'sub',
+    value    => 'cfm/co/website/htdocs',
+    defaults =>
+     { path => '/home/jmates/cfm/co/website/htdocs/_xs/%{class}/%{style}.xsl' },
   },
   {
     subject  => 'rootname',
@@ -162,6 +173,7 @@ sub filedata {
   my $filename = shift;
 
   my ( $name, $path, undef ) = fileparse $filename;
+  $path = File::Spec->rel2abs($path);
 
   # KLUGE strip trailing / from path to avoid // in paths
   $path =~ s,/+$,,;
