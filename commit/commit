@@ -5,57 +5,19 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Wrapper to commit changes back to CVS or SVN.
-
-# should be 0, if errors will be that of last error to occur
-RETURN=0
-
-# where we are
-WHATDIR=`pwd`
-
-# commit routines for specific packages
-# takes dirctory (already cd'ed into) and type of commit
+# Wrapper to commit changes back to CVS or Subversion.
 
 # for CVS
 commit_cvs () {
-  [ $WHATDIR != $1 ] && echo "info: cvs commit in $1" >&2
-  cvs ci $MESSAGE $CHANGESFILE
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo "warn: bad exit status ($STATUS) from $2 commit on $1" >&2
-    RETURN=$STATUS
-  fi
+  cvs ci $MESSAGE $CHANGESFILE $@
+  exit $?
 }
 
 # for subversion
 commit_svn () {
-  [ $WHATDIR != $1 ] && echo "info: svn commit in $1" >&2
-  svn ci $MESSAGE $CHANGESFILE
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo "warn: bad exit status ($STATUS) from $2 commit on $1" >&2
-    RETURN=$STATUS
-  fi
+  svn ci $MESSAGE $CHANGESFILE $@
+  exit $?
 }
-
-# figure out how to handle the directory in question
-check_dir () {
-  if [ -f CVS/Root ]; then
-    commit_cvs "$1" "CVS"
-  elif [ -f .svn/entries ]; then
-    commit_svn "$1" "svn"
-  else
-    IFS='
-'
-    for file in `subdir`; do
-      (
-        cd "$file"
-        check_dir "$file"
-      )
-    done
-  fi
-}
-
 
 # process arguments
 OPT=
@@ -88,17 +50,12 @@ if [ ! -z "$CHANGESFILE" -a ! -z "$MESSAGE" ]; then
   exit 1
 fi
 
-if [ $# -eq 0 ]; then
-  check_dir "$WHATDIR"
+# figure out what to do
+if [ -f CVS/Root ]; then
+  commit_cvs $@
+elif [ -f .svn/entries ]; then
+  commit_svn $@
 else
-  for file in "$@"; do
-    if [ -d "$file" ]; then
-      (
-        cd "$file"
-        check_dir "$file"
-      )
-    fi
-  done
+  echo "error: could not determine how to commit: dir=`pwd`" >&2
+  exit 1
 fi
-
-exit $RETURN
