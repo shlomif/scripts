@@ -21,13 +21,13 @@ my $suffix_char = '.';
 my $suffix_re   = qr/\./;
 
 # TODO load from file?
-my %defaults = ( class => 'eolas', quiet => 1 );
+my %defaults = ( quiet => 1 );
 
 use XML::ApplyXSLT ();
 my $xapply = XML::ApplyXSLT->new;
 $xapply->config_libxml( { load_ext_dtd => 0 } );
 
-# load these "rule defaults" from prefs?
+# load these "application defaults" from prefs?
 $xapply->config(
   { path => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl' } );
 
@@ -37,11 +37,12 @@ $xapply->config(
 
 use Getopt::Std;
 my %opts;
-getopts 'h?c:s:o:', \%opts;
+getopts 'h?c:s:p:o:', \%opts;
 
 my %user_prefs;
 $user_prefs{class} = $opts{c} if exists $opts{c};
 $user_prefs{style} = $opts{s} if exists $opts{s};
+$user_prefs{path}  = $opts{p} if exists $opts{p};
 
 # TODO read param from user somehow
 my %param = ();
