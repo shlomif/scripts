@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2002-2003, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -447,13 +446,13 @@ HELP
 
 =head1 NAME
 
-manage-authkeys.pl - command interface to OpenSSH authorized_keys file
+manage-authkeys - command interface to OpenSSH authorized_keys file
 
 =head1 SYNOPSIS
 
 Get a listing of keys in the default authorized_keys file:
 
-  $ manage-authkeys.pl -a list
+  $ manage-authkeys -a list
 
 =head1 DESCRIPTION
 
@@ -469,7 +468,7 @@ support for management of authorized keys for other ssh products).
 
 =head2 Normal Usage
 
-  $ manage-authkeys.pl [options] [commands]
+  $ manage-authkeys [options] [commands]
 
 See L<"COMMANDS"> for details on the command syntax.
 
@@ -569,11 +568,11 @@ Quiet mode: do not emit informational messages.
 
 List only SSH1 keys with a BSD-compatible echo(1):
 
-  $ echo -e "list\ttype:rsa1" | manage-authkeys.pl -i
+  $ echo -e "list\ttype:rsa1" | manage-authkeys -i
 
 Delete all keys:
 
-  $ (echo -e "delete\tall"; echo write) | manage-authkeys.pl -i
+  $ (echo -e "delete\tall"; echo write) | manage-authkeys -i
 
 For more information on generating authorized keys, see:
 
@@ -632,9 +631,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002-2003, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 

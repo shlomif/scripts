@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2002, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -270,7 +269,7 @@ HELP
 
 =head1 NAME
 
-authkey-tool.pl - manages OpenSSH authorized key files
+authkey-tool - manages OpenSSH authorized key files
 
 =head1 SYNOPSIS
 
@@ -281,11 +280,11 @@ Quick usage notes here.
 =head2 Overview
 
 Loads, modifies, and distributes OpenSSH public authorized keys to
-hosts with the backend manage-authkeys.pl script.
+hosts with the backend manage-authkeys script.
 
 =head2 Normal Usage
 
-  $ authkey-tool.pl [options] keyfile1 [keyfile2 .. keyfileN]
+  $ authkey-tool [options] keyfile1 [keyfile2 .. keyfileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -367,9 +366,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 

@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2002, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -103,11 +102,11 @@ HELP
 
 =head1 NAME
 
-syslog-yakker.pl - tests what levels/facilities are handled by syslog
+syslog-yak - tests what levels/facilities are handled by syslog
 
 =head1 SYNOPSIS
 
-  $ syslog-yakker.pl
+  $ syslog-yak
 
 =head1 DESCRIPTION
 
@@ -117,7 +116,7 @@ Tests what levels/facilities are handled by syslog.
 
 =head2 Normal Usage
 
-  $ syslog-yakker.pl
+  $ syslog-yak
 
 Any command line arguments are passed to logger(1).  The script
 attempts to set the B<-p> I<priority> option to logger(1) internally.
@@ -151,9 +150,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
