@@ -29,7 +29,7 @@ my %defaults;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?da:', \%opts;
+getopts 'h?d0a:', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
@@ -63,8 +63,9 @@ $actions{ $defaults{action} }->();
 sub handle_list {
   for my $key ( keys %duplicates ) {
     next if @{ $duplicates{$key} } < 2;
-    # TODO need -0 option to delimit duplicates, or backslashing somehow
-    # for files with spaces in name?
+
+    local $" = "\0" if exists $opts{0};
+
     print "@{ $duplicates{$key} }\n";
   }
 }
@@ -105,14 +106,14 @@ sub find_dups {
   # second of same size
   if ( exists $seen{$size}->{firsthit} ) {
     my $checksum = gen_checksum( $seen{$size}->{firsthit} );
-    push @{ $duplicates{$checksum} }, $seen{$size}->{firsthit}
+    push @{ $duplicates{"$checksum$size"} }, $seen{$size}->{firsthit}
      if defined $checksum;
 
     delete $seen{$size}->{firsthit};
   }
 
   my $checksum = gen_checksum($_);
-  push @{ $duplicates{$checksum} }, $_ if defined $checksum;
+  push @{ $duplicates{"$checksum$size"} }, $_ if defined $checksum;
 }
 
 sub gen_checksum {
@@ -167,6 +168,8 @@ Options:
   -a xx  Perform action with duplicates, default: $defaults{action}
 
 Actions: @actions
+
+  -0     Delimit duplicates with ASCII nul character instead of space.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -226,6 +229,12 @@ Perform action I<action> on duplicates. Default is to list any
 duplicates found, with unique duplicates grouped per line, with the
 filepaths space separated. Other actions include code to unlink
 duplicates past the first one found, and so forth.
+
+=item B<-0>
+
+Changes list output to use the ASCII null (000) character to delimit
+duplicates. Different sets of duplicates will still be listed on
+different lines.
 
 =back
 
