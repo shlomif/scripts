@@ -1,13 +1,15 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# 'du' output parser and recorder for tracking disk usage over time.
+# 'du' output parser and reporter.
 #
 # Run perldoc(1) on this script for additional documentation.
+
+use strict;
 
 # KLUGE humanize on file size assumes -k set, split for exec-as-list
 # will break quoted "-o 'foo bar'" options (minimal risk)
@@ -27,6 +29,8 @@ my $output_tmpl = '%{size} %{path}\n';
 $output_tmpl = $opts{o} if exists $opts{o};
 $output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
 
+# split space-delimited key=value pairs. Backslash the space to include
+# a literal space
 my %defaults;
 if ( exists $opts{d} ) {
   my @pairs = split /(?<!(?<!\\)\\) /, $opts{d};
@@ -44,7 +48,7 @@ while (<PREFS>) {
   next if /^\s*$/;
   s/^\s+//;
   next if /^#/;
-  chomp $line;
+  chomp;
   s/\s+$//;
 
   # extend lines ending with \
@@ -284,7 +288,7 @@ sub print_help {
   print <<"HELP";
 Usage: $0 -c configfile [-o outputtemplate] [-d defaults]
 
-'du' output parser and recorder for tracking disk usage over time.
+'du' output parser and reporter
 
 Options:
   -h/-?  Display this message.
@@ -303,7 +307,137 @@ HELP
 
 __END__
 
-# TODO write POD
+=head1 NAME
 
-  /home/jmates src/* backup cfm co repository
-  /sial/music *
+diskusage - du output parser and reporter
+
+=head1 SYNOPSIS
+
+Run C<diskusage> to report on home directory usage:
+
+  $ diskusage -c ~/.diskusage/prefs
+
+Specify a custom output template:
+
+  $ diskusage -c ~/.diskusage/prefs -o '%{humansize} %{path}\n'
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Wrapper for the unix C<du> command to provide selective matching of
+certain areas on disk and better output control via a template.
+
+=head2 Normal Usage
+
+  $ diskusage -c configfile [-o outputtemplate] [-d defaults]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+The C<du> command will be run on each directory specified in the
+configuration file, and results printed to standard out according to the
+template. The default output format copies that of C<du>, though with
+only a single space between the size and the path.
+
+To change the C<du> command that is run, set the C<DU_CMD> environment
+variable. Bear in mind this script expects sizes to be reported in
+kilobytes (e.g. with the C<-k> option to C<du>) for the C<humansize>
+output option.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-c> I<configurationfile>
+
+Load the required configuration data from the specified file.
+
+=item B<-o> I<outputtemplate>
+
+Specify a custom output template. Values to be expanded on should be
+written as C<%{name}>, and ideally a C<\n> included at the end of the
+template to print a newline between records. Currently available
+parameters for expansion include:
+
+  size - to emulate regular du(1) output with
+  path
+  
+  humansize - reports sizes in a human readable format
+  
+  epoch - when the du(1) command was run in epoch time
+  
+  parentdir - root directory for current du(1) command
+  subpath   - current directory under parentdir
+
+=item B<-d> I<defaults>
+
+Specify additional defaults to be used in the output template. For instance, this allows the hostname to be added to the output.
+
+  $ diskusage -c /etc/diskusage/prefs -d hostname=`hostname` \
+    -o '%{hostname}:%{path} %{size} %{epoch}\n'
+
+=back
+
+=head1 CONFIGURATION
+
+The required configuration file currently consists of one or more lines
+that list a required directory on disk to scan, followed by optional
+subpath expressions to report on. Blank and commented lines will be
+ignored. Currently, the subpath expressions are either converted to
+regular expressions, or used directly as regular expressions. To specify
+a regular expression, ensure the string begins with C<^> or ends with
+C<$>. Otherwise, these will be added by the script, and any C<*>
+replaced with something that matches all directories under the current
+one.
+
+  # scan home partition, report on all user directories therein
+  /home *
+  
+  # report on various web areas
+  /var/www * site/* logs/*/*
+  
+  # report size on directories that being with vowel to show a regular
+  # expression example (to encourage use of the simple glob)
+  /usr "^/[aeiou][^/]+/?$"
+
+By default, the total size used by each parent directory will be reported.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+du(1), perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
