@@ -19,12 +19,12 @@ my $basename = basename $0;
 my $suffix_char = '.';
 my $suffix_re   = qr/\./;
 
+# TODO load from file?
+my %defaults = ( class => 'eolas', quiet => 1 );
+
 use XML::ApplyXSLT ();
 my $xapply = XML::ApplyXSLT->new;
 $xapply->config_libxml( { load_ext_dtd => 0 } );
-
-# TODO load from file?
-my %defaults = ( class => 'eolas', quiet => 1 );
 
 #my $prefs_file = $ENV{'AXPCONF'} || '~/.axp/prefs';
 #$prefs_file = tilde_expand($prefs_file);
@@ -32,7 +32,11 @@ my %defaults = ( class => 'eolas', quiet => 1 );
 
 use Getopt::Std;
 my %opts;
-getopts 'h?', \%opts;
+getopts 'h?c:s:', \%opts;
+
+my %user_prefs;
+$user_prefs{class} = $opts{c} if exists $opts{c};
+$user_prefs{style} = $opts{s} if exists $opts{s};
 
 # TODO need preferences file format for these
 my @rules = (
@@ -83,14 +87,10 @@ FILE: for my $file (@ARGV) {
   # TODO only load docheaders details if needed by rules??
   %filedata = ( %filedata, %{ $xapply->docheaders } );
 
-  my ( $result, $rule_defaults ) = parse_rules( \%filedata );
+  my ( $result, $rule_prefs ) = parse_rules( \%filedata );
   next FILE unless $result;
 
-  # TODO also layer on user-supplied prefs here
-  $xapply->config( { %defaults, %$rule_defaults } );
-
-  use Data::Dumper;
-  warn Dumper $xapply->config;
+  $xapply->config( { %$rule_prefs, %user_prefs } );
 
   # TODO single file to stdout, (unless -i), multiple files requires -i ??
   my ( $docref, $details ) = $xapply->transform;
@@ -143,9 +143,6 @@ sub parse_rules {
     next RULE unless $match;
 
     return 0 if $rule->{action} eq 'ignore';
-
-    use Data::Dumper;
-    warn Dumper $rule;
 
     # sticky defaults, so can set "path" or somesuch early on in a
     # general rule for ".xml" file suffixes
