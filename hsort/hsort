@@ -21,6 +21,8 @@ print sort {
   # convert numbers to bit strings so 10 sorts after 2
   $la =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
   $lb =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
+
+  # case insensitive compare
   lc $la cmp lc $lb;
 
 } <>;
