@@ -1,13 +1,50 @@
 #!/usr/bin/perl
-
-use strict;
+#
+# $Id$
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# Removes duplicate files.  Perl only implementation.
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+#
+######################################################################
+#
+# MODULES
 
 use Carp;
-#use File::Spec;
+use Digest::MD5;
+use File::Spec;
+use Getopt::Std;
+
+use strict;
+use vars qw:$VERSION:;
+
+######################################################################
+#
+# CONSTANTS
+
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
 my $verbose = 1; #DBG
 
 # command to run to get MD5 checksum on file, assumes GNU-md5sum output
 my $md5 = '/usr/bin/md5sum';
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists($opts{'h'}) || exists($opts{'?'});
+
+# read from STDIN if no args left
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+# and flag the help text if nothing from STDIN
+help() unless @ARGV;
 
 # loop over arguments which presumably are a bunch of directories
 foreach ( @ARGV ) {
@@ -52,6 +89,25 @@ foreach ( @ARGV ) {
     }
 }
 
+######################################################################
+#
+# SUBROUTINES
+
 sub subdir {
     
+}
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+$0 v.$VERSION
+Usage: $0 [options]
+
+Removes duplicate files based on checksum comparison.
+
+Options:
+  -h/-?  Display this message
+
+HELP
+    exit;
 }
