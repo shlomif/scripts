@@ -39,7 +39,7 @@ open $readfrom, "</dev/tty"
 # command line option handling
 use Getopt::Std;
 my %opts;
-getopts('h?o:t:', \%opts);
+getopts('h?o:t:n', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 $spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
@@ -59,14 +59,19 @@ eval {
 
   while (1) {
     my $key = get_key($readfrom);
+    my $ref = $spec->{keys};
+
+    # KLUGE unset to avoid "Use of uninitialized value in string ne"
+    # warnings being printed
+    no warnings qw(uninitialized);
 
     # check for specific key, default action, or default to nothing for
     # the key in question
-    if (exists $spec->{keys}->{$key}) {
-      print $writeto "\n";
-      exit $spec->{keys}->{$key};
-    } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
-      print $writeto "\n";
+    if (exists $ref->{$key} and $ref->{$key} ne '') {
+      print $writeto "\n" if exists $opts{n};
+      exit $ref->{$key};
+    } elsif (exists $spec->{default} and $spec->{default} ne '') {
+      print $writeto "\n" if exists $opts{n};
       exit $spec->{default};
     }
   }
@@ -88,7 +93,7 @@ sub get_key {
   my $readfrom = shift;
   my $first;
 
-  ReadMode(4, $readfrom);
+  ReadMode(3, $readfrom);
 
   do {
     select undef, undef, undef, 0.25;
@@ -126,7 +131,7 @@ sub parse_spec {
     }
 
     # unescape backwhacked things (\r, etc.)
-    $keys =~ s/(\\.)/$1/eeg;
+    $keys =~ s/(\\.)/qq("$1")/eeg;
 
     # quick lookup map for key typed
     for (split //, $keys) {
@@ -223,6 +228,8 @@ Options for version $VERSION:
   -r     Require return key (default: on keystroke)
   -t dd  Timeout after dd seconds
 
+  -n     Print newline after accepting character (default not to)
+
 Run perldoc(1) on this script for additional documentation.
 
 HELP
@@ -289,6 +296,11 @@ beyond yes or no.
 Timeout wait-for-keypress after the specified time.  I<duration>
 may either be raw seconds, or a short hand human format "1m3s" for
 63 seconds.
+
+=item B<-n>
+
+Print a newline after accepting a character. Good when moving through a
+list of choices, rather than pausing something else for a keystroke.
 
 =back
 
