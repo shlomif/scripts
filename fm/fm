@@ -395,7 +395,7 @@ http://www.sial.org/artistic_license.txt
 
 Since the .procmailrc may contain shell data for the logfile location,
 I'm currently using a unix subshell to expand out the path to a full
-string, e.g. $HOME/.pm_logfile -> /home/user/.pm_logfile.  As long as
+string, e.g. $HOME/.pm_logfile to /home/user/.pm_logfile.  As long as
 you're on Unix, this should be fine...
 
 =head1 SEE ALSO
