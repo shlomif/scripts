@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+# Copyright (c) 2000-2002, Jeremy A. Mates.  This script is free
 # software; you can redistribute it and/or modify it under the same
 # terms as Perl itself.
 #
@@ -20,10 +20,10 @@ use strict;
 #
 # MODULES
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+use Carp;           # better error reporting
+use Getopt::Std;    # command line option processing
 
-use File::Copy;			# if want to copy instead of rename
+use File::Copy;     # if want to copy instead of rename
 
 ######################################################################
 #
@@ -61,8 +61,10 @@ help() unless @ARGV;
 
 # loop over the files
 for (@ARGV) {
+
     # allow more flexibility in eval statements
-    no strict; $^W = 0;
+    no strict;
+    $^W = 0;
 
     # record what the file was called
     my $was = $_;
@@ -78,16 +80,16 @@ for (@ARGV) {
     next if $was eq $_;
 
     # if required, print out what we intend to do
-    print $fn, ' ', $was, ' ', $_, "\n" 
-	if $opts{'v'} || $opts{'i'} || $opts{'p'};
+    print $fn, ' ', $was, ' ', $_, "\n"
+      if $opts{'v'} || $opts{'i'} || $opts{'p'};
 
     # skip out early if we're in the "preview" mode
     next if $opts{'p'};
 
     # check whether we should drop into interactive mode
     # when a conflicting file exists
-    if (-e && $opts{'i'} && ! $opts{'f'}) {
-	print "$_ exists.  Overwrite? (y/[n]) ";
+    if (-e && $opts{'i'} && !$opts{'f'}) {
+        print "$_ exists.  Overwrite? (y/[n]) ";
         next unless <STDIN> =~ /^[Yy]/;
     }
 
@@ -110,19 +112,19 @@ sub help {
     print <<"HELP";
 Usage: $0 [opts] expression [file1 file2 .. fileN]
 
-A powerful file renamer in perl.
+Mangle filenames using perl expressions.
 
 Options for version $VERSION:
   -h/-?  Display this message
+
+  -p     preview mode (show changes only)
+  -v     be verbose
 
   -c     copy instead of rename
   -m     move instead of rename or copy
 
   -i     interactive, prompt if necessary
   -f     force (do not prompt to replace existing files)
-
-  -v     be verbose
-  -p     preview mode (show changes only)
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -136,7 +138,7 @@ HELP
 
 =head1 NAME
 
-rename.pl - a file renamer in perl
+rename.pl - mangle filenames using perl expressions
 
 =head1 SYNOPSIS
 
@@ -151,9 +153,9 @@ only:
 
 =head1 DESCRIPTION
 
-A powerful file renamer that uses user-supplied perl expressions to
-rename files.  Optionally, the copy() or move() routines from
-File::Copy may be used instead of the builtin rename() function.
+A file renamer that uses user-supplied perl expressions to rename
+files.  Optionally, the copy() or move() routines from File::Copy may
+be used instead of the builtin rename() function.
 
 A preview mode is also available, to allow testing of expressions
 before any changes are allowed to go to disk.
@@ -180,6 +182,14 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
+=item B<-p>
+
+Enable preview mode, no changes will be made to disk.
+
+=item B<-v>
+
+Be verbose about the whole process.
+
 =item B<-c>
 
 Copy files instead of renaming them, using copy() from File::Copy.
@@ -200,14 +210,6 @@ Interactive mode: prompts for confirmation.
 =item B<-f>
 
 Force mode.  Does not prompt to replace existing files.
-
-=item B<-v>
-
-Be verbose about the whole process.
-
-=item B<-p>
-
-Enable preview mode, no changes will be made to disk.
 
 =back
 
@@ -253,7 +255,7 @@ Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+Copyright (c) 2000-2002, Jeremy A. Mates.  This script is free
 software; you can redistribute it and/or modify it under the same
 terms as Perl itself.
 
@@ -269,3 +271,4 @@ form by Jeremy Mates (preview mode, comments in source, move support).
 $Id$
 
 =cut
+
