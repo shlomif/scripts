@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-# software; you can redistribute it and/or modify it under the same
-# terms as Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -54,7 +53,7 @@ help() unless @ARGV;
 # %data = (
 # 'hostname' => {
 #   array of anon hashes holding traceroute output...
-#   array index is -1 the hop, hash holds 'ip' 'hostname' 
+#   array index is -1 the hop, hash holds 'ip' 'hostname'
 #   and then 'times' => array of probe times
 # in case of '* * *' timeout, usual ip/host/times will be undef,
 # so be sure to check for it!
@@ -81,9 +80,9 @@ for my $host (@ARGV) {
 
       } elsif (
         m/^\s*\d+[ *]+    # optional leading whitespace & index
-		     (\S+)\s+	       # hostname   $1
-		     \(([^\)]+)\)\s+   # ip address (inside ()'s)   $2
-		     (.*?)$/x  # the probe times $3
+                     (\S+)\s+          # hostname   $1
+                     \(([^\)]+)\)\s+   # ip address (inside ()'s)   $2
+                     (.*?)$/x  # the probe times $3
        ) {
 
         # extract probe times manually
@@ -131,7 +130,7 @@ for (@ARGV) {
 
   # and let's look at some specific stuff
   #    foreach my $info (@{$data{$_}}) {
-  #	print $info->{'mean'}, "\t", $info->{'stddev'}, "\n";
+  #     print $info->{'mean'}, "\t", $info->{'stddev'}, "\n";
   #    }
 }
 
@@ -262,9 +261,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2001, Jeremy Mates.  This script is free
-software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
