@@ -17,7 +17,6 @@ use warnings;
 # other required modules may be loaded dynamically as needed
 use File::Basename;
 use File::Path;
-use File::Spec;
 use URI;
 
 my $prefs_file = $ENV{'PBOTUTILCONF'} || '~/.pbotutil/servers';
@@ -416,8 +415,10 @@ sub tilde_expand {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
-      $1 ? (getpwnam($1))[7] : (getpwuid $<)[7]
-        || $ENV{'HOME'} || $ENV{'LOGDIR'} || File::Spec->tmpdir
+      $1 ? (getpwnam($1))[7] : (getpwuid $<)[7] || $ENV{'HOME'}
+        || remark('error',
+             'could not lookup user or HOME not set')
+        && exit 99;
      }ex;
   }
   return wantarray ? @_ : "@_";
