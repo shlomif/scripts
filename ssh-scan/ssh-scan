@@ -12,7 +12,7 @@
 #
 # REQUIREMENTS
 
-require 5.005;
+require 5;
 
 use strict;
 
@@ -34,7 +34,8 @@ if ($@) {
 #
 # VARIABLES
 
-my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts);
 
@@ -48,7 +49,7 @@ getopts('h?', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 # do nmap with supplied arguments
-open (NMAP, "nmap -sS -p 22 -oM - @ARGV |") 
+open NMAP, "nmap -sS -p 22 -oM - @ARGV |" 
     or die "Couldn't call nmap: $!\n";
 
 while (<NMAP>) {
@@ -84,7 +85,7 @@ while (<NMAP>) {
     $t->close;
 }
 
-close (NMAP);
+close NMAP;
 
 exit;
 
@@ -114,7 +115,7 @@ HELP
 
 =head1 NAME
 
-ssh_scan.pl - a script to map SSH servers
+ssh_scan.pl - a script to map SSH server versions
 
 =head1 SYNOPSIS
 
@@ -124,9 +125,18 @@ This script accepts nmap target specifications as arguments:
 
 =head1 DESCRIPTION
 
-Uses nmap to scan the specified targets for SSH servers, then calls
-Net::Telnet to figure out what SSH server open SSH servers are
-running.
+This script invokes nmap to scan the specified targets for SSH
+servers, then calls Net::Telnet to figure out what daemon version the
+specified server is running.
+
+Output consists of the IP Address, hostname, and server version for
+each running SSH daemon found, in tab-separated value format.  The
+server version can also be "UNKNOWN" or "TIMEOUT" depending on various
+failures of Net::Telnet to extract any meaningful data.  This is
+usually the case where there exist connectivity problems between the
+scanner and the target, or where the nmap stealth scan reported the
+port as being open, but TCP WRAPPERS on the remote host denies
+Net::Telnet.
 
 =head2 Normal Usage
 
@@ -149,13 +159,18 @@ Prints a brief usage note about the script.
 
 =head1 BUGS
 
+=head2 Reporting Bugs
+
 Newer versions of this script may be available from:
 
 http://www.sial.org/code/perl/
 
-If not, or the bug is in the latest version, send the bug report to:
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
 
-jmates@sial.org
+=head2 Known Issues
+
+No known bugs.
 
 =head1 SEE ALSO
 
@@ -163,7 +178,7 @@ nmap(1), L<Net::Telnet>, perl(1)
 
 =head1 AUTHOR
 
-Jeremy A. Mates, jmates@sial.org
+Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
