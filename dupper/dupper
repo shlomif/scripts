@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+
+use strict;
+
+use Carp;
+use File::Spec;
+
+# command to run to get MD5 checksum on file, assumes GNU-md5sum output
+my $md5 = '/usr/bin/md5sum';
+
+# MD5 sum => filename hash lookup table
+my %check;
+
+# loop over arguments which presumably are a bunch of directories
+foreach ( @ARGV ) {
+    if (-d) {
+	unless (opendir (DIR, $_)) {
+	    warn 'Problem reading ', $_, ': ', $!, "\n";
+	    next;
+	}
+
+#	my $parent = $_;
+
+	# loop over sorted contents of directory, skipping . and .. specials
+	foreach (sort (readdir (DIR))) {
+	    next if /^\.{1,2}$/;
+	    next if -l; # skip links.  Links bad.
+
+#	    my $loc = File::spec->catfile($parent, $_);
+
+	    # only deal with non-linked files when doing sums
+	    if (-f) {
+		# run the md5 program & gather output into temp variables
+		open (SUM, "$md5 $_ |") or die 'Problem with ', $md5, ': ', $!, "\n";
+		my $result; chomp ($result = <SUM>);
+		my ($sum, $filename) = split /\s+/, $result;
+		close (SUM);
+		
+		# either add new checksum to hash, or delete the duplicate file
+		unless (exists $check{$sum}) {
+		    $check{$sum} = $filename;
+		} else {
+		    warn "unlink $_" if $verbose;
+		    unlink $_ || warn "Problem unlinking $_ (dup of $check{$sum}): $!\n";
+		}
+	    # recurse into directories
+	    } elsif (-d) {
+#		subdir(File::Spec->catdir($parent, $_));
+	    }
+	}
+    }
+}
+
+sub subdir {
+    
+}
