@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -20,8 +19,8 @@ use strict;
 #
 # MODULES
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
 ######################################################################
 #
@@ -43,24 +42,26 @@ help() if exists $opts{'h'} or exists $opts{'?'};
 
 # mangle all input
 while (<>) {
-    $lzero = 0;
+  $lzero = 0;
 
-    # handle annoying suid bits
-    if (s/([d-]?[r-][w-])([Ssx-])([r-][w-])([Ssx-])([r-][w-])([Ttx-])/
-	$1.unsuid($2).$3.unsuid($4).$5.unsuid($6)/ex) {
-	$lzero += 4 if $2 and $2 =~ /[Ss]/;
-	$lzero += 2 if $4 and $4 =~ /[Ss]/;
-	$lzero += 1 if $6 and $6 =~ /[Tt]/;
-    }
+  # handle annoying suid bits
+  if (
+    s/([d-]?[r-][w-])([Ssx-])([r-][w-])([Ssx-])([r-][w-])([Ttx-])/
+        $1.unsuid($2).$3.unsuid($4).$5.unsuid($6)/ex
+   ) {
+    $lzero += 4 if $2 and $2 =~ /[Ss]/;
+    $lzero += 2 if $4 and $4 =~ /[Ss]/;
+    $lzero += 1 if $6 and $6 =~ /[Tt]/;
+  }
 
-    undef $lzero if $lzero == 0 and not exists $opts{'0'};
+  undef $lzero if $lzero == 0 and not exists $opts{'0'};
 
-    $^W = 0;			# hide uninit warnings on $lzero
+  $^W = 0;  # hide uninit warnings on $lzero
 
-    s/[d-]?([r-][w-][x-])([r-][w-][x-])([r-][w-][x-])/
-	$lzero.r2m($1).r2m($2).r2m($3)/ex;
+  s/[d-]?([r-][w-][x-])([r-][w-][x-])([r-][w-][x-])/
+        $lzero.r2m($1).r2m($2).r2m($3)/ex;
 
-    print;
+  print;
 }
 
 exit;
@@ -71,24 +72,24 @@ exit;
 
 # converts rwx blocks into octal equivalent
 sub r2m {
-    my $str = shift;
+  my $str = shift;
 
-    $str =~ tr/\-a-z/01/;	# make it a binary number
+  $str =~ tr/\-a-z/01/;  # make it a binary number
 
-    # convert from binary into an octal digit
-    return oct unpack "N", pack "B32", substr "0" x 32 . $str, -32;
+  # convert from binary into an octal digit
+  return oct unpack "N", pack "B32", substr "0" x 32 . $str, -32;
 }
 
 # changes suid strings (s's and t't) into x or - as appropriate
 sub unsuid {
-    my $char = shift;
-    $char =~ tr/sStT/x-x-/;
-    return $char;
+  my $char = shift;
+  $char =~ tr/sStT/x-x-/;
+  return $char;
 }
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [opts] [file1 .. fileN]
 
 Converts rwx-style permission listings into octal format.
@@ -101,7 +102,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 ######################################################################
@@ -110,13 +111,13 @@ HELP
 
 =head1 NAME
 
-rwxconv.pl - converts rwx-style permission listings into octal format.
+rwxconv - converts rwx-style permission listings into octal format.
 
 =head1 SYNOPSIS
 
 To filter the output of a long directory listing:
 
-  $ ls -al | rwxconv.pl
+  $ ls -al | rwxconv
 
 =head1 DESCRIPTION
 
@@ -131,7 +132,7 @@ the rwx-form.
 
 =head2 Normal Usage
 
-  $ rwxconv.pl [options] [file1 .. fileN]
+  $ rwxconv [options] [file1 .. fileN]
 
 This script will read from STDIN if no files are mentioned on the
 command line.
@@ -161,7 +162,7 @@ modes like 644; this option would change that to 0644.
 
 Anywhere rwx-style output is produced, this script can convert:
 
-  $ tar tvf foo.tar | rwxconv.pl
+  $ tar tvf foo.tar | rwxconv
 
 =head1 BUGS
 
@@ -188,9 +189,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 HISTORY
 
@@ -202,3 +202,4 @@ Robbins.
   $Id$
 
 =cut
+
