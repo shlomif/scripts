@@ -133,7 +133,7 @@ HELP
 
 =head1 NAME
 
-ssh_scan.pl - a script to help map SSH server versions
+ssh_scan.pl - helps map SSH server versions
 
 =head1 SYNOPSIS
 
