@@ -20,8 +20,8 @@ use strict;
 #
 # MODULES
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
 ######################################################################
 #
@@ -37,24 +37,30 @@ my (%opts, $base, $regex);
 # read in from a prefs file somewhere, as nobody will agree as to what
 # "proper" human output should look like... :)
 my %format = (
-	     # include decimals in output? (e.g. 25.8 K vs. 26 K)
-	     'decimal' => 1,
-	     # include .0 in decmail output?
-	     'decimal_zero' => 1,
-	     # what to divide file sizes down by
-	     # 1024 is generally "Kilobytes," while 1000 is
-             # "kilobytes," technically
-	     'factor' => 1024,
-	     # percentage above which will be bumped up
-	     # (e.g. 999 bytes -> 1 K as within 5% of 1024)
-	     # set to undef to turn off
-	     'fudge' => 0.95,
-	     # lengths above which decimals will not be included
-	     # for better readability
-	     'max_human_length' => 2,
-	     # list of suffixes for human readable output
-	     'suffix' => [ '', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
-	     );
+
+  # include decimals in output? (e.g. 25.8 K vs. 26 K)
+  'decimal' => 1,
+
+  # include .0 in decmail output?
+  'decimal_zero' => 1,
+
+  # what to divide file sizes down by
+  # 1024 is generally "Kilobytes," while 1000 is
+  # "kilobytes," technically
+  'factor' => 1024,
+
+  # percentage above which will be bumped up
+  # (e.g. 999 bytes -> 1 K as within 5% of 1024)
+  # set to undef to turn off
+  'fudge' => 0.95,
+
+  # lengths above which decimals will not be included
+  # for better readability
+  'max_human_length' => 2,
+
+  # list of suffixes for human readable output
+  'suffix' => ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+);
 
 # default conversion to do nothing
 $base = 1;
@@ -73,8 +79,8 @@ help() if exists $opts{'h'} or exists $opts{'?'};
 
 # set the base conversion factor
 if (exists $opts{'b'}) {
-    ($base) = $opts{'b'} =~ m/(\d+)/;
-    die "Error: base should be a positive integer\n" unless $base;
+  ($base) = $opts{'b'} =~ m/(\d+)/;
+  die "Error: base should be a positive integer\n" unless $base;
 }
 
 $base = 1024 if exists $opts{'k'};
@@ -85,8 +91,8 @@ $regex = $opts{'m'} if exists $opts{'m'};
 $regex = '(' . $regex . ')' unless $regex =~ m/\(.+\)/;
 
 while (<STDIN>) {
-    s/$regex/humanize($1)/ego;
-    print;
+  s/$regex/humanize($1)/ego;
+  print;
 }
 
 exit;
@@ -100,63 +106,63 @@ exit;
 #
 # takes a number, returns formatted string.
 sub humanize {
-    my $num = shift;
+  my $num = shift;
 
-    # error checking on input...
-    return $num unless $num =~ m/^-?\d+$/;
+  # error checking on input...
+  return $num unless $num =~ m/^-?\d+$/;
 
-    # some local working variables
-    my $count = 0;
-    my $prefix = '';
-    my $tmp = '';
-    my $orig_len = length $num;
+  # some local working variables
+  my $count    = 0;
+  my $prefix   = '';
+  my $tmp      = '';
+  my $orig_len = length $num;
 
-    # handle negatives
-    if ($num < 0 ) {
-	$num = abs $num;
-	$prefix = '-';
+  # handle negatives
+  if ($num < 0) {
+    $num    = abs $num;
+    $prefix = '-';
+  }
+
+  # adjust number to proper base
+  $num *= $base;
+
+  # reduce number to something readable by factor specified
+  while ($num > $format{'factor'}) {
+    $num /= $format{'factor'};
+    $count++;
+  }
+
+  # optionally fudge "near" values up to next higher level
+  if (defined $format{'fudge'}) {
+    if ($num > ($format{'fudge'} * $format{'factor'})) {
+      $count++;
+      $num /= $format{'factor'};
     }
+  }
 
-    # adjust number to proper base
-    $num *= $base;
-    
-    # reduce number to something readable by factor specified	
-    while ($num > $format{'factor'}) {
-	$num /= $format{'factor'};
-	$count++;
-    }
-    
-    # optionally fudge "near" values up to next higher level
-    if (defined $format{'fudge'}) {
-	if ($num > ($format{'fudge'} * $format{'factor'})) {
-	    $count++;
-	    $num /= $format{'factor'};
-	}
-    }
-    
-    # no .[1-9] decimal on longer numbers for easier reading
-    # only show decimal if format say so
-    if (length sprintf("%.f", $num) > $format{'max_human_length'} || 
-	! $format{'decimal'}) {
+  # no .[1-9] decimal on longer numbers for easier reading
+  # only show decimal if format say so
+  if (length sprintf("%.f", $num) > $format{'max_human_length'}
+    || !$format{'decimal'}) {
 
-	$tmp = sprintf("%.0f", $num);
+    $tmp = sprintf("%.0f", $num);
 
     } else {
-	$tmp = sprintf("%.1f", $num);
-	
-	# optionally hack trailing .0 as is not needed
-	$tmp =~ s/\.0$// unless $format{'decimal_zero'};
-    }
-    
-    # return number with proper style applied and leading whitespace
-    # for proper right-justification
-    $tmp = $prefix . $tmp . $format{'suffix'}->[$count];
-    return (' ' x ($orig_len - length $tmp)) . $tmp;
+    $tmp = sprintf("%.1f", $num);
+
+    # optionally hack trailing .0 as is not needed
+    $tmp =~ s/\.0$// unless $format{'decimal_zero'};
+  }
+
+  # return number with proper style applied and leading whitespace
+  # for proper right-justification
+  $tmp = $prefix . $tmp . $format{'suffix'}->[$count];
+  return (' ' x ($orig_len - length $tmp)) . $tmp;
 }
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [opts]
 
 Script to humanize numbers in data.
@@ -172,7 +178,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 ######################################################################
@@ -313,3 +319,4 @@ inline with the unix philosphopy of filters.)
   $Id$
 
 =cut
+
