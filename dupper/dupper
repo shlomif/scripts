@@ -19,13 +19,22 @@ use File::Spec ();
 my $digest = Digest::SHA1->new;
 
 my %defaults;
-$defaults{bydepth} = 0;
+@defaults{qw(action bydepth showempty)} = qw(list 0 0);
 
 use Getopt::Std;
 my %opts;
-getopts 'h?', \%opts;
+getopts 'h?dea:', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
+
+$defaults{action}    = $opts{a} if exists $opts{a};
+$defaults{bydepth}   = 1        if exists $opts{d};
+$defaults{showempty} = 1        if exists $opts{e};
+
+unless ( $defaults{action} =~ m/^ [a-z][A-Za-z0-9_-]{0,31} $/x ) {
+  remark( 'error', 'invalid action name' );
+  exit 101;
+}
 
 # read from STDIN if no args left
 chomp( @ARGV = <STDIN> ) unless @ARGV;
@@ -39,11 +48,33 @@ my ( %seen, %duplicates, @empty );
 find( { wanted => \&find_dups, no_chdir => 1, bydepth => $defaults{bydepth} },
   @ARGV );
 
-for my $key ( keys %duplicates ) {
-  next if @{ $duplicates{$key} } < 2;
-  print "@{ $duplicates{$key} }\n";
+{
+  no strict 'refs';
+  my $routine = 'handle_' . $defaults{action};
+  &$routine if defined &$routine;
 }
 
+sub handle_list {
+  if ( $defaults{showempty} and @empty ) {
+    print "e @empty\n";
+  }
+  for my $key ( keys %duplicates ) {
+    next if @{ $duplicates{$key} } < 2;
+    print "d @{ $duplicates{$key} }\n";
+  }
+}
+
+# TODO fix and improve
+sub handle_unlink {
+  for my $key ( keys %duplicates ) {
+    next if @{ $duplicates{$key} } < 2;
+    print 'unlink', join " ",
+     @{ $duplicates{$key} }[ 1 .. $#{ $duplicates{$key} } ];
+     print "\n";
+  }
+}
+
+# File::Find handler to find duplicates
 sub find_dups {
   return unless -f;
 
@@ -51,7 +82,7 @@ sub find_dups {
 
   # empty files are a special case: duplicates make no sense for them
   if ( $size == 0 ) {
-    push @empty, $_;
+    push @empty, $_ if $defaults{showempty};
     return;
   }
 
