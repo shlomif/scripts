@@ -30,7 +30,7 @@ use File::Path;
 # what to consider as a filename suffix seperator (all OS I've seen use
 # a period, but you never know...)
 my $suffix_char = '.';
-my $suffix_re   = qr/\./;
+my $suffix_re   = qr/(?<!^)\./;
 
 my %defaults = ( class => 'expand' );
 
