@@ -1,14 +1,10 @@
 #!/usr/bin/perl
 #
 # $Id$
-# By Jeremy Mates <mailto:jmates@sial.org>
 #
-# Parses procmail logfiles.
-# 
-# For documentation, use the -h option or run perldoc on this script.
+# Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
 #
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+# Use perldoc on this file for documentation/licensing information.
 #
 ######################################################################
 #
@@ -70,7 +66,7 @@ my %global_prefs = (
 # parse command-line options
 getopts('h?srzb:m:', \%opts);
 
-help() if exists($opts{'h'}) || exists($opts{'?'});
+help() if exists $opts{'h'} || exists $opts{'?'};
 
 # extract backup option, if any
 $backup = $opts{'b'} if exists $opts{'b'};
@@ -93,6 +89,12 @@ if (@ARGV) {
 
 # parse through the logfile, feeding various global variables
 parse_logfile();
+
+# see whether there is any new mail to report about...
+if (scalar @data < 1) {
+    print "No new mail.\n";
+    exit;
+}
 
 # and print off a pretty little report for fun
 print_report();
