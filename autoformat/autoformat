@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Wrapper for Text::Autoformat.
+
+use Text::Autoformat;
+
+# these are the default preferences
+$default = {squeeze=>1,all=>1};
+
+# merge in user prefs from command line
+$input = '$user = {'.$ARGV[0].'};';
+eval $input;
+%$user = () if $@;
+
+$options = { %$default, %$user };
+
+$out = autoformat $options;
+
+# KLUGE standardize trailing newline behaviour
+chomp $out;
+
+print $out;
