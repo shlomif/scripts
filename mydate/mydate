@@ -38,7 +38,7 @@ if [ "$1" = "rpm" ]; then
 fi
 if [ "$1" = "dns" ]; then
   if [ -z "$2" ]; then
-    SERIAL=01
+    SERIAL=00
   else
     SERIAL=$2
   fi
