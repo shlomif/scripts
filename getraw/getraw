@@ -38,6 +38,9 @@ if (exists $opts{t}) {
   $timeout = duration2seconds($opts{t});
 }
 
+my $readfrom;
+open $readfrom, "</dev/tty" or die "error: could not read from tty: $!\n";
+
 eval {
   if ($timeout > 0) {
     local $SIG{ALRM} = sub { die "alarm\n" };
@@ -45,7 +48,7 @@ eval {
   }
 
   while (1) {
-    my $key = get_key();
+    my $key = get_key($readfrom);
     if (exists $spec->{keys}->{$key} and $spec->{keys}->{$key} =~ /^\d+$/) {
       exit $spec->{keys}->{$key};
     } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
@@ -66,12 +69,13 @@ if ($@) {
 # SUBROUTINES
 
 sub get_key {
+  my $readfrom = shift;
   my $first;
 
   ReadMode 4;
 
   do {
-    $first = ReadKey(-1);
+    $first = ReadKey(-1, $readfrom);
   } until defined $first;
 
   ReadMode 0;
@@ -115,12 +119,13 @@ sub parse_spec {
   # sanity check on specification to prevent key-read stalls
   # TODO need to write output to tty device?
   die "invalid specification\n" unless $spec;
+
   # TODO need more error checks (as spec could be "*:" - do nothing :)
-  
+
   # DBG
-#    use Data::Dumper;
-#    print Dumper $spec;
-#die;
+  #    use Data::Dumper;
+  #    print Dumper $spec;
+  #die;
   return $spec;
 }
 
