@@ -53,7 +53,7 @@ $modifiers = $opts{'m'} if defined $opts{'m'};
 $string = shift;
 
 # parse dictionary file looking for near hits
-open DICTFILE, "<$dict_file_loc" or die "Problem opening $dict_file_loc: $!\n";
+open DICTFILE, "< $dict_file_loc" or die "Problem opening $dict_file_loc: $!\n";
 while (<DICTFILE>) {
   unless (defined $modifiers) {
     print if amatch($string);

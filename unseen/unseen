@@ -124,7 +124,7 @@ sub untaintpath {
 sub filedigest {
   my $file = shift;
 
-  open FILE, "<$file" or remark 'alert', "problem opening $file: $!" and exit 1;
+  open FILE, "< $file" or remark 'alert', "problem opening $file: $!" and exit 1;
   binmode FILE;
 
   # b64digest method resets object, so can reuse
