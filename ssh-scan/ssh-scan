@@ -23,7 +23,12 @@ use strict;
 use Carp;			# better error reporting
 use Getopt::Std;		# command line option processing
 
-
+eval { require Net::Telnet; };
+if ($@) {
+    die "Net::Telnet is not installed; please install it from CPAN.\n";
+} else {
+    require Net::Telnet;
+}
 
 ######################################################################
 #
@@ -42,13 +47,27 @@ getopts('h?', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
-# and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+# do nmap with supplied arguments
+open (NMAP, "nmap -sS -p 22 -oM - @ARGV |") 
+    or die "Couldn't call nmap: $!\n";
 
+while (<NMAP>) {
+    # skip non-open/non-relevant data
+    next unless m!22/open/tcp!;
 
+    # extract ip and hostname from matching lines
+    my ($ip, $hostname) = $_ =~ /Host: (\S+) \(([^\(]+)\)/;
+
+    next unless $ip;
+
+    # nab reply from SSH server and move on...
+    my $t = Net::Telnet->new(Timeout => 3, Port => 22);
+    $t->open($ip);
+    print "$ip\t$hostname\t", $t->get();
+    $t->close;
+}
+
+close (NMAP);
 
 exit;
 
@@ -59,7 +78,7 @@ exit;
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 <host or net #1 ... [#N]>
 
 Help for a generic script template.
 
@@ -78,21 +97,26 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+ssh_scan.pl - a script to map SSH servers
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+This script accepts nmap target specifications as arguments:
+
+  $ ssh_scan.pl 192.168.0.1-254 gateway.example.org
 
 =head1 DESCRIPTION
 
-Short description of what script is intended to do.
+Uses nmap to scan the specified targets for SSH servers, then calls
+Net::Telnet to figure out what SSH server open SSH servers are
+running.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ ssh_scan.pl <host or net #1 ... [#N]>
 
-See L<"OPTIONS"> for details on the command line switches supported.
+See nmap(1) for details on the host or netmasks supported under TARGET
+SPECIFICATION.
 
 =head1 OPTIONS
 
@@ -106,18 +130,6 @@ Prints a brief usage note about the script.
 
 =back
 
-=head1 EXAMPLES
-
-Additional examples/helpfull hints expanding on SYNOPSIS.
-
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
-
 =head1 BUGS
 
 Newer versions of this script may be available from:
@@ -128,13 +140,9 @@ If not, or the bug is in the latest version, send the bug report to:
 
 jmates@sial.org
 
-=head1 NOTES
-
-Replace default stub POD entries with real documentation.
-
 =head1 SEE ALSO
 
-perl(1)
+nmap(1), L<Net::Telnet>, perl(1)
 
 =head1 AUTHOR
 
