@@ -43,6 +43,7 @@ sub handle_sum {
   my $result;
   while (<STDIN>) {
     chomp;
+    next if $_ eq '';
     $result += $_;
   }
   $result = numbertidy($result) if $result =~ /\./;
@@ -51,7 +52,11 @@ sub handle_sum {
 
 sub handle_mean {
   my @array;
-  chomp(@array = <STDIN>);
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq '';
+    push @array, $_;
+  }
   my $result = mean(\@array);
   $result = numbertidy($result) if $result =~ /\./;
   print $result, "\n";
@@ -59,7 +64,11 @@ sub handle_mean {
 
 sub handle_sdev {
   my @array;
-  chomp(@array = <STDIN>);
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq '';
+    push @array, $_;
+  }
   my $result = standard_deviation(\@array, mean(\@array));
   $result = numbertidy($result) if $result =~ /\./;
   print $result, "\n";
@@ -73,6 +82,7 @@ sub handle_max {
   my $result;
   while (<STDIN>) {
     chomp;
+    next if $_ eq '';
     $result ||= $_;
     $result = $_ if $_ > $result;
   }
@@ -84,6 +94,7 @@ sub handle_min {
   my $result;
   while (<STDIN>) {
     chomp;
+    next if $_ eq '';
     $result ||= $_;
     $result = $_ if $_ < $result;
   }
@@ -97,6 +108,7 @@ sub handle_basic {
 
   while (<STDIN>) {
     chomp;
+    next if $_ eq '';
     $results{sum} += $_;
     $results{min} ||= $_;
     $results{min} = $_ if $_ < $results{min};
