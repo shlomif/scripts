@@ -28,21 +28,36 @@ my %filetype = (
 
 my %opts;
 for (@ARGV) {
-  # TODO make this a dispatch table?
   if (/^\+([rwx]+)$/) {
     my $perms = $1;
     for ($perms =~ /(.)/g) { $opts{perms}->{$_} = 1 }
-  } elsif (/^(user|group)=(.+)$/) {
+    next;
+  }
+  
+  if (/^-([\w]+)$/) {
+    my $opts = $1;
+    for ($opts =~ /(.)/g) { $opts{options}->{$_} = 1 }
+    next;
+  } 
+  
+  if (/^(user|group)=(.+)$/) {
+
     my $what = $1;
     my $who  = $2;
+
+    if (exists $opts{user} or exists $opts{group}) {
+      warn "warning: ignoring extra limitation: $_\n";
+      next;
+    }
 
     # TODO resolve user/group -> id, warn if not on system, etc.
 
     $opts{$what} = $who;
-  } elsif (/^-([\w]+)$/) {
-    my $opts = $1;
-    for ($opts =~ /(.)/g) { $opts{options}->{$_} = 1 }
+    next;
   }
+
+  # TODO parse dir out
+
 }
 
 use Data::Dumper;
