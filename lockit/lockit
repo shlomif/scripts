@@ -37,7 +37,7 @@ my (%opts);
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?z', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
@@ -53,7 +53,13 @@ unless (flock (FD, LOCK_EX|LOCK_NB)) {
     flock (FD, LOCK_EX);
 }
 
-sleep 8500;
+# zap the file if you want to...
+if (exists $opts{'z'}) {
+    seek     (FD, 0, 0) or die "Problem seeking $logfile: $!\n";
+    truncate (FD, 0) or die "Problem truncating $logfile: $!\n";
+}
+
+sleep 60;
 
 flock (FD, LOCK_UN);
 close (FD);
@@ -71,6 +77,8 @@ Purpose: simple file locker.
 
 Options:
   -h/-?  Display this message
+
+  -z     Zap the file (empty contents thereof), too.
 
 Run perldoc on this script for more documentation.
 
@@ -94,6 +102,8 @@ Pretty simple, just run:
 
 Locks files, or gives it a good shot, anyways.
 
+Sleeps for 60 seconds, probably enough for you to test stuff.
+
 =head1 USAGE
 
   $ lockit.pl [options] LOCKFILE
@@ -103,6 +113,10 @@ Locks files, or gives it a good shot, anyways.
 lockit.pl supports the following command line options:
 
 -h     Get a brief help blarb
+
+-z     Zap the file.
+
+Truncates the file down the 0 bytes.
 
 =head1 LICENSE
 
