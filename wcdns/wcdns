@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Checks whether domain(s) are wildcard domains.
