@@ -69,3 +69,91 @@ sub get_ip_list {
 
   return @ips;
 }
+
+__END__
+
+=head1 NAME
+
+wcdns - report wildcard DNS domains
+
+=head1 SYNOPSIS
+
+List Top Level Domains (TLD) with wildcard records enabled.
+
+  $ wcdns .com .net .org .edu
+  tld .com wildcard 64.94.110.11
+  tld .net wildcard 64.94.110.11
+
+Check whether host is a wildcard domain.
+
+  $ wcdns an17iqz4dhxm6es532feaxrkyidvoh7fkav.net
+  domain an17iqz4dhxm6es532feaxrkyidvoh7fkav.net wildcard 64.94.110.11
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Provides means to determine which TLD have wildcard DNS records, or
+whether particular domains resolve to the wildcard address(es).
+
+=head2 Normal Usage
+
+  $ wcdns domain [domain2 ...]
+
+If no domains (top level domains, domain names, hostnames, or domainish
+input) are listed on the command line, the script will attempt to read
+the list from standard input, which allows input from a file or pipe:
+
+  $ wcdns < domainlistfile
+
+Output will be sent to stdout, errors to stderr. Problems will result in
+a non-zero exit code. No news is good news; TLD or domains will only be
+listed if there are wildcard entries infesting the data. See
+L<"SYNOPSIS"> for the two output formats; one is whether the TLD
+speicifed has wildcard support; the other is whether a domain is
+wildcarded.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 TODO
+
+More sanity checking, especially on multiple IP address results where
+there is only a partial overlap between the TLD wildcard addresses and
+the addresses for the domain in question.
+
+=head1 SEE ALSO
+
+perl(1), Net::DNS
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+Based heavily on code posted by John Rowan Littell to the MIMEDefang
+mailing list.
+
+http://lists.roaringpenguin.com/pipermail/mimedefang/2003-September/008061.html
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
