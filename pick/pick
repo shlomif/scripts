@@ -1,0 +1,142 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Pick or reject items from a list of input data.
+
+require 5;
+use strict;
+
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+# specifications for getraw utility
+my $spec = {
+  y => 'Yy\ \n:+ Nn:-',
+  n => 'Nn\ \n:+ Yy:-'
+};
+
+use Getopt::Std;
+my %opts;
+getopts('h?yno:d:', \%opts);
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+  print <<"HELP";
+Usage: $0 [opts]
+
+Pick or reject items from a list of input data.
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+  -y     Default to "yes" and accept item.
+  -n     Default to "no" and skip item.
+  -o ss  Key mapping specification
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit;
+}
+
+=head1 NAME
+
+pick - pick or reject items from a list of input data
+
+=head1 SYNOPSIS
+
+  $ echo a b c | pick
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Allows items in input data to be selected or rejected, to reduce the
+list to just the items required.
+
+=head2 Normal Usage
+
+  $ pick [options]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note.
+
+=item B<-y>
+
+Default to accepting items, Nn to reject.
+
+=item B<-n>
+
+Default to rejecting items, Yy to accept.
+
+=item B<-o> I<specification>
+
+Custom specification to pass to getraw.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
+
