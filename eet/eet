@@ -148,7 +148,8 @@ To follow two log files at the same time:
 =head2 Overview
 
 This script does rougly the opposite of tee(1), reading in from
-multiple files and merging them all into STDOUT.
+multiple files and merging them all into STDOUT via the File::Tail
+module from CPAN.
 
 =head2 Normal Usage
 
