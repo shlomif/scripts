@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Generates short (eight character) hashes from MD5 hex signatures.
+
+require 5;
+use strict;
+
+use Digest::MD5;
+
+my $fh;
+
+if (@ARGV) {
+  my $file = shift;
+
+  open $fh, $file or die "error: could not open $file: $!\n";
+  binmode $fh;
+} else {
+  $fh = *STDIN;
+}
+
+printf "%08x\n", unpack "N", Digest::MD5->new->addfile($fh)->digest;
