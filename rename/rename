@@ -23,7 +23,7 @@ use strict;
 use Carp;			# better error reporting
 use Getopt::Std;		# command line option processing
 
-
+use File::Copy;			# if want to copy instead of rename
 
 ######################################################################
 #
@@ -31,24 +31,63 @@ use Getopt::Std;		# command line option processing
 
 my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts);
+my (%opts, $op, $fn);
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?cifvp', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
+# choose which function to use (copy vs. rename) depending on argument
+$fn = $opts{'c'} || $0 eq "copy" ? "copy" : "rename";
+
+$op = shift;
+
 # read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
 # and flag the help text if nothing from STDIN
-#help() unless @ARGV;
+help() unless @ARGV;
 
+# loop over the files
+for(@ARGV) {
+    # record what the file was called
+    my $was = $_;
 
+    # evaluate the expression passed on the command line,
+    # operating on $_ (by default)
+    eval $op;
+
+    # keel over if something went wrong with the evaluation...
+    die $@ if $@;
+
+    # skip out early if the filename didn't change
+    next if $was eq $_;
+
+    # if required, print out what we intend to do
+    print $fn, ' ', $was, ' ', $_, "\n" 
+	if $opts{'v'} || $opts{'i'} || $opts{'p'};
+
+    # skip out early if we're in the "preview" mode
+    next if $opts{'p'};
+
+    # check whether we should drop into interactive mode
+    # when a conflicting file exists
+    if($opts{'i'} || (-e && ! $opts{'f'})) {
+        print $opts{'i'} ? "Confirm? " : "$_ exists.  Overwrite? ";
+        next unless <STDIN> =~ /^[Yy]/;
+    }
+    # with error checking, actually attempt the rename or
+    # copy.
+    unless (eval "$fn(\$was, \$_)") {
+        warn "\U$fn\E ERROR $was -> $_ - $!\n";
+        next;
+    }
+}
 
 exit;
 
@@ -59,10 +98,18 @@ exit;
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [opts] expression [file1 file2 .. fileN]
+
+A powerful file renamer in perl.
 
 Options for version $VERSION:
   -h/-?  Display this message
+
+  -c     copy file(s) instead of rename
+  -i     interactive, prompt if necessary
+  -f     force (over-rides -i, it would seem...)
+  -v     be verbose
+  -p     preview mode (show changes only)
 
 Run perldoc on this script for additional documentation.
 
@@ -76,21 +123,64 @@ HELP
 
 =head1 NAME
 
-blank.pl - a stub perl script.
+rename.pl - a spiffy file renamer.
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
 
+A powerful file renamer that uses perl expressions to rename files.
+
+This is a hacked up version of Larry Wall's original rename script
+distributed with perl, improved by Daniel V. Klien (copy option,
+interactive mode), and then polished into this form by Jeremy Mates
+(preview mode, comments in source).
+
 =head1 USAGE
+
+  $ rename.pl [options] expression [file1 file2 .. fileN]
+
+If no files are mentioned on the command line, the script will attempt
+to read them from STDIN, allowing for things like:
+
+  $ find . -name "*.asp" | rename.pl 's/asp$/cleopatra_killer/'
+
+Options are detailed below.
+
+For more examples, consult the Perl Cookbook, which is probably
+reproducing some portion of the manual.
 
 =head1 OPTIONS
 
-=head1 ENVIRONMENT
+rename.pl currently supports the following options:
 
-=head1 FILES
+=over 4
 
-=head1 EXAMPLES
+=item B<-h> / B<-?>
+
+Display a brief help blarb.
+
+=item B<-c>
+
+Copy files instead of renaming them.
+
+=item B<-i>
+
+Interactive mode: prompt if necessary.
+
+=item B<-f>
+
+Force.  Overrides the interactive mode.
+
+=item B<-v>
+
+Be verbose about the whole process.
+
+=item B<-p>
+
+Enable preview mode, no changes will be made to disk.
+
+=back
 
 =head1 BUGS
 
@@ -100,8 +190,6 @@ http://www.sial.org/code/perl/
 If not, or the bug is in the latest version, send the bug report to:
 jmates@sial.org
 
-=head1 TODO
-
 =head1 SEE ALSO
 
 perl(1), L<Carp>, L<Getopt::Std>
@@ -109,6 +197,8 @@ perl(1), L<Carp>, L<Getopt::Std>
 =head1 AUTHOR
 
 Jeremy A. Mates, jmates@sial.org
+
+Who improved on earlier work done by Daniel V. Klien and Larry Wall.
 
 =head1 COPYRIGHT
 
