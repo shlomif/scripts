@@ -2,9 +2,9 @@
 #
 # $Id$
 #
-# Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# Copyright (c) 2002-2003, Jeremy A. Mates.  This script is free
+# software; you can redistribute it and/or modify it under the same
+# terms as Perl itself.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -575,6 +575,10 @@ Delete all keys:
 
   $ (echo -e "delete\tall"; echo write) | manage-authkeys.pl -i
 
+For more information on generating authorized keys, see:
+
+http://cfm.gs.washington.edu/security/ssh/client-pkauth/
+
 =head1 ENVIRONMENT
 
 Developed for OpenSSH (as of version 3.4); should work on any system
@@ -628,7 +632,7 @@ Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
+Copyright (c) 2002-2003, Jeremy A. Mates.  This script is free software;
 you can redistribute it and/or modify it under the same terms as Perl
 itself.
 
