@@ -201,10 +201,10 @@ names, which are File::Tail parameters passed directy to the object.
 
 =head1 EXAMPLES
 
-Follow several Apache VirtualHost logfiles, and send them off to
-colorize.pl (available on http://freshmeat.net):
+Read through then follow several Apache VirtualHost logfiles, and send
+them off to colorize.pl (available on http://freshmeat.net):
 
-  $ eet.pl logs/e.com.log logs/e.org.log | colorize.pl
+  $ eet.pl -t -1 logs/e.com.log logs/e.org.log | colorize.pl
 
 =head1 BUGS
 
