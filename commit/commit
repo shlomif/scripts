@@ -9,20 +9,20 @@
 
 # for CVS
 commit_cvs () {
-  cvs ci $MESSAGE $CHANGESFILE $@
+  cvs ci $CHANGESFILE $@
   exit $?
 }
 
 # for subversion
 commit_svn () {
-  svn ci $MESSAGE $CHANGESFILE $@
+  svn ci $CHANGESFILE $@
   exit $?
 }
 
 # process arguments
 OPT=
 CHANGESFILE=
-while getopts F:m: OPT; do
+while getopts F: OPT; do
   case $OPT in
     F)
       CHANGESFILE=$OPTARG
@@ -32,23 +32,9 @@ while getopts F:m: OPT; do
       fi
       CHANGESFILE="-F $CHANGESFILE"
     ;;
-    m)
-      MESSAGE=$OPTARG
-      if [ -z "$MESSAGE" ]; then
-        echo "error: no commit message" >&2
-        exit 1
-      fi
-      MESSAGE="-m '$MESSAGE'"
-    ;;
   esac
 done
 shift $(($OPTIND - 1))
-
-# -m message trumps -F file?
-if [ ! -z "$CHANGESFILE" -a ! -z "$MESSAGE" ]; then
-  echo "error: cannot specify both -m and -F options" >&2
-  exit 1
-fi
 
 # figure out what to do
 if [ -f CVS/Root ]; then
