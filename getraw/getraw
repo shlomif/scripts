@@ -38,8 +38,12 @@ if (exists $opts{t}) {
   $timeout = duration2seconds($opts{t});
 }
 
-my $readfrom;
-open $readfrom, "</dev/tty" or die "error: could not read from tty: $!\n";
+my ($readfrom, $writeto);
+open $readfrom, "</dev/tty" or die "error: could not open tty for reading: $!\n";
+open $writeto, ">/dev/tty" or die "error: could not open tty for writing: $!\n";
+
+# prompt (may not be formatted properly due to raw modes)
+print $writeto "@ARGV" if @ARGV;
 
 eval {
   if ($timeout > 0) {
@@ -49,12 +53,18 @@ eval {
 
   while (1) {
     my $key = get_key($readfrom);
-    if (exists $spec->{keys}->{$key} and $spec->{keys}->{$key} =~ /^\d+$/) {
+
+    # check for specific key, default action, or default to nothing for
+    # the key in question
+    if (exists $spec->{keys}->{$key}) {
+      print $writeto "\n";
       exit $spec->{keys}->{$key};
-    } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
+    } elsif (exists $spec->{default}) {
+      print $writeto "\n";
       exit $spec->{default};
     }
   }
+
   alarm 0 if $timeout > 0;
 };
 if ($@) {
@@ -166,7 +176,7 @@ sub duration2seconds {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts]
+Usage: $0 [opts] [prompt message]
 
 Means to prompt for human interaction.
 
@@ -188,10 +198,6 @@ HELP
 
 getraw - means to prompt for human interaction
 
-=head1 SYNOPSIS
-
-  $ getraw
-
 =head1 DESCRIPTION
 
 =head2 Overview
@@ -201,7 +207,7 @@ with a human, for example to choose from a list.
 
 =head2 Normal Usage
 
-  $ getraw [options]
+  $ getraw [options] [prompt message]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -293,4 +299,3 @@ program.  This version likely is substantially different.
   $Id$
 
 =cut
-
