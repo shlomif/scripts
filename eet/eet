@@ -205,9 +205,11 @@ the object.
 =head1 EXAMPLES
 
 Read through then follow several Apache VirtualHost logfiles, and send
-them off to colorize.pl (http://colorize.raszi.hu/):
+them off to colorize.pl:
 
   $ eet.pl -t -1 /www/site/logs/*_log | colorize.pl
+
+See http://colorize.raszi.hu/ for colorize.pl.
 
 =head1 BUGS
 
