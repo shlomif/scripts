@@ -12,9 +12,11 @@
 
 use URI;
 
+# read method from env if possible (allows easy override)
 my $default_open = $ENV{'OW_METHOD'} || 'lynx';
 
 # what to launch URLs with (but see sub visit below)
+# TODO some means to pass options to say lwp-request and wget types?
 my %open = (
   lynx         => [qw(lynx)],
   links        => [qw(links)],
@@ -23,6 +25,9 @@ my %open = (
   safari       => [qw(open -a Safari)],
   'omniweb-bg' => \&open_omniweb_bg,
   mozilla      => [qw(mozilla)],
+  lwp          => [qw(lwp-request)],
+  lwp-noproxy  => [qw(lwp-request -P)],
+  wget         => [qw(wget)],
 );
 
 my %pfiles = (
