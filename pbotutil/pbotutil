@@ -179,10 +179,6 @@ sub pb_get {
 
   } else {
 
-    unless ($id =~ /^\d+$/) {
-      remark('error', "could not parse paste id: $id");
-      exit 105;
-    }
     $url =
      URI->new(
       $prefs->{url} . (($prefs->{url} !~ m,/$,) ? '/' : '') . $id . '?tx=on')
