@@ -1,31 +1,138 @@
 #!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Means of prompting where human interaction required.
 
+require 5;
 use strict;
 
-use Getopt::Declare;
 use Term::ReadKey;
 
-# TODO arguments indicate what to do:
-#
-# -w keys  "want" hitting member of keys accepts whatever
-# -r keys  "require" or "return" hit member + require return?
-#
-# way to say "default to "yes" or "no" for all keys on board?
-# way to say left-side "no" right-side "yes" on keyboard?
-# -m macro definitions read from config file?
-#
-# -a       annoy option: "are you sure?"
-# -p fmt   prompt string to show (default none)
-# -P       A default prompt string?  or read from ENV?
-#
-# probably want an option to prompt or not, plus maybe
-# the prompt question?
-# ability to read prompt from env, for security or ease of use??
-# GETRAW1 - regular prompt if not -p option or from config file
-# GETRAW2 - annoy prompt
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-$specification = <<SPEC
+my $prompt;
+$prompt->{first} = '';
+$prompt->{first} = $ENV{GETRAW1} if exists $ENV{GETRAW1};
+$prompt->{annoy} = 'Are you sure?';
+$prompt->{annoy} = $ENV{GETRAW2} if exists $ENV{GETRAW2};
 
-SPEC
+use Getopt::Std;
+my %opts;
+getopts('h?W:w:R:r:m:aA:', \%opts);
+help() if exists $opts{'h'} or exists $opts{'?'};
 
-my $args = Getopt::Declare->new($specification);
+$prompt->{first} = "@ARGV" if @ARGV;
+$prompt->{annoy} = $opts{A} if exists $opts{A};
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+  print <<"HELP";
+Usage: $0 [opts] [prompt string]
+
+Means to prompt for human interaction.
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+  -w kk  Want keys in list (positive)
+  -r kk  Want keys, with return to accept
+
+  -W kk  Want keys, negative return
+  -R kk  Require keys, negative
+
+  -a     Annoy with additional "Are you sure?"
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit;
+}
+
+=head1 NAME
+
+getraw - means to prompt for human interaction
+
+=head1 SYNOPSIS
+
+  $ getraw -wy 
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+This script is intended to provide a means for other scripts to interact
+with a human, for example to choose from a list.
+
+=head2 Normal Usage
+
+  $ getraw [options] [prompt message]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 TODO
+
+Means to pass -wyY -Wn format to prompt somehow for indication of what
+keys the program wants?
+
+Way to return arbitrary exit code, to support more than just positive or
+negative exits?
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 HISTORY
+
+Written based on talk Damian Conway gave about his own ~/bin/getraw
+program.  This version likely is substantially different.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
