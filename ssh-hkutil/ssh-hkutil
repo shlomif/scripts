@@ -10,17 +10,22 @@
 use strict;
 use Fatal qw(open close);
 
-#use Getopt::Std;
-#my %opts;
-#getopts '', \%opts;
+use Getopt::Std;
+my %opts;
+getopts 'mM', \%opts;
 
 my $khf = shift;
 
 open my $file, "< $khf";
 my $hkd = parse_known_hosts($file);
-#print_known_hosts($hkd);
-my $m_hkd = unmerge_host_keys($hkd);
-print_known_hosts($m_hkd);
+
+if ( $opts{'m'} ) {
+  $hkd = merge_host_keys($hkd);
+} elsif ( $opts{'M'} ) {
+  $hkd = unmerge_host_keys($hkd);
+}
+
+print_known_hosts($hkd);
 
 sub print_known_hosts {
   my $hkd = shift;
