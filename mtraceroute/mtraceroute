@@ -145,7 +145,7 @@ sub mean {
 # a generic help blarb
 sub help {
     print <<"HELP";
-Usage: $0 [options]
+Usage: $0 [options] host1 [host2 .. hostN]
 
 Options:
   -h/-?  Display this message
@@ -164,11 +164,17 @@ __END__
 
 =head1 NAME
 
-mtraceroute.pl - a script to summarize a bunch of traceroutes.
+mtraceroute.pl - a script to summarize traceroutes.
 
 $Id$
 
 =head1 SYNOPSIS
+
+  $ mtraceroute example.com example.org
+
+Or ride them in on STDIN:
+
+  $ cat list_of_hosts | mtraceroute.pl
 
 =head1 DESCRIPTION
 
@@ -178,15 +184,18 @@ a host of mirrors.
 
 =head1 USAGE
 
+mtraceroute.pl [options] host1 [host2 .. hostN]
+
+Options are detailed below.  The list of hosts can either be supplied
+on the command line (e.g. with xargs(1)), or passed in on STDIN(3).
+
+The script does no error checking on the supplied data, which should
+consist of hostnames or ip addresses to be passed directly to
+traceroute(8).
+
 =head1 OPTIONS
 
-=head1 ENVIRONMENT
-
-No environment details.
-
-=head1 FILES
-
-No file dependancies.
+The only option is help right now, which refers you here. :)
 
 =head1 BUGS
 
@@ -196,7 +205,7 @@ jmates@sial.org
 
 =head1 SEE ALSO
 
-perl(1).
+perl(1), traceroute(8)
 
 =head1 AUTHOR
 
