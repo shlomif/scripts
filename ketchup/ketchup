@@ -14,10 +14,13 @@ CHECKOUT=$HOME/co
 # should be 0, if errors will be that of last error to occur
 RETURN=0
 
+# where we are
+WHATDIR=`pwd`
+
 # update routines for specific packages
 # takes dirctory (already cd'ed into) and type of update
 update_cvs () {
-  echo "info: cvs update in $1" >&2
+  [ $WHATDIR != $1 ] && echo "info: cvs update in $1" >&2
   cvs up -Ad
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
@@ -49,7 +52,7 @@ check_dir () {
 }
 
 if [ $# -eq 0 ]; then
-  if [ `pwd` = "$HOME" ]; then
+  if [ $WHATDIR = "$HOME" ]; then
   (
     if [ ! -d $CHECKOUT ]; then
       echo "error: no directory to work on: $CHECKOUT"
@@ -62,7 +65,7 @@ if [ $# -eq 0 ]; then
     done
   )
   else
-    check_dir `pwd`
+    check_dir $WHATDIR
   fi
 else
   for file in "$@"; do
