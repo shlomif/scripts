@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+# Copyright (c) 2000-2002, Jeremy A. Mates.  This script is free
 # software; you can redistribute it and/or modify it under the same
 # terms as Perl itself.
 #
@@ -38,12 +38,14 @@ my (
   %badperms, $skip,    $prune,    $report, $parent
 );
 
+my $recursive = 1;
+
 ######################################################################
 #
 # MAIN
 
 # deal with command line options
-getopts('h?p:s:d:f:u:g:Grvq', \%opts);
+getopts('h?p:s:d:f:u:g:Grvql', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
@@ -66,6 +68,8 @@ if (exists $opts{'q'}) {
   $report  = 0;
   $quiet   = 1;
 }
+
+$recursive = 0 if exists $opts{'l'};
 
 $skip  = $opts{'s'} if exists $opts{'s'};
 $prune = $opts{'p'} if exists $opts{'p'};
@@ -189,14 +193,14 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 # and flag the help text if nothing from STDIN
 help() unless @ARGV;
 
-# loop over the remaining input, looking for dirs and parsing them
-for $parent (@ARGV) {
-  unless (-d $parent) {
-    warn "Warning: skipping non-directory $parent\n" unless $quiet;
-    next;
+# loop over the remaining input, applying mode changes
+for (@ARGV) {
+  if (-d and $recursive) {
+	$parent = $_;
+    find({wanted => \&zapit, no_chdir => 1}, $parent);
+  } elsif (-e) {
+	zapit();
   }
-
-  find(\&zapit, $parent);
 }
 
 if ($report) {
@@ -255,7 +259,7 @@ sub zapit {
 
       if ($result) {
         $File::Find::prune = 1;
-        warn "Pruned: ", $File::Find::name, "\n" if $verbose;
+        warn "Pruned: ", $_, "\n" if $verbose;
         return;
       }
     }
@@ -270,7 +274,7 @@ sub zapit {
       }
 
       if ($result) {
-        warn "Skipped: ", $File::Find::name, "\n" if $verbose;
+        warn "Skipped: ", $_, "\n" if $verbose;
         return;
       }
     }
@@ -291,13 +295,13 @@ sub zapit {
       if ($new_mode != $cur_mode) {
 
         # show the offending file if verbose on
-        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $File::Find::name,
+        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $_,
          "\n"
          if $verbose;
 
         # attempt the change
         my $result = chmod $new_mode, $_;
-        warn "Warning: chmod failure on: ", $File::Find::name, "\n"
+        warn "Warning: chmod failure on: ", $_, "\n"
          if $result == 0;
 
         # log bad permissions
@@ -317,7 +321,7 @@ sub zapit {
       }
 
       if ($result) {
-        warn "Skipped: ", $File::Find::name, "\n" if $verbose;
+        warn "Skipped: ", $_, "\n" if $verbose;
         return;
       }
     }
@@ -337,13 +341,13 @@ sub zapit {
       if ($new_mode != $cur_mode) {
 
         # show the offending file if verbose on
-        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $File::Find::name,
+        print 'Old mode: ', sprintf("%04o", $cur_mode), "\t", $_,
          "\n"
          if $verbose;
 
         my $result = chmod $new_mode, $_;
 
-        warn "Warning: chmod failure on: ", $File::Find::name, "\n"
+        warn "Warning: chmod failure on: ", $_, "\n"
          if $result == 0;
 
         # log bad permissions
@@ -362,12 +366,12 @@ sub zapit {
     my $gid_temp = (defined $groupid) ? $groupid : $cur_gid;
 
     # yak if verbose
-    print 'Old UID GID: ', $cur_uid, "\t", $cur_gid, "\t", $File::Find::name,
+    print 'Old UID GID: ', $cur_uid, "\t", $cur_gid, "\t", $_,
      "\n"
      if $verbose;
 
     my $result = chown $uid_temp, $gid_temp, $_;
-    warn "Warning: chown failure on: ", $File::Find::name, "\n" if $result == 0;
+    warn "Warning: chown failure on: ", $_, "\n" if $result == 0;
 
     # log this change so we know whose been setting bad groups
     $badgroups{$cur_uid}++ if defined $groupid && $report;
@@ -455,7 +459,7 @@ sub apply_mode {
 # a standardized help blarb, see perldoc stuff for more meat
 sub help {
   print <<"HELP";
-$0 [options] dir1 [dir2 dir3 .. dirN]
+$0 [options] file1 [file2 file3 .. fileN]
 
 A unix permissions and ownership changer.
 
@@ -464,6 +468,7 @@ Options for version $VERSION
   -v     Verbose mode.
   -r     Print a little report summarizing changes.
   -q     Quiet mode, overrides verbose and report modes.
+  -l     Do no recurse into directories (default is to).
 
  At least one action flag is required:
   -d nn  Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
@@ -524,7 +529,7 @@ can.
 
 =head2 Normal Usage
 
-  $ modefix.pl [options] [dir1 dir2 dir3 .. dirN]
+  $ modefix.pl [options] [file1 file2 file3 .. fileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -561,6 +566,13 @@ This eases tracking down who is setting improper modes on files.
 
 Quiet mode.  Overrides verbose and report modes; only output will be
 on chown/chmod failures.
+
+=item B<-l>
+
+Local only; do not recurse into subdirectories.  Good when providing a
+set list of files to change, as otherwise the chmod/chown will happen
+twice, first on a possible directory recursion, then again on the file
+itself.
 
 =back
 
@@ -727,7 +739,7 @@ Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+Copyright (c) 2000-2002, Jeremy A. Mates.  This script is free
 software; you can redistribute it and/or modify it under the same
 terms as Perl itself.
 
