@@ -23,20 +23,23 @@ use URI              ();
 
 use Getopt::Std;
 my %opts;
-getopts 'h?Tb:o:', \%opts;
+getopts 'h?tTb:o:', \%opts;
+
+print_help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 
 $output_tmpl = $opts{o} if exists $opts{o};
-$opts{T} = 1 if $output_tmpl =~ m/%{text}/;
+$opts{t} = 1 if $output_tmpl =~ m/ %{text} /x;
 
 # fix backslashed characters to literal, add newline if no trailing
 # whitespace found
-$output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
+$output_tmpl =~ s/(\\.)/qq{"$1"}/eeg;
 $output_tmpl .= "\n" unless $output_tmpl =~ m/ \s$ /x;
 
-print_help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 my $base_uri = $opts{b} if exists $opts{b};
 
+# URL or file must be first argument
 my $document = shift;
+
 # regular expression, or match everything by default
 my $pattern = shift || qr/^/;
 
@@ -142,13 +145,18 @@ sub parse_document {
 
       my $result = { element => $token->[0], attribute => $href, url => $url };
 
-      # save text inside <a> with URL for reference
-      if ( exists $opts{T} and $token->[0] eq 'a' ) {
+      # save text inside <a> with URL for reference, or any tag that has
+      # a URL with the -T option
+      if ( exists $opts{t} and $token->[0] eq 'a' ) {
         $result->{text} = $p->get_trimmed_text('/a');
-        delete $result->{text}
-         unless defined $result->{text}
-         and length $result->{text} >= 1;
+      } elsif ( exists $opts{T} ) {
+        my $closing_tag = '/' . $token->[0];
+        $result->{text} = $p->get_trimmed_text($closing_tag);
       }
+      delete $result->{text}
+       unless defined $result->{text}
+       and length $result->{text} >= 1;
+
       push @found, $result;
     }
   }
@@ -283,19 +291,25 @@ in the document. This custom URL will override any C<base> element found
 in the document, or the URL if a URL was specified to download instead
 of a local file or standard input.
 
-=item B<-T>
+=item B<-t> and B<-T>
 
-Save text inside any C<a href> tags for reference in the C<text> macro.
-Enabled automatically if C<%{text}> found in custom output template.
+These options control the saving of text inside tags with URL, in
+conjunction with the C<%{text}> output macro. The B<-t> option enables
+saving of text inside C<a href> tags, and is enabled by default if
+C<%{text}> appears in the output template.
+
+The B<-T> option enables saving of text inside any tag that a URL has
+been found for. This might support newer linking conventions where the
+C<href> or possibly C<xlink:href> attribute may be applied to most any
+element, instead of just C<a> and a few others.
 
 =item B<-o> I<template>
 
-Use custom output I<template> to change default output format. By
-default, each URL is printed on a different line via a template of
-C<%{url}\n>. The I<template> will expand any backslashed single
-characters, allowing tabs and similar characters in the output, and a
-newline will be appended to the template if the template does not end in
-whitespace.
+By default, each URL is printed on a different line via a template of
+C<%{url}\n>. This can be changed from the command line with the B<-o>
+option. The I<template> will expand any backslashed single characters,
+allowing tabs and similar characters in the output, and a newline will
+be appended to the template if the template does not end in whitespace.
 
   -o '%{url}\t%{text}'
 
