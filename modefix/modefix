@@ -1,32 +1,38 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # $Id$
-# By Jeremy Mates <mailto:jmates@sial.org>
 #
-# For documentation, try the -h option or run perldoc on this file.
+# Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+# software; you can redistribute it and/or modify it under the same
+# terms as Perl itself.
 #
-# Distributed under the Artistic License:
-# http://www.sial.org/artistic_license.txt
+# Run perldoc(1) on this file for additional documentation.
 #
+######################################################################
+#
+# REQUIREMENTS
+
+require 5.005;
+
+use strict;
+
 ######################################################################
 #
 # MODULES
 
-use Carp;
-use File::Find;
-use Getopt::Std;
+use Carp;			# better error reporting
+use Getopt::Std;		# command line option processing
 
-use strict;
-use warnings;
+use File::Find;			# recursive directory walking
 
 ######################################################################
 #
-# CONSTANTS
+# VARIABLES
+
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid,
     $verbose, $quiet, %badgroups, %badperms);
-
-my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 ######################################################################
 #
@@ -431,6 +437,10 @@ HELP
 
 __END__
 
+######################################################################
+#
+# DOCUMENTATION
+
 =head1 NAME
 
 modefix.pl - recursive permission and ownership changer.
@@ -442,168 +452,209 @@ ownerships under /home/john:
 
   $ modefix.pl -d 2750 -f 0640 -u john -g doe /home/john
 
-To ensure all files are group writable, and that "others" do not have
+To ensure all files are group writable, and that others do not have
 any access whatsoever to the files under the current directory:
 
   $ modefix.pl -f g+w,o-rwx .
 
 =head1 DESCRIPTION
 
-B<modefix.pl> is a pure-perl implementation of the following three shell
-commands I was getting tired of typing:
+modefix.pl is a pure-perl implementation of the following three shell
+commands I got tired of typing:
 
-    $ find . -type d | xargs chmod 2750
-    $ find . -type f | xargs chmod 640
-    $ find . | xargs chown john:doe
+  $ find . -type d | xargs chmod 2750
+  $ find . -type f | xargs chmod 640
+  $ find . | xargs chown john:doe
 
-Which really isn't all that efficient or practical, if you want to
+Which really is not all that efficient or practical, if you want to
 skip certain items, prune out a few directories, and avoid rampaging
-over the file system three times in a row.
+over the same files three times in a row.
 
-I also don't trust the -R flag on certain unix utilities.  See the
-B<BUGS> section for more details.
+I also do not trust the recursive flag on certain unix utilities.  See
+the B<BUGS> section for more details.
 
-This module is distributed under the terms of the Artistic License:
+=head2 Normal Usage
 
-http://www.sial.org/artistic_license.txt
+  $ modefix.pl [options] [dir1 dir2 dir3 .. dirN]
 
-=head1 SYNTAX
+See L<"OPTIONS"> for details on the command line switches supported.
 
-The general syntax for calling modefix.pl is:
-
-B<$ modefix.pl [options] dir1 [dir2 dir3 .. dirN]>
-
-B<modefix.pl> also looks for input on STDIN if it runs out of
-command line arguments before finding something to work with.
+Any number of directories can be supplied, including none.  In that
+case, the script will attempt to read directories from STDIN.
 
 =head1 OPTIONS
 
-B<modefix.pl> accepts a variety of command line options, broken down
+modefix.pl accepts a variety of command line options, broken down
 into B<Useful Options>, B<Actions>, and B<Search Customization>.
 
-B<Useful Options>
+=head2 Useful Options
 
- -h/?   View a brief help blarb.
+=over 4
 
- -v     Verbose mode, shows files being changed.
+=item B<-h>, B<-?>
 
-Good if you want an audit trail of what the system looked like before
-the script ran.
+View a brief help blarb.
 
- -q     Overrides -v, only output will be on chown/chmod failures.
+=item B<-v>
+
+Verbose mode, shows files being changed. Good if you want an audit
+trail of what the system looked like before the script ran.
+
+=item B<-q>
+
+Quiet mode.  Overrides verbose mode-- only output will be on
+chown/chmod failures.
 
 The default is to print various warnings, and to generate a little
-summary report at the end of what was done.
+summary report at the end of what was done.  Quiet mode is good for
+automated fixing taking place from cron.
 
-B<Actions>
+=back
 
-At least one of the following four actions is needed to make
-the script do something:
+=head2 Actions
 
- -d xx  Directory mode to set.
- -f xx  File mode to set.
+At least one of the following is required to make the script do
+something:
 
-Both mode flags take either a literal mode to set, such as:
+=over 4
 
- 0750  (sticky bit, user bit, group bit, other bit)
+=item B<-d> I<mode>
 
-Or can take an interpreted expression of arbitrary length and complexity:
+Directory mode to set.  See L<"MORE ON MODES"> for details on the syntax.
 
- ug+rw,o-rw,o+s  (mode, operator, flags)
+=item B<-f> I<mode>
 
-Note that later operations can override earlier ones; for example, we
-remove all then add user back in:
+File mode to set.  See L<"MORE ON MODES"> for details on the syntax.
 
- -rwxs,u+rw
+=item B<-u> I<username>
 
-The various modes recognized are:
+User name to set.
 
- u  user bit
- g  group bit
- o  other bit
- a  all bits
+You can also use the user:group syntax common to chmod(1); this
+format will cause the groupname option to be ignored.
 
-The a mode is shorthand for 'ugo', can also be specified by leaving
-off the mode flag, which has the same effect as 'ugo' or 'a'.
+=item B<-g> I<groupname>
 
-There are only two operators:
-
- +  ensure flags are added to mode
- -  ensure flags are removed from mode
-
-And four different flags:
-
- x  execute bit (1)
- r  read bit (2)
- w  write bit (4)
- s  set sticky bit, based on mode in expression.
-
-The sticky bit acts as follows:
-
- u+s  set the suid flag
- g+s  set the sgid flag - atalkd(8) likes this on dirs.
- o+s  set the chmod(1) 't' flag, like on /tmp
-
-See chmod(1) for the background on these arguments.
-
- -u xx  User name to set
- -g xx  Group name to set
+Group name to set.
 
 User and group names can either be by name, or by id.  If done by
-name, chown need's an id to work with, so there had better be a
+name, chown requires an id to work with, so there had better be a
 corresponding system entry for the name supplied.
 
-Also, unless quiet mode is on, modefix.pl warns if you enter id's that
-do not exist on the system, or if the user is not a member of the
+Also, unless quiet mode is on, modefix.pl warns if you enter a id that
+does not exist on the system, or if the user is not a member of the
 specified group.
 
-You can also use the -u user:group syntax common to chmod(1); this
-format will cause the -g option to be ignored.
+=back
 
-B<Search Customization>
+=head2 Search Customization
 
-Use the following options to ignore various items in the file system
-using perl expressions that get evaluated:
+Options exist to supply perl fragments to test whether a particular
+file should be skipped or pruned:
 
- -s 'expression'
+=over 4
+
+=item B<-s> I<expression>
 
 Perl expression that will result in the current item (stored in $_)
-being skipped if the expression turns out to be true. Example:
+being skipped if the expression turns out to be true.  Example:
 
- -s '-d || m/^\.rsrc$/'
+  -s '-d || m/^\.rsrc$/'
 
 Would skip applying the changes to any directories or items named
 '.rsrc'. B<Warning>: skip only counts towards whether or not any
 actions are performed; modefix.pl will happily apply changes below a
 "skipped" directory.
 
- -p 'expression'
+=item B<-p> I<expression>
 
 Perl expression that will result in the current directory (stored in
-$_) and anything below that directory being utterly removed from
-examination, in this case any "dot" directories:
+$_) and anything below that directory being "pruned" from the search,
+in this case any hidden dot directories:
 
- -p 'm/^\../' .
+  -p 'm/^\../' .
 
-Both -s and -p expressions should use the shortcut _ operator in any
-stat() calls, to avoid race conditions.
+Expressions should use the shortcut _ operator in any stat() calls, to
+avoid race conditions.
+
+=back
+
+=head1 MORE ON MODES
+
+This section describes the format of the I<modes> parameter that can
+be passed to eith the B<-f> or B<-d> command line switches.
+
+Both may take either a literal mode to set, such as:
+
+  0750  (sticky bit, user bit, group bit, other bit)
+
+Or can take an interpreted expression of arbitrary length and complexity:
+
+  ug+rw,o-rw,o+s  (mode, operator, flags)
+
+Note that later operations can override earlier ones; for example, we
+remove all then add user back in, for the same effect as the octal
+mode of 0600:
+
+  a-rwxs,u+rw
+
+The various modes recognized are:
+
+  u  user bit
+  g  group bit
+  o  other bit
+  a  all bits
+
+The a mode is shorthand for 'ugo', can also be specified by leaving
+off the mode flag, which has the same effect as 'ugo' or 'a'.
+
+There are only two operators:
+
+  +  ensure flags are added to mode
+  -  ensure flags are removed from mode
+
+And four different flags:
+
+  x  execute bit (1)
+  r  read bit (2)
+  w  write bit (4)
+  s  set sticky bit, based on mode in expression.
+
+The sticky bit acts as follows:
+
+  u+s  set the suid flag
+  g+s  set the sgid flag - atalkd(8) likes this on dirs.
+  o+s  set the chmod(1) 't' flag, like on /tmp
+
+See chmod(1) for the background on these arguments.
 
 =head1 BUGS
 
-B<modefix.pl> doesn't deal well with soft links.  Well, File::Find has
-trouble with directories, and I'm using lstat, and you can't really
-chmod the soft link to a file...
+modefix.pl does not deal well with soft links.  Well, File::Find has
+trouble with softlinked directories, and I am using lstat, and chmod
+support on softlinks appears to vary by OS.
 
-(I've seen systems taken out by rampant chmod -R invocations.  Well, a 
-single Solaris system, and it was the kid's first week on the job-- 
-wasn't me, and I'm not telling who. :)
+Speaking of bugs, systems can easily be taken out by rampant recursive
+chmod invocations.  You can avoid this problem by not matching .. as
+an argument to the recursive command, which is generally just plain
+annoying to do.
 
 =head1 SEE ALSO
 
-chmod(1), chown(1), find(1), perl(1)
+chmod(1), chown(1), find(1), perl(1), xargs(1)
 
 =head1 AUTHOR
 
 Jeremy A. Mates, jmates@sial.org
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000-2001, Jeremy A. Mates.  This script is free
+software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
+=head1 VERSION
+
+  $Id$
 
 =cut
