@@ -46,7 +46,7 @@ unless (@ARGV) {
     next unless -f $file;
 
     # KLUGE transfer permissions from file to temporary file
-    my ($filemode) = (stat _)[2] & 07777;
+    my ($filemode) = ( stat _ )[2] & 07777;
 
     my $tfh = xmltidy($file);
     unless ($tfh) {
@@ -123,5 +123,7 @@ sub remark {
 END {
   # catch disk full problems during command line redirection according
   # to perlopentut
-  close STDOUT || die "error: could not close STDOUT: errno=$!\n";
+  close STDOUT
+   or remark( 'error', 'could not close STDOUT', { errno => $! } )
+   and exit 104;
 }
