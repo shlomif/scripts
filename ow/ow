@@ -7,11 +7,6 @@
 #
 # Command line URL shortcuts and directory to URL mapping.
 
-use Cwd;
-use File::Basename;
-use File::Path;
-#use File::Spec;
-
 use URI;
 
 # what to launch URLs with
@@ -35,6 +30,8 @@ for (keys %pfiles) {
 if (exists $opts{d}) {
   my $dirmap = loadconfig($pfiles{dirmap});
 
+  require Cwd;
+
   chomp(@ARGV = <STDIN>) unless @ARGV;
 
   my @dir;
@@ -43,7 +40,7 @@ if (exists $opts{d}) {
   }
   
   # default to current directory
-  push @dir, getcwd unless @dir;
+  push @dir, Cwd::getcwd unless @dir;
 
   for my $dir (@dir) {
     # longest first, so subdirs can override parent
@@ -60,7 +57,6 @@ if (exists $opts{d}) {
         visit(expand($dirmap->{$_}, $frag));
       }
     }
-    warn "notice: no mapping for $dir\n";
   }
 
   exit;
