@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+#
+######################################################################
+#
+# date2epoch.pl v.1.0 (December 9, 1999)
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# Given a date, will return the epoch time for that date.
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+
+use Date::Manip;
+
+$date = &ParseDate($ARGV[0]);
+print &UnixDate($date, "%s"), "\n";
