@@ -32,7 +32,7 @@ use File::Tail 0.91;		# tail -f on steroids
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my (%opts, @files);
+my (%opts, @files, $prefix);
 
 # various File::Tail object preferences.  listen much faster than default
 # to emulate tail(1) at expense of more busy wait.
@@ -47,7 +47,7 @@ my $reset_tail = -1;
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?m:i:a:t:r:f', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
@@ -56,6 +56,8 @@ $interval =    $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
 $adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
 $tail =        $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
 $reset_tail =  $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+
+$prefix = 1 if exists $opts{'f'};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -89,7 +91,10 @@ while (1) {
 	}
     }
     for (@files) {
-	print $_->read unless $_->predict;
+	unless ($_->predict) {
+	    print $_->{"input"}, ': ' if $prefix;
+	    print $_->read;
+	}
     }
 }
 
