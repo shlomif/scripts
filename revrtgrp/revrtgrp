@@ -106,6 +106,11 @@ sub do_stuff {
         }
     }
 
+    # catch odd 'uninitialized value' errors I'm seeing (DBG)
+    if ($verbose) {
+	warn $File::Find::name, ' uid ', $uid, ' gid ', $gid, " uninitialized\n" unless defined $u2g{$uid};
+    }
+
     # see whether gid of this file exists in our lookup hash
     if ($gid != $u2g{$uid}) {
 	# and optionally whether other group is valid for the user
@@ -155,6 +160,9 @@ HELP
 __END__
 
 $Log$
+Revision 1.7  2000/02/09 23:52:19  jmates
+Added debugging code to catch odd uninitialized value errors I'm still seeing.
+
 Revision 1.6  2000/02/09 23:41:40  jmates
 Changed stat() to lstat() to prevent copious uninitialized value errors as null links are looked up.
 
