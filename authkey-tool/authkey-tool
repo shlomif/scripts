@@ -49,6 +49,9 @@ getopts('h?', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
+# keyfiles on ARGV after options, STDIN may (optionally) bear a
+# list of hosts to target (e.g. via -f -)
+
 exit;
 
 ######################################################################
@@ -88,7 +91,7 @@ Quick usage notes here.
 =head2 Overview
 
 Loads, modifies, and distributes OpenSSH public authorized keys to
-hosts running the ssh-authkey-manage.pl script.
+hosts running the manage-authkeys.pl script.
 
 =head2 Normal Usage
 
