@@ -21,7 +21,6 @@ use Fcntl qw(:DEFAULT :flock);
 use IO::Handle;
 
 use strict;
-use vars qw:$VERSION:;
 
 ######################################################################
 #
