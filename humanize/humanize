@@ -1,13 +1,42 @@
 #!/usr/bin/perl
-#
+
 # $Id$
+
+# Demonstration script showing how File::Size (or whatever it ends up
+# being called) would work to humanize output file sizes...
+
+######################################################################
 #
-# Little test script used to develop humanize routine.
+# CONSTANTS
+#
+# All constants held in global hash, which can be overridden when
+# calling the humanize routine.
+
+my %global_prefs = (
+	     # include decimals in output? (e.g. 25.8 K vs. 26 K)
+	     'decimal' => 0,
+	     # include .0 in decmail output?
+	     'decimal_zero' => 0,
+	     # what to divide file sizes down by
+	     'factor' => 1024,
+	     # percentage above which will be bumped up
+	     # (e.g. 999 bytes -> 1 K as within 5% of 1024)
+	     # set to undef to turn off
+	     'fudge' => 0.95,
+	     # lengths above which decimals will not be included
+	     # for better readability
+	     'max_human_length' => 2,
+	     # list of suffixes for human readable output
+	     'suffix' => [ '', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y' ],
+	     );
 
 print humanize(-56990456345), "\n";
 print humanize(0), "\n";
 print humanize(500), "\n";
+print humanize(1023, 'fudge' => undef), "\n";
+print humanize(1023), "\n";
 print humanize(8700), "\n";
+print humanize(8900), "\n";
 print humanize(999999), "\n";
 print humanize(1048500), "\n";
 print humanize(26223559), "\n";
@@ -16,58 +45,61 @@ print humanize(56990456345), "\n";
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
 # to be something human readable.
+#
+# takes a number, returns formatted string.  Also takes optional
+# hash containing various defaults that affect output style.
 sub humanize {
-	my $num = shift;
-	my $count = 0;
-	my $prefix = '';
-	my $tmp = '';
-	
-	######################################################################
-	#
-	# CONSTANTS
-	#
-	# move these to global if in module land...
-	
-	# what to tack onto resulting numbers; bytes unmarked in this list
-	my @suffix = ('', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y');
+    my $num = shift;
+    my %prefs = @_;
 
-	# how to break down large values, could also be 1000 with suffix changes
-	my $factor = 1024;
-
-	# if number is within following percentage of factor, round it up
-	my $fudge = 0.95;
-
-	# if number is longer than the following, no .[1-9] will be added
-	my $max_human_length = 2;
-	
-	
-	# handle negatives
-	if ($num < 0 ) {
-		$num = abs $num;
-		$prefix = '-';
+    # inherit global prefs, but give preference to user supplied ones
+    unless (keys %prefs) {
+	%prefs = %global_prefs;
+    } else {
+	while (my ($k, $v) = each (%global_prefs)) {
+	    $prefs{$k} = $v unless exists $prefs{$k};
 	}
+    }
 
-	# reduce number to something readable by factor specified	
-	while ($num > $factor) {
-		$num /= $factor;
-		$count++;
-	}
+    # some local working variables
+    my $count = 0;
+    my $prefix = '';
+    my $tmp = '';
 
-	# fudge "near" values up to next higher level
-	if ($num > ($fudge * $factor)) {
-		$count++;
-		$num /= $factor;
+    # handle negatives
+    if ($num < 0 ) {
+	$num = abs $num;
+	$prefix = '-';
+    }
+    
+    # reduce number to something readable by factor specified	
+    while ($num > $prefs{'factor'}) {
+	$num /= $prefs{'factor'};
+	$count++;
+    }
+    
+    # fudge "near" values up to next higher level
+    if(defined $prefs{'fudge'}) {
+	if ($num > ($prefs{'fudge'} * $prefs{'factor'})) {
+	    $count++;
+	    $num /= $prefs{'factor'};
 	}
+    }
+    
+    # no .[1-9] decimal on longer numbers for easier reading
+    # only show decimal if prefs say so
+    if (length sprintf("%.f", $num) > $prefs{'max_human_length'} || 
+	! $prefs{'decimal'}) {
+
+	$tmp = sprintf("%.0f", $num);
+
+    } else {
+	$tmp = sprintf("%.1f", $num);
 	
-	# no .[1-9] decimal on longer numbers for easier reading
-	if (length sprintf("%.f", $num) > $max_human_length) {
-		$tmp = sprintf("%.f", $num);
-	} else {
-		$tmp = sprintf("%.1f", $num);
-		# hack trailing .0 as is not needed
-		$tmp =~ s/\.0$//;
-	}
-	
-	return $prefix . $tmp . $suffix[$count];
+	# optionally hack trailing .0 as is not needed
+	$tmp =~ s/\.0$// unless $prefs{'decimal_zero'};
+    }
+    
+    # return number with proper style applied
+    return $prefix . $tmp . $prefs{'suffix'}->[$count];
 }
-
