@@ -420,31 +420,21 @@ sub init {
    or remark('error', "could not create preference file $file: $!")
    and exit 100;
 
-  print FILE <<"DEFAULTPREFS";
+  print FILE <<"HEADER";
 # documentation on this file and the associated script can be found by
 # running perldoc(1) on $0
 
-# freenode.net, #perl
-name perl
-url http://sial.org/pbot/
-channel #perl
-network freenode
+HEADER
 
-# another irc.freenode.net, #perl
-name perlalt
-url http://dragon.cbi.tamucc.edu:8080/
-channel #perl
-network freenode
-
-# for non-announced pastes
-name sial
-alias nochan test
-url http://sial.org/pbot/
-
-name dragon
-alias nochan
-url http://dragon.cbi.tamucc.edu:8080/
-DEFAULTPREFS
+  # pull default preferences from POD to avoid duplication here
+  seek DATA, 0, 0;
+  while (<DATA>) {
+    if (/^\s+# BEGIN/ .. /^\s+# END/) {
+      next     if /^\s+# (?:BEGIN|END)/;
+      s/^\s+// if /\S/;
+      print FILE $_;
+    }
+  }
 
   close FILE or remark('warning', "problem closing write to $file: $!");
 }
@@ -487,9 +477,7 @@ HELP
   exit 1;
 }
 
-######################################################################
-#
-# DOCUMENTATION
+__DATA__
 
 =head1 NAME
 
@@ -654,6 +642,7 @@ alternate names to be set for a particular server (space separated
 list). Aliases can be identical for multiple server entries, and the
 script will failover between the named sites.
 
+  # BEGIN example config
   # freenode.net, #perl
   name perl
   alias pp
@@ -675,6 +664,7 @@ script will failover between the named sites.
   name dragon
   alias nochan
   url http://dragon.cbi.tamucc.edu:8080/
+  # END example config
 
 The C<channel> and C<nick> keys provide defaults to use, though will be
 overridden by the appropriate command line options. The C<network> field
