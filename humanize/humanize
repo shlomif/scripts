@@ -14,9 +14,9 @@
 
 my %global_prefs = (
 	     # include decimals in output? (e.g. 25.8 K vs. 26 K)
-	     'decimal' => 0,
+	     'decimal' => 1,
 	     # include .0 in decmail output?
-	     'decimal_zero' => 0,
+	     'decimal_zero' => 1,
 	     # what to divide file sizes down by
 	     'factor' => 1024,
 	     # percentage above which will be bumped up
@@ -33,7 +33,7 @@ my %global_prefs = (
 # note all these numbers are presumed to represent bytes; could add
 # optional pref to specify a conversion factor to deal with incoming
 # blocks or KB values (i.e. convert to bytes, then run humanization)
-
+print humanize($ARGV[0]);
 print humanize(-56990456345), "\n";
 print humanize(0), "\n";
 print humanize(500), "\n";
