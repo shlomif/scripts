@@ -57,7 +57,7 @@ my %global_prefs = (
 		    # for better readability
 		    'max_human_length' => 2,
 		    # list of suffixes for human readable output
-		    'suffix' => [ '', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y' ],
+		    'suffix' => [ ' b', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y' ],
 		    );
 
 ######################################################################
