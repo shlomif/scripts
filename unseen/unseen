@@ -1,0 +1,256 @@
+#!/usr/bin/perl -wT
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Lists new (unseen) files found under the specified directories.
+
+require 5;
+use strict;
+
+sub filedigest;
+sub duration2seconds;
+sub remark;
+sub print_help;
+
+use Digest::SHA1 ();
+my $ctx = Digest::SHA1->new;
+
+use File::Find;
+use YAML ();
+
+use Getopt::Std;
+my %opts;
+getopts 'h?s:w:', \%opts;
+print_help and die if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
+
+my $seen_file;
+if (exists $opts{'s'}) {
+  $opts{'s'} =~ m,^([\w./ -]+)$,;
+  if (not defined $1 or $opts{'s'} ne $1) {
+    remark "could not untaint -s seen filename" and die;
+  }
+  $seen_file = $1;
+}
+
+my $window = $^T - duration2seconds $opts{'w'} || '2w';
+my $seen = YAML::LoadFile $seen_file if $seen_file and -f $seen_file;
+
+# throw out older entries from seen data
+for my $key (keys %$seen) {
+  delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
+}
+
+# process log files under given directories on command line
+my @dirs = grep { defined } map {
+  $_ =~ m,^([\w./ -]+)$,;
+  if (not defined $1 or $_ ne $1) {
+    remark "skipping as could not untaint: $_\n";
+    $_ = undef;
+  }
+  $_ = $1;
+} @ARGV;
+
+find {wanted => \&process, no_chdir => 1}, @dirs;
+
+YAML::DumpFile $seen_file, $seen if $seen_file;
+
+exit;
+
+# File::Find file handler
+sub process {
+  return unless -f;
+
+  # skip logfiles outside of processing window by modification time
+  my $mtime = (stat _)[9];
+  return if $mtime < $window;
+
+  my $digest = filedigest $_;
+  return if exists $seen->{$digest};
+
+  print "$_\n";
+
+  $seen->{$digest} = {filename => $_, mtime => $mtime};
+}
+
+# takes filename, returns sha1 digest of file contents using
+# global object
+sub filedigest {
+  my $file = shift;
+
+  open FILE, $file or remark "problem opening file: $!" and die;
+  binmode FILE;
+
+  # b64digest method resets object, so can reuse
+  my $digest = $ctx->addfile(*FILE)->b64digest;
+
+  close FILE;
+  return $digest;
+}
+
+# for logging things
+sub remark {
+  warn "@_";
+}
+
+# takes duration such as "2m3s" and returns number of seconds.
+sub duration2seconds {
+  my $tmpdur = shift;
+  my $seconds;
+
+  # how to convert short human durations into seconds
+  my %factor = (
+    w => 604800,
+    d => 86400,
+    h => 3600,
+    m => 60,
+    s => 1,
+  );
+
+  # assume raw seconds for plain number
+  if ($tmpdur =~ m/^\d+$/) {
+    $seconds = $tmpdur * 60;
+
+  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+
+    # match "2m 5s" style input and convert to seconds
+    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
+      $seconds += $1 * $factor{$2};
+    }
+  } else {
+    die "Error: unknown characters in duration.\n";
+  }
+
+  unless (defined $seconds and $seconds =~ m/^\d+$/) {
+    die "Error: unable to parse duration.\n";
+  }
+
+  return $seconds;
+}
+
+# clean up env for taint mode ("perldoc perlsec" for more information)
+sub BEGIN {
+  delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+  $ENV{'PATH'} = '/bin:/usr/bin';
+}
+
+# a generic help blarb
+sub help {
+  print <<"HELP";
+Usage: $0 [opts] searchdir1 [sd2 .. sdN]
+
+Lists new (unseen) files under specified directory(-ies).
+
+Options for version $VERSION:
+  -h/-?  Display this message.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+}
+
+__END__
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+unseen - lists unseen files under specified directories
+
+=head1 SYNOPSIS
+
+List unseen files under /var/log/archive new within the last
+three weeks, using /var/log/archive/seen as seen archive file.
+
+  $ unseen -w 3w -s /var/log/archive/seen /var/log/archive
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+For listing unseen files under directory trees. Written to handle case
+of finding unprocessed logfiles (limited numbers of files) under log
+directories for passing to swatch and other utilities.
+
+Files are recorded as seen with aid of a seen file, which is indexed
+by the SHA1 digest of the file contents. A processing window option
+configures how far back in time the script is allowed to report on,
+to keep the index file and SHA1 digest generation needs from growing
+over time.
+
+=head2 Normal Usage
+
+  $ unseen [options] searchdir1 [sd2 .. sdN]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+Either a single or multiple search directories can be specified;
+directories will be searched recursively for regular files.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-s> I<seenfile>
+
+Path to load seen file data from, or save to after listing the unseen
+files for the run in question.
+
+=item B<-w> I<duration>
+
+Prevents files older than the script launch time minus I<duration> from
+being considered with SHA1 checksum comparisons against the seen file
+index. The duraction can either be in raw seconds or a short-hand
+"2m5s" format.
+
+=back
+
+=head1 SECURITY
+
+Taint mode is enabled by default. The script will die if the I<seenfile>
+or supplied directories fail an untaint check.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
+
