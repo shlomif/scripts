@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #
 # $Id$
-# By Jeremy Mates <mailto:jmates@sial.org>
+# Jeremy Mates <mailto:jmates@sial.org>
 #
 # Attempts to lock files.
 # 
@@ -134,6 +134,6 @@ flock(2), perl(1)
 
 =head1 AUTHOR
 
-Jeremy A. Mates, jmates@sial.org
+Jeremy Mates, jmates@sial.org
 
 =cut

@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
+# Copyright (c) 2001, Jeremy Mates.  This script is free software;
 # you can redistribute it and/or modify it under the same terms as
 # Perl itself.
 #
@@ -204,13 +204,13 @@ http://www.google.com/search?q=nmap+service+detection
 
 =head1 AUTHOR
 
-Jeremy A. Mates, http://www.sial.org/contact/
+Jeremy Mates, http://www.sial.org/contact/
 
 Socket code contributed by Michael Hornung, hornung@u.washington.edu.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
+Copyright (c) 2001, Jeremy Mates.  This script is free software;
 you can redistribute it and/or modify it under the same terms as Perl
 itself.
 

@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+# Copyright (c) 2000, Jeremy Mates.  All Rights Reserved.
 #
 # Use perldoc on this file for documentation/licensing information.
 #
@@ -154,11 +154,11 @@ perl(1).
 
 =head1 AUTHOR
 
-Jeremy A. Mates, jmates@sial.org
+Jeremy Mates, jmates@sial.org
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+Copyright (c) 2000, Jeremy Mates.  All Rights Reserved.
 
 This file is licensed under the terms of the Artistic License:
 

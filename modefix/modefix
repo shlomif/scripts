@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2000-2002, Jeremy A. Mates.  This script is free
+# Copyright (c) 2000-2002, Jeremy Mates.  This script is free
 # software; you can redistribute it and/or modify it under the same
 # terms as Perl itself.
 #
@@ -735,11 +735,11 @@ chmod(1), chown(1), File::Find, find(1), perl(1), xargs(1)
 
 =head1 AUTHOR
 
-Jeremy A. Mates, http://www.sial.org/contact/
+Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000-2002, Jeremy A. Mates.  This script is free
+Copyright (c) 2000-2002, Jeremy Mates.  This script is free
 software; you can redistribute it and/or modify it under the same
 terms as Perl itself.
 
