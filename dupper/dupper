@@ -12,11 +12,11 @@
 use strict;
 
 use Digest::SHA1 ();
-use File::Find;
+use File::Find qw(find);
 use File::Spec ();
 
 # we reset this for each file to avoid OO overhead on each file
-my $dig = Digest::SHA1->new;
+my $digest = Digest::SHA1->new;
 
 use Getopt::Std;
 my %opts;
@@ -24,22 +24,54 @@ getopts 'h?', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
+my %defaults;
+$defaults{bydepth} = 0;
+
 # read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp( @ARGV = <STDIN> ) unless @ARGV;
+
+# only deal with regular files or directories
+@ARGV = grep { -d $_ || -f _ } @ARGV;
 print_help() unless @ARGV;
 
-my ( @dirs, @files );
-for my $arg (@ARGV) {
-  if (-d $arg) {
-    push @dirs, $arg;
-  } elsif (-f _) {
-    push @files, $arg;
-  } else {
-    # TODO notify here about non-supported thingies?
-  }
-}
+my ( %seen, %duplicates );
 
-# TODO deal with dirs (via File::Find) and files (via custom routine)
+find( { wanted => \&wanted, no_chdir => 1, bydepth => $defaults{bydepth} },
+  @ARGV );
+
+use Data::Dumper;
+warn Dumper \%seen, \%duplicates;
+
+sub wanted {
+  return unless -f;
+
+  my $size = -s;
+
+  # TODO need means to control handling of empty files
+  #return if $size == 0;
+
+  # TODO need to go back over any existing files in size index and
+  # calculate checksums on them now that have size hit... but only if
+  # there is only a single file, as otherwise will have done a checksum?
+  if ( exists $seen{$size} ) {
+    unless ( open FILE, "< $_" ) {
+      # TODO handle permissions problems or whatnot
+
+      return;
+    }
+
+    $digest->addfile(*FILE);
+    my $checksum = $digest->b64digest;
+    $seen{$size}->{dups}->{$checksum}++;
+
+    if ( $seen{$size}->{dups}->{$checksum} > 1 ) {
+      warn "duplicate: $_\n";
+      push @{ $duplicates{$checksum} }, $_;
+    }
+  }
+
+  push @{ $seen{$size}->{files} }, $_;
+}
 
 # a generic help blarb
 sub print_help {
