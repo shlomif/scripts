@@ -57,7 +57,7 @@ for file in "$@" ; do
   fi
 done
 
-cp $RPM_SOURCES/*.spec $RPM_SPECS
+mv $RPM_SOURCES/*.spec $RPM_SPECS
 if [ $? -ne 0 ]; then
   STATUS=$?
 fi
