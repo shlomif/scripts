@@ -210,11 +210,12 @@ sub open_omniweb_bg {
   # open(1) brings the browser forward, which annoys me.
   my $omniweb_open_script = <<EOF;
 set url_new to "$url"
+set AppleScript's text item delimiters to {"#"}
 tell application "OmniWeb"
   set seen_url to false
   repeat with bref in browsers
     repeat with tref in tabs of bref
-      set url_cur to address of tref
+      set url_cur to first text item of (address of tref as string)
       if url_cur = url_new then
         flush cache
         reload tref
