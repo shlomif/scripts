@@ -89,10 +89,7 @@ sub print_known_hosts {
     } @$hkd
    ) {
 
-    # remove duplicate hosts
-    my %hosts;
-    my $host_spec = join ',',
-     map { $hosts{$_}++ ? $_ : () } @{ $hkr->{'hosts'} };
+    my $host_spec = join ',', clean_hosts(@{ $hkr->{'hosts'} });
 
     # KLUGE sanity check for missing host I saw once...
     if ( not $host_spec or $host_spec eq '' ) {
@@ -113,9 +110,8 @@ sub unmerge_host_keys {
   my @host_keys;
   for my $hkr (@$hkd) {
     my @hosts = @{ $hkr->{'hosts'} };
-    delete $hkr->{'hosts'};
     for my $host (@hosts) {
-      push @host_keys, { hosts => [$host], (%$hkr) };
+      push @host_keys, { (%$hkr), hosts => [$host] };
     }
   }
   return \@host_keys;
@@ -135,11 +131,12 @@ sub merge_host_keys {
 
   for my $key ( keys %keys2hosts ) {
     my ( $key_type, $public_key ) = split ' ', $key, 2;
+    my @hosts = clean_hosts(@{ $keys2hosts{$key} });
     push @host_keys,
      {
       key_type   => $key_type,
       public_key => $public_key,
-      hosts      => [ sort { $b cmp $a } @{ $keys2hosts{$key} } ]
+      hosts      => \@hosts
      };
   }
 
@@ -160,11 +157,13 @@ sub parse_known_hosts {
       my ( $host_spec, $key_type, $public_key ) = split ' ', $_, 3;
       next unless $host_spec and $key_type and $public_key;
 
+      my @hosts = clean_hosts(split ',', $host_spec);
+
       push @host_keys,
        {
         key_type   => $key_type,
         public_key => $public_key,
-        hosts      => [ sort { $b cmp $a } split ',', $host_spec ],
+        hosts      => \@hosts,
         line       => $.
        };
     }
@@ -173,6 +172,20 @@ sub parse_known_hosts {
   }
 
   return \@host_keys;
+}
+
+# remove duplicates and maintain order among hosts
+sub clean_hosts {
+  my @hosts = @_;
+  my %unique = ();
+
+  for my $host (@hosts) {
+    $unique{$host} = 1;
+  }
+
+  # TODO error check on no host keys being passed in/found?
+
+  return sort { $b cmp $a } keys %unique;
 }
 
 sub print_help {
