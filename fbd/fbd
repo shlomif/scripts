@@ -7,6 +7,8 @@
 #
 # Finds files with same (or similar) modification times as specified
 # file or user-supplied date.
+#
+# Run perldoc(1) on this script for additional documentation.
 
 require 5;
 use strict;
@@ -19,7 +21,7 @@ my $timef = 9;
 
 use Getopt::Std;
 my %opts;
-getopts('h?f:d:a:b:p:s:', \%opts);
+getopts('h?f:d:a:b:p:s:q', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 help() unless @ARGV;
 
@@ -34,11 +36,10 @@ if (exists $opts{d}) {
     $src_date = Date::Parse::str2time($src_date);
     die "error: could not parse supplied date\n" unless $src_date;
   }
-
 }
 
 if (exists $opts{f}) {
-  $src_date = (stat $opts{f})[$timef];
+  $src_date = (lstat $opts{f})[$timef];
   die "error: could not read date from $opts{f}\n"
    if not $src_date
    or $src_date !~ /^\d+$/;
@@ -60,52 +61,19 @@ if (exists $opts{b}) {
   $max_date = $src_date unless $max_date;
 }
 
+# filter remaining arguments for directories to search with File::Find
 use File::Find;
-
-for my $parent (@ARGV) {
+for my $parent (
+  grep {
+    unless (-d) {
+      warn "notice: skipping as not directory: $_\n" unless exists $opts{q};
+      undef
+    }
+  } @ARGV
+ ) {
   find {
     no_chdir => 1,
-    wanted   => sub {
-      my $file_date = (stat $_)[$timef];
-
-      if ($prune and -d _) {
-        my $result = eval "return 1 if (" . $prune . ");";
-
-        if ($@) {
-          chomp $@;
-          die "error: prune eval failure: ", $@;  # croak on errors
-        }
-
-        if ($result) {
-          $File::Find::prune = 1;
-          return;
-        }
-      }
-
-      if (
-        (
-          defined $fudge
-          and ($file_date >= $min_date and $file_date <= $max_date)
-        )
-        or ($file_date eq $src_date)
-       ) {
-
-        if ($skip) {
-          my $result = eval "return 1 if (" . $skip . ");";
-
-          if ($@) {
-            chomp $@;
-            die "error: skip eval failure: ", $@;  # croak on errors
-          }
-
-          if ($result) {
-            return;
-          }
-        }
-
-        print $File::Find::name, "\n";
-      }
-     }
+    wanted   => \&handle_file,
    },
    $parent
 }
@@ -113,6 +81,49 @@ for my $parent (@ARGV) {
 ######################################################################
 #
 # SUBROUTINES
+
+# File::Find file handler
+sub handle_file {
+  if ($prune and -d _) {
+    my $result = eval "return 1 if (" . $prune . ");";
+
+    if ($@) {
+      chomp $@;
+      die "error: prune eval failure: ", $@;  # croak on errors
+    }
+
+    if ($result) {
+      $File::Find::prune = 1;
+      return;
+    }
+  }
+
+  my $file_date = (lstat $_)[$timef];
+  unless (defined $file_date) {
+    warn "notice: skipping due to no date field: $File::Find::name\n"
+     unless exists $opts{q};
+    return;
+  }
+
+  if ((defined $fudge and ($file_date >= $min_date and $file_date <= $max_date))
+    or ($file_date == $src_date)) {
+
+    if ($skip) {
+      my $result = eval "return 1 if (" . $skip . ");";
+
+      if ($@) {
+        chomp $@;
+        die "error: skip eval failure: ", $@;  # croak on errors
+      }
+
+      if ($result) {
+        return;
+      }
+    }
+
+    print $File::Find::name, "\n";
+  }
+}
 
 # takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
@@ -222,7 +233,10 @@ Prints a brief usage note about the script.
 
 =item B<-f> I<file>
 
-Read modification time from the specified file.
+Read modification time from the specified file via the lstat()
+function. Use of lstat() means that if the specified file is a soft
+link, the attributes of the soft link itself will be used, rather than
+the target file.
 
 =item B<-d> I<date>
 
@@ -272,6 +286,12 @@ default recursive behaviour of File::Find.
 
   -p '$parent ne $_'
 
+=item B<-q>
+
+Become less chatty about various non-critical errors.
+
+See L<"BUGS"> for problems with making L<File::Find|File::Find> quiet.
+
 =back
 
 =head1 SECURITY
@@ -293,7 +313,15 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known bugs.
+The B<-q> option cannot make File::Find quiet about failures such as
+permission denied on opendir() calls. The most recent versions of
+File:Find in perl 5.8.0 and up request that the following be set:
+
+  no warnings 'File::Find';
+
+However, on previous versions of perl this causes BEGIN compile errors.
+Also, to make the C<no warnings> conditional to the B<-q> option, the
+find() call will need to be scoped under a "does -q exist?" if block.
 
 =head1 SEE ALSO
 
@@ -318,4 +346,3 @@ Utilities
 Unix/System_administration
 
 =cut
-
