@@ -163,7 +163,7 @@ sub expand {
   my $string  = "@_";
 
   # catch @ where no %@, usually indicates user input mistake
-  warn "nothing to expand on in $pattern" unless $pattern =~ /\Q%@/;
+  #warn "nothing to expand on in $pattern" unless $pattern =~ /\Q%@/;
 
   $pattern =~ s/\Q%@/$string/g;
   return $pattern;
