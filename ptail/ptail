@@ -126,6 +126,8 @@ Follow a logfile, and print any lines mentioning ipmon:
 
   $ ptail.pl /var/log/messages print if m/ipmon/
 
+See L<"EXAMPLES"> for more ideas.
+
 =head1 DESCRIPTION
 
 =head2 Overview
@@ -180,7 +182,7 @@ Lines to read after file reset.
 
 =back
 
-The various command line options that have (somethine) mentioned in
+The various command line options that have (something) mentioned in
 them refer to the File::Tail new() parameters by the same name.
 See L<File::Tail> for more information on them.
 
@@ -215,7 +217,7 @@ No known bugs.
 
 =head1 SEE ALSO
 
-File::Tail, perl(1)
+File::Tail, perl(1), tee(1)
 
 =head1 AUTHOR
 
