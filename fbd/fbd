@@ -19,7 +19,7 @@ my $timef = 9;
 
 use Getopt::Std;
 my %opts;
-getopts('h?f:d:a:b:', \%opts);
+getopts('h?f:d:a:b:p:s:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 help() unless @ARGV;
 
@@ -44,6 +44,9 @@ if (exists $opts{f}) {
    or $src_date !~ /^\d+$/;
 }
 
+my $skip  = $opts{'s'} if exists $opts{'s'};
+my $prune = $opts{'p'} if exists $opts{'p'};
+
 my ($fudge, $min_date, $max_date);
 
 if (exists $opts{a}) {
@@ -59,14 +62,53 @@ if (exists $opts{b}) {
 
 use File::Find;
 
-find sub {
-  my $file_date = (stat $_)[$timef];
+for my $parent (@ARGV) {
+  find {
+    no_chdir => 1,
+    wanted   => sub {
+      my $file_date = (stat $_)[$timef];
 
-  if ($fudge and ($file_date >= $min_date and $file_date <= $max_date)
-    or ($file_date eq $src_date)) {
-    print $File::Find::name, "\n";
-  }
-}, @ARGV;
+      if ($prune and -d _) {
+        my $result = eval "return 1 if (" . $prune . ");";
+
+        if ($@) {
+          chomp $@;
+          die "error: prune eval failure: ", $@;  # croak on errors
+        }
+
+        if ($result) {
+          $File::Find::prune = 1;
+          return;
+        }
+      }
+
+      if (
+        (
+          defined $fudge
+          and ($file_date >= $min_date and $file_date <= $max_date)
+        )
+        or ($file_date eq $src_date)
+       ) {
+
+        if ($skip) {
+          my $result = eval "return 1 if (" . $skip . ");";
+
+          if ($@) {
+            chomp $@;
+            die "error: skip eval failure: ", $@;  # croak on errors
+          }
+
+          if ($result) {
+            return;
+          }
+        }
+
+        print $File::Find::name, "\n";
+      }
+     }
+   },
+   $parent
+}
 
 ######################################################################
 #
@@ -122,6 +164,9 @@ Options for version $VERSION:
 
   -a xx  Allow xx seconds or shorthand duration fuzz around lookup time.
   -b yy  Allow xx seconds before lookup (makes -a "after time")
+
+  -s xx  Perl expression to skip files.
+  -p xx  Perl expression to prune directories from search.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -204,7 +249,36 @@ Allows files modified I<duration> before the target date to match.
 Assuming no B<-a> is specified, B<-b> I<120> would match files modified
 at the target date, or up to 120 seconds before that time.
 
+=item B<-s> I<expression>
+
+Perl expression that will result in the current item (stored in $_)
+being skipped from being listed if the expression turns out to be true
+and the file in question would otherwise match. Example:
+
+  -s '-d _'
+
+Would exclude directories from being matched, via the cached stat
+information using the special _ notation.
+
+=item B<-p> I<expression>
+
+Perl expression that will result in the current directory (stored in
+$_) and anything below that directory being "pruned" from the search.
+
+For example, one can easily prune out all directories lower than the
+one supplied as an argument by using the special $parent variable to
+check against the current directory; essentially, this turns off the
+default recursive behaviour of File::Find.
+
+  -p '$parent ne $_'
+
 =back
+
+=head1 SECURITY
+
+Disable or remove the -s and -p options if the script is used to perform
+actions via sudo(8) or other user-changing methods, as the options in
+question execute arbitrary perl code.
 
 =head1 BUGS
 
@@ -239,3 +313,4 @@ public domain.
   $Id$
 
 =cut
+
