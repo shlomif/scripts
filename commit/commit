@@ -1,67 +1,111 @@
-#!/bin/sh
+#!/usr/bin/perl -w
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Wrapper to commit changes back to CVS or Subversion.
+# Wrapper to commit changes back to version control programs.
+#
+# TODO add status/add checking support, to avoid "commit" grrr! "add"
+# "commit" annoyance.
 
-# for CVS
-commit_cvs () {
-  cvs ci $CHANGESFILE $@
-  STATUS=$?
-  # if problem, kluge cvs add first and try again...
-  if [ $STATUS -eq 1 ]; then
-    cvs add $@
-    STATUS=$?
-    if [ $STATUS -eq 0 ]; then
-      cvs ci $CHANGESFILE $@
-      STATUS=$?
-    fi
-  fi
-  exit $STATUS
+use strict;
+
+my %defaults = ();
+
+use Getopt::Std;
+my %opts;
+getopts 'h?f:m:r:n', \%opts;
+
+$defaults{'revision'} = $opts{'r'} if exists $opts{'r'};
+if ( exists $opts{'m'} ) {
+  $defaults{'msg'} = $opts{'m'};
+} elsif ( exists $opts{'f'} ) {
+  $defaults{'msgfile'} = $opts{'f'};
 }
 
-# for subversion
-commit_svn () {
-  svn ci $CHANGESFILE $@
-  STATUS=$?
-  # if problem, kluge svn add first and try again...
-  if [ $STATUS -eq 1 ]; then
-    svn add $@
-    STATUS=$?
-    if [ $STATUS -eq 0 ]; then
-      svn ci $CHANGESFILE $@
-      STATUS=$?
-    fi
-  fi
-  exit $STATUS
+# default to "current" directory if no args (to emulate 'cvs ci'
+# without args)
+@ARGV = qw(.) unless @ARGV;
+
+use File::Basename;
+use File::Spec ();
+
+# TODO read these from a prefs file (steal from osm)
+my %commits = (
+  cvs => {
+    exec =>
+     'cvs ci %{revisionopt} %{revision} %{msgfileopt} %{msgfile} %{msgopt} %{msg} %{files}',
+    msgfileopt  => '-f',
+    msgopt      => '-m',
+    revisionopt => '-r',
+  },
+  svn => {
+    exec =>
+     'svn ci %{revisionopt} %{revision} %{msgfileopt} %{msgfile} %{msgopt} %{msg} %{files}',
+    msgfileopt  => '-f',
+    msgopt      => '-m',
+    revisionopt => '-r',
+  },
+);
+
+my @unknown;
+
+for my $file (@ARGV) {
+  my ( $filename, $filepath, undef ) = fileparse($file);
+  if ( -f File::Spec->catfile( $filepath, qw{CVS ROOT} ) ) {
+    push @{ $commits{'cvs'}->{'files'} }, $file;
+  } elsif ( -f File::Spec->catfile( $filepath, qw{.svn entries} ) ) {
+    push @{ $commits{'svn'}->{'files'} }, $file;
+  } else {
+    push @unknown, $file;
+  }
 }
 
-# process arguments
-OPT=
-CHANGESFILE=
-while getopts F: OPT; do
-  case $OPT in
-    F)
-      CHANGESFILE=$OPTARG
-      if [ ! -f "$CHANGESFILE" ]; then
-        echo "error: change file not a file: $CHANGESFILE" >&2
-	exit 1
-      fi
-      CHANGESFILE="-F $CHANGESFILE"
-    ;;
-  esac
-done
-shift $(($OPTIND - 1))
+for my $type ( sort keys %commits ) {
+  my $tr = $commits{$type};
 
-# figure out what to do
-if [ -f CVS/Root ]; then
-  commit_cvs $@
-elif [ -f .svn/entries ]; then
-  commit_svn $@
-else
-  echo "error: could not determine how to commit: dir=`pwd`" >&2
-  exit 1
-fi
+  next unless exists $tr->{'files'} and @{ $tr->{'files'} };
+  $tr->{'files'} = join ' ', @{ $tr->{'files'} };
+
+  %$tr = ( %$tr, %defaults );
+
+  # delete "whateveropt" where no "whatever" exists
+  for my $option ( keys %$tr ) {
+    delete $tr->{$option} if $option =~ /(\w+)opt$/ and not exists $tr->{$1};
+  }
+
+  $tr->{'exec'} =~ s/%{(\w+)}/$tr->{$1}||''/ge;
+
+  my @command = split /\s+/, $tr->{'exec'};
+  unshift @command, 'echo' if exists $opts{'n'};
+
+  unless ( system(@command) == 0 ) {
+    remark( 'warning', 'bad exit status', { errno => $!, type => $type } );
+  }
+}
+
+if (@unknown) {
+  local $" = ',';
+  remark( 'warning', 'no method to handle', { files => "@unknown" } );
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
