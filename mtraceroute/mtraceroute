@@ -1,0 +1,186 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+#
+# Use perldoc on this file for documentation/licensing information.
+#
+######################################################################
+#
+# REQUIREMENTS
+
+require 5.005;
+
+use strict;
+#use warnings;
+#no warnings qw(uninitialized);
+
+######################################################################
+#
+# MODULES
+
+use Carp;
+use Getopt::Std;
+
+######################################################################
+#
+# VARIABLES
+
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts, %data, %stats, $traceroute);
+
+# change to suit your needs
+$traceroute = '/usr/sbin/traceroute';
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+# read from STDIN if no args left
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+# and flag the help text if nothing from STDIN
+help() unless @ARGV;
+
+# reference on the data structure used herein:
+# %data = (
+# 'hostname' => {
+#   array of anon hashes holding traceroute output...
+#   array index is -1 the hop, hash holds 'ip' 'hostname' 
+#   and then 'times' => array of probe times
+# in case of '* * *' timeout, usual ip/host/times will be undef,
+# so be sure to check for it!
+
+# ref on stats, which holds additional info...
+# %stats = (
+# 'hostname' => {
+#    'timeouts' = count of number of timeouts (* * *) along path
+#    'maxhops' = total number of hops to target host
+
+# assume incoming data is wave of hosts/ip addresses to traceroute to
+foreach my $host (@ARGV) {
+    unless (open (TRACE, "$traceroute $host 2>/dev/null |")) {
+	die "Problem with traceroute on $host: $!\n";
+    } else {
+	while (<TRACE>) {
+#	    print;		# DBG
+
+	    # head off timeouts at the pass, otherwise rip by regex
+	    if (m/\* \* \*$/) {
+		push(@{$data{$host}}, undef);
+
+	    } elsif (m/^\s*\d+\s+    # optional leading whitespace & index
+		     (\S+)\s+	     # hostname   $1
+		     \(([^\)]+)\)\s+ # ip address (inside ()'s)   $2
+		     ([0-9.]+)\D+    # ms probe 1   $3
+		     ([0-9.]+)\D+    # ms probe 2   $4
+		     ([0-9.]+)/x     # ms probe 3   $5
+		     ) {
+
+#		print "Got $5\n"; # DBG
+
+		# righty, form up data thingy...
+		push(@{$data{$host}}, {
+		    'ip' => $2,
+		    'hostname' => $1,
+		    'times' => [ $3, $4, $5, ]
+		});
+	    }
+	}
+    }
+}
+
+exit;
+
+# prints the full data gained
+#foreach my $key (sort keys %data) {
+#    print "$key\t@{$data{$key}}\n";
+#}
+
+# print highest traceroute number (last element of data array)
+#foreach my $key (sort keys %data) {
+#    print $data{$key}[$#{$data{$key}}], "\t", $key, "\n";
+#}
+
+exit;
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+Usage: $0 [options]
+
+Options:
+  -h/-?  Display this message
+
+Run perldoc on this script for more documentation.
+
+HELP
+    exit;
+}
+
+__END__
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+mtraceroute.pl - a script to summarize a bunch of traceroutes.
+
+$Id$
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+This script serves the purpose of doing many traceroutes, and storing
+the results for later comparison, e.g. to find the nearest host among
+a host of mirrors.
+
+=head1 USAGE
+
+=head1 OPTIONS
+
+=head1 ENVIRONMENT
+
+No environment details.
+
+=head1 FILES
+
+No file dependancies.
+
+=head1 BUGS
+
+Please send any bug reports (preferably with a patch) to:
+
+jmates@sial.org
+
+=head1 SEE ALSO
+
+perl(1).
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+
+This file is licensed under the terms of the Artistic License:
+
+http://www.sial.org/artistic_license.txt
+
+=cut
