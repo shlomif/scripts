@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Generates new host keys for servers running OpenSSH 2.
+
+# should be 0, if errors will be that of last error to occur
+RETVAL=0
+
+keydir=/etc/ssh
+
+if [ ! -z "$1" ]; then
+  keydir=$1
+else
+  # some systems (Mac OS X, older Linux, OpenBSD) keep SSH keyfiles
+  # under /etc instead of /etc/ssh
+  if [ ! -d "$keydir" ]; then
+    keydir=/etc
+  fi
+fi
+
+if [ ! -d "$keydir" ]; then
+  echo "error: no such directory: file=$keydir" >&2
+  exit 101
+fi
+
+if [ "$keydir" = "/" ]; then
+  echo "warning: key directory is root: file=$keydir" >&2
+fi
+
+while read type keyfile; do
+  # TODO interrupt while these are running might lead to problems,
+  # though atomic writes hard to integrate into a shell script...
+  yes | ssh-keygen -t "$type" -f "$keydir/$keyfile" -N ''
+
+  # preserve non-zero exits, as running multiple commands
+  if [ $RETVAL != 0 ]; then
+    RETVAL=$?
+  fi
+done <<'EOF'
+dsa ssh_host_dsa_key
+rsa ssh_host_rsa_key
+rsa1 ssh_host_key
+EOF
+
+exit $RETVAL
