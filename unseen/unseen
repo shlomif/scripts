@@ -40,8 +40,8 @@ remark 'warning',
 
 # find date ranges for new files to skip (-T "today") or files older
 # than allowed by the -w "window" option
-my $midnight = Time::Local::timelocal(qw(0 0 0), (localtime)[3..5]);
-my $window = ($midnight||$^T) - duration2seconds $opts{'w'} || '2w';
+my $midnight = Time::Local::timelocal(qw(0 0 0), (localtime)[3 .. 5]);
+my $window = ($midnight || $^T) - duration2seconds $opts{'w'} || '2w';
 undef $midnight unless exists $opts{'T'};
 
 # load and prepare seen index
@@ -108,17 +108,11 @@ sub process {
 # file paths, returns undef or 1 or more paths depending on the results
 # of the tests.
 sub untaintpath {
-  my @paths = grep { defined } map {
+  my @paths = map {
 
-    # characters allows in filenames, paths
+    # limit to allowed characters, skip names with ../.. runs
     m,^([A-Za-z0-9_./-]+)$,;
-
-    # path good only if exists and same as untainted version
-    $_ = (defined $1 and $_ eq $1) ? $1 : undef;
-
-    # KLUGE other attacks make use of ../../../ runs, though such might be
-    # legitimate (though discouraged) means of locating files
-    $_ = (defined and m,\Q../..,) ? undef: $_;
+    (defined $1 and $1 eq $_) ? (not m{\Q../..}) ? $1 : () : ();
 
   } @_;
 
