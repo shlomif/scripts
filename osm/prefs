@@ -8,6 +8,14 @@ verbose v
 preserve p
 destopt C
 
+name gztarpipe
+suffix tar.gz tgz
+exec gunzip -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
+verbose v
+preserve p
+destopt C
+priority 0
+
 name gnutargz
 class list
 suffix tar.gz tgz
@@ -33,6 +41,14 @@ exec htiutil mount %{file} %{verbose} %{quiet} -noautoopen
 verbose -verbose
 quiet -quiet
 
+name bztarpipe
+suffix tar.bz tar.bz2 tbz
+exec bunzip2 -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
+verbose v
+preserve p
+destopt C
+priority 0
+
 name tar
 suffix tar
 exec tar x%{verbose}%{preserve}f %{file} %{wanted}
@@ -55,7 +71,7 @@ verbose -v
 
 # TODO need to experiment with verbose, quiet, other uses
 name unzip
-suffix .zip
+suffix zip
 exec unzip %{preserve} %{quiet} %{file} %{wanted} %{destopt} %{dest}
 preserve -X
 quiet -q
@@ -63,7 +79,7 @@ destopt -d
 
 name applepkg
 class install
-suffix .pkg
+suffix pkg
 exec installer %{verbose} -pkg %{file} %{destopt} %{dest}
 verbose -verbose
 destopt -target
@@ -92,7 +108,7 @@ class list
 exec unstuff --scan %{files}
 
 name uncompress
-suffix .Z
+suffix Z
 comment Legacy unix compress support
 exec uncompress %{verbose} %{files}
 verbose -v
