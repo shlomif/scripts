@@ -174,7 +174,7 @@ sub process {
     # need mtime stored in index, as used to retire old records
     $seen->{ $filedata{index} } =
      { map { exists $filedata{$_} ? ( $_ => $filedata{$_} ) : () }
-       qw(filename mtime) };
+       qw(filepath mtime) };
   }
 }
 
@@ -231,6 +231,8 @@ sub filedata {
     local $" = $suffix_char;
     $filedata{suffix} = "@portions[1..$#portions]";
   }
+  $filedata{filepath} =
+   File::Spec->catfile( $filedata{dirname}, $filedata{filename} );
   return \%filedata;
 }
 
