@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2002, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -118,11 +117,11 @@ HELP
 
 =head1 NAME
 
-sumtime.pl - aids totalling up time
+sumtime - totals up short-hand time durations
 
 =head1 SYNOPSIS
 
-  $ sumtime.pl 1d 3h 5m 71s
+  $ sumtime 1d 3h 5m 71s
 
 =head1 DESCRIPTION
 
@@ -132,7 +131,7 @@ Short description of what script is intended to do.
 
 =head2 Normal Usage
 
-  $ sumtime.pl [options]
+  $ sumtime [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -185,9 +184,8 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
