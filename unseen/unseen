@@ -30,7 +30,7 @@ my $seen_file;
 if (exists $opts{'s'}) {
   $opts{'s'} =~ m,^([\w./ -]+)$,;
   if (not defined $1 or $opts{'s'} ne $1) {
-    remark "could not untaint -s seen filename" and exit 1;
+    remark 'alert', "could not untaint -s seen filename" and exit 1;
   }
   $seen_file = $1;
 }
@@ -47,11 +47,13 @@ for my $key (keys %$seen) {
 my @dirs = grep { defined } map {
   $_ =~ m,^([\w./ -]+)$,;
   if (not defined $1 or $_ ne $1) {
-    remark "skipping as could not untaint: $_\n";
+    remark 'warning', "skipping as could not untaint: $_\n";
     $_ = undef;
   }
   $_ = $1;
 } @ARGV;
+
+remark 'alert', "no directories to search" and exit 1 unless @dirs;
 
 find {wanted => \&process, no_chdir => 1}, @dirs;
 
@@ -80,7 +82,7 @@ sub process {
 sub filedigest {
   my $file = shift;
 
-  open FILE, $file or remark "problem opening file: $!" and exit 1;
+  open FILE, $file or remark 'alert', "problem opening $file: $!" and exit 1;
   binmode FILE;
 
   # b64digest method resets object, so can reuse
@@ -92,7 +94,21 @@ sub filedigest {
 
 # for logging things
 sub remark {
-  warn "@_";
+  my ($facility, $priority, $message);
+  $facility = 'user';
+
+  if (@_ > 1) {
+    $priority = shift;
+    $message  = "@_";
+  } else {
+    $priority = 'info';
+    $message  = "@_";
+  }
+  chomp $message;
+
+  warn $priority, ": ", $message, "\n";
+
+  return 1;
 }
 
 # takes duration such as "2m3s" and returns number of seconds.
@@ -120,11 +136,13 @@ sub duration2seconds {
       $seconds += $1 * $factor{$2};
     }
   } else {
-    die "Error: unknown characters in duration.\n";
+    remark 'alert', 'unknown characters in duration';
+    exit 1;
   }
 
   unless (defined $seconds and $seconds =~ m/^\d+$/) {
-    die "Error: unable to parse duration.\n";
+    remark 'alert', 'unabled to parse duration';
+    exit 1;
   }
 
   return $seconds;
