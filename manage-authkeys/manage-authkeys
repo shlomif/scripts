@@ -31,8 +31,6 @@ use Getopt::Std;  # command line option processing
 
 use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 
-use File::Basename;       # parses file specifications
-
 ######################################################################
 #
 # VARIABLES
@@ -47,24 +45,15 @@ my (%opts);
 my $auth_key_file       = "~/.ssh/authorized_keys";
 my $auth_key_file_chars = '[\w\s.~/-]';
 
-my $temp_key_suffix = '.akey';
-
-# what to use as a working directory
-my $auth_key_dir;
-
 # registered commands
 my %command = (
   'list'    => \&do_list,
-  'extract' => \&do_extract,
-  'clean'   => \&do_clean,
   'merge'   => \&do_merge,
   'delete'  => \&do_delete,
-  'get'     => \&do_get,
-  'put'     => \&do_put,
 );
 
-# how to get basic info on files containing public keys
-my @ssh_keydata = qw(ssh-keygen -lf);
+#  'get'     => \&do_get,
+#  'put'     => \&do_put,
 
 ######################################################################
 #
@@ -92,10 +81,8 @@ if ($auth_key_file =~ m,^([\w\s.~/-]+)$,) {
   die "Invalid characters in filename.\n";
 }
 
-# set working directory to that of one containing auth_key_file
-$auth_key_dir = dirname($auth_key_file);
-
-chdir $auth_key_dir or die "Error: could not chdir to $auth_key_dir: $!\n";
+# read in keys
+my $data = extract($auth_key_file);
 
 # clear out arguments unless we're reading commands from there
 @ARGV = () unless exists $opts{'a'};
@@ -133,36 +120,31 @@ exit;
 #
 # SUBROUTINES
 
-# shows what temporary keyfiles are available
+# shows some info about known keys
 sub do_list {
-  my @files = <*$temp_key_suffix>;
-
-  for (@files) {
-
-    # extract and untaint keyfile tidbits
-    my ($hash, $keydata);
-    m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
-    $_    = $1;
-    $hash = $2;
-
-    # shell-free read from keydata utility
-    open KEYDATA,          "-|"
-     or exec @ssh_keydata, $_
-     or die "Error: could not invoke @ssh_keydata $_: $!\n";
-    while (<KEYDATA>) {
-      chomp;
-      $keydata = $_;
-      last;
-    }
-    close KEYDATA;
-
-    print $hash, ' ', $keydata, "\n";
+  for (@$data) {
+    print join("\t", $_->{'hash'}, $_->{'type'}, $_->{'comment'}), "\n";
   }
 }
 
+# merges keys into auth_key_file
+sub do_merge {
+  open KFILE, ">$auth_key_file"
+   or die "Could not write authorized key file: $!\n";
+
+  for (@$data) {
+  	print KFILE $_->{'key'}, "\n";
+  }
+
+  close KFILE;
+}
+
 # pulls auth_key_file into individual files for better managablity
-# takes no arguments, returns true/false depending on result
-sub do_extract {
+# takes no arguments, returns a data structure of keys
+sub extract {
+  my $auth_key_file = shift;
+  my @data;
+  
   open KFILE, $auth_key_file
    or die "Error: could not open authorized key file: $!\n";
 
@@ -171,96 +153,55 @@ sub do_extract {
     # see sshd(8) for expected format of auth_key_file
     next if m/^#/ or m/^\s*$/;
 
-    my $hash = parse_authkey($_);
+    my (%values, @options);
 
-    # save key to external file
-    open OUT, ">$hash$temp_key_suffix"
-     or die "Could not write keyfile $hash$temp_key_suffix: $!\n";
-    print OUT $_;
-    close OUT;
+    # TODO: improve parser to get around boundary cases!
+    # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
+    # or even: ssh-rsa  AAAA...
 
-  }
+    # try to pull apart key so we can do a checksum on the
+    # important bits (i.e. not the optional option and comment fields)
+    my @elements = split /\s/;
+    for my $i (0 .. $#elements) {
 
-  close KFILE;
-}
+      if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
+        and $elements[$i + 1] =~ m/^AAAA/) {
 
-# merges temporary key files (if any) into auth_key_file
-sub do_merge {
-  open KFILE, ">$auth_key_file"
-   or die "Could not write authorized key file: $!\n";
+		$values{'type'} = ($elements[$i] =~ m/rsa$/) ? 'rsa' : 'dsa';
+        $values{'goodbit'} = join " ", @elements[$i .. $i + 1];
+        $values{'comment'} = join " ", @elements[$i + 2 .. $#elements];
 
-  while (<*$temp_key_suffix>) {
-    m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
-    $_ = $1;
+        last;
 
-    open FILE, $_ or die "Could not read keyfile $_: $!\n";
-    print KFILE while <FILE>;
-    close FILE;
-  }
+        } elsif ($elements[$i] =~ m/^\d+$/
+        and $elements[$i + 1] =~ m/^\d+$/
+        and $elements[$i + 2] =~ m/^\d+$/) {
 
-  close KFILE;
-}
+		$values{'type'} = 'rsa1';
+        $values{'goodbit'} = join " ", @elements[$i .. $i + 2];
+        $values{'comment'} = join " ", @elements[$i + 3 .. $#elements];
 
-# removes any temporary key files
-sub do_clean {
-  while (<*$temp_key_suffix>) {
-    m/^(([A-Za-z0-9]+)$temp_key_suffix)$/;
-    $_ = $1;
-    unlink if -f;
-  }
-}
+        last;
+      }
 
-# accepts scalar bearing single authorized_key.  returns undef on
-# failure to parse a key, and either the shorthash or an array
-# of (goodbits, shorthash, options, comment) otherwise.
-sub parse_authkey {
-  my $authkey = shift;
-  my (@values, @options);
-
-  # TODO: improve parser to get around boundary cases!
-  # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
-
-  # try to pull apart key so we can do a checksum on the
-  # important bits (i.e. not the optional option and comment fields)
-  my @elements = split /\s/, $authkey;
-  for my $i (0 .. $#elements) {
-
-    if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
-      and $elements[$i + 1] =~ m/^AAAA/) {
-
-      $values[0] = join " ", @elements[$i .. $i + 1];
-      $values[3] = join " ", @elements[$i + 2 .. $#elements];
-
-      last;
-
-      } elsif ($elements[$i] =~ m/^\d+$/
-      and $elements[$i + 1] =~ m/^\d+$/
-      and $elements[$i + 2] =~ m/^\d+$/) {
-
-      $values[0] = join " ", @elements[$i .. $i + 2];
-      $values[3] = join " ", @elements[$i + 3 .. $#elements];
-
-      last;
+      push @options, $elements[$i];
     }
 
-    push @options, $elements[$i];
+    unless (exists $values{'goodbit'}) {
+      warn "Could not parse key from: $_\n";
+      next;
+    }
+
+    $values{'hash'} = sprintf "%08x", unpack "N", md5($values{'goodbit'});
+    $values{'options'} = "@options";
+    $values{'key'} = $_;
+
+	push @data, \%values;
   }
 
-  unless (@values) {
-    warn "Could not parse key from: $authkey\n";
-    return;
-  }
-
-  # need to untaint hash as could be used in filename
-  $values[1] = sprintf "%08x", unpack "N", md5($values[0]);
-  $values[1] =~ /([A-Za-z0-9]+)/;
-  $values[1] = $1;
-  die "Error: not enough characters in hash" if length $values[1] < 8;
-
-  $values[2] = "@options";
-
-  # full results or just the shorthash
-  return wantarray ? @values : $values[1];
+  close KFILE;
+  
+  return \@data;
 }
 
 # a generic help blarb
@@ -273,7 +214,7 @@ Manages an OpenSSH authorized_keys file.
 Options for version $VERSION:
   -h/-?  Display this message
 
-  -f ff  Use specified authorized_keys file.
+  -f ff  Use specified authorized_keys file instead of default.
 
   -a     Allow commands on the command line.
   -i     Allow commands on STDIN.
@@ -296,7 +237,7 @@ ssh-authkey-manage.pl - manages an OpenSSH authorized_keys file
 
 Get a listing of keys in the default authorized_keys file:
 
-  $ ssh-authkey-manage.pl -a extract list
+  $ ssh-authkey-manage.pl -a list
 
 =head1 DESCRIPTION
 
@@ -321,13 +262,6 @@ STDIN.  Current commands are:
 
 =over 4
 
-=item B<extract>
-
-Attempts to pull apart the authorized_keys file into individual
-keyfiles suitable for operation on by other commands.  It is advisable
-to run this command before any others to make sure the temporary files
-are up-to-date.
-
 =item B<list>
 
 Shows what temporary keyfiles are available, plus some general data
@@ -335,12 +269,7 @@ about the public key in question.
 
 =item B<merge>
 
-Overwrites the authorized_keys file with the contents of the temporary
-keyfiles, if any.
-
-=item B<clean>
-
-Removes any temporary keyfiles.
+Overwrites the authorized_keys file with the keys in memory, if any.
 
 =back
 
@@ -407,7 +336,9 @@ following an extract-merge cycle.
 =head1 TODO
 
 A means to lock the .ssh directory to only allow one invocation of
-this script to run, or at least a lock on the auth_key_file.
+this script to run, or on auth_keys_file.
+
+Ability to alter comment on specified keys?
 
 =head1 SEE ALSO
 
