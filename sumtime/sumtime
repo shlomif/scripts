@@ -40,6 +40,17 @@ my %factor = (
   's' => 1,
 );
 
+# support y for years and M for Month, based on the current date
+eval { require Date::Calc; };
+unless ($@) {
+  require Date::Calc;
+  my ($month, $year) = (localtime)[4,5];
+  $year += 1900; $month++;
+
+  $factor{y} = Date::Calc::Days_in_Year($year, $month) * $factor{d};
+  $factor{M} = Date::Calc::Days_in_Month($year, $month) * $factor{d};
+}
+
 ######################################################################
 #
 # MAIN
@@ -49,20 +60,13 @@ getopts('h?', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
-
-# and flag the help text if nothing from STDIN
-help() unless @ARGV;
-
-for (@ARGV) {
-  for (/(\d+\s*[wdhms])/g) {
-    /(\d+)(\w)/;
+while (<>) {
+  for (/(\d+\s*[ywdhms])/g) {
+    /(\d+)\s*(\w)/;
     $duration += $1 * $factor{$2};
   }
 }
 
-warn "Basic duration: $duration\n";  #DBG
 print deltatimefmt($duration), "\n";
 
 exit;
@@ -98,9 +102,9 @@ sub deltatimefmt {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts] [time parameters]
+Usage: $0 [opts] [files]
 
-Script to aid in totalling up time.
+Totals up short hand time durations.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -121,7 +125,11 @@ sumtime - totals up short-hand time durations
 
 =head1 SYNOPSIS
 
-  $ sumtime 1d 3h 5m 71s
+  $ echo 27h 71s | sumtime
+  1d 3h 1m 11s
+
+  $ (echo 1m 2m; echo 3m 4m) | sumtime
+  10m
 
 =head1 DESCRIPTION
 
@@ -131,7 +139,10 @@ Short description of what script is intended to do.
 
 =head2 Normal Usage
 
-  $ sumtime [options]
+  $ sumtime [options] [files]
+
+Input is either taken from the filenames mentioned on the command line,
+or from STDIN.
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -143,11 +154,9 @@ This script currently supports the following command line switches:
 
 =item B<-h>, B<-?>
 
-Prints a brief usage note about the script.
+Prints a brief usage note.
 
 =back
-
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
 
 =head1 EXAMPLES
 
@@ -173,6 +182,11 @@ No known bugs.
 Output formatting, e.g. raw seconds, or ability to select output time
 format (e.g. hours only, and so forth).  Ability to set a default
 input factor, e.g. when passing in unadorned hours or minutes.
+
+Ability to read in raw seconds (or whatever?) on input.
+
+Verbose mode to trace processing, warn about Date::Calc not being
+available?
 
 =head1 SEE ALSO
 
