@@ -5,7 +5,7 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Detects and deals with duplicate files.
+# Detects and deals with duplicate files with pre-index by size.
 #
 # Run perldoc(1) on this script for additional documentation.
 
@@ -18,12 +18,18 @@ use File::Spec ();
 # this is reset for each file to avoid OO overhead on each file
 my $digest = Digest::SHA1->new;
 
+my %actions = (
+  list => \&handle_list,
+  unlink => \&handle_unlink,
+);
+my @actions = sort keys %actions;
+
 my %defaults;
 @defaults{qw(action bydepth)} = qw(list 0);
 
 use Getopt::Std;
 my %opts;
-getopts 'h?dea:', \%opts;
+getopts 'h?da:', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
@@ -34,9 +40,8 @@ unless ( $defaults{action} =~ m/^ [a-z][A-Za-z0-9_-]{0,31} $/x ) {
   remark( 'error', 'invalid action name' );
   exit 101;
 }
-my $routine = 'handle_' . $defaults{action};
-unless ( defined &$routine ) {
-  remark( 'error', 'no such handling routine',
+unless ( exists $actions{ $defaults{action} } ) {
+  remark( 'error', 'no such action',
     { action => $defaults{action} } );
   exit 101;
 }
@@ -53,14 +58,13 @@ my ( %seen, %duplicates );
 find( { wanted => \&find_dups, no_chdir => 1, bydepth => $defaults{bydepth} },
   @ARGV );
 
-{
-  no strict 'refs';
-  &$routine;
-}
+$actions{ $defaults{action} }->();
 
 sub handle_list {
   for my $key ( keys %duplicates ) {
     next if @{ $duplicates{$key} } < 2;
+    # TODO need -0 option to delimit duplicates, or backslashing somehow
+    # for files with spaces in name?
     print "@{ $duplicates{$key} }\n";
   }
 }
@@ -153,10 +157,16 @@ sub print_help {
   print <<"HELP";
 Usage: $0 [options] [file-or-directory ..]
 
-Detects and deals with duplicate files.
+Detects and deals with duplicate files with pre-index by size.
 
 Options:
   -h/-?  Display this message
+
+  -d     Traverse files depth-first
+
+  -a xx  Perform action with duplicates, default: $defaults{action}
+
+Actions: @actions
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -166,7 +176,7 @@ HELP
 
 =head1 NAME
 
-dupper - detects and deals with duplicate files
+dupper - detects and deals with duplicate files with pre-index by size
 
 =head1 SYNOPSIS
 
@@ -205,6 +215,18 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
+=item B<-d>
+
+Perform depth-first traversal of files. This means deeper duplicates
+will be listed first, which will change how actions affect the files.
+
+=item B<-a> I<action>
+
+Perform action I<action> on duplicates. Default is to list any
+duplicates found, with unique duplicates grouped per line, with the
+filepaths space separated. Other actions include code to unlink
+duplicates past the first one found, and so forth.
+
 =back
 
 =head1 BUGS
@@ -242,4 +264,3 @@ public domain.
 Utilities
 
 =cut
-
