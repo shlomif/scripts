@@ -32,6 +32,15 @@ my $VERSION;
 
 my (%opts, %features, $t0);
 
+# how to convert short human durations into seconds  
+my %factor = (
+  'w' => 604800,
+  'd' => 86400,
+  'h' => 3600,
+  'm' => 60,
+  's' => 1,
+);
+
 ######################################################################
 #
 # MAIN
@@ -56,7 +65,6 @@ if (exists $opts{'v'}) {
 my $duration = shift;
 help() unless @ARGV;
 
-
 # figure out duration, start timer, and fork/exec to run program
 my $timeout = duration2seconds($duration);
 $duration = seconds2duration($timeout);
@@ -65,7 +73,7 @@ $t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'};
 
 my $pid = open WATCH, "-|";
 
-if ($pid) { # parent
+if ($pid) {  # parent
   eval {
     local $SIG{ALRM} = sub { die "alarm\n" };
 
@@ -80,8 +88,9 @@ if ($pid) { # parent
     close WATCH or warn "Warning: kid exited $?\n";
 
     # so one knows how long positive runs take
-    warn "Info: program ran for ", sprintf("%.1f", Time::HiRes::tv_interval($t0)),
-     " seconds\n" if $features{'Time::HiRes'};
+    warn "Info: program ran for ",
+     sprintf("%.1f", Time::HiRes::tv_interval($t0)), " seconds\n"
+     if $features{'Time::HiRes'};
 
     alarm 0;
   };
@@ -97,7 +106,7 @@ if ($pid) { # parent
     }
 
   }
-} else { # child
+} else {  # child
   exec @ARGV or die "Error: could not exec: $!\n";
 }
 
@@ -114,17 +123,10 @@ sub duration2seconds {
   if ($tmpdur =~ m/^\d+$/) {
     $timeout = $tmpdur * 60;
 
-  } elsif (my @matches = $tmpdur =~ m/(\d+\s*[wdhms])/g) {
-    my %factor = (
-      'w' => 604800,
-      'd' => 86400,
-      'h' => 3600,
-      'm' => 60,
-      's' => 1,
-    );
+  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
 
-    for my $match (@matches) {
-      $match =~ m/(\d+)(\w)/;
+    # match "2m 5s" style input and convert to seconds
+    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
       $timeout += $1 * $factor{$2};
     }
 
@@ -138,7 +140,7 @@ sub duration2seconds {
 # takes seconds and returns a shorthand duration format.
 sub seconds2duration {
   my $tmpsec = shift;
-  
+
   my $seconds = $tmpsec % 60;
   $tmpsec = ($tmpsec - $seconds) / 60;
   my $minutes = $tmpsec % 60;
