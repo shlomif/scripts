@@ -654,6 +654,11 @@ into the terminal for upload.
 Consult your IRC program's manual for more details on how to
 invoke scripts.
 
+On Mac OS X, the contents of the clipboard can be pasted from the
+command line:
+
+  $ pbpaste | pbotutil -s server -m "my code"
+
 =head1 DIAGNOSTICS
 
 There are magic number exit codes.  See source.  :)
@@ -698,4 +703,3 @@ public domain.
   $Id$
 
 =cut
-
