@@ -334,36 +334,27 @@ sub zapit {
 #
 # the array for ug+rw,o-rwx should look like ([1,0660],[0,0007])
 #                                                sugo
+#
+# the first element of the internal anon array is whether to add or
+# remove the permission, the second is an octal number representing
+# which bits to operate on
 sub parse_mode {
     my $temp_mode = shift;
 
-    my (@temp, @modes, $i);
+    my (@modes, $bitmask, $value, $sticky, $mode);
 
-    @temp = split ',', $temp_mode;
+    for (split ',', $temp_mode) {
+	$mode = 1;		# whether adding or subtracting bits
+	$bitmask = 0000;	# default bits to operate on
+	$value = $sticky = 0;
 
-    for ($i = 0; $i < scalar @temp; $i++) {
-	my ($what, $operator, $flags) = split /([+-])/, $temp[$i];
+	my ($what, $operator, $flags) = split /([+-])/, $_, 2;
 
-	# test for remove bit, otherwise assume add bit
-	if ($operator eq "-") {
-	    $modes[$i][0] = 0;
-	} else {
-	    $modes[$i][0] = 1;
-	}
-
-	my $bitmask  = 0000;
-	my $value  = 0;
-	my $sticky = 0;
+	$what = 'ugo' if $what eq 'a' or $what eq '';
 
 	$value += 4 if $flags =~ /r/;
 	$value += 2 if $flags =~ /w/;
 	$value += 1 if $flags =~ /x/;
-
-	# default to all modes on
-	$what = 'ugo' unless defined $what;
-
-	# or all on if they used the 'a' mode
-	$what = 'ugo' if $what =~ /a/;
 
 	if ($what =~ /u/) {
 	    $bitmask |= oct "0${value}00";
@@ -381,7 +372,10 @@ sub parse_mode {
 	# apply sticky mode to finish off this bitmask
 	$bitmask |= oct "${sticky}000";
 
-	$modes[$i][1] = $bitmask;
+	# test for remove bit, otherwise assume add bit
+	$mode = 0 if $operator eq "-";
+
+	push @modes, [ $mode, $bitmask ];
     }
 
     return \@modes;
@@ -411,11 +405,11 @@ sub apply_mode {
 # a standardized help blarb, see perldoc stuff for more meat
 sub help {
      print <<"HELP";
-$0 version $VERSION
-Usage:   $0 [options] dir1 [dir2 dir3 .. dirN]
-Purpose: A recursive permissions/ownership fixer.
+modefix.pl [options] dir1 [dir2 dir3 .. dirN]
 
-Options
+A recursive permissions/ownership fixer.
+
+Options for version $VERSION
   -h/?   See this text.
   -v     Verbose mode, shows files fixing.
   -q     Overrides -v, only output will be on serious failures.
