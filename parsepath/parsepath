@@ -37,6 +37,10 @@ die "error: unable to split realpath: $real" unless @dirs;
 my $current = '';
 for my $file (@dirs) {
   $current = File::Spec->catdir($current, $file);
+  unless (-r $current) {
+    warn "warning: could not read file $current\n";
+    next;
+  }
   showfileinfo $current;  # if exists $opts{list};
 }
 
@@ -50,6 +54,8 @@ sub showfileinfo {
 
   $filedata{type} = $filetype{sprintf "%07o", $filedata{unix_mode} & 0170000};
   $filedata{unix_mode_octal} = sprintf "%04o", $filedata{unix_mode} & 07777;
+
+  # TODO means of converting unix octal mode to rwx------ format?
 
   $filedata{unix_user}  = getpwuid $filedata{unix_uid} || $filedata{unix_uid};
   $filedata{unix_group} = getgrgid $filedata{unix_gid} || $filedata{unix_gid};
