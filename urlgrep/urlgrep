@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Extracts links from a requested document and runs them by a supplied
+# search string via grep.
+
+myn=`basename $0`
+
+if [ -z $1 ]; then
+  echo "usage: ${myn} URL search-string" >&2
+  exit 1
+fi
+if [ -z $2 ]; then
+  echo "usage: ${myn} URL search-string" >&2
+  exit 1
+fi
+
+URL=$1
+SEARCH=$2
+
+TMPFILE=`mktemp -q /tmp/${myn}.XXXXXXX` || exit 1
+trap "rm -f $TMPFILE" 0 1 2 13 15
+
+wget -q -O $TMPFILE $URL
+
+<$TMPFILE \
+  perl -nle '@hits=/\s+href="([^"]+)"/ig; $"="\n"; print "@hits"' | \
+  grep "$SEARCH" | \
+  perl -ple s,^,$URL,
+
+rm $TMPFILE
