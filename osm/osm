@@ -15,7 +15,11 @@ use File::Basename qw(fileparse);
 my $suffix_char = '.';
 my $suffix_re   = qr/\./;
 
-# TODO read in prefs
+# default class to use
+my $class = 'expand';
+
+my $prefs_file = $ENV{'OSMCONF'} || '~/.osm/prefs';
+my $data = load_prefs(tilde_expand($prefs_file));
 
 # TODO need option to dip into archive (read it) to check for possible
 # security issues (like ../../ attacks and the like)?
@@ -31,9 +35,39 @@ for my $file (@ARGV) {
 
   # TODO might also need to consider whether thing passed in is a URL,
   # in which case it would need to be downloaded first...
-  for my $suffix (get_suffixes($file)) {
-    
+ ATTEMPT: for my $suffix ( get_suffixes($file), '*' ) {
+    if ( exists $data->{'_suffixmap'}->{$class}->{$suffix} ) {
+      for my $index ( @{ $data->{'_suffixmap'}->{$class}->{$suffix} } ) {
+        # TODO also need to pass in whether to use quiet, verbose, etc...
+        last ATTEMPT
+         if handle_file( { file => $file }, $data->{$class}->[$index] );
+      }
+    }
   }
+}
+
+sub handle_file {
+  my $param  = shift;
+  my $config = shift;
+
+  my %tmp = ( %$config, %$param );
+
+  # TODO these must be user-specified...
+  delete @tmp{qw(verbose destopt preserve)};
+
+  # TODO what about %{file} versus %{files} ? save for future version?
+  $tmp{'exec'} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
+  $tmp{'exec'} = [ split /\s+/, $tmp{'exec'} ];
+
+  system( @{ $tmp{'exec'} } ) == 0
+   or remark(
+    'warning',
+    'bad exit status',
+    { errno => $!, map { $_ => $tmp{$_} } qw(file name class) }
+   )
+   and return 0;
+
+  return 1;
 }
 
 # given filename such as "foo.zip" or "bar.tar.gz" returns list of
@@ -45,7 +79,7 @@ sub get_suffixes {
   my @portions = split /$suffix_re/, fileparse($file);
   return unless @portions > 1;
 
-  return ($portions[-1]) if @portions == 2;
+  return ( $portions[-1] ) if @portions == 2;
 
   my @suffixes;
   local $" = $suffix_char;
@@ -53,6 +87,87 @@ sub get_suffixes {
     push @suffixes, "@portions[$i..$#portions]"
   }
   return @suffixes;
+}
+
+sub load_prefs {
+  my $file = shift;
+
+  open my $fh, "< $file"
+   or remark( 'error', 'could not load preferences', { file => $file } )
+   and exit 101;
+
+  my %data;
+
+  my %tmp = load_defaults();
+
+  while (<$fh>) {
+    s/^\s+//;
+    next if /^#/;
+    chomp;
+
+    if (/^$/) {
+      if ( exists $tmp{'name'} ) {
+        if ( exists $tmp{'suffix'} ) {
+          $tmp{'suffix'} = [ map { s/^\.//; $_ } split / /, $tmp{'suffix'} ];
+        }
+
+        push @{ $data{ $tmp{'class'} } }, {%tmp};
+
+        if ( exists $tmp{'suffix'} ) {
+          for my $suffix ( @{ $tmp{'suffix'} } ) {
+            push @{ $data{'_suffixmap'}->{ $tmp{'class'} }->{$suffix} },
+             $#{ $data{ $tmp{'class'} } };
+          }
+        }
+
+        %tmp = load_defaults();
+      }
+      next;
+    }
+
+    s/\s+$//;
+
+    my ( $k, $v ) = split /\s+/, $_, 2;
+    unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
+      remark(
+        'warning',
+        'skipping invalid data',
+        { file => 'prefs', line => $. }
+      );
+      next;
+    }
+    $tmp{$k} = $v;
+  }
+
+  # TODO somehow need to sort the suffix list by priority, or ideally
+  # sort the records by priority, then generate the suffixmap references...
+  #
+  # or skip priorities, and use the order the item appears in the prefs
+  # file as the priority?
+  #
+  # maybe also check on how XSLT does priority on templates for ideas
+
+  return \%data;
+}
+
+sub load_defaults {
+  my %defaults = (
+    class    => 'expand',
+    priority => 100
+  );
+  return %defaults;
+}
+
+# expands ~username syntax to full home directory path
+sub tilde_expand {
+  for (@_) {
+    s{^ ~      # leading tilde
+      ([^/]*)  # preserve following data
+     }{
+      $1 ? (getpwnam($1))[7] : ( $ENV{'HOME'} || $ENV{'LOGDIR'} )
+     }ex;
+  }
+  return wantarray ? @_ : "@_";
 }
 
 sub remark {
