@@ -3,21 +3,23 @@
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
 #
-# Script to fix permissions/ownerships easily in one swoop, as
+# Script to fix permissions/ownerships easily in one fell swoop, as 
 # opposed to what I was doing at the command line:
 #
 # find . -type d -exec chmod 2750 {} \;
 # find . -type f -exec chmod 640 {} \;
 # find . -exec chown foo:bar {} \;
 #
-# Which really isn't all that efficient or practical, if you
-# want to skip certain files, prune out directories, and
-# generally avoid rampaging over the filesystem three times
-# in a row.
+# Which really isn't all that efficient or practical, if you want to
+# skip certain files, prune out certain directories, avoid rampaging 
+# over the filesystem three times in a row, and not exec chmod/chown
+# a few thousand times.
 #
 # Distributed under the Artistic License:
 # http://www.sial.org/artistic_license.txt
-
+#
+######################################################################
+#
 # MODULES
 
 use Carp;
@@ -26,14 +28,18 @@ use Getopt::Std;
 
 use strict;
 
+######################################################################
+#
 # CONSTANTS
 
-my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid, $members, 
+my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid,
     $verbose, $quiet, %badgroups, %badperms);
 
 use vars qw:$VERSION:;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
+######################################################################
+#
 # MAIN
 
 # deal with command line options
@@ -47,31 +53,84 @@ if (exists $opts{'q'}) {
     $quiet = 1;
 }
 
-# read in other arguments with error checking
+# read in primary arguments (e.g. bits to set on various files...)
+
+# get directory mode to set
 if (exists $opts{'d'}) {
-    $dirmode  = $opts{'d'};
-    die "dirmode must be four numbers long, e.g. 0750\n" if 4 != length $dirmode;
+    if ($opts{'d'} =~ m/^\d+$/) {
+	$dirmode  = $opts{'d'};
+
+	# paranoid, what me?  never!
+	die "dirmode must be four numbers long, e.g. 0750\n" 
+	    if 4 != length $dirmode;
+
+    } else {
+	# attempt new ug+rwx method here...
+	die "method not done";
+    }
 }
 
+# get file mode to set
 if (exists $opts{'f'}) {
-    $filemode = $opts{'f'};
-    die "filemode must be four numbers long, e.g. 0640\n" if 4 != length $filemode;    
+    if ($opts{'f'} =~ m/^\d+$/) {
+	$filemode = $opts{'f'};
+	die "filemode must be four numbers long, e.g. 0640\n" 
+	    if 4 != length $filemode;
+
+    } else {
+	# other mode...
+	die "method not done";
+    }
 }
 
+# user to set
 if (exists $opts{'u'}) {
-    $user = $opts{'u'};
-    # get userid by name
-    $userid = getpwnam $user or 'no such user: ', $user, "\n";
+    my $temp_user = $opts{'u'};
+
+    # by userid, otherwise attemp by user name
+    if ($temp_user =~ m/^\d+$/) {
+	# check that this userid exists in passwd file
+	$user = getpwuid $temp_user or 
+	    warn 'warning: userid ', $temp_user, " not found on system\n";
+	$userid = $temp_user;
+
+    } else {
+	# need the userid, regardless :)
+	$userid = getpwnam $temp_user or 
+	    die 'no such user: ', $temp_user, "\n";
+	$user = $temp_user;
+    }
 }
 
+# group to set
 if (exists $opts{'g'}) {
-    $group    = $opts{'g'};
-    # extract more info on the group they gave us
-    ($groupid, $members)  = (getgrnam $group)[2,3] or die 'no such group: ', $group, "\n";
+    my $members; # for sanity checking
+
+    my $temp_group = $opts{'g'};
+
+    # by groupid, otherwise attempt by group name
+    if ($temp_group =~ m/^\d+$/) {
+	($group, undef, $groupid, $members) = getgrgid $temp_group or 
+	    warn 'warning: groupid ', $temp_group, " not found on system\n";
+
+    } else {
+	# extract more info on the group they gave us
+	($group, undef, $groupid, $members) = getgrnam $temp_group or 
+	    die 'no such group: ', $temp_group, "\n";
+    }
+
+    # some user/group sanity checking: check whether user is a member
+    # of the group in question
+    if (exists $opts{'u'} && defined $members) {
+	# username had better appear as a word in $members...
+	unless ( $members =~ m/\b$user\b/o ) {
+	    warn 'warning: ', $user, ' not member of group ', $group, "\n";
+	}
+    }
 }
 
-# read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+# read from STDIN if no args left on command line
+chomp (@ARGV = <STDIN>) unless @ARGV;
 
 # and flag the help text if nothing from STDIN
 help() unless @ARGV;
@@ -92,7 +151,9 @@ if (keys %badgroups > 0 && ! $quiet) {
     print "\nUsers owning files with improper groups:\n";
     foreach ( keys %badgroups ) {
 	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
-	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', $dir, "\t", $badgroups{$_}, "\n";
+
+	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
+	$dir, "\t", $badgroups{$_}, "\n";
     }
 }
 
@@ -101,31 +162,36 @@ if (keys %badperms > 0 && ! $quiet) {
     print "\nUsers owning files with improper permissions:\n";
     foreach ( keys %badperms ) {
 	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
-	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', $dir, "\t", $badperms{$_}, "\n";
+
+	print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
+	$dir, "\t", $badperms{$_}, "\n";
     }
     print "\n";
 }
 
+######################################################################
+#
 # SUBROUTINES
 
 sub zapit {
     # get current user/group ids off of item
     my ($cur_mode, $cur_uid, $cur_gid) = (lstat)[2,4,5];
 
-    $cur_mode = $cur_mode & 07777; # remove type from mode, leaving permission
+    # remove type from mode, leaving permission
+    $cur_mode = $cur_mode & 07777;
 
     # deal with directories
     if (-d) {
 	# see if we should "prune" this directory first
 	if (exists $opts{'p'}) {
-	    my $results = eval "return 1 if( " . $opts{'p'} . " );";
+	    my $result = eval "return 1 if (" . $opts{'p'} . ");";
 	    
 	    if ($@) {
-		chomp($@);
+		chomp $@;
 		die "Prune error: ", $@; # croak on errors
 	    }
 	    
-	    if ($results) {
+	    if ($result) {
 		$File::Find::prune = 1;
 		warn "pruned ", $File::Find::name, "\n" if $verbose;
 		return;
@@ -134,10 +200,10 @@ sub zapit {
 
 	# or whether simply "skipped" over
 	if (exists $opts{'s'}) {
-	    my $result = eval "return 1 if( " . $opts{'s'} . " );";
+	    my $result = eval "return 1 if (" . $opts{'s'} . ");";
 	    
 	    if($@) {
-		chomp($@);
+		chomp $@;
 		die "Skip error: ", $@; # croak on errors
 	    }
 	    
@@ -148,13 +214,17 @@ sub zapit {
 
 	# apply mode changes as needed to directory
 	if (defined $dirmode) {
-	    if (oct($dirmode) != $cur_mode) {
+	    if (oct ($dirmode) != $cur_mode) {
 		# show the offending file if verbose on
-		print 'MODE', "\t", sprintf("%04o", $cur_mode), "\t", $File::Find::name, "\n" if $verbose;
+		print 'MODE', "\t", 
+		sprintf ("%04o", $cur_mode), "\t", 
+		$File::Find::name, "\n" if $verbose;
 
 		# attempt the change
-		my $result = chmod oct($dirmode), $_;
-		warn "error: chmod on ", $File::Find::name, " failed\n" if $result == 0;
+		my $result = chmod oct ($dirmode), $_;
+		warn "error: chmod on ", 
+		$File::Find::name, " failed\n" if $result == 0;
+
 		# log bad permissions
 		$badperms{$cur_uid}++;
 	    }
@@ -163,26 +233,31 @@ sub zapit {
     } elsif (-f) {
 	# see whether to skip this file
 	if (exists $opts{'s'}) {
-	    my $result = eval "return 1 if( " . $opts{'s'} . " );";
+	    my $result = eval "return 1 if (" . $opts{'s'} . ");";
 	    
-	    if($@) {
-		chomp($@);
+	    if ($@) {
+		chomp $@;
 		die "Skip error: ", $@; # croak on errors
 	    }
 	    
-	    if($result) {
+	    if ($result) {
 		return;
 	    }
 	}
 
 	# set file modes if needed
 	if (defined $filemode) {
-	    if (oct($filemode) != $cur_mode) {
+	    if (oct ($filemode) != $cur_mode) {
 		# show the offending file if verbose on
-		print 'MODE', "\t", sprintf("%04o", $cur_mode), "\t", $File::Find::name, "\n" if $verbose;
+		print 'MODE', "\t", 
+		sprintf ("%04o", $cur_mode), "\t", 
+		$File::Find::name, "\n" if $verbose;
 
-		my $result = chmod oct($filemode), $_;
-		warn "error: chmod on ", $File::Find::name, " failed\n" if $result == 0;
+		my $result = chmod oct ($filemode), $_;
+
+		warn "error: chmod on ", 
+		$File::Find::name, " failed\n" if $result == 0;
+
 		# log bad permissions
 		$badperms{$cur_uid}++;
 	    }
@@ -191,17 +266,21 @@ sub zapit {
 
     # same group-change code for both dirs and files here
     # need to merge in the userid change into here as well..
-    if ((defined $groupid && $groupid != $cur_gid) || (defined $userid && $userid != $cur_uid)) {
+    if ((defined $groupid && $groupid != $cur_gid) || 
+	(defined $userid && $userid != $cur_uid)) {
+
 	# set what to change what to, depending :)
 	# || alternation doesn't work as 0 (root's id) fails test!
 	my $uid_temp = (defined $userid)  ? $userid  : $cur_uid;
 	my $gid_temp = (defined $groupid) ? $groupid : $cur_gid;
 	
 	# yak if verbose
-	print 'OLD', "\t", $cur_uid, "\t", $cur_gid, "\t", $File::Find::name, "\n" if $verbose;
+	print 'OLD', "\t", $cur_uid, "\t", $cur_gid, "\t", 
+	$File::Find::name, "\n" if $verbose;
 	
 	my $result = chown $uid_temp, $gid_temp, $_;
-	warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
+	warn "error: chown on ", 
+	$File::Find::name, " failed\n" if $result == 0;
 	
 	# log this change so we know whose been setting bad groups
 	$badgroups{$cur_uid}++ if defined $groupid;
@@ -244,5 +323,3 @@ Options
 HELP
     exit;
 }
-
-__END__
