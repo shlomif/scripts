@@ -7,7 +7,8 @@
 #
 # "Human" sort that should emulate behaviour of Finder (as of Mac OS X
 # 10.2). Sorts numeric values so 10 appears after 2, and compares in case-
-# insensitive manner.
+# insensitive manner. Note that filesystems cannot have duplicate
+# filenames, so this script filters out repeated input lines.
 #
 # Pass a list of files to merge and sort, or supply the data to be
 # sorted on standard input:
