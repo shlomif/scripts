@@ -17,10 +17,11 @@ RETURN=0
 # update routines for specific packages
 # takes dirctory (already cd'ed into) and type of update
 update_cvs () {
+  echo "info: cvs update in $1" >&2
   cvs up -Ad
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
-    echo "Bad exit status ($STATUS) from $2 update on $1" >&2
+    echo "warn: bad exit status ($STATUS) from $2 update on $1" >&2
     RETURN=$STATUS
   fi
 }
@@ -28,7 +29,7 @@ update_cvs () {
 # figure out how to handle the directory in question
 check_dir () {
   if [ ! -d $1 ]; then
-    echo "Error: not a directory: $1"
+    echo "error: not a directory: $1"
     RETURN=1
     return
   fi
@@ -41,7 +42,7 @@ check_dir () {
   elif [ ! -d CVS -a subdir >/dev/null ]; then
     $0 `subdir | egrep -v '^CVS$'`
   else
-    echo "Error: do not know how to update: $1" >&2
+    echo "error: do not know how to update: $1" >&2
     RETURN=1
   fi
 )
