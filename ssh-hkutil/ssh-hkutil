@@ -1,14 +1,68 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -wl
 #
 # $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Utility to manage and maintain SSH known_hosts data.
+# Utility to manage and maintain OpenSSH known_hosts data.
 
 use strict;
 
 #use Getopt::Std;
 #my %opts;
 #getopts '', \%opts;
+
+my $khf = shift;
+
+open my $file, "< $khf" or die;
+my $hkd = parse_known_hosts($file);
+my $m_hkd = merge_host_keys($hkd);
+use Data::Dumper; print Dumper $m_hkd;
+
+# takes hostname => public_key hash reference, returns new hash
+# reference with hostnames merged on identical public keys
+sub merge_host_keys {
+  my $hkd = shift;
+
+  my (%keys2hosts, %hosts2keys);
+  
+  while (my ($host_spec, $public_key) = each %$hkd) {
+    push @{$keys2hosts{$public_key}}, split /,/, $host_spec;
+  }
+
+  for my $public_key (keys %keys2hosts) {
+    $hosts2keys{join ',', sort @{$keys2hosts{$public_key}}} = $public_key;
+  }
+
+  return \%hosts2keys;
+}
+
+# parses OpenSSH known_hosts file into hostname => public key hash
+# reference
+sub parse_known_hosts {
+  my $what = shift;
+
+  my %hosts2keys;
+  
+  # by filehandle
+  if (ref $what eq 'GLOB') {
+    while (<$what>) {
+      next if /^#/;
+      chomp;
+      my ($host_spec, $public_key) = split / /, $_, 2;
+      next unless $host_spec and $public_key;
+      for my $host (split /,/, $host_spec) {
+        if (exists $hosts2keys{$host}) {
+          warn "warning: skipping duplicate host: host=$host, line=$.\n";
+          next;
+        }
+        $hosts2keys{$host} = $public_key;
+      }
+    }
+  } else {
+    die "error: do not know how to parse known_hosts from ", ref $what;
+  }
+
+  return \%hosts2keys;
+}
