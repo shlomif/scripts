@@ -116,6 +116,7 @@ sub handle_basic {
     $results{max} = $_ if $_ > $results{max};
     push @array, $_;
   }
+  $results{count} = $.;
   $results{mean} = mean(\@array, $results{sum});
   $results{sdev} = standard_deviation(\@array, $results{mean});
 
