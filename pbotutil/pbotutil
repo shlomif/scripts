@@ -428,7 +428,7 @@ sub init {
   remark('notice', "HTML::TokeParser may be needed, but failed to load: $@")
    if $@;
 
-  remark('info', "creating default preference file: $file");
+  remark('notice', "creating default preference file: $file");
   mkpath(dirname($file));
   open FILE, ">$file"
    or remark('error', "could not create preference file $file: $!")
