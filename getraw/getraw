@@ -48,10 +48,10 @@ sub get_key {
   my $first;
 
   # TODO add timeout support via -t timeout option
-  while (not defined($first = ReadKey(-1))) {
+  do {
+    $first = ReadKey(-1);
+  } until defined $first;
 
-    # not yet
-  }
   if (exists $opts{r}) {
 
     # TODO if print, need to send to tty to avoid polluting regular output?
@@ -60,11 +60,9 @@ sub get_key {
 
     # wait for user to hit \r hit, but still take first key they type
     do {
-
-      while (not defined($ret = ReadKey(-1))) {
-
-        # dum dee doo, user: where are you?
-      }
+      do {
+        $ret = ReadKey(-1);
+      } until defined $ret;
     } until $ret eq "\n";
   }
   ReadMode 0;
