@@ -292,8 +292,9 @@ sub check_access {
           $exit_status = 10;
         }
       }
-      print $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
-       ' fails on ', $filedata->{type}, ' ', $filedata->{name}, "\n"
+      warn 'info: ', $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
+       ' fails: ', $filedata->{type}, ' ', $filedata->{unix_mode_octal}, ' ',
+       $filedata->{name}, "\n"
        if @fails;
 
       # unix, once gets match on user or group, stops looking at subsequent
@@ -309,8 +310,8 @@ sub check_access {
       $exit_status = 10;
     }
   }
-  print 'other', ' +', join('', @fails), ' fails on ', $filedata->{type}, ' ',
-   $filedata->{name}, "\n"
+  warn 'info: other +', join('', @fails), ' fails: ', $filedata->{type}, ' ',
+   $filedata->{unix_mode_octal}, ' ', $filedata->{name}, "\n"
    if @fails;
 }
 
