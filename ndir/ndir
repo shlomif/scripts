@@ -42,7 +42,7 @@ for f in "$@"; do
       fi
 
       if [ ! -e $part ]; then
-        mkdir $part
+        mkdir -- $part
         if [ $? -ne 0 ]; then
           echo "error: could not create $part of $f" >&2
           exit 1
@@ -57,14 +57,14 @@ for f in "$@"; do
 
       # add dir to CVS automagically if CVS available
       if [ -f CVS/Root -a ! -f "$part/CVS/Root" ]; then
-        cvs add $part >/dev/null
+        cvs add -- $part >/dev/null
         if [ $? -ne 0 ]; then
           echo "error: could not add $part of $1 to CVS" >&2
           exit 1
         fi
       fi
 
-      cd $part
+      cd -- $part
     done
   )
   if test $VERBOSE = yes ; then
