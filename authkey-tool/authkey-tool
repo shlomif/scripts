@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -wT
 #
 # $Id$
 #
@@ -16,12 +16,20 @@ require 5;
 
 use strict;
 
+# clean up env for taint mode ("perldoc perlsec" for more information)
+sub BEGIN {
+  delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+  $ENV{'PATH'} = '/bin:/usr/bin:/usr/local/bin';
+}
+
 ######################################################################
 #
 # MODULES
 
 use Carp;         # better error reporting
 use Getopt::Std;  # command line option processing
+
+use Digest::MD5 qw(md5);  # Perl interface to the MD5 Algorithm
 
 ######################################################################
 #
@@ -41,12 +49,6 @@ getopts('h?', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-# read from STDIN if no args left
-#chomp(@ARGV = <STDIN>) unless @ARGV;
-#
-# and flag the help text if nothing from STDIN
-#help() unless @ARGV;
-
 exit;
 
 ######################################################################
@@ -58,7 +60,7 @@ sub help {
   print <<"HELP";
 Usage: $0 [opts]
 
-Help for a generic script template.
+Manages OpenSSH authorized key files.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -75,7 +77,7 @@ HELP
 
 =head1 NAME
 
-blank.pl - a script with stub docs
+authkey-tool.pl - manages OpenSSH authorized key files
 
 =head1 SYNOPSIS
 
@@ -85,11 +87,12 @@ Quick usage notes here.
 
 =head2 Overview
 
-Short description of what script is intended to do.
+Loads, modifies, and distributes OpenSSH public authorized keys to
+hosts running the ssh-authkey-manage.pl script.
 
 =head2 Normal Usage
 
-  $ blank.pl [options]
+  $ authkey-tool.pl [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -104,8 +107,6 @@ This script currently supports the following command line switches:
 Prints a brief usage note about the script.
 
 =back
-
-Use B<-f> I<asdf> if a switch takes an argument of some kind.
 
 =head1 EXAMPLES
 
@@ -134,10 +135,6 @@ Patches that fix problems or add new features are welcome.
 
 No known bugs.
 
-=head1 TODO
-
-Replace default stub POD entries with real documentation.
-
 =head1 SEE ALSO
 
 perl(1)
@@ -151,11 +148,6 @@ Jeremy A. Mates, http://www.sial.org/contact/
 Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
 you can redistribute it and/or modify it under the same terms as Perl
 itself.
-
-=head1 HISTORY
-
-A blank perl template I threw together to make writing new scripts
-easier.
 
 =head1 VERSION
 
