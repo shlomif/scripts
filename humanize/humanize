@@ -30,6 +30,10 @@ my %global_prefs = (
 	     'suffix' => [ '', ' K', ' M', ' G', ' P', ' E', ' Z', ' Y' ],
 	     );
 
+# note all these numbers are presumed to represent bytes; could add
+# optional pref to specify a conversion factor to deal with incoming
+# blocks or KB values (i.e. convert to bytes, then run humanization)
+
 print humanize(-56990456345), "\n";
 print humanize(0), "\n";
 print humanize(500), "\n";
@@ -49,13 +53,15 @@ print humanize(56990456345), "\n";
 # takes a number, returns formatted string.  Also takes optional
 # hash containing various defaults that affect output style.
 sub humanize {
-    my $num = shift;
+    my $num = shift; # could also take a array ref or hash ref to parse thru?
     my %prefs = @_;
 
     # inherit global prefs, but give preference to user supplied ones
     unless (keys %prefs) {
 	%prefs = %global_prefs;
     } else {
+	# benchmarking w/ 5.6.0 on Linux PPC & i386 showed this next
+	# faster than direct merge method (p. 145 Perl Cookbook)
 	while (my ($k, $v) = each (%global_prefs)) {
 	    $prefs{$k} = $v unless exists $prefs{$k};
 	}
@@ -78,7 +84,7 @@ sub humanize {
 	$count++;
     }
     
-    # fudge "near" values up to next higher level
+    # optionally fudge "near" values up to next higher level
     if(defined $prefs{'fudge'}) {
 	if ($num > ($prefs{'fudge'} * $prefs{'factor'})) {
 	    $count++;
