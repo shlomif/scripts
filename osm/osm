@@ -11,9 +11,20 @@
 #
 # TODO need option to dip into archive (read it) to check for possible
 # security issues (like ../../ attacks and the like)?
+#
+# TODO need support for File::MMagic or file(1) for cases where suffix
+# metadata not present.
+#
+# TODO pipe support so can say ".gz" -> gzpipe, and then subsequent
+# lookup on next suffix to figure out what to do (e.g. dmg.gz, tar.gz,
+# etc., etc.)
+#
+# TODO directory watching/recursion mode, so can undo .gz, recheck dir,
+# undo any other archive format, and so forth to a limit?
 
 use strict;
-use File::Basename qw(fileparse);
+use File::Basename;
+use File::Path;
 
 # what to consider as a filename suffix seperator (all OS I've seen use
 # a period, but you never know...)
@@ -22,8 +33,15 @@ my $suffix_re   = qr/\./;
 
 my %defaults = load_defaults();
 
+sub load_defaults {
+  my %defaults = ( class => 'expand', );
+  return %defaults;
+}
+
 my $prefs_file = $ENV{'OSMCONF'} || '~/.osm/prefs';
-my $data       = load_prefs( tilde_expand($prefs_file) );
+$prefs_file = tilde_expand($prefs_file);
+init($prefs_file) unless -e $prefs_file;
+my $data = load_prefs($prefs_file);
 
 use Getopt::Std;
 my %opts;
@@ -76,12 +94,11 @@ sub handle_file {
   delete $tmp{'destopt'} unless exists $param->{'dest'};
 
   $tmp{'exec'} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
-  $tmp{'exec'} = [ split /\s+/, $tmp{'exec'} ];
 
   if ( exists $opts{'n'} ) {
     print "@{$tmp{'exec'}}\n";
   } else {
-    system( @{ $tmp{'exec'} } ) == 0
+    system( $tmp{'exec'} ) == 0
      or remark(
       'warning',
       'bad exit status',
@@ -129,22 +146,7 @@ sub load_prefs {
     chomp;
 
     if (/^$/) {
-      if ( exists $tmp{'name'} ) {
-        if ( exists $tmp{'suffix'} ) {
-          $tmp{'suffix'} = [ map { s/^\.//; $_ } split / /, $tmp{'suffix'} ];
-        }
-
-        push @{ $data{ $tmp{'class'} } }, {%tmp};
-
-        if ( exists $tmp{'suffix'} ) {
-          for my $suffix ( @{ $tmp{'suffix'} } ) {
-            push @{ $data{'_suffixmap'}->{ $tmp{'class'} }->{$suffix} },
-             $#{ $data{ $tmp{'class'} } };
-          }
-        }
-
-        %tmp = load_defaults();
-      }
+      pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
       next;
     }
 
@@ -161,14 +163,65 @@ sub load_prefs {
     }
     $tmp{$k} = $v;
   }
+  pref_finish( \%tmp, \%data ) if exists $tmp{'name'};
 
   return \%data;
 }
 
-# prefs from file get layered over this
-sub load_defaults {
-  my %defaults = ( class => 'expand', );
-  return %defaults;
+sub pref_finish {
+  my $tmp  = shift;
+  my $data = shift;
+
+  if ( exists $tmp->{'suffix'} ) {
+    $tmp->{'suffix'} = [ map { s/^\.//; $_ } split / /, $tmp->{'suffix'} ];
+  }
+
+  push @{ $data->{ $tmp->{'class'} } }, {%$tmp};
+
+  if ( exists $tmp->{'suffix'} ) {
+    for my $suffix ( @{ $tmp->{'suffix'} } ) {
+      push @{ $data->{'_suffixmap'}->{ $tmp->{'class'} }->{$suffix} },
+       $#{ $data->{ $tmp->{'class'} } };
+    }
+  }
+
+  %$tmp = load_defaults();
+}
+
+sub init {
+  my $file = shift;
+
+  remark( 'notice', 'creating default preferences file', { file => $file } );
+  mkpath( dirname($file) );
+  open FILE, "> $file"
+   or remark(
+    'error',
+    'could not create default preferences file',
+    { file => $file, errno => $! }
+   )
+   and exit 102;
+  print FILE <<"HEADER";
+# Documentation on this file and the associated script can be found by
+# running perldoc(1) on $0
+
+HEADER
+
+  # pull default preferences from POD to avoid duplication here
+  my $boundary = qr/^\s+# example config/;
+  while (<DATA>) {
+    if ( /$boundary/ .. /$boundary END/ ) {
+      next     if /$boundary/;
+      s/^\s+// if /\S/;
+      print FILE $_;
+    }
+  }
+
+  close FILE
+   or remark(
+    'warning',
+    'problem closing write to default preferences',
+    { file => $file, errno => $! }
+   );
 }
 
 # expands ~username syntax to full home directory path
@@ -185,7 +238,7 @@ sub tilde_expand {
 
 sub print_help {
   print <<"HELP";
-Usage: $0 [options] file [file2 ..]
+Usage: $0 [options] file [file2 ...]
 
 Generic interface to many archive formats.
 
@@ -193,6 +246,8 @@ Options:
   -h/-?  Display this message.
 
   -c cc  Use class 'cc' instead of default ($defaults{'class'}).
+
+  -n     Do nothing; instead, show command(s) that would have been run.
 
   -v     Be verbose (translation to subprogram varies).
   -p     Preserve permissions (support varies by subprogram).
@@ -223,3 +278,281 @@ sub remark {
    . ( $attr_str ? ": $attr_str" : '' ) . "\n";
   return 1;
 }
+
+__DATA__
+
+=head1 NAME
+
+osm - generic interface to many archive formats.
+
+=head1 SYNOPSIS
+
+Extract the contents of a tarball and a gzipped tarball, and expand two
+compressed files.
+
+  $ osm base.tar data.tar.gz archive.Z messages.1.gz
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Short for "Open, Says Me!", this script provides a consistent interface
+to apply various commands to file archives. Given files and various
+command line options, the script attempts to determine what command to
+run on each file in question, based on the contents of a preferences
+file. The point is to avoid having to rember all the bizzare options to
+all the different unpacking programs one might use, in favor of a single
+interface that can handle most common archive file handling needs.
+
+=head2 Normal Usage
+
+  $ osm [options] file [file2 ...]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+The script will parse the named files, looking for filename suffixes for
+which preferences file entries exist. For each matching entry, a named
+command given with the C<exec> statement will be run against the file
+until no more commands are left or a command run exits properly.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-c> I<class>
+
+Use alternate class instead of the default. Classes are logical
+groupings of operations that can be applied to files, such as "expand"
+(C<tar x>) or "list" (C<tar t>). Classes are configured in the
+preferences file.
+
+=item B<-n>
+
+Instead of running the command from the preferences file, show what
+would be run instead. Good where one needs to subsequently modify the
+command to support some custom option, such as listing a subset of files
+to extract from an archive.
+
+=item B<-v>
+
+Invoke verbose option on the subprogram if possible. Set via the
+C<%{verbose}> macro and C<verbose> statement in the preferences file.
+
+  name tar
+  suffix tar
+  exec tar x%{verbose}f %{file}
+  verbose v
+
+=item B<-p>
+
+Preserve file permissions and ownerships if possible. Support for this
+depends on the subprogram. Set via the C<%{preserve}> macro in the
+preferences file.
+
+  name tar
+  suffix tar
+  exec tar x%{verbose}%{preserve}f %{file}
+  preserve p
+  verbose v
+
+=item B<-d> I<destination directory>
+
+Use I<destination directory> instead of the default directory for the
+subprogram in question if possible. Set via the C<%{destopt}> and
+C<%{dest}> macros in the preferences file.
+
+  name tar
+  suffix tar
+  exec tar x%{verbose}%{preserve}%{destopt}f %{dest} %{file}
+  preserve p
+  verbose v
+  destopt C
+
+=back
+
+The exact options supported will vary by the subprogram in question and
+the C<exec> entry in the preferences file.
+
+=head1 FILES
+
+The following example preferences file will be written out to the
+default preferences file location should it not exist. Entries higher in
+the preferences file will be used first if multiple entries handle the
+same filename suffixes.
+
+  # example config BEGIN
+  name gnutargz
+  comment GNU tar with gunzip support (or compatible)
+  suffix tar.gz tgz
+  exec tar x%{verbose}z%{preserve}%{destopt}f %{dest} %{file}
+  verbose v
+  preserve p
+  destopt C
+
+  name gztarpipe
+  suffix tar.gz tgz
+  exec gunzip -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
+  verbose v
+  preserve p
+  destopt C
+
+  name gnutargz
+  class list
+  suffix tar.gz tgz
+  exec tar tvzf %{file}
+
+  name gnutarbz
+  comment GNU tar with bzip support (or compatible)
+  suffix tar.bz tar.bz2 tbz
+  exec tar x%{verbose}j%{preserve}%{destopt}f %{dest} %{file}
+  verbose v
+  preserve p
+  destopt C
+
+  name gnutarbz
+  class list
+  suffix tar.bz tar.bz2 tbz
+  exec tar tvjf %{file}
+
+  name Apple disk image
+  suffix dmg
+  exec hdiutil mount %{file} %{verbose} %{quiet}
+  verbose -verbose
+  quiet -quiet
+
+  name bztarpipe
+  suffix tar.bz tar.bz2 tbz
+  exec bunzip2 -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
+  verbose v
+  preserve p
+  destopt C
+
+  name tar
+  suffix tar
+  exec tar x%{verbose}%{preserve}f %{file}
+  verbose v
+  preserve p
+
+  name tar
+  class list
+  exec tar t%{verbose}%{preserve}f %{file}
+
+  name gunzip
+  suffix gz z
+  exec gunzip %{verbose} %{file}
+  verbose -v
+
+  name bunzip2
+  suffix bz2
+  exec bunzip2 %{verbose} %{file}
+  verbose -v
+
+  # TODO need to experiment with verbose, quiet, other uses
+  name unzip
+  suffix zip
+  exec unzip %{preserve} %{quiet} %{file} %{destopt} %{dest}
+  preserve -X
+  quiet -q
+  destopt -d
+
+  name applepkg
+  class install
+  suffix pkg
+  exec installer %{verbose} -pkg %{file} %{destopt} %{dest}
+  verbose -verbose
+  destopt -target
+
+  name pax
+  suffix pax
+  exec pax -r -f %{file}
+  verbose -v
+  preserve -p e
+
+  name pax
+  class list
+  suffix pax
+  exec pax %{verbose} -f %{file}
+  verbose -v
+
+  name unstuff
+  suffix sit bin hqx *
+  comment Stuffit utility available on Mac OS X, expands many formats
+  exec unstuff %{quiet} %{file}
+  quiet -q
+
+  name unstuff
+  class list
+  exec unstuff --scan %{file}
+
+  name uncompress
+  suffix Z
+  comment Legacy unix compress support
+  exec uncompress %{verbose} %{file}
+  verbose -v
+
+  name unrpm
+  suffix src.rpm rpm
+  comment Open RPM with unrpm
+  exec unrpm %{file}
+
+  # TODO rpm should support %{dest}, lookup how
+  name rpm
+  class install
+  suffix rpm
+  comment Install RPM
+  exec sudo rpm -U%{verbose} %{file}
+  verbose vh
+
+  # TODO check verbose, other options?
+  name rpm
+  class list
+  suffix rpm
+  comment List contents of RPM
+  exec rpm -qlp ${file}
+
+  name bom
+  class list
+  comment List contents of Bill of Materials file
+  suffix bom
+  exec lsbom %{file}
+  # example config END
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
