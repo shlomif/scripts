@@ -5,7 +5,12 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Script to handle opening of various archive formats.
+# Generic interface to many archive formats.
+#
+# Run perldoc(1) on this script for additional documentation.
+#
+# TODO need option to dip into archive (read it) to check for possible
+# security issues (like ../../ attacks and the like)?
 
 use strict;
 use File::Basename qw(fileparse);
@@ -15,32 +20,44 @@ use File::Basename qw(fileparse);
 my $suffix_char = '.';
 my $suffix_re   = qr/\./;
 
-# default class to use
-my $class = 'expand';
+my %defaults = load_defaults();
 
 my $prefs_file = $ENV{'OSMCONF'} || '~/.osm/prefs';
-my $data = load_prefs(tilde_expand($prefs_file));
+my $data       = load_prefs( tilde_expand($prefs_file) );
 
-# TODO need option to dip into archive (read it) to check for possible
-# security issues (like ../../ attacks and the like)?
+use Getopt::Std;
+my %opts;
+getopts 'h?qpvc:d:', \%opts;
 
-die "TODO usage notes\n" unless @ARGV;
+print_help() if $opts{'h'} or $opts{'?'} or not @ARGV;
+
+if ( exists $opts{'q'} ) {
+  $defaults{'quiet'} = 1;
+  delete $defaults{'verbose'};
+} elsif ( exists $opts{'v'} ) {
+  delete $defaults{'quiet'};
+  $defaults{'verbose'} = 1;
+}
+
+$defaults{'class'}    = $opts{'c'} if exists $opts{'c'};
+$defaults{'dest'}     = $opts{'d'} if exists $opts{'d'};
+$defaults{'preserve'} = 1          if exists $opts{'p'};
 
 for my $file (@ARGV) {
-  # TODO file not existing increases odds it is URL, or bogus...
-  #  unless (-e $file) {
-  #    remark('notice', 'skipping as does not exist', { file => $file });
-  #    next;
-  #  }
+  # TODO support remote URL?  e.g. a download would be needed first...
+  unless ( -e $file ) {
+    remark( 'notice', 'skipping as does not exist', { file => $file } );
+    next;
+  }
 
-  # TODO might also need to consider whether thing passed in is a URL,
-  # in which case it would need to be downloaded first...
  ATTEMPT: for my $suffix ( get_suffixes($file), '*' ) {
-    if ( exists $data->{'_suffixmap'}->{$class}->{$suffix} ) {
-      for my $index ( @{ $data->{'_suffixmap'}->{$class}->{$suffix} } ) {
+    if ( exists $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} ) {
+      for my $index (
+        @{ $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} } ) {
         # TODO also need to pass in whether to use quiet, verbose, etc...
         last ATTEMPT
-         if handle_file( { file => $file }, $data->{$class}->[$index] );
+         if handle_file( { %defaults, file => $file },
+          $data->{ $defaults{'class'} }->[$index] );
       }
     }
   }
@@ -50,12 +67,13 @@ sub handle_file {
   my $param  = shift;
   my $config = shift;
 
-  my %tmp = ( %$config, %$param );
+  my %tmp = %$config;
+  $tmp{'file'} = $param->{'file'};
+  for my $option (qw(quiet verbose preserve dest)) {
+    delete $tmp{$option} unless exists $param->{$option};
+  }
+  delete $tmp{'destopt'} unless exists $param->{'dest'};
 
-  # TODO these must be user-specified...
-  delete @tmp{qw(verbose destopt preserve)};
-
-  # TODO what about %{file} versus %{files} ? save for future version?
   $tmp{'exec'} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
   $tmp{'exec'} = [ split /\s+/, $tmp{'exec'} ];
 
@@ -139,22 +157,12 @@ sub load_prefs {
     $tmp{$k} = $v;
   }
 
-  # TODO somehow need to sort the suffix list by priority, or ideally
-  # sort the records by priority, then generate the suffixmap references...
-  #
-  # or skip priorities, and use the order the item appears in the prefs
-  # file as the priority?
-  #
-  # maybe also check on how XSLT does priority on templates for ideas
-
   return \%data;
 }
 
+# prefs from file get layered over this
 sub load_defaults {
-  my %defaults = (
-    class    => 'expand',
-    priority => 100
-  );
+  my %defaults = ( class => 'expand', );
   return %defaults;
 }
 
@@ -168,6 +176,28 @@ sub tilde_expand {
      }ex;
   }
   return wantarray ? @_ : "@_";
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] file [file2 ..]
+
+Generic interface to many archive formats.
+
+Options:
+  -h/-?  Display this message.
+
+  -c cc  Use class 'cc' instead of default ($defaults{'class'}).
+
+  -v     Be verbose (translation to subprogram varies).
+  -p     Preserve permissions (support varies by subprogram).
+  -d dd  Use destination directory 'dd' if supported by the
+         subprogram in question.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
 }
 
 sub remark {
