@@ -5,22 +5,12 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
+# procmail logfile parser and reporter.
+#
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
 
 require 5;
-
 use strict;
-
-######################################################################
-#
-# MODULES
-
-use Carp;
-use Getopt::Std;
 
 # for the format() and write() reports
 use FileHandle;
@@ -28,10 +18,6 @@ use FileHandle;
 # file locking related modules
 use Fcntl qw(:DEFAULT :flock);
 use IO::Handle;
-
-######################################################################
-#
-# VARIABLES
 
 my (
   %opts,           $procmailrc, $logfile, $days_of_week,
@@ -73,11 +59,8 @@ my %global_prefs = (
   'suffix' => ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
 );
 
-######################################################################
-#
-# MAIN
 
-# parse command-line options
+use Getopt::Std;
 getopts('h?srzb:m:', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
@@ -119,9 +102,6 @@ print_report();
 # see if machine-style output format is required
 print_machine($machine) if defined $machine;
 
-######################################################################
-#
-# SUBROUTINES
 
 # dumps a pretty report to STDOUT...
 sub print_report {
