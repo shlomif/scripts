@@ -78,7 +78,11 @@ FILE: for my $file (@ARGV) {
       }
     }
   }
-  remark( 'notice', 'no means to handle file', { file => $file } )
+  remark(
+    'notice',
+    'no means to handle file',
+    { file => $file, class => $defaults{'class'} }
+   )
    unless exists $defaults{'quiet'};
 }
 
