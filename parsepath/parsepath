@@ -82,25 +82,17 @@ for (
   }
 
   if (/^file=(.+)$/) {
-    if (exists $opts{'path'}) {
-      warn "notice: skipping as already have path: $_\n";
-      next;
-    }
-    $opts{'path'} = resolve_path $1;
+    push @{$opts{'path'}}, resolve_path $1;
     next;
   }
 
-  if (exists $opts{'path'}) {
-    warn "notice: skipping as already have path: $_\n";
-    next;
-  }
-  $opts{'path'} = resolve_path $_;
+  push @{$opts{'path'}}, resolve_path $_;
 }
 
 print_help if exists $opts{'options'}->{'h'};
 
-$opts{'path'} = resolve_path '.' unless exists $opts{'path'};
-unless (exists $opts{'path'} and defined $opts{'path'}) {
+push @{$opts{'path'}}, resolve_path '.' unless exists $opts{'path'};
+unless (exists $opts{'path'} and @{$opts{'path'}}) {
   warn "error: no path to work with\n";
   exit 101;
 }
@@ -119,7 +111,8 @@ if (exists $opts{'constraint'} and not exists $opts{'role'}) {
     $opts{'role'} = determine_role 'group', split / /,
      exists $opts{'options'}->{'R'} ? $( : $);
   } else {
-    $opts{'role'} = determine_role 'user', exists $opts{'options'}->{'R'} ? $< : $>;
+    $opts{'role'} = determine_role 'user',
+     exists $opts{'options'}->{'R'} ? $< : $>;
   }
 }
 if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
@@ -129,33 +122,40 @@ if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
 # fix perms hash to use array for easier subsequent work
 $opts{'perms'} = [sort keys %{$opts{'perms'}}];
 
-my @pathbits = File::Spec->splitdir($opts{'path'});
-unless (@pathbits) {
-  warn "error: unable to split realpath: $opts{'path'}";
-  exit 101;
-}
+for my $pnum (0..$#{$opts{'path'}}) {
+  my $path = $opts{'path'}->[$pnum];
+  my @pathbits = File::Spec->splitdir($path);
 
-my $current = '';
-for my $i (0 .. $#pathbits) {
-  $current = File::Spec->catdir($current, $pathbits[$i]);
-  my $filedata = getfileinfo $current;
-
-  unless ($filedata) {
-    warn "error: no data about $current\n";
-    exit 103;
+  unless (@pathbits) {
+    warn "error: unable to split realpath: $path";
+    exit 101;
   }
 
-  # TODO means of supplying output fields and their order?
-  if (exists $opts{'options'}->{'l'}) {
-    print join " ", map $filedata->{$_},
-     qw(type unix_mode_octal unix_user unix_group name);
-    print ' -> ', $filedata->{'link'} if exists $filedata->{'link'};
-    print "\n";
-  }
+  print "p $path\n";
 
-  if (exists $opts{'constraint'}) {
-    check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{'perms'};
+  my $current = '';
+  for my $i (0 .. $#pathbits) {
+    $current = File::Spec->catdir($current, $pathbits[$i]);
+    my $filedata = getfileinfo $current;
+
+    unless ($filedata) {
+      warn "error: no data about $current\n";
+      exit 103;
+    }
+
+    # TODO means of supplying output fields and their order?
+    if (exists $opts{'options'}->{'l'}) {
+      print join " ", map $filedata->{$_},
+       qw(type unix_mode_octal unix_user unix_group name);
+      print ' -> ', $filedata->{'link'} if exists $filedata->{'link'};
+      print "\n";
+    }
+
+    if (exists $opts{'constraint'}) {
+      check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{'perms'};
+    }
   }
+  print "\n" unless $pnum == $#{$opts{'path'}};
 }
 
 exit $exit_status;
@@ -204,8 +204,8 @@ sub determine_role {
         warn "warning: no data from $function $who\n";
         $userdata{'name'} = $who;
       }
-      $userdata{'id'}       = $who;
-      $userdata{'type'}     = $type;
+      $userdata{'id'}     = $who;
+      $userdata{'type'}   = $type;
       $seen{"$type.$who"} = 1;
     } else {
       $function .= 'nam';
@@ -217,7 +217,7 @@ sub determine_role {
       next if exists $seen{"$type.$userdata{'id'}"};
       $userdata{'name'}              = $who;
       $userdata{'type'}              = $type;
-      $seen{"$type.$userdata{'id'}"}   = 1;
+      $seen{"$type.$userdata{'id'}"} = 1;
     }
     push @userdata, \%userdata;
   }
@@ -269,11 +269,14 @@ sub getfileinfo {
 
   $filedata{'unix_mode_octal'} = sprintf "%04o", $filedata{'unix_mode'} & 07777;
 
-  $filedata{'type'} = $filetype{sprintf "%07o", $filedata{'unix_mode'} & 0170000};
+  $filedata{'type'} =
+   $filetype{sprintf "%07o", $filedata{'unix_mode'} & 0170000};
   $filedata{'link'} = readlink $file if $filedata{'type'} eq 'l';
 
-  $filedata{'unix_user'}  = getpwuid $filedata{'unix_uid'} || $filedata{'unix_uid'};
-  $filedata{'unix_group'} = getgrgid $filedata{'unix_gid'} || $filedata{'unix_gid'};
+  $filedata{'unix_user'} = getpwuid $filedata{'unix_uid'}
+   || $filedata{'unix_uid'};
+  $filedata{'unix_group'} = getgrgid $filedata{'unix_gid'}
+   || $filedata{'unix_gid'};
 
   return \%filedata;
 }
@@ -292,9 +295,9 @@ sub check_access {
           $exit_status = 10;
         }
       }
-      warn 'info: ', $role->{'type'}, ' ', $role->{'name'}, ' +', join('', @fails),
-       ' fails: ', $filedata->{'type'}, ' ', $filedata->{'unix_mode_octal'}, ' ',
-       $filedata->{'name'},
+      warn 'info: ', $role->{'type'}, ' ', $role->{'name'}, ' +',
+       join('', @fails), ' fails: ', $filedata->{'type'}, ' ',
+       $filedata->{'unix_mode_octal'}, ' ', $filedata->{'name'},
        (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n"
        if @fails;
 
@@ -322,7 +325,7 @@ sub print_help {
   print <<"HELP";
 $0 takes the following arguments in any order:
 
-  filepath - single path to parse (default current directory).
+  filepath - path(es) to parse (default current directory).
     -r  Attempt to use realpath() to file.
 
   Use file=path if the path name conflicts with an option.
@@ -375,7 +378,7 @@ Currently, only unix users, groups, and file permissions are supported.
 
 Options may be specified in any order:
 
-  filepath - single path to parse (default current directory).
+  filepath - path(es) to parse (default current directory).
     -r  Attempt to use realpath() to file.
 
   Use file=path if the path name conflicts with an option.
