@@ -64,12 +64,14 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
+  my $file_quoted = quotemeta $file;
+
   for my $suffix ( get_suffixes($file), '*' ) {
     if ( exists $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} ) {
       for my $index (
         @{ $data->{'_suffixmap'}->{ $defaults{'class'} }->{$suffix} } ) {
         next FILE
-         if handle_file( { %defaults, file => $file },
+         if handle_file( { %defaults, file => $file_quoted },
           $data->{ $defaults{'class'} }->[$index] );
       }
     }
