@@ -31,9 +31,9 @@ use vars qw:$VERSION:;
 #
 # CONSTANTS
 
-my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year, $backup,
-    @data, %folders, %folder_sizes, $oldest, $newest, 
-    $total_messages, $total_size);
+my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year,
+    $backup, @data, %folders, %folder_sizes, $oldest, $newest,
+    $total_messages, $total_size, $machine);
 
 # where to look for the procmailrc...
 $procmailrc = $ENV{'HOME'} . '/.procmailrc';
@@ -49,14 +49,15 @@ $months_of_year = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 # MAIN
 
 # parse command-line options
-getopts('h?sb:', \%opts);
+getopts('h?sb:m:', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
 # extract backup option, if any
-if (exists $opts{'b'}) {
-    $backup = $opts{'b'};
-}
+$backup = $opts{'b'} if exists $opts{'b'};
+
+# "machine" output style required?
+$machine = $opts{'m'} if exists $opts{'m'};
 
 # first, we find out where the logfile is (command line or automagic)
 if (@ARGV) {
@@ -70,6 +71,9 @@ parse_logfile();
 
 # and print off a pretty little report for fun
 print_report();
+
+# see if machine-style output format is required
+print_machine($machine) if defined $machine;
 
 ######################################################################
 #
@@ -130,7 +134,9 @@ Subject:  ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           $subject
 ~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
           $subject
-From:     @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+From:     ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          $from
+~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
           $from
 To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
           $folder, $size
@@ -147,6 +153,29 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
 
 	write;
     }
+}
+
+# machine-style output format (e.g. easily parsed by a machine)
+sub print_machine {
+    my $file_loc = shift;
+
+    # open & aquire write lock on the file_loc
+    open (FD, ">$file_loc") or die "Error opening $file_loc: $!\n";
+    FD->autoflush(1);
+    
+    unless (flock (FD, LOCK_EX|LOCK_NB)) {
+	warn "Waiting for write lock on $file_loc ...\n";
+	flock (FD, LOCK_EX);
+    }
+    
+    # delete file just to be sure
+    seek     (FD, 0, 0) or die "Problem seeking $file_loc: $!\n";
+    truncate (FD, 0) or die "Problem truncating $file_loc: $!\n";
+    
+    # hmmm... format for machine style? :)
+    
+    flock (FD, LOCK_UN);
+    close (FD);
 }
 
 # parse procmail's logfile w/ locking using global variables
