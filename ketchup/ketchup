@@ -16,6 +16,8 @@ WHATDIR=`pwd`
 
 # update routines for specific packages
 # takes dirctory (already cd'ed into) and type of update
+
+# for CVS
 update_cvs () {
   [ $WHATDIR != $1 ] && echo "info: cvs update in $1" >&2
   cvs up -Ad
@@ -26,27 +28,42 @@ update_cvs () {
   fi
 }
 
+# for subversion
+update_svn () {
+  [ $WHATDIR != $1 ] && echo "info: svn update in $1" >&2
+  svn status
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "warn: bad exit status ($STATUS) from $2 update on $1" >&2
+    RETURN=$STATUS
+  fi
+}
+
 # figure out how to handle the directory in question
 check_dir () {
-  if [ -d CVS -a -f CVS/Root ]; then
-    update_cvs $1 "CVS"
+  if [ -f CVS/Root ]; then
+    update_cvs "$1" "CVS"
+  elif [ -f .svn/entries ]; then
+    update_svn "$1" "SVN"
   else
+    IFS='
+'
     for file in `subdir`; do
       (
-        cd $file
-        check_dir $file
+        cd "$file"
+        check_dir "$file"
       )
     done
   fi
 }
 
 if [ $# -eq 0 ]; then
-  check_dir $WHATDIR
+  check_dir "$WHATDIR"
 else
   for file in "$@"; do
-    if [ -d $file ]; then
+    if [ -d "$file" ]; then
       (
-        cd $file
+        cd "$file"
         check_dir "$file"
       )
     fi
