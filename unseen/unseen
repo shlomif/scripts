@@ -24,13 +24,13 @@ use YAML ();
 use Getopt::Std;
 my %opts;
 getopts 'h?s:w:', \%opts;
-print_help and die if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
+print_help and exit 1 if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
 my $seen_file;
 if (exists $opts{'s'}) {
   $opts{'s'} =~ m,^([\w./ -]+)$,;
   if (not defined $1 or $opts{'s'} ne $1) {
-    remark "could not untaint -s seen filename" and die;
+    remark "could not untaint -s seen filename" and exit 1;
   }
   $seen_file = $1;
 }
@@ -80,7 +80,7 @@ sub process {
 sub filedigest {
   my $file = shift;
 
-  open FILE, $file or remark "problem opening file: $!" and die;
+  open FILE, $file or remark "problem opening file: $!" and exit 1;
   binmode FILE;
 
   # b64digest method resets object, so can reuse
@@ -137,7 +137,7 @@ sub BEGIN {
 }
 
 # a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
 Usage: $0 [options] searchdir1 [sd2 .. sdN]
 
