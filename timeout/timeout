@@ -69,7 +69,7 @@ help() unless @ARGV;
 my $timeout = duration2seconds($duration);
 $duration = seconds2duration($timeout);
 
-$t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'};
+$t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'} and $features{'verbose'};
 
 my $pid = open WATCH, "-|";
 
@@ -90,7 +90,7 @@ if ($pid) {  # parent
     # so one knows how long positive runs take
     warn "Info: program ran for ",
      sprintf("%.1f", Time::HiRes::tv_interval($t0)), " seconds\n"
-     if $features{'Time::HiRes'};
+     if $features{'Time::HiRes'} and $features{'verbose'};
 
     alarm 0;
   };
@@ -160,10 +160,10 @@ sub seconds2duration {
   my $weeks = ($tmpsec - $days) / 7;
 
   # TODO better way to do this?
-  my $temp = ($weeks) ? "${weeks}w " : '';
-  $temp .= ($days)    ? "${days}d "    : '';
-  $temp .= ($hours)   ? "${hours}h "   : '';
-  $temp .= ($minutes) ? "${minutes}m " : '';
+  my $temp = ($weeks) ? "${weeks}w" : '';
+  $temp .= ($days)    ? "${days}d"    : '';
+  $temp .= ($hours)   ? "${hours}h"   : '';
+  $temp .= ($minutes) ? "${minutes}m" : '';
   $temp .= ($seconds) ? "${seconds}s"  : '';
   return $temp;
 }
