@@ -263,7 +263,7 @@ sub help {
   print <<"HELP";
 Usage: $0 [opts]
 
-Manages an OpenSSH authorized_keys file.
+Command interface to OpenSSH authorized_keys file.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -285,7 +285,7 @@ HELP
 
 =head1 NAME
 
-ssh-authkey-manage.pl - manages an OpenSSH authorized_keys file
+ssh-authkey-manage.pl - command interface to OpenSSH authorized_keys file
 
 =head1 SYNOPSIS
 
