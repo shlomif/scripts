@@ -56,12 +56,23 @@ getopts('d', \%opts);
 
 # TODO means to write new shortcuts back to OmniWeb prefs file?
 
+# TODO means of reading things to open from STDIN (with flag?)
+# so can open multiple things (e.g. daily news, comics, etc.)
+
 # what to launch URLs with
 my @open = qw(open);
 
 # -d flag does directory->web map lookup (if possible)
 if (exists $opts{d}) {
-  my $dir = getcwd;
+  my $dir;
+  
+  # TODO need to support opening of multiple directories!
+  if (@ARGV) {
+    $dir = Cwd::abs_path((grep -d, @ARGV)[0]);
+  }
+  
+  $dir ||= getcwd;
+  
   my $dirmap = YAML::LoadFile($pfiles{dirmap});
 
 # longest first, so subdirs can override parent
@@ -73,6 +84,8 @@ for (sort { length $b <=> length $a } keys %$dirmap) {
     visit(expand($dirmap->{$_}, $frag));
   }
 }
+
+die "error: no mapping for $dir\n";
 
 }
 
