@@ -34,7 +34,7 @@ my $VERSION;
 my (%opts, $verbose, $quiet, %check);
 
 # we reset this for each file to avoid OO overhead on each file
-my $dig = new Digest::MD5;
+my $dig = Digest::MD5->new;
 
 ######################################################################
 #
