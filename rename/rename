@@ -19,7 +19,7 @@ use File::Copy;
 use Getopt::Std;
 my %opts;
 getopts('h?cmifvp', \%opts);
-print_help if exists $opts{h} or exists $opts{?};
+print_help if exists $opts{h} or exists $opts{'?'};
 
 my $preview = exists $opts{i} or exists $opts{p} or exists $opts{v} ? 1 : 0;
 my $interactive = exists $opts{i} and not exists $opts{f} ? 1 : 0;

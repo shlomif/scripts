@@ -43,7 +43,7 @@ my $recursive = 1;
 # deal with command line options
 getopts('h?p:s:d:f:u:g:Grvql', \%opts);
 
-help() if exists $opts{h} || exists $opts{?};
+help() if exists $opts{h} || exists $opts{'?'};
 
 # make sure we got valid arguments...
 unless (exists $opts{u}

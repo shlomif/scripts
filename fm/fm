@@ -62,7 +62,7 @@ my %global_prefs = (
 use Getopt::Std;
 getopts( 'h?srzb:m:t:', \%opts );
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 # extract backup option, if any
 $backup = $opts{b} if exists $opts{b};

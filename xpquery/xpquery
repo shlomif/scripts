@@ -9,7 +9,7 @@ no warnings 'utf8';
 use Getopt::Std;
 my %opts;
 getopts 'h?p:', \%opts;
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 $opts{p} = 'XML' unless exists $opts{p};
 

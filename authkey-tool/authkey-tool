@@ -38,7 +38,7 @@ if (exists $opts{O}) {
   $keyopts->{exclusive} = parse_authkey_options($opts{O});
 }
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 # read target host(s) in
 push @targets, $opts{t} if exists $opts{t};

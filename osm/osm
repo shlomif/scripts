@@ -43,7 +43,7 @@ use Getopt::Std;
 my %opts;
 getopts 'h?qnpvc:d:', \%opts;
 
-print_help() if $opts{h} or $opts{?} or not @ARGV;
+print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
 if ( exists $opts{q} ) {
   $defaults{quiet} = 1;

@@ -38,7 +38,7 @@ my (%opts, %locks, $duration);
 # parse command-line options
 getopts('h?wd:', \%opts);
 
-help() if exists $opts{h} or exists $opts{?} or not @ARGV;
+help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 
 if (exists $opts{d}) {
   if ($opts{d} =~ /^\d+$/) {

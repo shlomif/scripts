@@ -94,7 +94,7 @@ use Getopt::Std;
 my %opts;
 getopts 'h?lvb:p:t:f:', \%opts;
 
-print_help() if exists $opts{h} or exists $opts{?};
+print_help() if exists $opts{h} or exists $opts{'?'};
 
 # list known elements might be in %message for templating needs
 if ( $opts{l} ) {

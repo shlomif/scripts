@@ -16,7 +16,7 @@ use Getopt::Std;
 my %opts;
 getopts 'h?mMv', \%opts;
 
-print_help() if $opts{h} or $opts{?};
+print_help() if $opts{h} or $opts{'?'};
 
 my $khf   = shift || print_help();
 my $extra = shift;

@@ -51,7 +51,7 @@ unless ($@) {
 # parse command-line options
 getopts('h?vq', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 if (exists $opts{v}) {
   $features{verbose} = 1;

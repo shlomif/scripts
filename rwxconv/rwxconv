@@ -35,7 +35,7 @@ my (%opts, $zero, $lzero);
 # parse command-line options
 getopts('h?0', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 # mangle all input
 while (<>) {

@@ -38,7 +38,7 @@ $traceroute = '/usr/sbin/traceroute';
 # parse command-line options
 getopts('h?', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;

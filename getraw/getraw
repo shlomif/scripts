@@ -37,7 +37,7 @@ open $readfrom, "< /dev/tty"
 use Getopt::Std;
 my %opts;
 getopts('h?o:t:n', \%opts);
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 $spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
 

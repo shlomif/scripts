@@ -73,7 +73,7 @@ while ( my ( $k, $v ) = each %postargs ) {
 }
 $args{name} = 'default' unless $args{name};
 
-print_help() if $opts{h} or $opts{?} or ( $verb eq 'get' and not $ARGV[0] );
+print_help() if $opts{h} or $opts{'?'} or ( $verb eq 'get' and not $ARGV[0] );
 
 if ( $verb eq 'get' ) {
   my $prefs;

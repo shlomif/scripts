@@ -27,7 +27,7 @@ use YAML ();
 use Getopt::Std;
 my %opts;
 getopts 'h?s:w:T', \%opts;
-print_help and exit 1 if exists $opts{h} or exists $opts{?} or not @ARGV;
+print_help and exit 1 if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 
 # sanitize search directories specified
 my @dirs = untaintpath @ARGV;

@@ -38,7 +38,7 @@ $regex = '(-?\d{4,})';
 # parse command-line options
 getopts('h?kb:m:r', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 # set the base conversion factor
 if (exists $opts{b}) {

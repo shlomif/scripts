@@ -37,7 +37,7 @@ my (%opts, $verbose, %u2g, %n2u, %groups);
 # parse command-line options
 getopts('h?vp:s:g', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 $verbose = 1 if exists $opts{v};
 

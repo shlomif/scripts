@@ -45,7 +45,7 @@ my $reset_tail  = -1;
 # parse command-line options
 getopts('h?m:i:a:t:r:f', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 $maxinterval = $opts{m} if exists $opts{m} and $opts{m} =~ /^\d+$/;
 $interval    = $opts{i} if exists $opts{i} and $opts{i} =~ /^\d+$/;

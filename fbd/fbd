@@ -19,7 +19,7 @@ my $timef = 9;
 use Getopt::Std;
 my %opts;
 getopts('h?f:d:a:b:p:s:q', \%opts);
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 help() unless @ARGV;
 
 my $src_date;

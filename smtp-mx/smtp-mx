@@ -32,7 +32,7 @@ for (@ARGV) {
   if (/^-([\w]+)$/) {
     my $opts = $1;
     for ($opts =~ /(.)/g) { $opts{$_} = 1 }
-    print_help if exists $opts{h} or exists $opts{?};
+    print_help if exists $opts{h} or exists $opts{'?'};
     next;
   }
 

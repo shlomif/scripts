@@ -39,7 +39,7 @@ my $dig = Digest::SHA1->new;
 # parse command-line options
 getopts('h?vlgzuqp:s:', \%opts);
 
-help() if exists($opts{h}) or exists($opts{?});
+help() if exists($opts{h}) or exists($opts{'?'});
 
 $verbose = 1 if exists $opts{v};
 if (exists $opts{q}) {

@@ -50,7 +50,7 @@ use Getopt::Std;
 my %opts;
 getopts('h?f:l:aiqL', \%opts);
 
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 $auth_key_file = $opts{f} if exists $opts{f};
 

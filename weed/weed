@@ -20,7 +20,7 @@ my $spec = $specs->{y};
 use Getopt::Std;
 my %opts;
 getopts('h?vyn0o:d:f:', \%opts);
-help() if exists $opts{h} or exists $opts{?};
+help() if exists $opts{h} or exists $opts{'?'};
 
 if (exists $opts{n}) {
   $spec = $specs->{n};
