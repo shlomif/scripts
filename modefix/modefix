@@ -1,0 +1,191 @@
+#!/usr/local/bin/perl
+#
+# $Id$
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# Script to fix permissions.
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+
+# MODULES
+
+use Carp;
+use File::Find;
+use Getopt::Std;
+
+use strict;
+
+# CONSTANTS
+
+my (%opts, $dirmode, $filemode, $group, $groupid, $members, $verbose, 
+    %badgroups);
+
+# MAIN
+
+# deal with command line options
+getopts('h?p:d:f:g:v', \%opts);
+
+help() if exists $opts{'h'} || exists $opts{'?'};
+
+# read in other arguments with error checking
+if (exists $opts{'d'}) {
+    $dirmode  = $opts{'d'};
+    die "dirmode must be four numbers long, e.g. 0750\n" if 4 != length $dirmode;
+}
+
+if (exists $opts{'f'}) {
+    $filemode = $opts{'f'};
+    die "filemode must be four numbers long, e.g. 0640\n" if 4 != length $filemode;    
+}
+
+if (exists $opts{'g'}) {
+    $group    = $opts{'g'};
+    # extract more info on the group they gave us
+    ($groupid, $members)  = (getgrnam $group)[2,3] or die 'no such group: ', $group, "\n";
+}
+
+$verbose  = 1 if exists $opts{'v'};
+
+# read from STDIN if no args left
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+# and flag the help text if nothing from STDIN
+help() unless @ARGV;
+
+# loop over the remaining input, looking for dirs and parsing them
+foreach ( @ARGV ) {
+    unless (-d $_) {
+	warn "error: $_ not a directory, skipping\n" if $verbose;
+	next;
+    }
+
+    find(\&zapit, $_);
+}
+
+# now, report on who was a bad user (e.g. is setting the wrong group)
+# keys are the uid's of bad users
+if (keys %badgroups > 0) {
+    print "\nUsers owning files with improper groups:\n";
+    foreach ( keys %badgroups ) {
+	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
+	print '  ', $name, ':', $uid, ':', $gid, ':', $gcos, ':', $dir, "\n";
+    }
+    print "\n";
+}
+
+# SUBROUTINES
+
+sub zapit {
+    # get current user/group ids off of item
+    my ($cur_uid, $cur_gid) = (stat)[4,5];
+
+    # deal with directories
+    if (-d) {
+	# see if we should "prune" this directory
+	if (exists $opts{'p'}) {
+	    my $results = eval "return 1 if( " . $opts{'p'} . " );";
+	    
+	    if ($@) {
+		chomp($@);
+		die "Prune error: ", $@; # croak on errors
+	    }
+	    
+	    if ($results) {
+		$File::Find::prune = 1;
+		warn "error: pruned ", $File::Find::name, "\n" if $verbose;
+		return;
+	    }
+	}
+
+	# otherwise, apply mode changes as needed
+	if (defined $dirmode) {
+	    my $result = chmod oct($dirmode), $_;
+	    warn "error: chmod on ", $File::Find::name, " failed\n" if $verbose && $result == 0;
+	}
+
+	if (defined $groupid) {
+	    if ($groupid != $cur_gid) {
+		chown $cur_uid, $groupid, $_;
+		# log this change so we know whose been setting bad groups
+		warn "DBG changed group for ", $File::Find::name, "\n";
+		$badgroups{$cur_uid}++;
+	    }
+	}
+    } elsif (-f) {
+	# set file mode, group, if needed
+	if (defined $filemode) {
+	    my $result = chmod oct($filemode), $_;
+	    warn "error: chmod on ", $File::Find::name, " failed\n" if $verbose && $result == 0;
+	}
+
+	if (defined $groupid) {
+	    if ($groupid != $cur_gid) {
+		chown $cur_uid, $groupid, $_;
+		# log this change so we know whose been setting bad groups
+		warn "DBG changed group for ", $File::Find::name, "\n";
+		$badgroups{$cur_uid}++;
+	    }
+	}
+    }
+}
+
+sub help {
+     print <<"HELP";
+Usage: $0 [options] directories_to_fix_here
+
+$0 is a mode/group fixer for directories.
+
+Options
+  -h/?   See this text.  
+  -d     Directory mode to set, e.g. '2770'
+  -f     File mode to set,      e.g. '0660'
+  -g     Group mode to set,     e.g. 'goobers'
+
+  -p     Perl expression that will result in the current directory
+         (stored in \$_) being pruned out of the tree.  Use this to
+         skip "dot directories," for example:
+
+         -p 'm/^\../' .
+
+         The -d check is used to ensure the prune test is only run
+         on directories, so any stat() calls in your expression
+         should use the shortcut _ operator.
+
+  -v     Verbose mode, shows files fixing.
+
+HELP
+    exit;
+}
+
+__END__
+
+$Log$
+Revision 1.1  2000/02/03 01:17:57  jmates
+Changed name to something less obscure than msghack
+
+Revision 1.5  2000/02/03 01:04:42  jmates
+Added working group changing/logging abilities.
+
+Added validation of -g option.
+
+Removed debugging code.
+
+Revision 1.4  2000/02/02 08:05:43  jmates
+Added error checking to mode input options.
+
+-f and -d options now work, with error checking.
+
+To do:  stat() at top of zapit() to get user, group of each file, and add
+means of logging parent dir, user, and group of each offending file.
+
+Also have to do group name <-> id num transformations/error checking.
+
+Revision 1.3  2000/02/01 22:31:46  jmates
+Added basic dir, file, and group command line options, and the -p prune mode I used in my older lext.pl script for skipping directories.
+
+Added help() subroutine, basic input checking (otherwise dump to help), and a loop over ARGV (or STDIN, if no ARGV) that calls the basic zapit function to deal with each item.
+
+Revision 1.2  2000/02/01 21:43:18  jmates
+Added initial skeleton, CVS tags, and modules to use.
+
