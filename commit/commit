@@ -20,7 +20,7 @@ my $prefs = load_prefs($prefs_file);
 
 use Getopt::Std;
 my %opts;
-getopts 'h?f:m:r:n', \%opts;
+getopts 'h?F:m:r:n', \%opts;
 
 $defaults{'revision'} = $opts{'r'} if exists $opts{'r'};
 if ( exists $opts{'m'} ) {
