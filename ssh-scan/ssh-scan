@@ -2,9 +2,8 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -20,19 +19,19 @@ use strict;
 #
 # MODULES
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
 
-use Socket qw(:DEFAULT :crlf);	# low-level connection handling
+use Socket qw(:DEFAULT :crlf);  # low-level connection handling
 
 ######################################################################
 #
 # VARIABLES
 
-my $service    = 'ssh';
-my $protoname  = 'tcp';
-my $port       = getservbyname($service, $protoname);
-my $proto      = getprotobyname($protoname);
+my $service   = 'ssh';
+my $protoname = 'tcp';
+my $port      = getservbyname($service, $protoname);
+my $proto     = getprotobyname($protoname);
 
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
@@ -49,44 +48,45 @@ getopts('h?', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 while (<STDIN>) {
-    # skip non-open/non-relevant data
-    next unless m!$port/open/$protoname!o;
 
-    # extract ip and (optional) hostname from matching lines
-    my ($ip, $hostname) = $_ =~ /^Host: (\S+) \(([^\(]+)?\)/;
-    
-    $hostname = "UNKNOWN" unless $hostname;
+  # skip non-open/non-relevant data
+  next unless m!$port/open/$protoname!o;
 
-    # skip invalid IPv4 addresses (network & broadcast)
-    next unless $ip;
-    next if $ip =~ /\.(0|255)$/;
+  # extract ip and (optional) hostname from matching lines
+  my ($ip, $hostname) = $_ =~ /^Host: (\S+) \(([^\(]+)?\)/;
 
-    # nab reply from SSH server and move on...
-    my $ret = do_connect($ip);
-    if ((!defined $ret) || ($ret <= 0)) {
-        print $ip, "\t", $hostname, "\tCouldn't connect()\n";
-        next;
-    }
+  $hostname = "UNKNOWN" unless $hostname;
 
-    my $output;
+  # skip invalid IPv4 addresses (network & broadcast)
+  next unless $ip;
+  next if $ip =~ /\.(0|255)$/;
 
-    eval {
-        local $SIG{ALRM} = sub { die "timed out\n" };
-        alarm(3);
-        recv(SOCK, $output, 9999, 0);
-        alarm(0);
-    };
-    if ($@) { 
-	print $ip, "\t", $hostname, "\ttimeout\n";
-    }
+  # nab reply from SSH server and move on...
+  my $ret = do_connect($ip);
+  if ((!defined $ret) || ($ret <= 0)) {
+    print $ip, "\t", $hostname, "\tCouldn't connect()\n";
+    next;
+  }
 
-    shutdown(SOCK, 2);
+  my $output;
 
-    # grab SSH version tag e.g. "SSH-1.99-OpenSSH_2.9"
-    if ($output =~ /$service/io) {
-        chomp($output);
-        print $ip, "\t", $hostname, "\t", $output, "\n";
-    }
+  eval {
+    local $SIG{ALRM} = sub { die "timed out\n" };
+    alarm(3);
+    recv(SOCK, $output, 9999, 0);
+    alarm(0);
+  };
+  if ($@) {
+    print $ip, "\t", $hostname, "\ttimeout\n";
+  }
+
+  shutdown(SOCK, 2);
+
+  # grab SSH version tag e.g. "SSH-1.99-OpenSSH_2.9"
+  if ($output =~ /$service/io) {
+    chomp($output);
+    print $ip, "\t", $hostname, "\t", $output, "\n";
+  }
 }
 
 exit;
@@ -96,24 +96,24 @@ exit;
 # SUBROUTINES
 
 sub do_connect {
-    my $ip = shift || return (0);
-    my $o = undef;
-    socket(SOCK, PF_INET, SOCK_STREAM, $proto);
+  my $ip = shift || return (0);
+  my $o = undef;
+  socket(SOCK, PF_INET, SOCK_STREAM, $proto);
 
-    my $sin = sockaddr_in($port, inet_aton("$ip"));
-    eval {
-        local $SIG{ALRM} = sub { die "timed out\n" };
-        alarm(3);
-        $o = connect(SOCK, $sin);
-        alarm(0);
-    };
+  my $sin = sockaddr_in($port, inet_aton("$ip"));
+  eval {
+    local $SIG{ALRM} = sub { die "timed out\n" };
+    alarm(3);
+    $o = connect(SOCK, $sin);
+    alarm(0);
+  };
 
-    return ($o);
+  return ($o);
 }
 
 # a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 < nmap-scan-output
 
 nmap(1) output should be in -oG or -oM format.
@@ -124,7 +124,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
 
 ######################################################################
@@ -133,13 +133,13 @@ HELP
 
 =head1 NAME
 
-ssh_scan.pl - helps map SSH server versions
+ssh-scan - helps map SSH server versions
 
 =head1 SYNOPSIS
 
 Simply pipe in nmap(1) output of the B<-oG> or B<-oM> format:
 
-  # nmap -sS -p 22 -oG - 10.0.0.1/24 | ssh_scan.pl
+  # nmap -sS -p 22 -oG - 10.0.0.1/24 | ssh-scan
   10.0.0.1    example.org    SSH-1.99-OpenSSH_2.9
   ...
 
@@ -162,7 +162,7 @@ socket connection.
 
 =head2 Normal Usage
 
-  $ ssh_scan.pl < nmap-scan-output
+  $ ssh-scan < nmap-scan-output
 
 The nmap output must be in the B<-oG> or B<-oM> format, and is
 accepted on STDIN.  All results are written to STDOUT.
@@ -210,12 +210,12 @@ Socket code contributed by Michael Hornung, hornung@u.washington.edu.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =head1 VERSION
 
 $Id$
 
 =cut
+
