@@ -21,6 +21,7 @@ my $suffix_re   = qr/\./;
 
 use XML::ApplyXSLT ();
 my $xapply = XML::ApplyXSLT->new;
+$xapply->config_libxml( { load_ext_dtd => 0 } );
 
 # TODO load from file?
 my %defaults = ( class => 'eolas', quiet => 1 );
@@ -32,6 +33,27 @@ my %defaults = ( class => 'eolas', quiet => 1 );
 use Getopt::Std;
 my %opts;
 getopts 'h?', \%opts;
+
+# TODO need preferences file format for these
+my @rules = (
+  {
+    subject  => 'filename',
+    operator => 'eq',
+    value    => 'foo',
+    action   => 'ignore',
+  },
+  {
+    subject  => 'rootname',
+    operator => 'eq',
+    value    => 'eolas',
+    action   => 'stop',
+    defaults => {
+      class => 'eolas',
+      style => 'default',
+      path  => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl'
+    }
+  },
+);
 
 print_help() if $opts{'h'} or $opts{'?'} or not @ARGV;
 
@@ -49,20 +71,31 @@ FILE: for my $file (@ARGV) {
       'warning',
       'could not parse file',
       { file => $file, errno => $xapply->errorstring }
-    ) unless exists $defaults{'quiet'};
+     )
+     unless exists $defaults{'quiet'};
     next FILE;
   }
 
   $filedata{'filename'} = $file;
   $filedata{'dirname'}  = dirname $file;
-  $filedata{'suffixes'} = [ get_suffixes($file) ];
+  $filedata{'suffix'}   = [ get_suffixes($file) ];
 
   # TODO only load docheaders details if needed by rules??
-  my $docdata = $xapply->docheaders;
+  %filedata = ( %filedata, %{ $xapply->docheaders } );
 
-  # TODO figure out how to handle file in question...
+  my ( $result, $rule_defaults ) = parse_rules( \%filedata );
+  next FILE unless $result;
+
+  # TODO also layer on user-supplied prefs here
+  $xapply->config( { %defaults, %$rule_defaults } );
+
   use Data::Dumper;
-  warn Dumper \%filedata, $docdata;
+  warn Dumper $xapply->config;
+
+  # TODO single file to stdout, (unless -i), multiple files requires -i ??
+  my ( $docref, $details ) = $xapply->transform;
+  die $xapply->errorstring unless defined $docref;
+  print $$docref, "\n";
 }
 
 # given filename such as "foo.zip" or "bar.tar.gz" returns list of
@@ -82,6 +115,49 @@ sub get_suffixes {
     push @suffixes, "@portions[$i..$#portions]"
   }
   return @suffixes;
+}
+
+sub parse_rules {
+  my $subject = shift;
+  my %defaults;
+
+  # presumably this will live in some subroutine...
+ RULE: for my $rule (@rules) {
+    my $topic = $rule->{subject};
+
+    next RULE unless exists $subject->{$topic} and defined $subject->{$topic};
+
+    my $match = 0;
+
+    # TODO support array refs, which need to be looped on
+    if ( $rule->{operator} eq 'eq' ) {
+      $match = 1 if $subject->{$topic} eq $rule->{value};
+    } elsif ( $rule->{operator} eq 'sub' ) {
+      $match = 1 if -1 < index $subject->{$topic}, $rule->{value};
+    } else {
+      warn "error: unknown operator for rule number ...\n";
+      next RULE;
+    }
+
+    $match = $match ? 0 : 1 if exists $rule->{negate};
+    next RULE unless $match;
+
+    return 0 if $rule->{action} eq 'ignore';
+
+    use Data::Dumper;
+    warn Dumper $rule;
+
+    # sticky defaults, so can set "path" or somesuch early on in a
+    # general rule for ".xml" file suffixes
+    %defaults = ( %defaults, %{ $rule->{defaults} } )
+     if exists $rule->{defaults};
+
+    return 1, \%defaults if $rule->{action} eq 'stop';
+  }
+
+  # oops, dropped off end of ruleset without being handled
+  # default to "do not handle" in such case
+  return;
 }
 
 # TODO need this??
