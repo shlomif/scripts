@@ -1,0 +1,74 @@
+#!/usr/bin/perl -w
+use strict;
+
+# supposed to mark filehandles, so would have to dick around with
+# converting whatever the XML is in into utf8 or something...
+# (this avoids a 'Wide character in ...' warning)
+no warnings 'utf8';
+
+# figure out where document lives
+use URI;
+my $target = URI->new(shift);
+my $file;
+
+# XPath query to search document for
+my $query = shift || die "usage: $0 document xpath-expression\n";
+
+# get document into filehandle
+# TODO URL lookup needs more error checking
+if ($target->scheme) {
+  use File::Temp;
+  $file = (
+    File::Temp::tempfile(
+      "xquery.XXXXXX",
+      DIR    => File::Spec->tmpdir,
+      UNLINK => 1
+    )
+  )[1];
+
+  use LWP::UserAgent;
+  my $ua = LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 30);
+  $ua->agent($ENV{http_agent}) if exists $ENV{http_agent};
+  my $response = $ua->get($target->canonical, ':content_file' => $file);
+} else {
+  $file = $target->canonical;
+}
+
+use XML::LibXML;
+my $parser = XML::LibXML->new;
+# try to allow for crummy *ML documents
+$parser->recover(1);
+$parser->load_ext_dtd(0);
+$parser->expand_entities(0);
+$parser->complete_attributes(0);
+
+my $doc;
+eval { $doc = $parser->parse_file($file); };
+
+# TODO need better way to detect if HTML, File::MMagic calls my XML
+# documents text/html :(
+if ($@) {
+  eval { $doc = $parser->parse_html_file($file); };
+  if ($@) {
+    die "error: failure parsing $file: $@\n";
+  }
+}
+
+# search resulting tree with XPath
+use XML::LibXML::XPathContext;
+my $xc = XML::LibXML::XPathContext->new($doc);
+
+# TODO this shows text of result, may want means of styling it with XSLT
+# in some cases?
+my $result = $xc->findvalue($query);
+print $xc->findvalue($query), "\n" if $result;
+
+#my $nodelist = $xc->find($query);
+#for my $node ($nodelist->get_nodelist) {
+#  use Data::Dumper; print Dumper $node;
+#  use XML::LibXML;
+#  my $doc = XML::LibXML::Document->createDocument();
+#  $doc->setDocumentElement($node);
+#  my $results = $stylesheet->transform($doc);
+#  print $stylesheet->output_string($results);
+#}
