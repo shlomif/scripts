@@ -35,6 +35,8 @@ getopts('h?p:s:d:f:u:g:v', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
+$verbose  = 1 if exists $opts{'v'};
+
 # read in other arguments with error checking
 if (exists $opts{'d'}) {
     $dirmode  = $opts{'d'};
@@ -57,8 +59,6 @@ if (exists $opts{'g'}) {
     # extract more info on the group they gave us
     ($groupid, $members)  = (getgrnam $group)[2,3] or die 'no such group: ', $group, "\n";
 }
-
-$verbose  = 1 if exists $opts{'v'};
 
 # read from STDIN if no args left
 chomp(@ARGV = <STDIN>) unless @ARGV;
@@ -183,8 +183,9 @@ sub zapit {
     # need to merge in the userid change into here as well..
     if ((defined $groupid && $groupid != $cur_gid) || (defined $userid && $userid != $cur_uid)) {
 	# set what to change what to, depending :)
-	my $uid_temp = $userid  || $cur_uid;
-	my $gid_temp = $groupid || $cur_gid;
+	# || alternation doesn't work as 0 (root's id) fails test!
+	my $uid_temp = (defined $userid)  ? $userid  : $cur_uid;
+	my $gid_temp = (defined $groupid) ? $groupid : $cur_gid;
 	
 	# yak if verbose
 	print 'OLD', "\t", $cur_uid, "\t", $cur_gid, "\t", $File::Find::name, "\n" if $verbose;
@@ -235,6 +236,11 @@ HELP
 __END__
 
 $Log$
+Revision 1.11  2000/04/12 19:20:48  jmates
+Moved $verbose setting earlier in script to aid debugging.
+
+Fixed bug where root's userid of zero failed $new || $original tests in the owernship changing area.
+
 Revision 1.10  2000/02/16 22:03:44  jmates
 Improved getpwnam code by removing uneeded undef's (scalar context works fine here).
 
