@@ -181,6 +181,9 @@ sub do_dist {
   die "not enough buckets\n" unless @$bref > 1;
   die "too many buckets\n" if @$bref >= @$array;
 
+  # TODO fix this algo for boundary cases
+  # TODO support for different output modes (counts, literal
+  # values in each bucket, percents of total)
   my $i     = 0;
   my $count = 0;
   for my $j (0 .. $#{@$array}) {
