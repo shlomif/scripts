@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+#
+######################################################################
+#
+# epoch2date.pl v.1.0b (May 25, 1999)
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# Given an epoch time, will return the human-readable date that the
+# number represents.  Uses localtime().
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+
+use POSIX qw(strftime);
+
+die "usage: epoch2date epoch [epoch2 .. epochN]\n" unless @ARGV;
+
+  for my $thingy (@ARGV) {
+    ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) =
+     localtime($thingy);
+
+    $month = (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)[$mon];
+    $dayofweek = (Sun, Mon, Tue, Wed, Thu, Fri, Sat)[$wday];
+
+    $mon++;
+
+    print "Epoch time of $thingy is:\n";
+    print
+"  Date: $month $mday, $year at $hour:$min:$sec  ($month is number $mon)\n";
+    print "  $dayofweek, the $yday day of the year.\n";
+  }
