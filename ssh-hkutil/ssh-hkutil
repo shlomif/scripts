@@ -81,8 +81,19 @@ sub resolve_host_keys {
 sub print_known_hosts {
   my $hkd = shift;
 
-  for my $hkr ( sort { $a->{'hosts'}->[0] cmp $b->{'hosts'}->[0] } @$hkd ) {
-    my $host_spec = join ',', @{ $hkr->{'hosts'} };
+  # sort by first hostname, then by key type
+  for my $hkr (
+    sort {
+          $a->{'hosts'}->[0] cmp $b->{'hosts'}->[0]
+       || $a->{'key_type'} cmp $b->{'key_type'}
+    } @$hkd
+   ) {
+
+    # remove duplicate hosts
+    my %hosts;
+    my $host_spec = join ',',
+     map { $hosts{$_}++ ? $_ : () } @{ $hkr->{'hosts'} };
+
     print join( ' ', $host_spec, $hkr->{'key_type'}, $hkr->{'public_key'} ),
      "\n";
   }
@@ -198,6 +209,8 @@ C<~/.ssh/known_hosts>:
   $ ssh-keyscan -t rsa,dsa -f ~/.ssh/known_hosts | \
     ssh-hkutil ~/.ssh/known_hosts - > updated_host_keys
 
+See L<"EXAMPLES"> for more examples.
+
 =head1 DESCRIPTION
 
 =head2 Overview
@@ -253,6 +266,22 @@ separate record.
 
 =back
 
+=head1 EXAMPLES
+
+To cleanup an existing known_hosts file, try the following to see what
+changes are made without altering the existing data:
+
+  $ ssh-hkutil known_hosts > sorted
+  $ ssh-hkutil -m known_hosts > cleaned
+  $ ssh-hkutil -M known_hosts > expanded
+  $ wc -l known_hosts sorted expanded cleaned
+  $ diff sorted cleaned | less -S
+
+If the cleaned file looks good, replace the current known_hosts:
+
+  $ mv cleaned known_hosts
+  $ rm sorted expanded
+
 =head1 BUGS
 
 =head2 Reporting Bugs
@@ -286,3 +315,4 @@ public domain.
   $Id$
 
 =cut
+
