@@ -7,19 +7,15 @@
 #
 # Maintains OpenSSH known_hosts data.
 #
-# TODO in-place edit support (via -i switch like perl -i) on
-# known_hosts file.
-#
-# TODO alternate output format, e.g. to show changes done. This would
-# allow easy ssh-keyscan runs over time to track/notify on host key
-# changes.
+# TODO in-place edit support (via -i switch like perl -i) on the
+# known_hosts file?
 
 use strict;
 use Fatal qw(open close);
 
 use Getopt::Std;
 my %opts;
-getopts 'h?mM', \%opts;
+getopts 'h?mMv', \%opts;
 
 print_help() if $opts{'h'} or $opts{'?'};
 
@@ -58,24 +54,52 @@ sub resolve_host_keys {
     my $hkr = $hkd->[$i];
 
     for my $host ( @{ $hkr->{'hosts'} } ) {
-      $hostmap{"$hkr->{'key_type'} $host"} = $i;
+      $hostmap{"$hkr->{'type'} $host"}      = $i;
+      $keymap{"$host $hkr->{'public_key'}"} = $i;
     }
   }
 
-  my %delete;
+  my ( %delete, @delete );
   for my $hkr (@$ehkd) {
     for my $host ( @{ $hkr->{'hosts'} } ) {
-      if ( exists $hostmap{"$hkr->{'key_type'} $host"} ) {
-        $delete{ $hostmap{"$hkr->{'key_type'} $host"} } = 1;
+      if ( exists $hostmap{"$hkr->{'type'} $host"}
+        and not exists $keymap{"$host $hkr->{'public_key'}"} ) {
+        $delete{ $hostmap{"$hkr->{'type'} $host"} } = 1;
       }
     }
   }
-  delete @{$hkd}[ keys %delete ];
-  @$hkd = grep defined, @$hkd;
 
-  push @$hkd, @$ehkd;
+  my @host_keys;
+  for my $i ( 0 .. $#$hkd ) {
+    my $hkr = $hkd->[$i];
+    if ( $delete{$i} ) {
+      push @delete, $hkr if $opts{'v'};
+    } else {
+      push @host_keys, $hkr;
+    }
+  }
 
-  return $hkd;
+  if ( $opts{'v'} ) {
+    my $dhkd = merge_host_keys( \@delete );
+    for my $hkr (@$dhkd) {
+      local $" = ',';
+      warn "notice: key deleted: ",
+       join( ', ', "type=$hkr->{'type'}", "hosts=@{$hkr->{'hosts'}}" ), "\n";
+    }
+  }
+
+  $ehkd = merge_host_keys($ehkd);
+  for my $hkr (@$ehkd) {
+    unless ( exists $keymap{"$hkr->{'hosts'}->[0] $hkr->{'public_key'}"} ) {
+      push @host_keys, $hkr;
+      local $" = ',';
+      warn "notice: key added: ",
+       join( ', ', "type=$hkr->{'type'}", "hosts=@{$hkr->{'hosts'}}" ), "\n"
+       if $opts{'v'};
+    }
+  }
+
+  return \@host_keys;
 }
 
 sub print_known_hosts {
@@ -85,11 +109,11 @@ sub print_known_hosts {
   for my $hkr (
     sort {
           $a->{'hosts'}->[0] cmp $b->{'hosts'}->[0]
-       || $a->{'key_type'} cmp $b->{'key_type'}
+       || $a->{'type'} cmp $b->{'type'}
     } @$hkd
    ) {
 
-    my $host_spec = join ',', clean_hosts(@{ $hkr->{'hosts'} });
+    my $host_spec = join ',', clean_hosts( @{ $hkr->{'hosts'} } );
 
     # KLUGE sanity check for missing host I saw once...
     if ( not $host_spec or $host_spec eq '' ) {
@@ -100,8 +124,7 @@ sub print_known_hosts {
       next;
     }
 
-    print join( ' ', $host_spec, $hkr->{'key_type'}, $hkr->{'public_key'} ),
-     "\n";
+    print join( ' ', $host_spec, $hkr->{'type'}, $hkr->{'public_key'} ), "\n";
   }
 }
 
@@ -125,16 +148,16 @@ sub merge_host_keys {
   my ( %keys2hosts, @host_keys );
 
   for my $hkr (@$hkd) {
-    push @{ $keys2hosts{"$hkr->{key_type} $hkr->{public_key}"} },
+    push @{ $keys2hosts{"$hkr->{type} $hkr->{public_key}"} },
      @{ $hkr->{'hosts'} };
   }
 
   for my $key ( keys %keys2hosts ) {
-    my ( $key_type, $public_key ) = split ' ', $key, 2;
-    my @hosts = clean_hosts(@{ $keys2hosts{$key} });
+    my ( $type, $public_key ) = split ' ', $key, 2;
+    my @hosts = clean_hosts( @{ $keys2hosts{$key} } );
     push @host_keys,
      {
-      key_type   => $key_type,
+      type       => $type,
       public_key => $public_key,
       hosts      => \@hosts
      };
@@ -154,14 +177,14 @@ sub parse_known_hosts {
     while (<$what>) {
       next if /^#/;
       chomp;
-      my ( $host_spec, $key_type, $public_key ) = split ' ', $_, 3;
-      next unless $host_spec and $key_type and $public_key;
+      my ( $host_spec, $type, $public_key ) = split ' ', $_, 3;
+      next unless $host_spec and $type and $public_key;
 
-      my @hosts = clean_hosts(split ',', $host_spec);
+      my @hosts = clean_hosts( split ',', $host_spec );
 
       push @host_keys,
        {
-        key_type   => $key_type,
+        type       => $type,
         public_key => $public_key,
         hosts      => \@hosts,
         line       => $.
@@ -176,7 +199,7 @@ sub parse_known_hosts {
 
 # remove duplicates and maintain order among hosts
 sub clean_hosts {
-  my @hosts = @_;
+  my @hosts  = @_;
   my %unique = ();
 
   for my $host (@hosts) {
@@ -201,6 +224,8 @@ Options:
          keys are supplied).
 
   -M     Unmerged host key records; one record per host or address.
+
+  -v     Verbose mode. Shows key deletes and additions.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -287,23 +312,33 @@ the B<-M> option is used to keep the keys unmerged.
 Performs the opposite of B<-m>, such that each host or address is a
 separate record.
 
+=item B<-v>
+
+Verbose mode. Shows key deletions and additions.
+
 =back
 
 =head1 EXAMPLES
 
-To cleanup an existing known_hosts file, try the following to see what
-changes are made without altering the existing data:
+To cleanup an existing C<known_hosts> file, try the following to see
+what changes are made without altering the existing data:
 
   $ ssh-hkutil known_hosts > sorted
   $ ssh-hkutil -m known_hosts > cleaned
-  $ ssh-hkutil -M known_hosts > expanded
-  $ wc -l known_hosts sorted expanded cleaned
+  $ wc -l known_hosts sorted cleaned
   $ diff sorted cleaned | less -S
 
 If the cleaned file looks good, replace the current known_hosts:
 
   $ mv cleaned known_hosts
-  $ rm sorted expanded
+  $ rm sorted
+
+The unmerge option B<-M> allows easy single line deletion of offending
+host keys, for example with vi(1):
+
+  $ ssh-hkutil -M known_hosts > tmp
+  $ vi tmp
+  $ ssh-hkutil -m tmp > known_hosts
 
 =head1 BUGS
 
@@ -338,3 +373,4 @@ public domain.
   $Id$
 
 =cut
+
