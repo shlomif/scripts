@@ -215,7 +215,8 @@ existing known hosts:
 Or just update the known host keys based on the contents of
 C<~/.ssh/known_hosts>:
 
-  $ ssh-keyscan -t rsa,dsa -f ~/.ssh/known_hosts | \
+  $ awk '{print $1}' ~/.ssh/known_hosts | \
+    ssh-keyscan -t rsa,dsa -f ~/.ssh/known_hosts | \
     ssh-hkutil ~/.ssh/known_hosts - > updated_host_keys
 
 See L<"EXAMPLES"> for more examples.
@@ -324,4 +325,3 @@ public domain.
   $Id$
 
 =cut
-
