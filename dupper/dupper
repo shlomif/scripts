@@ -129,10 +129,8 @@ sub parsedir {
 	    
 	    # either add new checksum to hash, or delete the duplicate file
 	    if (exists $check{$sum} && exists $opts{'u'}) {
-		# need an interactive mode, or at least a report mode!!
-		warn "unlink ", $pti, "\n" if $verbose;
-		warn '  due to: ', $check{$sum}->[0], "\n" if $verbose; #DBG
-
+		# show unlink statement, plus the file this one is dup'ing
+		warn "unlink ", $pti, "\t(", $check{$sum}->[0], ")\n" if $verbose;
 		unless (unlink $pti) {
 		    warn 'Problem unlinking ', $pti, 
 		    ' (dup ', $check{$sum}->[0], '): ', $!, "\n";
@@ -206,11 +204,14 @@ Options:
   -q     Chat no more.  Overrides -v, suppresses reporting.
 
   -u     Attempt to unlink any duplicates found past first.
-         (Default is not to unlink anything!)
+         (Default is not to unlink anything, just report.  Files
+         are added least-depth first by order of sort().)
 
   -l     Local mode only, script does not recurse into subdirs.
+
   -g     Make checksums apply across all directories on command line.
-  -z     Overrides g; makes %check only apply on a per-dir basis.
+  -z     Overrides g; limits scope of checksums to only other files in
+         the same directory.
 
   -s xx  Perl expression that will result in the current file (stored in \$_)
          being skipped if the expression turns out to be "true."  Example:
