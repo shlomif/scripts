@@ -53,7 +53,7 @@ unless (exists $actions{$verb}) {
 }
 
 if ($verb eq 'list-servers') {
-  print join ("\n", sort keys %$servers, keys %$aliases), "\n";
+  print join("\n", sort keys %$servers, keys %$aliases), "\n";
   exit;
 }
 
@@ -233,7 +233,7 @@ sub pb_put {
      LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 17);
 
     my %postargs = map {
-      (defined $prefs->{$_} and $prefs->{$_} ne '')
+         (defined $prefs->{$_} and $prefs->{$_} ne '')
        ? ($_ => $prefs->{$_})
        : ()
     } qw(channel nick summary);
@@ -253,7 +253,7 @@ sub pb_put {
         } else {
           my $p = HTML::TokeParser->new(\$response->content);
 
-          # look for paste URL, print for user
+          # print first URL on rash assumption is a link to paste content
           $p->get_tag('a');
           print $p->get_text('/a'), "\n";
         }
