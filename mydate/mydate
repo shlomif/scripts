@@ -12,11 +12,6 @@ DOTIME=no
 DOTIME_ZONE=no
 QUERY=
 
-if [ "$1" = "rpm" ]; then
-  date '+%a %b %m %Y'
-  exit
-fi
-
 # process arguments
 OPT=
 while getopts dtz OPT; do
@@ -33,6 +28,16 @@ while getopts dtz OPT; do
   esac
 done
 shift $(($OPTIND - 1))
+
+# custom arguments for custom formats
+if [ "$1" = "rpm" ]; then
+  date '+%a %b %m %Y'
+  exit
+fi
+if [ "$1" = "dns" ]; then
+  date '+%Y%m%d'
+  exit
+fi
 
 # form up query specification for date(1) command
 if test $DODATE = yes ; then
