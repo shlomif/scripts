@@ -91,7 +91,7 @@ sub gen_checksum {
 # a generic help blarb
 sub print_help {
   print <<"HELP";
-Usage: $0 [options] [files]
+Usage: $0 [options] [file-or-directory ..]
 
 Detects and deals with duplicate files.
 
@@ -118,17 +118,21 @@ To get a list of duplicate files in a particular directory:
 
 =head2 Overview
 
-Script to find (and optionally remove) duplicate files in one or more
-directories. Duplicates are spotted though the use of SHA1 checksums.
+Finds duplicate files in one or more input files and directories.
+Duplicates are matched though the use of SHA1 checksums; files are pre-
+indexed by size for speed: checksums are only done when multiple files
+share the same file size.
+
+Handling for duplicates has yet to be written in this release.
 
 =head2 Normal Usage
 
-  $ dupper [options] [dir1 dir2 .. dirN]
+  $ dupper [options] [file-or-directory ..]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-A list of directories to operate on should be specified on the command
-line. Failing that, the script will attempt to read directories from
+A list of files and directories to operate on should be specified on the
+command line. Failing that, the script will attempt to read data from
 standard input.
 
 =head1 OPTIONS
@@ -141,66 +145,7 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
-=item B<-v>
-
-Verbose mode, a little bit more chatty.
-
-=item B<-q>
-
-Quiet mode, overrides verbose mode, turns off reporting.
-
-=item B<-u>
-
-Attempt to unlink any duplicates past the first. Default is just to
-report the duplicate files. Files are added least-depth first by order
-of sort(). In other words, be sure you are deleting the right thing.
-
-=item B<-l>
-
-Local-only mode; script will not recurse into subdirectories of any
-directories passed to the script.
-
-=item B<-g>
-
-Make checksums apply across all directories on the command line. Default
-is to treat the various directories supplied to the program as their own
-separate realms.
-
-=item B<-z>
-
-Overrides B<-g>. Limits the scope of checksums to only other files in
-the exact same local directory as one another. Much tighter than the
-default scope.
-
-=item B<-s> I<expression>
-
-Perl expression that will result in the current file (stored in $_)
-being skipped if the expression turns out to be "true." Example:
-
-  -s 'm/^\\.rsrc\$/ || -z \$pti || -s \$pti > 1048576'
-
-Would skip the checksum on files named '.rsrc', or files that are empty
-via the B<-z> is-empty test, or files larger than a megabyte.
-
-=item B<-p> I<expression>
-
-Perl expression that will result in the current directory (stored in $_)
-being pruned out of the tree. Like config dirs, for example:
-
-  -p 'm/etc/'
-
-Both B<-s> and B<-p> have access to the filename in $_, and can find the
-full filepath in the variable $pti. (Short for "path to item" in case
-you were wondering.)
-
 =back
-
-=head1 EXAMPLES
-
-To remove duplicate files under a web area via cron, skipping html
-documents, matching only in local directories, and being very quiet:
-
-  21 6 * * * dupper -uqzs 'm/\.html$/' /www/example/images
 
 =head1 BUGS
 
@@ -212,17 +157,6 @@ http://sial.org/code/perl/
 
 If the bug is in the latest version, send a report to the author.
 Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-Need to first index files by size somehow, so can speed the SHA1
-operations to just cases where the files are of identical sizes: no
-files of different size will ever be the same.
-
-=head1 TODO
-
-Change out the hackish manual directory recurser with
-L<File::Find|File::Find>.
 
 =head1 SEE ALSO
 
@@ -248,4 +182,3 @@ public domain.
 Utilities
 
 =cut
-
