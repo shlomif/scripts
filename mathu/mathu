@@ -16,6 +16,7 @@ my %ability = (
   max     => {handle => \&handle_max,},
   min     => {handle => \&handle_min,},
   basic   => {handle => \&handle_basic,},
+  dist    => {handle => \&handle_distribution,},
 );
 
 # how to format output numbers with printf
@@ -79,11 +80,10 @@ sub handle_percent {
 }
 
 sub handle_max {
-  my $result;
+  my $result = 0;
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
-    $result ||= $_;
     $result = $_ if $_ > $result;
   }
   $result = numbertidy($result) if $result =~ /\./;
@@ -91,11 +91,10 @@ sub handle_max {
 }
 
 sub handle_min {
-  my $result;
+  my $result = 0;
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
-    $result ||= $_;
     $result = $_ if $_ < $result;
   }
   $result = numbertidy($result) if $result =~ /\./;
@@ -105,25 +104,111 @@ sub handle_min {
 sub handle_basic {
   my @array;
   my %results;
+  $results{min} = $results{max} = 0;
 
   while (<STDIN>) {
     chomp;
     next if $_ eq '';
     $results{sum} += $_;
-    $results{min} ||= $_;
     $results{min} = $_ if $_ < $results{min};
-    $results{max} ||= $_;
     $results{max} = $_ if $_ > $results{max};
     push @array, $_;
   }
   $results{count} = $.;
-  $results{mean} = mean(\@array, $results{sum});
-  $results{sdev} = standard_deviation(\@array, $results{mean});
+  $results{mean}  = mean(\@array, $results{sum});
+  $results{sdev}  = standard_deviation(\@array, $results{mean});
 
   print map {
     $_ . " "
      . ($results{$_} =~ /\./ ? numbertidy($results{$_}) : $results{$_}) . "\n"
   } sort keys %results;
+}
+
+sub handle_distribution {
+  my @array;
+  my %results;
+
+  my $way = shift @ARGV;
+
+  $results{min} = $results{max} = 0;
+
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq '';
+    $results{min} = $_ if $_ < $results{min};
+    $results{max} = $_ if $_ > $results{max};
+    push @array, $_;
+  }
+
+  @array = sort { $a <=> $b } @array;
+
+  if ($way =~ /^b=?(\d*)/) {
+    my $bucket = $1 || 2;
+    $bucket = $#array if $bucket > $#array;
+    my $diff     = $results{max} - $results{min};
+    my $interval = $diff / $bucket;
+    my @buckets  = map { $results{min} + $interval * $_ } 1 .. $bucket;
+    do_dist(\@array, \@buckets);
+
+  } elsif ($way =~ /^d=?(\d[\d:]*)?/) {
+    my $bucket = $1;
+    my @buckets;
+    if ($bucket) {
+      my %seen;
+      @buckets = sort { $a <=> $b } grep {
+            defined
+         && /^\d+$/
+         && $_ >= $results{min}
+         && $_ <= $results{max}
+         && not $seen{$_}++
+      } split /:/, $1;
+    }
+
+    unless (@buckets) {
+      my $diff = $results{max} - $results{min};
+      push @buckets, $results{min} + $diff / 2;
+    }
+
+    push @buckets, $results{max} unless $buckets[-1] == $results{max};
+    do_dist(\@array, \@buckets);
+  }
+}
+
+sub do_dist {
+  my $array = shift;
+  my $bref  = shift;
+
+  die "not enough buckets\n" unless @$bref > 1;
+  die "too many buckets\n" if @$bref >= @$array;
+
+  my $i     = 0;
+  my $count = 0;
+  for my $j (0 .. $#{@$array}) {
+    my $v = $array->[$j];
+
+    # print "CUR: ", $v, " at $j and ", $bref->[$i], "\n";
+    if ($v > $bref->[$i]) {
+      dist_print($bref->[$i], $count);
+      $count = 0;
+      $i++;
+      while ($v > $bref->[$i]) {
+
+        #print "EMPTY: ", $v, " at $j and ", $bref->[$i], "\n";
+        dist_print($bref->[$i], $count);
+        $i++;
+      }
+    }
+    $count++;
+  }
+  dist_print($bref->[$i], $count);
+}
+
+sub dist_print {
+  my $bucket = shift;
+  my $count  = shift;
+
+  $bucket =~ s/\.\d+//;
+  print "$bucket $count\n";
 }
 
 sub numbertidy {
