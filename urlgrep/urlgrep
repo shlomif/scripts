@@ -424,9 +424,9 @@ following shell script wrapper.
 
 This allows quick matches of links to forward to others, for example via
 the C<pbcopy> utility on Mac OS X to move the link and text to the
-clipboard, in this case the first found on C<sial.org>.
+clipboard, in this case a random C<http> link from C<memepool.com>.
 
-  $ quoteurl http://www.memepool.com/ | head -1 | pbcopy
+  $ quoteurl http://www.memepool.com/ ^http:// | randline | pbcopy
 
 =item B<MySQL download problems>
 
