@@ -6,3 +6,52 @@
 # public domain.
 #
 # Checks whether domain(s) are wildcard domains.
+
+use Net::DNS;
+my $dns = Net::DNS::Resolver->new;
+
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+for my $input (@ARGV) {
+  my ($domain, $tld) = $input =~ / ([\w-]+ (\.\w+)) \W* $/x;
+
+  die "error: no domain from $input\n" unless $domain;
+  die "error: no TLD form $input\n"    unless $tld;
+
+  my @dom_ip = get_ip_list($dns, $domain);
+  die "error: no addresses for domain $domain\n" unless @dom_ip;
+
+  my $wildcard = '*' . $tld;
+  my @wc_ip    = get_ip_list($dns, $wildcard);
+
+  unless (@wc_ip) {
+    next;
+  }
+  if (@wc_ip == 1 and @dom_ip == 1) {
+    if ($wc_ip[0] eq $dom_ip[0]) {
+      print "$domain wildcard\n";
+    }
+  } else {
+    # TODO figure out list comparison of some sort...
+    print "$domain @dom_ip\n";
+    print "wildcard @wc_ip\n";
+  }
+}
+
+# Accepts Net::DNS::Resolver object and item to lookup for A records,
+# returns undef or list of ip addresses
+sub get_ip_list {
+  my $dns  = shift;
+  my $what = shift;
+
+  my $query = $dns->query($what, 'A');
+  return unless $query;
+
+  my @ips;
+
+  for my $rr ($query->answer) {
+    push @ips, $rr->address if $rr->type eq 'A';
+  }
+
+  return @ips;
+}
