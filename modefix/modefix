@@ -12,7 +12,7 @@
 #
 # REQUIREMENTS
 
-require 5.005;
+require 5;
 
 use strict;
 
@@ -194,7 +194,7 @@ if ($report) {
     # keys are the uid's of bad users
     if (keys %badgroups > 0 && ! $quiet) {
 	print "Users owning files with improper groups:\n";
-	foreach ( keys %badgroups ) {
+	for (keys %badgroups) {
 	    my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
 	    
 	    print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
@@ -206,7 +206,7 @@ if ($report) {
     # and same for the permissions on files
     if (keys %badperms > 0 && ! $quiet) {
 	print "Users owning files with improper permissions:\n";
-	foreach ( keys %badperms ) {
+	for (keys %badperms) {
 	    my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
 	    
 	    print '  ', $name, ':', $_, ':', $gid, ':', $gcos, ':', 
