@@ -1,0 +1,125 @@
+# TODO also need tests to check whether named command works with
+# specification below?  E.g. "is this really gnutar or compatible?"
+name gnutargz
+comment GNU tar with gunzip support (or compatible)
+suffix tar.gz tgz
+exec tar x%{verbose}z%{preserve}%{destopt}f %{dest} %{file} %{wanted}
+verbose v
+preserve p
+destopt C
+
+name gnutargz
+class list
+suffix tar.gz tgz
+exec tar tvzf %{file} %{wanted}
+
+name gnutarbz
+comment GNU tar with bzip support (or compatible)
+suffix tar.bz tar.bz2 tbz
+exec tar x%{verbose}j%{preserve}%{destopt}f %{dest} %{file} %{wanted}
+verbose v
+preserve p
+destopt C
+
+name gnutarbz
+class list
+suffix tar.bz tar.bz2 tbz
+exec tar tvjf %{file} %{wanted}
+
+# TODO need to experiment with -noautoopen (prevents autorun or not??)
+name Apple disk image
+suffix dmg
+exec htiutil mount %{file} %{verbose} %{quiet} -noautoopen
+verbose -verbose
+quiet -quiet
+
+name tar
+suffix tar
+exec tar x%{verbose}%{preserve}f %{file} %{wanted}
+verbose v
+preserve p
+
+name tar
+class list
+exec tar t%{verbose}%{preserve}f %{file} %{wanted}
+
+name gunzip
+suffix gz z
+exec gunzip %{verbose} %{files}
+verbose -v
+
+name bunzip2
+suffix bz2
+exec bunzip2 %{verbose} %{files}
+verbose -v
+
+# TODO need to experiment with verbose, quiet, other uses
+name unzip
+suffix .zip
+exec unzip %{preserve} %{quiet} %{file} %{wanted} %{destopt} %{dest}
+preserve -X
+quiet -q
+destopt -d
+
+name applepkg
+class install
+suffix .pkg
+exec installer %{verbose} -pkg %{file} %{destopt} %{dest}
+verbose -verbose
+destopt -target
+
+name pax
+suffix pax
+exec pax -r -f %{file}
+verbose -v
+preserve -p e
+
+name pax
+class list
+suffix pax
+exec pax %{verbose} -f %{file}
+verbose -v
+
+name unstuff
+suffix sit bin hqx *
+comment Stuffit utility available on Mac OS X, expands many formats
+exec unstuff %{quiet} %{files}
+priority 0
+quiet -q
+
+name unstuff
+class list
+exec unstuff --scan %{files}
+
+name uncompress
+suffix .Z
+comment Legacy unix compress support
+exec uncompress %{verbose} %{files}
+verbose -v
+
+name unrpm
+suffix src.rpm rpm
+comment Open RPM with unrpm
+exec unrpm %{files}
+
+# TODO rpm should support %{dest}, lookup how
+name rpm
+class install
+suffix rpm
+priority 0
+comment Install RPM
+exec sudo rpm -U%{verbose} %{files}
+verbose vh
+
+# TODO check verbose, other options?
+name rpm
+class list
+suffix rpm
+comment List contents of RPM
+exec rpm -qlp ${file}
+
+name bom
+class list
+comment List contents of Bill of Materials file
+suffix bom
+exec lsbom %{files}
