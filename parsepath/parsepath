@@ -88,8 +88,8 @@ if (exists $opts{constraint} and not exists $opts{role}) {
 }
 
 # DBG
-#use Data::Dumper;
-#print Dumper \%opts;
+use Data::Dumper;
+print Dumper \%opts;
 
 my @pathbits = File::Spec->splitdir($opts{path});
 die "error: unable to split realpath: $opts{path}" unless @pathbits;
@@ -132,7 +132,8 @@ sub determine_role {
   if ($who =~ /^\d+$/) {
     $function .= $userdata{type} eq 'group' ? 'g' : 'u';
     $function .= 'id';
-    unless ($userdata{name} = eval "$function $who") {
+    $userdata{name} = eval qq{$function("$who")};
+    unless (defined $userdata{name}) {
 
       # TODO figure out how unix deals with [gu]id that does not exist..
       # treat in "other" category??
@@ -142,7 +143,8 @@ sub determine_role {
     $userdata{id} = $who;
   } else {
     $function .= 'nam';
-    unless ($userdata{id} = eval "$function $who") {
+    $userdata{id} = eval qq{$function("$who")};
+    unless (defined $userdata{id}) {
       die "error: could not determine id from $function $who\n";
     }
     $userdata{name} = $who;
