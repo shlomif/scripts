@@ -7,12 +7,69 @@
 #
 # Script to handle opening of various archive formats.
 
-require 5;
 use strict;
+use File::Basename qw(fileparse);
 
-# TODO loop @ARGV, deal with each archive by filename/filecontent match
-# based on possibly env/CLI/or prefs file options for "on this platform,
-# use this tool" maps; maybe also do fallback "tar tvzf" failed, maybe
-# try gzcat sort of things and directory watching to see what got
-# expanded. Also might need option to dip into archive (read it) to
-# check for possible issues (like ../../ attacks and the like)?
+# what to consider as a filename suffix seperator (all OS I've seen use
+# a period, but you never know...)
+my $suffix_char = '.';
+my $suffix_re   = qr/\./;
+
+# TODO read in prefs
+
+# TODO need option to dip into archive (read it) to check for possible
+# security issues (like ../../ attacks and the like)?
+
+die "TODO usage notes\n" unless @ARGV;
+
+for my $file (@ARGV) {
+  # TODO file not existing increases odds it is URL, or bogus...
+  #  unless (-e $file) {
+  #    remark('notice', 'skipping as does not exist', { file => $file });
+  #    next;
+  #  }
+
+  # TODO might also need to consider whether thing passed in is a URL,
+  # in which case it would need to be downloaded first...
+  for my $suffix (get_suffixes($file)) {
+    
+  }
+}
+
+# given filename such as "foo.zip" or "bar.tar.gz" returns list of
+# suffixes, longest first (e.g. qw(zip) or qw(tar.gz gz) for the
+# previous example filenames).
+sub get_suffixes {
+  my $file = shift;
+
+  my @portions = split /$suffix_re/, fileparse($file);
+  return unless @portions > 1;
+
+  return ($portions[-1]) if @portions == 2;
+
+  my @suffixes;
+  local $" = $suffix_char;
+  for my $i ( 1 .. $#portions ) {
+    push @suffixes, "@portions[$i..$#portions]"
+  }
+  return @suffixes;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
