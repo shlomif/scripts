@@ -5,10 +5,16 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Attempts to lock files.
+# Run perldoc(1) on this file for additional documentation.
 #
-# For documentation, use the -h option or run perldoc on this script.
+######################################################################
 #
+# REQUIREMENTS
+
+require 5;
+
+use strict;
+
 ######################################################################
 #
 # MODULES
@@ -18,51 +24,72 @@ use Getopt::Std;
 
 # file locking related modules
 use Fcntl qw(:DEFAULT :flock);
-use IO::Handle;
-
-use strict;
-use vars qw:$VERSION:;
 
 ######################################################################
 #
-# CONSTANTS
+# VARIABLES
 
-my (%opts);
-
+my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts, %locks, $duration);
 
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?z', \%opts);
+getopts('h?wd:', \%opts);
 
-help() if exists($opts{'h'}) || exists($opts{'?'});
+help() if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
-my $logfile = shift;  # filename to lock
+if (exists $opts{d}) {
+  if ($opts{d} =~ /^\d+$/) {
+    $duration = $opts{d};
 
-# attempt lock on named file...
-# open & aquire write lock on the logfile
-open(FD, "+< $logfile") or die "Error opening $logfile: $!\n";
-FD->autoflush(1);
+  } elsif (my @matches = $opts{d} =~ /(\d+\s*[wdhms])/g) {
+    my %factor = (
+      'w' => 604800,
+      'd' => 86400,
+      'h' => 3600,
+      'm' => 60,
+      's' => 1,
+    );
 
-# TODO means to only get a read lock?
-unless (flock(FD, LOCK_EX | LOCK_NB)) {
-  warn "Waiting for write lock on $logfile ...\n";
-  flock(FD, LOCK_EX);
+    $duration = 0;
+    for (@matches) {
+      /(\d+)\s*(\w)/;
+      $duration += $1 * $factor{$2};
+    }
+  } else {
+    die "error: could not parse duration: $opts{d}\n";
+  }
 }
 
-# zap the file if you want to...
-if (exists $opts{'z'}) {
-  seek(FD, 0, 0) or die "Problem seeking $logfile: $!\n";
-  truncate(FD, 0) or die "Problem truncating $logfile: $!\n";
+for (@ARGV) {
+  unless (-f) {
+    warn "notice: $_ is not file, skipping\n";
+    next;
+  }
+
+  if (exists $opts{w}) {
+    sysopen $locks{$_}, $_, O_RDWR or die "error: could not open $_: $!\n";
+    unless (flock $locks{$_}, LOCK_NB | LOCK_EX) {
+      warn "notice: waiting for write lock on $_\n";
+      flock $locks{$_}, LOCK_EX;
+    }
+  } else {
+    sysopen $locks{$_}, $_,O_RDONLY or die "error: could not open $_: $!\n";
+    unless (flock $locks{$_}, LOCK_NB | LOCK_SH) {
+      warn "notice: waiting for read lock on $_\n";
+      flock $locks{$_}, LOCK_SH;
+    }
+  }
 }
 
-sleep 60;
+sleep $duration;
 
-flock(FD, LOCK_UN);
-close(FD);
+exit;
 
 ######################################################################
 #
@@ -71,56 +98,91 @@ close(FD);
 # a generic help blarb
 sub help {
   print <<"HELP";
-$0 v.$VERSION
-Usage: $0 [options] [LOGFILE]
-Purpose: simple file locker.
+Usage: $0 [opts] files
 
 Options:
   -h/-?  Display this message
 
-  -z     Zap the file (empty contents thereof), too.
+  -w     Obtain exclusive write lock (default: read lock)
+  
+  -d dur Delay to hold lock open for
 
-Run perldoc on this script for more documentation.
+Run perldoc(1) on this script for additional documentation.
 
 HELP
   exit;
 }
 
-__END__
+######################################################################
+#
+# DOCUMENTATION
 
 =head1 NAME
 
-lockit - simple file locker.
+lockit - locks files
 
 =head1 SYNOPSIS
 
-Pretty simple, just run:
+Read lock on file:
 
-  $ lockit
+  $ lockit /etc/passwd
+
+Write lock on several:
+
+  $ lockit /etc/passwd /etc/syslog.conf
 
 =head1 DESCRIPTION
 
-Locks files, or gives it a good shot, anyways.
+=head2 Overview
 
-Sleeps for 60 seconds, probably enough for you to test stuff.
+Easy means of applying various locks on a specified file.
 
-=head1 USAGE
+=head2 Normal Usage
 
-  $ lockit [options] LOCKFILE
+  $ lockit [options] files
+
+See L<"OPTIONS"> for details on the command line switches supported.
 
 =head1 OPTIONS
 
-lockit supports the following command line options:
+This script currently supports the following command line switches:
 
--h     Get a brief help blarb
+=over 4
 
--z     Zap the file.
+=item B<-h>, B<-?>
 
-Truncates the file down the 0 bytes.
+Prints a brief usage note.
+
+=item B<-w>
+
+Obtain an exclusive write lock instead of default shared lock.
+
+=item B<-d> I<duration>
+
+Hold locks open for the specified duration.  Duration may either be
+raw seconds (60), or a shorthand format (1m).
+
+=back
 
 =head1 BUGS
 
-Lots, probably.
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 TODO
+
+Remove sleep duration, replace with something that executes a command
+(which could then be 'sleep 60' or something).
 
 =head1 SEE ALSO
 
@@ -128,6 +190,11 @@ flock(2), perl(1)
 
 =head1 AUTHOR
 
-Jeremy Mates, jmates@sial.org
+Jeremy Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
 
 =cut
