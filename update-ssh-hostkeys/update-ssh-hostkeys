@@ -32,7 +32,8 @@ cmp -s $KHF $TMPFILE
 STATUS=$?
 
 if [ $STATUS -eq 1 ]; then
-  mv $TMPFILE $KHF
+  # use cat to preserve permissions cp or mv might fuddle with
+  cat $TMPFILE > $KHF
 elif [ $STATUS -gt 1 ]; then
   echo "error: cmp failed: status=$STATUS" >&2
 fi
