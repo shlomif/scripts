@@ -68,12 +68,6 @@ my %command = (
 #
 # MAIN
 
-# mode (for potential future support of different SSH products)
-my $mode = shift;
-if ($mode ne "openssh") {
-  remark('alert', "mode is not openssh, quitting") and die;
-}
-
 # parse command-line options
 getopts('h?f:l:aiqL', \%opts);
 
@@ -93,7 +87,7 @@ $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
 if ($auth_key_file =~ $auth_key_file_chars) {
   $auth_key_file = $1;
 } else {
-  remark('alert', "Invalid characters in authorized_keys filename") and die;
+  die "Invalid characters in filename.\n";
 }
 
 # open with locking auth_key_file
@@ -367,7 +361,7 @@ sub remark {
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 openssh [opts]
+Usage: $0 [opts]
 
 Command interface to OpenSSH authorized_keys file.
 
@@ -401,7 +395,7 @@ manage-authkeys.pl - command interface to OpenSSH authorized_keys file
 
 Get a listing of keys in the default authorized_keys file:
 
-  $ manage-authkeys.pl openssh -a list
+  $ manage-authkeys.pl -a list
 
 =head1 DESCRIPTION
 
@@ -412,10 +406,7 @@ out of an OpenSSH C<~/.ssh/authorized_keys> file.
 
 =head2 Normal Usage
 
-  $ manage-authkeys.pl openssh [options] [commands]
-
-C<openssh> must be the first argument.  This is for potential future
-support of different SSH products.
+  $ manage-authkeys.pl [options] [commands]
 
 See L<"COMMANDS"> for details on the command syntax.
 
