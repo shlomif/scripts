@@ -21,6 +21,7 @@ my $ctx = Digest::SHA1->new;
 
 use File::Basename;
 use File::Find;
+use Time::Local;
 use YAML ();
 
 use Getopt::Std;
@@ -28,13 +29,7 @@ my %opts;
 getopts 'h?s:w:T', \%opts;
 print_help and exit 1 if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
-my $seen_file;
-if (exists $opts{'s'}) {
-  $seen_file = untaintpath $opts{'s'}
-   or remark 'alert', "could not untaint seen filename"
-   and exit 1;
-}
-
+# sanitize search directories specified
 my @dirs = untaintpath @ARGV;
 remark 'alert', "untaint on search directories failed" and exit 1 unless @dirs;
 remark 'warning',
@@ -43,15 +38,19 @@ remark 'warning',
  . " tainted search directory from argument list"
  if @dirs != @ARGV;
 
-my $window = $^T - duration2seconds $opts{'w'} || '2w';
+# find date ranges for new files to skip (-T "today") or files older
+# than allowed by the -w "window" option
+my $midnight = Time::Local::timelocal(qw(0 0 0), (localtime)[3..5]);
+my $window = ($midnight||$^T) - duration2seconds $opts{'w'} || '2w';
+undef $midnight unless exists $opts{'T'};
 
-# find midnight epoch of today so can skip logs modified more recently
-my $midnight;
-if (exists $opts{'T'}) {
-  require Time::Local;
-  $midnight = Time::Local::timelocal(qw(0 0 0), (localtime)[3..5]);
+# load and prepare seen index
+my $seen_file;
+if (exists $opts{'s'}) {
+  $seen_file = untaintpath $opts{'s'}
+   or remark 'alert', "could not untaint seen filename"
+   and exit 1;
 }
-
 my $seen;
 if ($seen_file and -f $seen_file) {
   $seen = YAML::LoadFile $seen_file;
@@ -62,8 +61,10 @@ if ($seen_file and -f $seen_file) {
   }
 }
 
+# look for files
 find {wanted => \&process, no_chdir => 1}, @dirs;
 
+# update seen index
 YAML::DumpFile $seen_file, $seen if $seen_file;
 
 exit;
@@ -286,15 +287,18 @@ files for the run in question.
 
 =item B<-w> I<duration>
 
-Prevents files older than the script launch time minus I<duration> from
-being considered with SHA1 checksum comparisons against the seen file
+Prevents files older than midnight minus I<duration> from being
+considered with SHA1 checksum comparisons against the seen file
 index. The duraction can either be in raw seconds or a short-hand
 "2m5s" format.
+
+The default is to skip files older than two weeks. Should the script
+fail to calculate midnight, the script launch time will be used.
 
 =itme B<-T>
 
 Skip files modified after midnight (00:00) of current day. Good for
-excluding logfiles still being written to.
+excluding active logfiles, assuming daily rotation.
 
 =back
 
