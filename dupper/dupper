@@ -10,7 +10,7 @@
 #
 # REQUIREMENTS
 
-require 5.005;
+require 5;
 
 use strict;
 
@@ -96,7 +96,7 @@ sub parsedir {
     }
 
     # loop over sorted contents of directory, skipping . and .. specials
-    foreach (sort (readdir (DIR))) {
+    for (sort readdir DIR) {
 	next if /^\.{1,2}$/;
 	my $pti = File::Spec->catfile($dir, $_);
 
@@ -108,19 +108,19 @@ sub parsedir {
 	    if (exists $opts{'s'}) {
 		my $result = eval "return 1 if( " . $opts{'s'} . " );";
 		
-		if($@) {
+		if ($@) {
 		    chomp($@);
 		    die "Skip error: ", $@; # croak on errors
 		}
 		
-		if($result) {
+		if ($result) {
 		    warn "Skipped ", $pti, "\n" if $verbose;
 		    next;
 		}
 	    }
 
 	    # open up file, then hand it off to MD5 module
-	    unless (open (FILE, $pti)) {
+	    unless (open FILE, $pti) {
 		warn 'Problem reading ', $pti, ': ', $!, "\n";
 		next;
 	    }
@@ -130,7 +130,7 @@ sub parsedir {
 	    $dig->addfile(*FILE);
 	    my $sum = $dig->hexdigest;
 
-	    close (FILE);
+	    close FILE;
 	    
 	    # either add new checksum to hash, or delete the duplicate file
 	    if (exists $check{$sum} && exists $opts{'u'}) {
@@ -144,24 +144,24 @@ sub parsedir {
 
 	    # regardless, we add the file to the list of files
 	    # associated with this particular hash
-	    push (@{ $check{$sum} },  $pti);
+	    push @{$check{$sum}},  $pti;
 
 	} elsif (-d $pti) {
             # see whether this dir needs to be pruned from the search
             if (exists $opts{'p'}) {
                 my $results = eval "return 1 if( " . $opts{'p'} . " );";
                 
-                if($@) {
+                if ($@) {
                     chomp($@);
                     die "Prune error: ", $@; # croak on errors
                 }
 
-                if($results) {
+                if ($results) {
 		    warn "Pruned $pti\n" if $verbose;
                     next;
                 }
             }
-	    push(@to_parse, $pti) unless exists $opts{'l'};
+	    push @to_parse, $pti unless exists $opts{'l'};
 	}
     }
 
@@ -170,7 +170,7 @@ sub parsedir {
 
     # before poping up a recursion level, deal with subdirs
     unless (exists $opts{'l'}) {
-	foreach (@to_parse) {
+	for (@to_parse) {
 	    parsedir ($_);
 	}
     }
@@ -245,7 +245,7 @@ To get a list of duplicate files in a particular directory:
 =head2 Overview
 
 Script to find (and optionally remove) duplicate files in one or more
-directories.
+directories.  Duplicates are spotted though the use of MD5 checksums.
 
 =head2 Normal Usage
 
@@ -317,7 +317,8 @@ $_) being pruned out of the tree.  Like config dirs, for example:
   -p 'm/etc/'
 
 Both B<-s> and B<-p> have access to the filename in $_, and can find
-the full filepath in the variable $pti.
+the full filepath in the variable $pti.  (Short for "path to item" in
+case you were wondering.)
 
 =back
 
