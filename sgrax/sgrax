@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Converts arguments into standard input for first argument.
+
+if [ -z "$1" ]; then
+  echo "usage: `basename $0` command standard input ..."
+  exit 1
+fi
+
+COMMAND=$1
+shift
+echo "$@" | $COMMAND
