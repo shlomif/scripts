@@ -22,7 +22,7 @@ my $spec = $specs->{y};
 
 use Getopt::Std;
 my %opts;
-getopts('h?yno:d:', \%opts);
+getopts('h?qyn0o:d:f:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 if (exists $opts{n}) {
@@ -31,8 +31,17 @@ if (exists $opts{n}) {
   $spec = $opts{o};
 }
 
-# TODO how default to reading on \n, otherwise -d otherwise -e ?
+my $output_delim;
+
+# xargs -0 style handling
+$output_delim = $/ = '\0' if exists $opts{0};
+
 $/ = $opts{d} if exists $opts{d};
+$output_delim = (exists $opts{f}) ? $opts{f} : $/;
+
+# escape \'ed things to allow \0 -> null character
+$/ =~ s/(\\.)/qq!"$1"!/eeg;
+$output_delim =~ s/(\\.)/qq!"$1"!/eeg;
 
 my ($last, $lastprinted);
 my $count = 0;
@@ -41,13 +50,14 @@ my $count = 0;
 $| = 1;
 
 while (<>) {
+  chomp;
   $last = $_;
-  my $item = $_;
-  chomp $item;
-  system qw(getraw -o), $spec, "$item";
+  system qw(getraw -o), $spec, "$_";
   if (0 == $? >> 8) {
     $count++;
     $lastprinted = $_;
+
+    print $output_delim unless $count == 1;
     print;
   }
 }
@@ -59,13 +69,15 @@ if (  $count
   and $last ne $lastprinted
   and $last =~ /\n$/
   and $lastprinted !~ /\n$/) {
+
   print "\n";
 }
 
 # TODO only warn if verbose on?  use special exit code to denote
 # nothing printed?
 unless ($count) {
-  die "notice: no lines printed\n";
+  warn "info: no lines printed\n";
+  exit 100;
 }
 
 exit 0;
