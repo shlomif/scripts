@@ -32,7 +32,7 @@ update_cvs () {
 # figure out how to handle the directory in question
 check_dir () {
   if [ ! -d $1 ]; then
-    echo "error: not a directory: $1"
+#    echo "error: not a directory: $1"
     RETURN=1
     return
   fi
