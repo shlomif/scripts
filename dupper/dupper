@@ -19,7 +19,7 @@ use File::Spec ();
 my $digest = Digest::SHA1->new;
 
 my %defaults;
-@defaults{qw(action bydepth showempty)} = qw(list 0 0);
+@defaults{qw(action bydepth)} = qw(list 0);
 
 use Getopt::Std;
 my %opts;
@@ -27,12 +27,17 @@ getopts 'h?dea:', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
-$defaults{action}    = $opts{a} if exists $opts{a};
-$defaults{bydepth}   = 1        if exists $opts{d};
-$defaults{showempty} = 1        if exists $opts{e};
+$defaults{action}  = $opts{a} if exists $opts{a};
+$defaults{bydepth} = 1        if exists $opts{d};
 
 unless ( $defaults{action} =~ m/^ [a-z][A-Za-z0-9_-]{0,31} $/x ) {
   remark( 'error', 'invalid action name' );
+  exit 101;
+}
+my $routine = 'handle_' . $defaults{action};
+unless ( defined &$routine ) {
+  remark( 'error', 'no such handling routine',
+    { action => $defaults{action} } );
   exit 101;
 }
 
@@ -43,34 +48,38 @@ chomp( @ARGV = <STDIN> ) unless @ARGV;
 @ARGV = grep { -d $_ || -f _ } @ARGV;
 print_help() unless @ARGV;
 
-my ( %seen, %duplicates, @empty );
+my ( %seen, %duplicates );
 
 find( { wanted => \&find_dups, no_chdir => 1, bydepth => $defaults{bydepth} },
   @ARGV );
 
 {
   no strict 'refs';
-  my $routine = 'handle_' . $defaults{action};
-  &$routine if defined &$routine;
+  &$routine;
 }
 
 sub handle_list {
-  if ( $defaults{showempty} and @empty ) {
-    print "e @empty\n";
-  }
   for my $key ( keys %duplicates ) {
     next if @{ $duplicates{$key} } < 2;
-    print "d @{ $duplicates{$key} }\n";
+    print "@{ $duplicates{$key} }\n";
   }
 }
 
-# TODO fix and improve
 sub handle_unlink {
   for my $key ( keys %duplicates ) {
     next if @{ $duplicates{$key} } < 2;
-    print 'unlink', join " ",
-     @{ $duplicates{$key} }[ 1 .. $#{ $duplicates{$key} } ];
-     print "\n";
+
+    my $wanted = @{ $duplicates{$key} };
+    my $result = unlink @{ $duplicates{$key} }[ 1 .. $#{ $duplicates{$key} } ];
+
+    if ( $wanted != $result ) {
+      remark(
+        'warning',
+        'not all files unlinked',
+        { expected => $wanted, deleted => $result }
+      );
+    }
+
   }
 }
 
@@ -81,10 +90,7 @@ sub find_dups {
   my $size = -s;
 
   # empty files are a special case: duplicates make no sense for them
-  if ( $size == 0 ) {
-    push @empty, $_ if $defaults{showempty};
-    return;
-  }
+  return if $size == 0;
 
   unless ( exists $seen{$size} ) {
     $seen{$size}->{firsthit} = $_;
