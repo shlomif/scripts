@@ -23,21 +23,10 @@ my $suffix_re   = qr/\./;
 # TODO load from file?
 my %defaults = ( quiet => 1 );
 
-use XML::ApplyXSLT ();
-my $xapply = XML::ApplyXSLT->new;
-$xapply->config_libxml( { load_ext_dtd => 0 } );
-
-# load these "application defaults" from prefs?
-$xapply->config(
-  { path => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl' } );
-
-#my $prefs_file = $ENV{AXPCONF} || '~/.axp/prefs';
-#$prefs_file = tilde_expand($prefs_file);
-#my $data = load_prefs($prefs_file);
-
 use Getopt::Std;
 my %opts;
 getopts 'h?c:s:p:o:', \%opts;
+print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
 my %user_prefs;
 $user_prefs{class} = $opts{c} if exists $opts{c};
@@ -47,50 +36,28 @@ $user_prefs{path}  = $opts{p} if exists $opts{p};
 # TODO read param from user somehow
 my %param = ();
 
-# TODO need preferences file format for these...
-# what about fallback should the requested style not exist, but the
-# default does?
-#
-# TODO alos need to set default action (continue) if not specified to
-# avoid uninit warnings
-my @rules = (
-  {
-    subject  => 'suffix',
-    operator => 'eq',
-    value    => 'xml',
-    action   => 'ignore',
-    negate   => 1
-  },
-  {
-    subject  => 'dirname',
-    operator => 'sub',
-    value    => 'cfm/co/website/htdocs',
-    defaults =>
-     { path => '/home/jmates/cfm/co/website/htdocs/_xs/%{class}/%{style}.xsl' },
-  },
-  {
-    subject  => 'rootname',
-    operator => 'eq',
-    value    => 'eolas',
-    action   => 'stop',
-    defaults => {
-      class => 'eolas',
-      style => 'default',
-    }
-  },
-  {
-    subject  => 'rootname',
-    operator => 'eq',
-    value    => 'changelog',
-    action   => 'stop',
-    defaults => {
-      class => 'cvs2cl',
-      style => 'default',
-    }
-  },
-);
+my $rules_file = tilde_expand( $ENV{AXP_RULES} || '~/.axp/rules' );
+open my $rfh, "< $rules_file"
+ or remark(
+  'error',
+  'cannot load rules file',
+  { file => $rules_file, errno => $! }
+ )
+ and exit 103;
 
-print_help() if $opts{h} or $opts{'?'} or not @ARGV;
+use XML::ApplyXSLT ();
+my $xapply = XML::ApplyXSLT->new(rules => $rfh, prefs =>
+  { path => '/home/jmates/co/sial.org/htdocs/_xs/%{class}/%{style}.xsl' } );
+
+close $rfh;
+
+# TODO way to set these
+$xapply->config_libxml( { load_ext_dtd => 0 } );
+
+# TODO
+#my $prefs_file = $ENV{AXPCONF} || '~/.axp/prefs';
+#$prefs_file = tilde_expand($prefs_file);
+#my $data = load_prefs($prefs_file);
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
@@ -99,9 +66,8 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
-  my %filedata;
-
-  unless ( $xapply->parse($file) ) {
+  my $doc;
+  unless ( $doc = $xapply->parse($file) ) {
     remark(
       'warning',
       'could not parse file',
@@ -111,21 +77,12 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
-  (
-    $filedata{dirname}, $filedata{filename},
-    $filedata{file},    $filedata{suffix}
-  )
-   = filedata($file);
+  my ( $filedata, $rule_prefs ) = $xapply->study( $doc, $file );
 
-  # TODO only load docheaders details if needed by rules?
-  %filedata = ( %filedata, %{ $xapply->docheaders } );
+  %$rule_prefs = ( %$rule_prefs, %user_prefs );
 
-  my ( $result, $rule_prefs ) = parse_rules( \%filedata );
-  next FILE unless $result;
-
-  my %prefs = ( %$rule_prefs, %user_prefs );
-
-  my ( $docref, $details ) = $xapply->transform( {%prefs}, {%param} );
+  my ( $docref, $details ) =
+   $xapply->transform( $doc, prefs => $rule_prefs, param => {} );
   unless ( defined $docref ) {
     remark(
       'error',
@@ -139,7 +96,7 @@ FILE: for my $file (@ARGV) {
   my $output_file;
   if ( exists $opts{o} ) {
     ( $output_file = $opts{o} ) =~
-     s/ %{ (\w+) } / $filedata{$1} || $prefs{$1} || '' /egx;
+     s/ %{ (\w+) } / $filedata->{$1} || $rule_prefs->{$1} || '' /egx;
 
     # TODO use IO::Atomic or something?
     open OUTPUT, "> $output_file"
@@ -164,79 +121,6 @@ FILE: for my $file (@ARGV) {
      )
      and exit 102;
   }
-}
-
-# given filename (or path to file) returns path to file, filename with
-# extension, filename without extension, extension
-#
-# foo.tar.gz -> './', 'foo.tar.gz', 'foo', 'tar.gz'
-sub filedata {
-  my $filename = shift;
-
-  my ( $name, $path, undef ) = fileparse $filename;
-  $path = File::Spec->rel2abs($path);
-
-  # KLUGE strip trailing / from path to avoid // in paths
-  $path =~ s,/+$,,;
-
-  my @portions = split /$suffix_re/, $name;
-  return $path, $name, $portions[0] if @portions == 1;
-
-  local $" = $suffix_char;
-  return $path, $name, $portions[0], "@portions[1..$#portions]";
-}
-
-sub parse_rules {
-  my $subject = shift;
-  my %defaults;
-
-  # presumably this will live in some subroutine...
- RULE: for my $rule (@rules) {
-    my $topic = $rule->{subject};
-
-    next RULE unless exists $subject->{$topic} and defined $subject->{$topic};
-
-    my $match    = 0;
-    my $consider =
-     ref $subject->{$topic} eq 'ARRAY'
-     ? $subject->{$topic}
-     : [ $subject->{$topic} ];
-
-    if ( $rule->{operator} eq 'eq' ) {
-      for my $thingy (@$consider) {
-        if ( $thingy eq $rule->{value} ) {
-          $match = 1;
-          last;
-        }
-      }
-    } elsif ( $rule->{operator} eq 'sub' ) {
-      for my $thingy (@$consider) {
-        if ( -1 < index $thingy, $rule->{value} ) {
-          $match = 1;
-          last;
-        }
-      }
-    } else {
-      warn "error: unknown operator for rule number ...\n";
-      next RULE;
-    }
-
-    $match = $match ? 0 : 1 if exists $rule->{negate};
-    next RULE unless $match;
-
-    return 0 if $rule->{action} eq 'ignore';
-
-    # sticky defaults, so can set "path" or somesuch early on in a
-    # general rule for ".xml" file suffixes
-    %defaults = ( %defaults, %{ $rule->{defaults} } )
-     if exists $rule->{defaults};
-
-    return 1, \%defaults if $rule->{action} eq 'stop';
-  }
-
-  # oops, dropped off end of ruleset without being handled
-  # default to "do not handle" in such case
-  return;
 }
 
 # TODO need this??
@@ -300,7 +184,8 @@ sub pref_finish {
 
 # expands ~username syntax to full home directory path
 sub tilde_expand {
-  for (@_) {
+  my @pathes = @_;
+  for (@pathes) {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
@@ -311,7 +196,7 @@ sub tilde_expand {
         && exit 99;
      }ex;
   }
-  return wantarray ? @_ : "@_";
+  return wantarray ? @pathes : "@pathes";
 }
 
 sub print_help {
