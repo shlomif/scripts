@@ -67,6 +67,8 @@ while (<>) {
   }
 }
 
+die "error: no parseable duration found\n" unless $duration;
+
 print deltatimefmt($duration), "\n";
 
 exit;
