@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Script to handle opening of various archive formats.
+
+require 5;
+use strict;
+
+# TODO loop @ARGV, deal with each archive by filename/filecontent match
+# based on possibly env/CLI/or prefs file options for "on this platform,
+# use this tool" maps; maybe also do fallback "tar tvzf" failed, maybe
+# try gzcat sort of things and directory watching to see what got
+# expanded. Also might need option to dip into archive (read it) to
+# check for possible issues (like ../../ attacks and the like)?
