@@ -50,6 +50,23 @@ if ( exists $opts{c} ) {
   push @directories, load_dir_prefs( \*PREFS );
 }
 
+if (@ARGV) {
+  # read from standard input if - last argument
+  if ( $ARGV[-1] eq '-' ) {
+    pop @ARGV;
+    push @directories, load_dir_prefs( \*STDIN );
+  }
+
+  # KLUGE default dirs on command line to do 'dir *' type searches
+  for (@ARGV) {
+    my @wanted = (
+      { subject => 'subpath', value => '^$',         op => 're' },
+      { subject => 'subpath', value => '^/[^/]+/?$', op => 're' }
+    );
+    push @directories, { parentdir => $_, wanted => \@wanted };
+  }
+}
+
 for my $entry (@directories) {
   rundu( $entry->{parentdir}, $entry->{wanted} );
 }
@@ -309,14 +326,14 @@ sub remark {
 
 sub print_help {
   print <<"HELP";
-Usage: $0 -c configfile [-o outputtemplate] [-d defaults]
+Usage: $0 [-c configfile] [-o outputtemplate] [-d defaults] [dir ..|-]
 
 'du' output parser and reporter
 
 Options:
   -h/-?  Display this message.
 
-  -c xx  Load required configuration file from stated file.
+  -c xx  Load configuration data from stated file.
 
   -o oo  Use custom output template.
 
@@ -339,9 +356,9 @@ diskusage - du output parser and reporter
 
 Run C<diskusage> to report on home directory usage:
 
-  $ diskusage -c ~/.diskusage/prefs
+  $ diskusage ~/
 
-Specify a custom output template:
+Load configuration, specify custom output template:
 
   $ diskusage -c ~/.diskusage/prefs -o '%{humansize} %{path}\n'
 
@@ -354,14 +371,19 @@ certain areas on disk and better output control via a template.
 
 =head2 Normal Usage
 
-  $ diskusage -c configfile [-o outputtemplate] [-d defaults]
+  $ diskusage [-c configfile] [-o outputtemplate] [-d defaults] [dir ..|-]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-The C<du> command will be run on each directory specified in the
-configuration file, and results printed to standard out according to the
-template. The default output format copies that of C<du>, though with
-only a single space between the size and the path.
+The C<du> command will be run on each directory specified on the
+command line or from a configuration file, and results printed to
+standard out according to the output template. The default output
+format copies that of C<du>, though with only a single space between the
+size and the path.
+
+Directory specifications can either be loaded from the B<-c>
+configuration file option, and passed in on standard input if a hyphen
+is the last option on the command line.
 
 To change the C<du> command that is run, set the C<DU_CMD> environment
 variable. Bear in mind this script expects sizes to be reported in
@@ -380,7 +402,7 @@ Prints a brief usage note about the script.
 
 =item B<-c> I<configurationfile>
 
-Load the required configuration data from the specified file.
+Load configuration data from the specified file.
 
 =item B<-o> I<outputtemplate>
 
@@ -401,7 +423,8 @@ parameters for expansion include:
 
 =item B<-d> I<defaults>
 
-Specify additional defaults to be used in the output template. For instance, this allows the hostname to be added to the output.
+Specify additional defaults to be used in the output template. For
+instance, this allows the hostname to be added to the output.
 
   $ diskusage -c /etc/diskusage/prefs -d hostname=`hostname` \
     -o '%{hostname}:%{path} %{size} %{epoch}\n'
@@ -410,15 +433,15 @@ Specify additional defaults to be used in the output template. For instance, thi
 
 =head1 CONFIGURATION
 
-The required configuration file currently consists of one or more lines
-that list a required directory on disk to scan, followed by optional
+The configuration file currently consists of one or more lines that
+list a required directory on disk to scan, followed by optional
 subpath expressions to report on. Blank and commented lines will be
 ignored. Currently, the subpath expressions are either converted to
-regular expressions, or used directly as regular expressions. To specify
-a regular expression, ensure the string begins with C<^> or ends with
-C<$>. Otherwise, these will be added by the script, and any C<*>
-replaced with something that matches all directories under the current
-one.
+regular expressions, or used directly as regular expressions. To
+specify a regular expression, ensure the string begins with C<^> or
+ends with C<$>. Otherwise, these will be added by the script, and any
+C<*> replaced with something that matches all directories under the
+current one.
 
   # scan home partition, report on all user directories therein
   /home *
@@ -430,7 +453,8 @@ one.
   # expression example (to encourage use of the simple glob)
   /usr "^/[aeiou][^/]+/?$"
 
-By default, the total size used by each parent directory will be reported.
+By default, the total size used by each parent directory will be
+reported.
 
 =head1 BUGS
 
