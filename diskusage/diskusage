@@ -20,9 +20,14 @@ my $du_re = qr/^(\d+) \s+ (\S+)/ox;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?c:o:d:', \%opts;
+getopts 'h?xc:o:d:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'};
+
+# KLUGE pass through on -x "one filesystem" option to du
+if (exists $opts{x}) {
+  push @du_cmd, '-x';
+}
 
 my $output_tmpl = '%{size} %{path}\n';
 $output_tmpl = $opts{o} if exists $opts{o};
@@ -339,6 +344,8 @@ Options:
 
   -d dd  Specify additional default key=value pairs for output template.
 
+  -x     File system mount points are not traversed.
+
 Run perldoc(1) on this script for additional documentation.
 
 HELP
@@ -428,6 +435,10 @@ instance, this allows the hostname to be added to the output.
 
   $ diskusage -c /etc/diskusage/prefs -d hostname=`hostname` \
     -o '%{hostname}:%{path} %{size} %{epoch}\n'
+
+=item B<-x>
+
+File system mount points are not traversed.
 
 =back
 
