@@ -67,7 +67,7 @@ exec_screen() if not $running or $param{force} or not $state;
 # otherwise, we give up
 remark(
   'error',
-  'existing session attatched elsewhere',
+  'session already attached',
   { session => $param{name} }
  )
  unless exists $opts{q};
@@ -133,7 +133,7 @@ Wrapper for screen(1).
 Options:
   -h/-?  Display this message.
 
-  -f     Force resuming of session, even if attatched elsewhere.
+  -f     Force resuming of session, even if attached elsewhere.
 
   -l     List running screen sessions for autocomplete needs.
 
