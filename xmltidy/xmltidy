@@ -23,6 +23,6 @@ else
 fi
 xmllint --encode utf8 --format $TMPFILE
 
-if [ ! -f $1 ]; then
+if [ $# -eq 0 ]; then
   rm $TMPFILE
 fi
