@@ -1,0 +1,21 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Phone number conversion utility.
+
+use strict;
+
+# so in theory can support different options
+my $method = shift;
+
+# conversion of letters to numbers to input (1-800-foobar -> numeric)
+my %letter2num =
+ qw(a 2 b 2 c 2 d 3 e 3 f 3 g 4 h 4 i 4 j 5 k 5 l 5 m 6 n 6 o 6 p 7 q 7 r 7 s 7 t 8 u 8 v 8 w 9 x 9 y 9 z 9);
+
+while (<>) {
+  s/([A-Za-z])/$letter2num{lc $1}/ge;
+}
