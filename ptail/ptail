@@ -36,7 +36,6 @@ my (%opts, $filename, $file);
 
 # various File::Tail object preferences.  listen much faster than default
 # to emulate tail(1) at expense of more busy wait.
-
 my $maxinterval = 2;
 my $interval = 1;
 my $adjustafter = 1;
@@ -51,9 +50,15 @@ my $expression = "print";
 # MAIN
 
 # parse command-line options
-getopts('h?', \%opts);
+getopts('h?m:i:a:t:r:', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
+
+$maxinterval = $opts{'m'} if exists $opts{'m'} and $opts{'m'} =~ /^\d+$/;
+$interval =  $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
+$adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
+$tail = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
+$reset_tail = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
 
 # filename to tail on and perl expression to apply to each line
 $filename = shift;
@@ -67,6 +72,9 @@ $file = File::Tail->new(
 			tail => $tail,
 			reset_tail => $reset_tail,
 			);
+
+# don't buffer STDOUT soas to interoperate with tee(1) properly
+$| = 1;
 
 # loop forever on file; apply supplied expression to each line
 while (defined($_ = $file->read)) {
@@ -89,7 +97,14 @@ Usage: $0 [opts] file [expression]
 tails a file and applies perl expression to each line
 
 Options for version $VERSION:
-  -h/-?  Display this message
+  -h/-?   Display this message
+
+  -m sec  Check file for updates this often at most.
+  -i sec  Initial sleep period before checking file.
+  -a sec  Times to wait until adjusting check interval.
+
+  -t num  Read num lines from file.  Negative is whole file.
+  -r num  Lines to read after file reset.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -129,8 +144,9 @@ specific lines of interest from a busy logfile.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 The file to watch is required, and the expression defaults to "print"
-to emulate the behaviour of a tail -f.  The expression is built from
-any number of arguments following the file, for greater flexibility.
+to emulate the behaviour of a C<tail -f>.  The expression is built
+from any number of arguments following the file, for greater
+flexibility.  $_ is used to store each line in turn.
 
 =head1 OPTIONS
 
@@ -142,11 +158,45 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
+=item B<-m> I<seconds> (maxinterval)
+
+Check file for updates this often at most.
+
+=item B<-i> I<seconds> (interval)
+
+Initial sleep period before checking file.
+
+=item B<-a> I<seconds> (adjustafter)
+
+Times to wait until adjusting check interval.
+
+=item B<-t> I<number> (tail)
+
+Read num lines from file.  Negative is whole file.
+
+=item B<-r> I<number> (reset_tail)
+
+Lines to read after file reset.
+
 =back
+
+The various command line options that have (somethine) mentioned in
+them refer to the File::Tail new() parameters by the same name.
+See L<File::Tail> for more information on them.
 
 =head1 EXAMPLES
 
-None yet.
+Walk through all of C</var/log/messages> before following the file,
+printing lines pertaining to dhcpd:
+
+  $ ptail.pl -t -1 /var/log/messages 'print if m/ dhcpd/'
+
+Watch for the ip address 10.0.0.1 in C</var/log/system.log>, triming
+the standard syslog leading information, and saving a copy of the data
+to C</tmp/10.log>:
+
+  $ ptail.pl /var/log/system.log 's/^\w{3}\s+\d+ [\d:]+ \w+ //; \
+      print if m/\Q10.0.0.1\E/' | tee /tmp/10.log
 
 =head1 BUGS
 
