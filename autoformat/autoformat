@@ -5,7 +5,13 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Wrapper for Text::Autoformat.
+# Wrapper for Text::Autoformat. Can be called via a vi .exrc entry
+# such as:
+#
+# map f !Gautoformat
+#
+# And then Text::Autoformat options added there after if needed, such as
+# 'right=>72' or similar.
 
 use Text::Autoformat;
 
