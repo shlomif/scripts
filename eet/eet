@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# The author disclaims all copyrights and releases this document into
+# The author disclaims all copyrights and releases this script into
 # the public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
@@ -233,7 +233,7 @@ Jeremy Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-The author disclaims all copyrights and releases this document into the
+The author disclaims all copyrights and releases this script into the
 public domain.
 
 =head1 HISTORY
