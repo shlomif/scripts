@@ -6,6 +6,9 @@
 # A recursive group fixer that parses a directory tree, correcting
 # the group on each file to the default group of the owner.
 #
+# (To fix munged group permissions when certain restores-from-
+# tar fail horribly...)
+#
 # Distributed under the Artistic License:
 # http://www.sial.org/artistic_license.txt
 
@@ -19,7 +22,7 @@ use strict;
 
 # CONSTANTS
 
-my (%opts, $verbose);
+my (%opts, $verbose, %u2g);
 
 # MAIN
 
@@ -37,16 +40,14 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 help() unless @ARGV;
 
 # build a lookup table of user -> default group from passwd file
-while(my ($defuid, undef, $defgid) = getpwent()) {
-    warn "$defuid $defgid\n";
+while(my (undef, undef, $uid, $gid) = getpwent()) {
+    $u2g{$uid} = $gid;
 }
-
-exit;
 
 # loop over the remaining input, looking for dirs and parsing them
 foreach ( @ARGV ) {
     unless (-d $_) {
-        warn "error: $_ not a directory, skipping\n" if $verbose;
+        warn "error: $_ not a directory, skipping\n";
         next;
     }
 
@@ -56,10 +57,15 @@ foreach ( @ARGV ) {
 # SUBROUTINES
 
 sub do_stuff {
-    # get current user/group ids off of item
-    my ($cur_uid, $cur_gid) = (stat)[4,5];
+    # get current user/group ids off of file
+    my ($uid, $gid) = (stat)[4,5];
 
-    
+    print $File::Find::name, "\n" if $verbose;
+
+    if ($gid != $u2g{$uid}) {
+	my $result = chown $uid, $u2g{$uid}, $_;
+	warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
+    }
 }
 
 sub help {
@@ -80,6 +86,11 @@ HELP
 __END__
 
 $Log$
+Revision 1.2  2000/02/09 19:35:21  jmates
+Added getpwent() routine to form a hash of uid -> default group info.
+
+Added chown routine to change the group to the default if needed.
+
 Revision 1.1  2000/02/09 18:19:08  jmates
 Initial work import
 
