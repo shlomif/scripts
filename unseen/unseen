@@ -6,66 +6,84 @@
 # public domain.
 #
 # Lists new (unseen) files found under the specified directories.
+#
+# Run perldoc(1) on this script for additional documentation.
 
-require 5;
 use strict;
-
-sub filedigest;
-sub duration2seconds;
-sub remark;
-sub print_help;
-sub untaintpath;
 
 use Digest::SHA1 ();
 my $ctx = Digest::SHA1->new;
 
-use File::Basename;
-use File::Find;
-use Time::Local;
-use YAML ();
+use File::Basename qw(basename fileparse);
+use File::Find qw(find);
+use Time::Local ();
+use YAML        ();
+
+my $basename = basename $0;
 
 use Getopt::Std;
 my %opts;
 getopts 'h?s:w:T', \%opts;
-print_help and exit 1 if exists $opts{h} or exists $opts{'?'} or not @ARGV;
+print_help() if $opts{h} or $opts{'?'} or not @ARGV or not exists $opts{s};
 
 # sanitize search directories specified
-my @dirs = untaintpath @ARGV;
-remark 'alert', "untaint on search directories failed" and exit 1 unless @dirs;
-remark 'warning',
- "removed "
- . (scalar @ARGV - scalar @dirs)
- . " tainted search directory from argument list"
- if @dirs != @ARGV;
-
-# find date ranges for new files to skip (-T "today") or files older
-# than allowed by the -w "window" option
-my $midnight = Time::Local::timelocal(qw(0 0 0), (localtime)[3 .. 5]);
-my $window = ($midnight || $^T) - duration2seconds $opts{w} || '2w';
-undef $midnight unless exists $opts{T};
+my @dirs = untaintpath(@ARGV);
+unless (@dirs) {
+  remark( 'error', 'no search directories following taint check' );
+  exit 101;
+}
+if ( @dirs != @ARGV ) {
+  remark( 'warning',
+       'removed '
+     . ( scalar @ARGV - scalar @dirs )
+     . ' tainted search directory from argument list' );
+}
 
 # load and prepare seen index
-my $seen_file;
-if (exists $opts{s}) {
-  $seen_file = untaintpath $opts{s}
-   or remark 'alert', "could not untaint seen filename"
-   and exit 1;
+my $seen_file = untaintpath( $opts{s} );
+unless ( defined $seen_file ) {
+  remark( 'error', 'could not untaint seen filename' );
+  exit 102;
 }
-my $seen;
-if ($seen_file and -f $seen_file) {
-  $seen = YAML::LoadFile $seen_file;
 
-  # throw out older entries from seen data
-  for my $key (keys %$seen) {
-    delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
+my $seen = {};
+if ( -f $seen_file ) {
+  eval { $seen = YAML::LoadFile $seen_file; };
+  if ($@) {
+    chomp $@;
+    # TODO YAML dumps errors in YAML, which is non ideal for my "want a
+    # quick something is wrong" message purposes
+    remark(
+      'error',
+      'could not load index',
+      { file => $seen_file, errno => $@ }
+    );
+    exit 105;
   }
 }
 
+# find date ranges for new files to skip (-T "today") or files older
+# than allowed by the -w "window" option
+my $midnight = Time::Local::timelocal( qw(0 0 0), (localtime)[ 3 .. 5 ] );
+my $window = ( $midnight || $^T ) - duration2seconds( $opts{w} || '2w' );
+undef $midnight unless $opts{T};
+
+# throw out older entries from seen data
+for my $key ( keys %$seen ) {
+  delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
+}
+
 # look for files
-find {wanted => \&process, no_chdir => 1}, @dirs;
+find { wanted => \&process, no_chdir => 1 }, @dirs;
 
 # update seen index
-YAML::DumpFile $seen_file, $seen if $seen_file;
+eval { YAML::DumpFile $seen_file, $seen; };
+if ($@) {
+  chomp $@;
+  remark( 'error', 'could not save index',
+    { file => $seen_file, errno => $@ } );
+  exit 106;
+}
 
 exit;
 
@@ -76,7 +94,7 @@ sub process {
   my %filedata;
 
   # skip logfiles outside of processing window by modification time
-  $filedata{mtime} = (stat _)[9];
+  $filedata{mtime} = ( stat _ )[9];
   return if $filedata{mtime} < $window;
 
   # skip files modified today if needed
@@ -85,23 +103,43 @@ sub process {
   }
 
   # untaint filename (paranoia)
-  $filedata{filename} = untaintpath $_
-   or remark 'alert', "could not untaint logfile name: $_"
-   and exit 1;
+  unless ( $filedata{filename} = untaintpath($_) ) {
+    remark( 'error', 'could not untaint filename', { file => $_ } );
+    exit 103;
+  }
 
   # skip files with no digest, or a digest already seen
-  $filedata{digest} = filedigest $filedata{filename};
-  return unless exists $filedata{digest};
-  return if exists $seen->{$filedata{digest}};
+  $filedata{digest} = filedigest( $filedata{filename} );
+
+  unless ( defined $filedata{digest} ) {
+    remark(
+      'notice',
+      'skipping as no checksum',
+      { file => $filedata{filename} }
+    );
+    return;
+  }
+  if ( exists $seen->{ $filedata{digest} } ) {
+    # TODO options to control log verbosity?
+    #    remark(
+    #      'info',
+    #      'skipping as already seen',
+    #      { file => $filedata{filename} }
+    #    );
+    return;
+  }
 
   # various path information for future processing
-  ($filedata{name}, $filedata{parent}) = fileparse $_;
+  #( $filedata{file}, $filedata{dirname} ) = fileparse($_);
 
   # just print full filename
+  # TODO template output for more flexbility?
   print $filedata{filename}, "\n";
 
   # update seen record with selected file data
-  $seen->{$filedata{digest}} = {map { $_ => $filedata{$_} } qw(filename mtime)};
+  # TODO also store tag names for different utilities?
+  $seen->{ $filedata{digest} } =
+   { map { $_ => $filedata{$_} } qw(filename mtime) };
 }
 
 # untaints data, restricts what filenames may contain. Accepts 1 or more
@@ -112,7 +150,7 @@ sub untaintpath {
 
     # limit to allowed characters, skip names with ../.. runs
     m,^([A-Za-z0-9_./-]+)$,;
-    (defined $1 and $1 eq $_) ? (not m{\Q../..}) ? $1 : () : ();
+    ( defined $1 and $1 eq $_ ) ? ( not m{\Q../..} ) ? $1 : () : ();
 
   } @_;
 
@@ -124,7 +162,10 @@ sub untaintpath {
 sub filedigest {
   my $file = shift;
 
-  open FILE, "< $file" or remark 'alert', "problem opening $file: $!" and exit 1;
+  unless ( open FILE, "< $file" ) {
+    remark( 'warning', 'could not open file', { file => $file, errno => $! } );
+    return;
+  }
   binmode FILE;
 
   # b64digest method resets object, so can reuse
@@ -136,19 +177,24 @@ sub filedigest {
 
 # for logging things
 sub remark {
-  my ($facility, $priority, $message);
-  $facility = 'user';
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift || {};
 
-  if (@_ > 1) {
-    $priority = shift;
-    $message  = "@_";
-  } else {
-    $priority = 'info';
-    $message  = "@_";
-  }
   chomp $message;
 
-  warn $priority, ": ", $message, "\n";
+  my $attr_str;
+  if ( keys %$attributes ) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+
+    # escape wacky characters to avoid messing up things
+    $attr_str =~ s/ ( [^[:print:]\t] ) / sprintf "\\%03o", ord $1 /egx;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
 
   return 1;
 }
@@ -168,23 +214,24 @@ sub duration2seconds {
   );
 
   # assume raw seconds for plain number
-  if ($tmpdur =~ m/^\d+$/) {
+  if ( $tmpdur =~ m/^\d+$/ ) {
     $seconds = $tmpdur * 60;
 
-  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+  } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
 
     # match "2m 5s" style input and convert to seconds
-    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
+    while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
       $seconds += $1 * $factor{$2};
     }
   } else {
-    remark 'alert', 'unknown characters in duration';
-    exit 1;
+    remark( 'error', 'unknown characters in duration',
+      { duration => $tmpdur } );
+    exit 104;
   }
 
-  unless (defined $seconds and $seconds =~ m/^\d+$/) {
-    remark 'alert', 'unabled to parse duration';
-    exit 1;
+  unless ( defined $seconds and $seconds =~ m/^\d+$/ ) {
+    remark( 'error', 'unable to parse duration', { duration => $tmpdur } );
+    exit 104;
   }
 
   return $seconds;
@@ -199,7 +246,7 @@ sub BEGIN {
 # a generic help blarb
 sub print_help {
   print <<"HELP";
-Usage: $0 [options] searchdir1 [sd2 .. sdN]
+Usage: $basename [options] [-s seen-index] directory [directory ...]
 
 Lists new (unseen) files under specified directory(-ies).
 
@@ -215,13 +262,10 @@ Options supported:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
+  exit 100;
 }
 
 __END__
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
@@ -230,9 +274,9 @@ unseen - lists unseen files under specified directories
 =head1 SYNOPSIS
 
 List unseen files under /var/log/archive new within the last
-three weeks, using /var/log/archive/seen as seen archive file.
+three weeks, using /var/log/archive.seen as seen archive file.
 
-  $ unseen -w 3w -s /var/log/archive/seen /var/log/archive
+  $ unseen -w 3w -s /var/log/archive.seen /var/log/archive
 
 =head1 DESCRIPTION
 
@@ -257,7 +301,7 @@ the specified search directories.
 
 =head2 Normal Usage
 
-  $ unseen [options] searchdir1 [sd2 .. sdN]
+  $ unseen [options] [-s seen-index] directory [directory ...]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -289,7 +333,7 @@ index. The duraction can either be in raw seconds or a short-hand
 The default is to skip files older than two weeks. Should the script
 fail to calculate midnight, the script launch time will be used.
 
-=itme B<-T>
+=item B<-T>
 
 Skip files modified after midnight (00:00) of current day. Good for
 excluding active logfiles, assuming daily rotation.
