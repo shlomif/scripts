@@ -515,10 +515,11 @@ same filename suffixes.
   exec uncompress %{verbose} %{file}
   verbose -v
 
-  name unrpm
-  suffix src.rpm rpm
-  comment Open RPM with unrpm
-  exec unrpm %{file}
+  name srcrpm
+  suffix src.rpm
+  comment Install source RPM
+  exec rpm -U%{verbose} %{file}
+  verbose vh
 
   # TODO rpm should support %{dest}, lookup how
   name rpm
