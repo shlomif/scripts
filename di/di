@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
+#
+# Somewhat smart "diff" utility, does CVS diff if relevant, or attempts
+# regular diff if possible.
+
+# should be 0, if errors will be that of last error to occur
+RETURN=0
+
+diff_cvs () {
+  cvs diff $@
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "Bad exit status ($STATUS) from $2 diff on $1" >&2
+    RETURN=$STATUS
+  fi
+}
+
+if [ -d CVS -a -f CVS/Root ]; then
+  diff_cvs $@
+  exit $RETURN
+fi
+
+if [ $# -eq 0 ]; then
+  echo "usage: `basename $0` file1 [file2 .. fileN]"
+  exit 1
+else
+  # TODO improve this to search for "similar" filenames with . or -
+  # extensions, either diff all or list other diff commands to run if
+  # more than one alternative...
+  for file in "$@"; do
+    diff -u $file.orig $file
+  done
+fi
+
+exit $RETURN
