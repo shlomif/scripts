@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # $Id$
 #
@@ -121,8 +121,6 @@ print_machine($machine) if defined $machine;
 sub print_report {
     my ($subject, $from, $folder, $size, $date);
 
-    $^W = 0;			# hide uninitialized value warnings
-
     print "Email report from $oldest to $newest\n\n";
 
     # use format to easily line up everything the way I want...
@@ -225,8 +223,6 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
 # machine-style output format (e.g. easily parsed by a machine)
 sub print_machine {
     my $file_loc = shift;
-
-    $^W = 0;			# hide uninitialized value warnings
 
     # open & aquire write lock on the file_loc
     open (FD, ">$file_loc") or die "Error opening $file_loc: $!\n";
