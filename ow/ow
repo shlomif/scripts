@@ -12,8 +12,17 @@
 
 use URI;
 
+my $default_open = "omniweb-bg";
+
 # what to launch URLs with (but see sub visit below)
-my @open = qw(lynx);
+my %open = (
+  lynx         => [qw(lynx)],
+  links        => [qw(links)],
+  open         => [qw(open)],
+  omniweb      => [qw(open -a OmniWeb)],
+  safari       => [qw(open -a Safari)],
+  'omniweb-bg' => \&open_omniweb_bg,
+);
 
 my %pfiles = (
   shortcuts => '~/.ow/shortcuts',
@@ -23,7 +32,7 @@ my %pfiles = (
 # parse command-line options
 use Getopt::Std;
 my (%opts);
-getopts('dl', \%opts);
+getopts('dlo:T:', \%opts);
 
 for (keys %pfiles) {
   $pfiles{$_} = tilde_expand($pfiles{$_});
@@ -75,6 +84,20 @@ if (exists $opts{d}) {
 }
 
 my $scuts = loadconfig($pfiles{shortcuts});
+
+# for _T_ab completion lookups on hash keys
+if (exists $opts{T}) {
+  if ($opts{T} eq 'open') {
+    print join "\n", sort keys %open;
+  } elsif ($opts{T} eq 'shortcuts') {
+    # need to cut out the "*" and "google@" stuff
+    my %seen;
+    @seen{map { /(\w+)/ } keys %$scuts} = ();
+    print join "\n", sort keys %seen;
+  }
+  print "\n";
+  exit;
+}
 
 if (@ARGV) {
   parse_sc([\@ARGV]);
@@ -159,11 +182,25 @@ sub visit {
     return;
   }
 
-  if ($^O eq 'darwin') {
+  my $method = exists $opts{o} ? $opts{o} : $default_open;
+  die "error: unknown open method: $method\n" unless exists $open{$method};
 
-    # for Mac OS X, use AppleScript to open pages in background, as
-    # open(1) brings to foreground.
-    my $omniweb_open_script = <<EOF;
+  # TODO dispatch table for this
+  if (ref $open{$method} eq 'ARRAY') {
+
+    # TODO error checking
+    system @{$open{$method}}, $url;
+  } else {
+    $open{$method}->($url);
+  }
+}
+
+sub open_omniweb_bg {
+  my $url = shift;
+
+  # for Mac OS X, use AppleScript to open pages in background, as
+  # open(1) brings to foreground.
+  my $omniweb_open_script = <<EOF;
 set new_url to "$url"
 
 tell application "OmniWeb"
@@ -180,21 +217,16 @@ tell application "OmniWeb"
 end tell
 EOF
 
-    # TODO error checking!
-    # TODO better handling of annoying output from osascript
-    close STDOUT;
-    open OSASCRIPT, "|-"
-     or exec 'osascript'
-     or die "problem with osascript: $!";
-    print OSASCRIPT $omniweb_open_script;
-    close OSASCRIPT;
+  # TODO error checking!
+  # TODO better handling of annoying output from osascript
+  close STDOUT;
+  open OSASCRIPT, "|-"
+   or exec 'osascript'
+   or die "problem with osascript: $!";
+  print OSASCRIPT $omniweb_open_script;
+  close OSASCRIPT;
 
-    return;
-  }
-
-  # default means to open URLs
-  # TODO error checking
-  system @open, $url;
+  return;
 }
 
 sub tilde_expand {
