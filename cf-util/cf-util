@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+
+use strict;
+
+my $mode = shift || die "usage: $0 mode [args]\n";
+
+if ($mode eq 'append') {
+  while(<>) {
+    chomp;
+    s/(?<!\\)\\/\\\\/gx;
+    s/(?<!\\)"/\\"/gx;
+    s/(?<=\\\\)"/\\"/gx;
+    print q{Append "} . $_ . qq{"\n};
+  }
+  exit;
+}
