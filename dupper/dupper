@@ -35,7 +35,7 @@ my $dig = new Digest::MD5; # we reset this for each file
 # MAIN
 
 # parse command-line options
-getopts('h?v', \%opts);
+getopts('h?vp:s:', \%opts);
 
 help() if exists($opts{'h'}) || exists($opts{'?'});
 
@@ -49,53 +49,89 @@ help() unless @ARGV;
 
 # loop over arguments which presumably are a bunch of directories
 foreach ( @ARGV ) {
-    if (-d) {
-	unless (opendir (DIR, $_)) {
-	    warn 'Problem reading ', $_, ': ', $!, "\n";
-	    next;
-	}
-
-#	my $parent = $_;
-
-	# loop over sorted contents of directory, skipping . and .. specials
-	foreach (sort (readdir (DIR))) {
-	    next if /^\.{1,2}$/;
-	    next if -l; # skip links.  Links bad. :)
-
-#	    my $loc = File::spec->catfile($parent, $_);
-
-	    # only deal with non-linked files when doing sums
-	    if (-f) {
-		# obtain MD5 sum on this file
-		$dig->new(); # reset checksum object
-
-		open (FILE, $_);
-		$dig->addfile(*FILE);
-		my $sum = $dig->hexdigest;
-		close (FILE);
-
-		# either add new checksum to hash, or delete the duplicate file
-		unless (exists $check{$sum}) {
-		    $check{$sum} = $_;
-		} else {
-		    # need an interactive mode, or at least a report mode!!
-		    warn "unlink $_" if $verbose;
-		    unlink $_ || warn "Problem unlinking $_ (dup of $check{$sum}): $!\n";
-		}
-	    # recurse into directories
-	    } elsif (-d) {
-#		subdir(File::Spec->catdir($parent, $_));
-	    }
-	}
-    }
+    parsedir($_, 0, $_) if -d;
 }
 
 ######################################################################
 #
 # SUBROUTINES
 
-sub subdir {
-    
+sub parsedir {
+    my $dir = shift;
+    my $level = shift;
+    my $previous = shift;
+
+    unless (opendir (DIR, $dir)) {
+	warn 'Problem reading ', $dir, ': ', $!, "\n";
+	return;
+    }
+
+    # loop over sorted contents of directory, skipping . and .. specials
+    foreach (sort (readdir (DIR))) {
+	next if /^\.{1,2}$/;
+	my $pti = File::Spec->catfile($dir, $_);
+
+	next if -l $pti; # skip links. Links bad. :)
+	
+	# only deal with files when doing sums
+	if (-f $pti) {
+	    # first check whether we skip this file
+	    if (exists $opts{'s'}) {
+		my $result = eval "return 1 if( " . $opts{'s'} . " );";
+		
+		if($@) {
+		    chomp($@);
+		    die "Skip error: ", $@; # croak on errors
+		}
+		
+		if($result) {
+		    next;
+		}
+	    }
+
+	    # open up file, then hand it off to MD5 module
+	    unless (open (FILE, $pti)) {
+		warn 'Problem reading ', $pti, ': ', $!, "\n";
+		next;
+	    }
+
+            # reset checksum object, then get new Checksum on file
+	    $dig->new();
+	    $dig->addfile(*FILE);
+	    my $sum = $dig->hexdigest;
+
+	    close (FILE);
+	    
+	    # either add new checksum to hash, or delete the duplicate file
+	    unless (exists $check{$sum}) {
+		$check{$sum} = $pti;
+	    } else {
+		# need an interactive mode, or at least a report mode!!
+		warn "unlink ", $pti, "\n" if $verbose;
+		unless (unlink $pti) {
+		    warn 'Problem unlinking ', $pti, ' (dup ', $check{$sum}, '): ', $!, "\n";
+		}
+	    }
+	} elsif (-d $pti) {
+            # see whether this dir needs to be pruned from the search
+            if (exists $opts{'p'}) {
+                my $results = eval "return 1 if( " . $opts{'p'} . " );";
+                
+                if($@) {
+                    chomp($@);
+                    die "Prune error: ", $@; # croak on errors
+                }
+
+                if($results) {
+		    warn "Pruned $pti\n" if $verbose;
+                    next;
+                }
+            }
+
+	    # recurse
+	    parsedir ($pti, $level + 1, $dir);
+	}
+    }
 }
 
 # a generic help blarb
@@ -108,6 +144,22 @@ Removes duplicate files based on checksum comparison.
 
 Options:
   -h/-?  Display this message
+  -v     Verbose mode, a little bit more chatty.
+
+  -s xx  Perl expression that will result in the current file (stored in \$_)
+         being skipped if the expression turns out to be "true."  Example:
+
+         -s 'm/^\\.rsrc\$/'
+
+         Would skip the checksum on '.rsrc' files.
+
+  -p xx  Perl expression that will result in the current directory (stored in 
+         \$_) being pruned out of the tree.  Like config dirs, for example:
+
+         -p 'm/etc/'
+
+         Both -s and -p expressions should use the shortcut _ operator in
+         any stat() calls to avoid race conditions.
 
 HELP
     exit;
