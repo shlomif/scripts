@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+use Getopt::Declare;
+use Term::ReadKey;
+
+# TODO arguments indicate what to do:
+#
+# -w keys  "want" hitting member of keys accepts whatever
+# -r keys  "require" or "return" hit member + require return?
+#
+# way to say "default to "yes" or "no" for all keys on board?
+# way to say left-side "no" right-side "yes" on keyboard?
+# -m macro definitions read from config file?
+#
+# -a       annoy option: "are you sure?"
+# -p fmt   prompt string to show (default none)
+# -P       A default prompt string?  or read from ENV?
+#
+# probably want an option to prompt or not, plus maybe
+# the prompt question?
+# ability to read prompt from env, for security or ease of use??
+# GETRAW1 - regular prompt if not -p option or from config file
+# GETRAW2 - annoy prompt
+
+$specification = <<SPEC
+
+SPEC
+
+my $args = Getopt::Declare->new($specification);
