@@ -72,7 +72,7 @@ channel #perl
 
 # benchwarmer (backup) pastebot for #perl
 name altperl
-url http://sial.org:8888/
+url http://sial.org/pbot/
 channel #perl
 SERVERDEFAULT
     }
