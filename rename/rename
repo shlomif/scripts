@@ -14,7 +14,9 @@
 
 require 5.005;
 
-use strict;
+# no strict, as this allows for more freedom in the expression
+# creation phase...
+#use strict;
 
 ######################################################################
 #
@@ -126,6 +128,14 @@ HELP
 rename.pl - a spiffy file renamer.
 
 =head1 SYNOPSIS
+
+Append .foo to a bunch of files:
+
+  $ rename.pl 's/$/.foo/' *
+
+Fix the case on all .C files in the current directory:
+
+  $ rename.pl 'tr/A-Z/a-z/' *.C
 
 =head1 DESCRIPTION
 
