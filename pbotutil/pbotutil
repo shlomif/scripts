@@ -308,7 +308,7 @@ sub server_load {
 
   push @tmp, {};
 
-  open FILE, $data->{filename}
+  open FILE, "<$data->{filename}"
    or remark('error', "could not open $data->{filename} for reading: $!")
    and exit 100;
 

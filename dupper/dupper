@@ -120,7 +120,7 @@ sub parsedir {
       }
 
       # open up file, then hand it off to MD5 module
-      unless (open FILE, $pti) {
+      unless (open FILE, "<$pti") {
         warn 'Problem reading ', $pti, ': ', $!, "\n";
         next;
       }

@@ -245,7 +245,7 @@ sub loadconfig {
   my $f = shift;
   my $h;
 
-  open F, $f or die "error: unable to open $f: $!\n";
+  open F, "<$f" or die "error: unable to open $f: $!\n";
   while (<F>) {
     chomp;
     next if /^#/;
