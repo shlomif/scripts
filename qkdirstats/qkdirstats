@@ -1,23 +1,44 @@
 #!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Shows quick directory statistics and other summary information.
+#
+# Run perldoc(1) on this script for additional documentation.
+
 use strict;
+
+my $timeout = 3;
 
 use Cwd qw(getcwd);
 my $pwd = getcwd;
 
+use IO::String ();
+
+use Text::Wrap qw(wrap);
+# TODO could lookup from terminal information?
+$Text::Wrap::columns = 80;
+
+# summary information in global vars
 my %keys;
 my %counts;
 my @overview;
-my $overview_max      = 7;
+my $overview_max      = 7000;
 my $overview_overflow = 0;
+
+my $output_max = 7;
 
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
 
+# directory listing can hang or take far too long, so need timeouts
 eval {
   local $SIG{ALRM} = sub { die "alarm timeout\n" };
-  alarm 7;
+  alarm $timeout;
 
-  # directory listing can hang or take far too long, so need timeouts
   dirdata();
 
   alarm 0;
@@ -39,11 +60,17 @@ sub dirdata {
   while ( $_ = readdir DIR ) {
     next if $_ eq '.' or $_ eq '..';
 
+    my @stat = lstat;
+
     $counts{total}++;
-    if (-f) {
+    if ( -f _ ) {
       $counts{files}++;
     } elsif ( -d _ ) {
       $counts{dirs}++;
+#      $_ .= '/';
+    } elsif ( -l _ ) {
+      $counts{link}++;
+#      $_ .= '@';
     } else {
       $counts{other}++;
     }
@@ -70,17 +97,29 @@ sub dirdata {
 }
 
 sub output {
+  my @metadata = sort keys %keys;
+  #if ($overview_overflow) {
+    push @metadata, map { "$_=$counts{$_}" } sort keys %counts;
+  #}
+
+  my $output = '';
+
+  # TODO this also needs to be wrapped on lines and limited...
+  if (@metadata) {
+    $output = wrap( 'm  ', 'm  ', @metadata ) . "\n";
+  }
+
+  # TODO encode filenames, form into lines, limit number of lines to show...
   if (@overview) {
-    print 'files:  ',
-     join( ' ', sort(@overview), $overview_overflow ? '...' : () ), "\n";
+    $output .=
+     wrap( 'f  ', 'f  ', sort(@overview),
+      $overview_overflow ? '...' : () )
+     . "\n";
   }
 
-  if ($overview_overflow) {
-    print 'counts: ', join( ', ', map { "$_=$counts{$_}" } sort keys %counts ),
-     "\n";
-  }
-
-  if ( keys %keys ) {
-    print 'keys:   ', join( ' ', sort keys %keys ), "\n";
+  my $io = IO::String->new($output);
+  while (<$io>) {
+    print;
+    last if $. >= $output_max;
   }
 }
