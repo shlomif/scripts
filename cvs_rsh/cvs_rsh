@@ -6,7 +6,12 @@
 # the public domain.
 #
 # CVS_RSH wrapper script that allows arguments to the target binary.
+#
+# TODO look into connection sharing in OpenSSH 3.9?
 
-# require non-interactive authuentication methods to prevent things from
-# stalling on a password prompt
-exec /usr/bin/ssh -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic $@
+# Require non-interactive authuentication methods to prevent things from
+# stalling on a password prompt. Also disable agent, X11, other
+# forwards.
+exec /usr/bin/ssh -a -x \
+  -o ClearAllForwardings=yes \
+  -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic $@
