@@ -16,14 +16,20 @@ my $ctx = Digest::SHA1->new;
 
 use File::Basename qw(basename fileparse);
 use File::Find qw(find);
+use File::Spec  ();
 use Time::Local ();
-use YAML        ();
+
+# TODO replace with DB File or SQL for efficiency?
+use YAML ();
+
+my $suffix_char = '.';
+my $suffix_re   = qr/(?<!^)\./;
 
 my $basename = basename $0;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?s:w:T', \%opts;
+getopts 'h?Ts:w:t:i:o:', \%opts;
 print_help() if $opts{h} or $opts{'?'} or not @ARGV or not exists $opts{s};
 
 # sanitize search directories specified
@@ -46,6 +52,7 @@ unless ( defined $seen_file ) {
   exit 102;
 }
 
+# TODO replace with DB File or SQL?
 my $seen = {};
 if ( -f $seen_file ) {
   eval { $seen = YAML::LoadFile $seen_file; };
@@ -73,10 +80,37 @@ for my $key ( keys %$seen ) {
   delete $seen->{$key} if $seen->{$key}->{mtime} < $window;
 }
 
+# read in tags to use
+my @tags = qw(default);
+if ( exists $opts{t} ) {
+  @tags = $opts{t} =~ m/ ([\w.-]+) /gx;
+}
+
+# and how to build the index (default: only off digest)
+my %index = qw(digest 1);
+if ( exists $opts{i} ) {
+  %index = ();
+
+  my @keys = $opts{i} =~ m/ ([\w.-]+) /gx;
+  @index{@keys} = (1) x @keys;
+
+  # if tags, add to index automagically
+  $index{tag} = 1 if exists $opts{t};
+}
+
+# output template, with expansion of '\n' to literal char
+my $output_tmpl = '%{dirname}/%{filename}\n';
+$output_tmpl = '%{tag} %{dirname}/%{filename}\n' if exists $opts{t};
+if ( exists $opts{o} ) {
+  $output_tmpl = $opts{o};
+}
+$output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
+
 # look for files
 find { wanted => \&process, no_chdir => 1 }, @dirs;
 
 # update seen index
+# TODO replace with DB File or SQL?
 eval { YAML::DumpFile $seen_file, $seen; };
 if ($@) {
   chomp $@;
@@ -103,43 +137,41 @@ sub process {
   }
 
   # untaint filename (paranoia)
-  unless ( $filedata{filename} = untaintpath($_) ) {
+  my $filename = untaintpath($_);
+  unless ( defined $filename ) {
     remark( 'error', 'could not untaint filename', { file => $_ } );
     exit 103;
   }
 
-  # skip files with no digest, or a digest already seen
-  $filedata{digest} = filedigest( $filedata{filename} );
+  # calculate various data from filename
+  %filedata = ( %filedata, %{ filedata($filename) } );
 
-  unless ( defined $filedata{digest} ) {
-    remark(
-      'notice',
-      'skipping as no checksum',
-      { file => $filedata{filename} }
-    );
-    return;
-  }
-  if ( exists $seen->{ $filedata{digest} } ) {
-    # TODO options to control log verbosity?
-    #    remark(
-    #      'info',
-    #      'skipping as already seen',
-    #      { file => $filedata{filename} }
-    #    );
-    return;
+  if ( exists $index{digest} ) {
+    $filedata{digest} = filedigest($filename);
+    unless ( defined $filedata{digest} ) {
+      remark( 'notice', 'skipping as no checksum', { file => $filename } );
+      return;
+    }
   }
 
-  # various path information for future processing
-  #( $filedata{file}, $filedata{dirname} ) = fileparse($_);
+  # filename duplicate supression on output; any duplicates in output
+  # will be due to different files having the same output such as when
+  # the output template excludes the file filename or digest information
+  my %printed;
 
-  # just print full filename
-  # TODO template output for more flexbility?
-  print $filedata{filename}, "\n";
+  for my $tag (@tags) {
+    $filedata{tag}   = $tag;
+    $filedata{index} = join '.', map { $filedata{$_} || '' } sort keys %index;
 
-  # update seen record with selected file data
-  # TODO also store tag names for different utilities?
-  $seen->{ $filedata{digest} } =
-   { map { $_ => $filedata{$_} } qw(filename mtime) };
+    next if exists $seen->{ $filedata{index} };
+
+    ( my $output = $output_tmpl ) =~ s/ %{ (\w+) } / $filedata{$1} || '' /egx;
+    print $output unless exists $printed{$output};
+    $printed{$output} = 1;
+
+    # TODO replace with DB File or SQL for efficiency?
+    $seen->{ $filedata{index} } = $filename;
+  }
 }
 
 # untaints data, restricts what filenames may contain. Accepts 1 or more
@@ -173,6 +205,29 @@ sub filedigest {
 
   close FILE;
   return $digest;
+}
+
+# parses out various file information such as the dirname, filename,
+# file name without suffix, suffix. Used by rules to figure out what to
+# do with a particular file.
+sub filedata {
+  my $filename = shift;
+
+  my %filedata;
+
+  ( $filedata{filename}, $filedata{dirname}, undef ) = fileparse $filename;
+
+  $filedata{dirname} = File::Spec->rel2abs( $filedata{dirname} );
+  # KLUGE strip trailing / from path to avoid // in paths
+  $filedata{dirname} =~ s,/+$,,;
+
+  my @portions = split /$suffix_re/, $filedata{filename};
+  $filedata{file} = $portions[0];
+  if ( @portions > 1 ) {
+    local $" = $suffix_char;
+    $filedata{suffix} = "@portions[1..$#portions]";
+  }
+  return \%filedata;
 }
 
 # for logging things
@@ -246,18 +301,22 @@ sub BEGIN {
 # a generic help blarb
 sub print_help {
   print <<"HELP";
-Usage: $basename [options] [-s seen-index] directory [directory ...]
+Usage: $basename [options] -s seen-index directory [directory ...]
 
 Lists new (unseen) files under specified directory(-ies).
 
 Options supported:
-
   -h/-?  Display this message.
 
   -s ss  Path to list of previously seen filenames index.
 
   -w dd  Window inside which files will be considered against index.
   -T     Skip files modified today.
+
+  -t tt  Custom tags to optionally add to index calculation.
+  -i ii  File data to base index on.
+
+  -o oo  Custom output template.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -273,8 +332,8 @@ unseen - lists unseen files under specified directories
 
 =head1 SYNOPSIS
 
-List unseen files under /var/log/archive new within the last
-three weeks, using /var/log/archive.seen as seen archive file.
+List unseen files under /var/log/archive new within the last three
+weeks, using /var/log/archive.seen as the seen archive file.
 
   $ unseen -w 3w -s /var/log/archive.seen /var/log/archive
 
@@ -282,22 +341,27 @@ three weeks, using /var/log/archive.seen as seen archive file.
 
 =head2 Overview
 
-For listing unseen files under directory trees. Written to handle case
-of finding unprocessed logfiles (limited numbers of files) under log
-directories for passing to swatch and other utilities.
+For listing unseen files under directory trees. Written to handle
+case of finding unprocessed logfiles (limited numbers of files) under
+log directories for passing to log processing utilities such as
+swatch or logwatch.
 
-Files are recorded as seen with aid of a seen file, which is indexed
-by the SHA1 digest of the file contents. A processing window option
-configures how far back in time the script is allowed to report on,
-to keep the index file and SHA1 digest generation needs from growing
+Files are recorded as seen with aid of a seen file, which is indexed by
+default using the SHA1 digest of the file contents. A processing window
+option configures how far back in time the script is allowed to report
+on, to keep the index file and SHA1 digest generation needs from growing
 over time.
 
-As a consequence of the SHA1 digest, the script will list both files
-that are new to the search directory, or ones that have been modified
-since the previous run of the script.
+As a consequence of the default SHA1 digest index, the script will list
+both files that are new to the search directory, or ones that have been
+modified since the previous run of the script. However, a list of file
+data terms to index off of may be specified, such as the filename or the
+file modification time, in the event that SHA1 digests are not needed or
+are too slow for the application in question.
 
-Without the seen index file, the script will always list all files under
-the specified search directories.
+This script currently will not be efficient for large numbers of files,
+due to use of SHA1 digest and storing the index in memory and on file
+with YAML.
 
 =head2 Normal Usage
 
@@ -307,6 +371,15 @@ See L<"OPTIONS"> for details on the command line switches supported.
 
 Either a single or multiple search directories can be specified;
 directories will be searched recursively for regular files.
+
+Standard output will contain a list of unseen files, in a format based
+on the output template in use. Output will not be duplicated on a per-
+file basis.
+
+Errors will be printed to standard error; the script will exit with a
+non-zero exit code if something is wrong outside of the file indexing
+loop, and will issue warnings and attempt to continue running if there
+are problems inside the file indexing loop.
 
 =head1 OPTIONS
 
@@ -338,6 +411,57 @@ fail to calculate midnight, the script launch time will be used.
 Skip files modified after midnight (00:00) of current day. Good for
 excluding active logfiles, assuming daily rotation.
 
+=item B<-t> I<tags>
+
+Specify custom tags. Use these to support different log analysis
+programs, such that each program has a different tag. This way, a new
+analysis program can be added by specifying a new tag, resulting in
+analysis of prior unseen files by the new program. If new programs need
+not be run over the past files, then do not use the tag option.
+
+Tags are current word characters, plus hypens and periods. They may be
+delimited with any other character, such as commas or spaces, though
+need to be specified as a single unit as far as the shell is concerned,
+if relevant.
+
+  -t swatch-mail,swatch-messages,logwatch
+
+=item B<-i> I<index fields>
+
+Specify what fields should be used to construct the unique key for each
+file. The default index is C<digest>, which is the SHA1 digest
+algorithm, along with the tag name if the B<-t> option is being used.
+For speed, and where the filenames are static, use the filename plus the
+file modification time.
+
+  -i dirname,filename,mtime
+
+Using the B<-t> tag option will always add the C<tag> field to the list.
+Currently available fields include:
+
+  digest     SHA1 digest algorithm
+  dirname    Directory containing file
+  file       Filename without suffix, if any
+  filename   Full filename
+  mtime      File modification time
+  suffix     Filename suffix, if any
+  tag        Added automatically by -t option
+
+=item B<-o> I<output template>
+
+Specify a custom template for the display of what files have not been
+seen. By default, the output template is C<%{dirname}/%{filename}\n>, or
+C<%{tag} %{dirname}/%{filename}\n> with the B<-t> tag option set. As an
+example, an output template that separates the directory name, and
+includes the file digest and modification time:
+
+  -t '%{tag} %{dirname} %{filename} %{digest} %{mtime}\n'
+
+The template uses the same fields that are available to the B<-i> index
+fields option. Backslashed characters such as C<\n> will be converted to
+their literal equivalent, such as a newline. Some form of a newline or
+other delimiter at the end of the custom template is highly advised.
+
 =back
 
 =head1 SECURITY
@@ -358,11 +482,16 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known bugs.
+Index file is in YAML, which is loaded into memory. Keeping track of
+large numbers of files will thus be inefficient. One possible solution
+would be to move the index to use a database such as SQLite or DB File.
+
+Search for C<TODO> statements in the source for areas known to
+need work.
 
 =head1 SEE ALSO
 
-perl(1)
+perl(1), Digest::SHA1, YAML
 
 =head1 AUTHOR
 
