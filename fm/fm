@@ -32,7 +32,8 @@ use vars qw:$VERSION:;
 # CONSTANTS
 
 my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year, $backup,
-    @data, %folders, %folder_sizes, $oldest, $newest);
+    @data, %folders, %folder_sizes, $oldest, $newest, 
+    $total_messages, $total_size);
 
 # where to look for the procmailrc...
 $procmailrc = $ENV{'HOME'} . '/.procmailrc';
@@ -99,7 +100,18 @@ $folders{$_}, $_, $folder_sizes{$_}
 	write;
     }
 
-print "\n";
+#print "\n";
+
+# hack to get a "footer" for the above summary including totals...
+format_name         STDOUT "FOOTER";
+
+format FOOTER =
+----------------------------------------------------------------------
+@>>>>                                                     @>>>>>>>>>>>
+$total_messages, $total_size
+
+.
+    write;
 
 # select new format style
 format_name         STDOUT "MESSAGE";
@@ -193,6 +205,10 @@ sub parse_logfile {
 
 	    # and also amount of data gone to specific destinations
 	    $folder_sizes{$1} += $2;
+
+	    # and some totals for fun
+	    $total_messages++;
+	    $total_size += $2;
 	}
     }
 
