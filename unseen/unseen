@@ -25,7 +25,7 @@ use YAML ();
 
 use Getopt::Std;
 my %opts;
-getopts 'h?s:w:', \%opts;
+getopts 'h?s:w:T', \%opts;
 print_help and exit 1 if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
 my $seen_file;
@@ -44,6 +44,13 @@ remark 'warning',
  if @dirs != @ARGV;
 
 my $window = $^T - duration2seconds $opts{'w'} || '2w';
+
+# find midnight epoch of today so can skip logs modified more recently
+my $midnight;
+if (exists $opts{'T'}) {
+  require Time::Local;
+  $midnight = Time::Local::timelocal(qw(0 0 0), (localtime)[3..5]);
+}
 
 my $seen;
 if ($seen_file and -f $seen_file) {
@@ -70,6 +77,11 @@ sub process {
   # skip logfiles outside of processing window by modification time
   $filedata{mtime} = (stat _)[9];
   return if $filedata{mtime} < $window;
+
+  # skip files modified today if needed
+  if ($midnight) {
+    return if $filedata{mtime} > $midnight;
+  }
 
   # untaint filename (paranoia)
   $filedata{filename} = untaintpath $_
@@ -203,6 +215,7 @@ Options supported:
   -s ss  Path to list of previously seen filenames index.
 
   -w dd  Window inside which files will be considered against index.
+  -T     Skip files modified today.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -277,6 +290,11 @@ Prevents files older than the script launch time minus I<duration> from
 being considered with SHA1 checksum comparisons against the seen file
 index. The duraction can either be in raw seconds or a short-hand
 "2m5s" format.
+
+=itme B<-T>
+
+Skip files modified after midnight (00:00) of current day. Good for
+excluding logfiles still being written to.
 
 =back
 
