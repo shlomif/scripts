@@ -406,7 +406,6 @@ sub parse_aliases {
 
 # expands ~username syntax to full home directory path
 sub tilde_expand {
-  my @tmp;
   for (@_) {
     s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
