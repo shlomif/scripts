@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# 'du' output parser and recorder for tracking disk usage over time.
+
+# TODO load these from prefs for portability
+my @du_cmd = qw(du -k);
+my $du_re = qr/^(\d+) \s+ (\S+)/ox;
+
+my $parentdir = shift || die "TODO usage notes";
+$parentdir =~ s, /+$ ,,x;
+
+open FROMDU,      '-|'
+ or exec @du_cmd, $parentdir
+ or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
+ and exit 101;
+
+while (<FROMDU>) {
+  my %duinfo = ( parentdir => $parentdir );
+  unless ( ( $duinfo{size}, $duinfo{path} ) = m/$du_re/ ) {
+
+    # this should never be hit, unless output format of du changes
+    remark(
+      'error',
+      'invalid output from du',
+      { line => $., dir => $parentdir }
+    );
+    exit 102;
+  }
+
+  my $offset = index $duinfo{path}, $parentdir;
+  if ( $offset > -1 ) {
+    $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
+  }
+
+  use Data::Dumper;
+  warn Dumper \%duinfo;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
