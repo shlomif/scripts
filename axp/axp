@@ -11,12 +11,23 @@
 
 use strict;
 
-# TODO load from file?
-my %defaults = ( class => 'eolas' );
+use File::Basename qw(basename dirname fileparse);
+my $basename = basename $0;
 
-my $prefs_file = $ENV{'OSMCONF'} || '~/.axp/prefs';
-$prefs_file = tilde_expand($prefs_file);
-my $data = load_prefs($prefs_file);
+# what to consider as a filename suffix seperator (all OS I've seen use
+# a period, but you never know...)
+my $suffix_char = '.';
+my $suffix_re   = qr/\./;
+
+use XML::ApplyXSLT ();
+my $xapply = XML::ApplyXSLT->new;
+
+# TODO load from file?
+my %defaults = ( class => 'eolas', quiet => 1 );
+
+#my $prefs_file = $ENV{'AXPCONF'} || '~/.axp/prefs';
+#$prefs_file = tilde_expand($prefs_file);
+#my $data = load_prefs($prefs_file);
 
 use Getopt::Std;
 my %opts;
@@ -31,8 +42,27 @@ FILE: for my $file (@ARGV) {
     next FILE;
   }
 
-# might need, if have handling on .xml vs. .svg
-#  for my $suffix ( get_suffixes($file), '*' ) {
+  my %filedata;
+
+  unless ( $xapply->parse($file) ) {
+    remark(
+      'warning',
+      'could not parse file',
+      { file => $file, errno => $xapply->errorstring }
+    ) unless exists $defaults{'quiet'};
+    next FILE;
+  }
+
+  $filedata{'filename'} = $file;
+  $filedata{'dirname'}  = dirname $file;
+  $filedata{'suffixes'} = [ get_suffixes($file) ];
+
+  # TODO only load docheaders details if needed by rules??
+  my $docdata = $xapply->docheaders;
+
+  # TODO figure out how to handle file in question...
+  use Data::Dumper;
+  warn Dumper \%filedata, $docdata;
 }
 
 # given filename such as "foo.zip" or "bar.tar.gz" returns list of
@@ -131,7 +161,7 @@ sub tilde_expand {
 
 sub print_help {
   print <<"HELP";
-Usage: $0 [options] file [file2 ...]
+Usage: $basename [options] file [file2 ...]
 
 Applies XSLT styleseets to XML data.
 
