@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # $Id$
 #
@@ -14,7 +14,8 @@
 
 require 5;
 
-use strict;
+#use strict;			# disabled to allow more flexible
+                                # expression composition
 
 ######################################################################
 #
@@ -45,12 +46,15 @@ my $reset_tail = -1;
 # default to just printing input
 my $expression = "print";
 
+# commands to be executed before entring the loop
+my $preop = "";
+
 ######################################################################
 #
 # MAIN
 
 # parse command-line options
-getopts('h?m:i:a:t:r:', \%opts);
+getopts('h?m:i:a:t:r:p:', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'} or not @ARGV;
 
@@ -59,6 +63,8 @@ $interval =  $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
 $adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
 $tail = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
 $reset_tail = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+
+$preop = $opts{'p'} if exists $opts{'p'};
 
 # filename to tail on and perl expression to apply to each line
 $filename = shift;
@@ -76,11 +82,15 @@ $file = File::Tail->new(
 # don't buffer STDOUT soas to interoperate with tee(1) properly
 $| = 1;
 
+# handle anything that needs to be done first
+eval $preop;
+die 'Preop failed: ', $@, if $@;
+
 # loop forever on file; apply supplied expression to each line
 while (defined($_ = $file->read)) {
     eval $expression;
 
-    die $@ if $@;
+    die 'Expression error: ', $@ if $@;
 }
 
 exit;
@@ -98,6 +108,8 @@ tails a file and applies perl expression to each line
 
 Options for version $VERSION:
   -h/-?   Display this message
+
+  -p exp  Code to be executed before entering loop.
 
   -m sec  Check file for updates this often at most.
   -i sec  Initial sleep period before checking file.
@@ -159,6 +171,11 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note about the script.
+
+=item B<-p> I<expression>
+
+Perl expression to be executed before entering the loop on the file.
+Use to perform any initial one-time operations one might need.
 
 =item B<-m> I<seconds> (maxinterval)
 
