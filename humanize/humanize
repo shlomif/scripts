@@ -60,7 +60,7 @@ my %format = (
 $base = 1;
 
 # default to working on runs of 4 or more digits
-$regex = '(\d{4,})';
+$regex = '(-?\d{4,})';
 
 ######################################################################
 #
@@ -109,6 +109,7 @@ sub humanize {
     my $count = 0;
     my $prefix = '';
     my $tmp = '';
+    my $orig_len = length $num;
 
     # handle negatives
     if ($num < 0 ) {
@@ -147,8 +148,10 @@ sub humanize {
 	$tmp =~ s/\.0$// unless $format{'decimal_zero'};
     }
     
-    # return number with proper style applied
-    return $prefix . $tmp . $format{'suffix'}->[$count];
+    # return number with proper style applied and leading whitespace
+    # for proper right-justification
+    $tmp = $prefix . $tmp . $format{'suffix'}->[$count];
+    return (' ' x ($orig_len - length $tmp)) . $tmp;
 }
 
 # a generic help blarb
@@ -162,9 +165,9 @@ Options for version $VERSION:
   -h/-?  Display this message
 
   -b nn  Integer to offset incoming data by.
-  -k     Default incoming data to Kilobtyes. (Default is bytes)
+  -k     Default incoming data to Kilobtyes.  Default is bytes.
 
-  -m rr  Regex to match what to operate on. (Default is \\d{4,})
+  -m rr  Regex to match what to operate on.  Default is $regex.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -199,8 +202,8 @@ While certain utilities now support humanized output internally, not
 all systems have those utilities.  Hence, this perl script is intended
 to fill that gap util more utilities support humanization routines
 directly.  This will become more important as file systems continue to
-grow, and the number of bytes something takes up less meaningful to
-the user.
+grow, and the exact number of bytes something takes up less meaningful
+to the user.
 
 The data munged by this script is less accurate, in that rounding is
 done in an effort to make the numbers more readable by a human.  In
@@ -248,8 +251,8 @@ Overrides B<-b> and treats the incoming data as if in Kilobytes.
 =item B<-m> I<regex>
 
 Optional perl regex to specify what in the incoming data should be
-operated on; default is to operate on digit runs longer than three
-characters.
+operated on; the default of digit runs of four or more characters
+should be reasonable in most cases.
 
 Your regex should match integers of some kind; otherwise, the script
 will generally do nothing with your data and not print any warnings.
