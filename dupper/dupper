@@ -15,17 +15,17 @@ use Digest::SHA1 ();
 use File::Find qw(find);
 use File::Spec ();
 
-# we reset this for each file to avoid OO overhead on each file
+# this is reset for each file to avoid OO overhead on each file
 my $digest = Digest::SHA1->new;
+
+my %defaults;
+$defaults{bydepth} = 0;
 
 use Getopt::Std;
 my %opts;
 getopts 'h?', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
-
-my %defaults;
-$defaults{bydepth} = 0;
 
 # read from STDIN if no args left
 chomp( @ARGV = <STDIN> ) unless @ARGV;
@@ -39,9 +39,9 @@ my ( %seen, %duplicates, @empty );
 find( { wanted => \&find_dups, no_chdir => 1, bydepth => $defaults{bydepth} },
   @ARGV );
 
-for my $key (keys %duplicates) {
+for my $key ( keys %duplicates ) {
   next if @{ $duplicates{$key} } < 2;
-  print "dups: @{ $duplicates{$key} }\n";
+  print "@{ $duplicates{$key} }\n";
 }
 
 sub find_dups {
@@ -78,7 +78,11 @@ sub gen_checksum {
   my $filename = shift;
 
   unless ( open FILE, "< $filename" ) {
-    # TODO warn about permissions problems or whatnot
+    remark(
+      'error',
+      'could not open for checksum',
+      { file => $filename, errno => $! }
+    );
     return;
   }
 
@@ -86,6 +90,25 @@ sub gen_checksum {
   close FILE;
 
   return $digest->b64digest;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
 }
 
 # a generic help blarb
@@ -182,3 +205,4 @@ public domain.
 Utilities
 
 =cut
+
