@@ -134,3 +134,117 @@ Run perldoc(1) on this script for additional documentation.
 HELP
   exit 100;
 }
+
+__END__
+
+=head1 NAME
+
+re - wrapper for screen(1) for easy session management
+
+=head1 SYNOPSIS
+
+Run or rejoin default screen(1) session, unless attached elsewhere. Use
+the I<-f> option to force attachment if attached elsewhere.
+
+  $ re
+  $ re -f
+
+Run or rejoin session named C<logs> instead of C<default>.
+
+  $ re logs
+
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Easy to type wrapper to screen(1). For quick attachment and easy
+naming of screen sessions. Instead of the screen(1) session name of
+C<26787.ttyp1.legacy>, a shorter C<legacy> or other named session
+can be created or attached. A listing mode is provided for
+autocomplete systems.
+
+=head2 Normal Usage
+
+  $ re [-f] [-q] [session name]
+  $ re -l
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+The resulting screen(1) command will be executed, replacing this script.
+Otherwise, the script will exit with a non-zero exit value and possibly
+an error message or usage notes.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-f>
+
+Forces the attachment, even if session is attached elsewhere.
+
+=item B<-q>
+
+Makes the script quieter. One use of this is for an interactive login
+script (from C<~/.zshrc> or similar), where the first interactive
+session should resume or run screen(1), and subsequent sessions should
+fail without errors.
+
+Problems with screen(1) or other serious errors will still be reported.
+
+=item B<-l>
+
+List running screen sessions, and exit. For information or autocomplete
+systems. For example, the following C<compdef> should work for the
+zsh(1) shell.
+
+  #compdef re
+
+  local expl ret=1
+
+  _wanted shortcut expl 'shortcut' compadd "$@" - \
+    $(_call_program scs re -l) && ret=0
+
+  return ret
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1), screen(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
