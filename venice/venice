@@ -5,13 +5,18 @@
 # Runs named command with higher priority, but without running the
 # command as superuser. Uses fork/exec and exec sudo from the parent to
 # both launch the child application and renice the child.
+#
+# Example: venice open -a D2X
+#
+# On Mac OS X launches "Descent2 X" and renices it to a -10 priority.
 
 use File::Basename qw(basename);
 my $command = basename $0;
 
+# TODO need to figure out how to allow '-n -20' to be accepted by opts
 use Getopt::Std;
 my %opts;
-getopts '?hn:', \%opts;
+getopts '?h', \%opts;
 
 die "usage: $command [-n increment] utility [argument ...]\n"
  if not @ARGV
@@ -19,11 +24,13 @@ die "usage: $command [-n increment] utility [argument ...]\n"
  or $opts{'?'};
 
 my $default_nice = -10;
-my $nice_value = exists $opts{'n'} ? $opts{'n'} : $default_nice;
-if ( $nice_value !~ m/^-?\d\d?$/ or $nice_value > 20 or $nice_value < -20 ) {
-  warn "warning: nice value invalid, reverting to default\n";
-  $nice_value = $default_nice;
-}
+my $nice_value = $default_nice;
+# TODO
+#my $nice_value = exists $opts{'n'} ? $opts{'n'} : $default_nice;
+#if ( $nice_value !~ m/^-?\d\d?$/ or $nice_value > 20 or $nice_value < -20 ) {
+#  warn "warning: nice value invalid, reverting to default\n";
+#  $nice_value = $default_nice;
+#}
 
 # parent will not be waiting on child
 $SIG{CHLD} = 'IGNORE';
@@ -32,7 +39,7 @@ $SIG{CHLD} = 'IGNORE';
 system qw(sudo -v);
 
 if ( my $child_pid = fork ) {
-  exec qw(sudo renice -10 -p $child_pid);
+  exec qw(sudo renice $nice_value -p $child_pid);
 } else {
   exec @ARGV;
 }
