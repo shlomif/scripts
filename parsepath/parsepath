@@ -294,7 +294,8 @@ sub check_access {
       }
       warn 'info: ', $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
        ' fails: ', $filedata->{type}, ' ', $filedata->{unix_mode_octal}, ' ',
-       $filedata->{name}, "\n"
+       $filedata->{name},
+       (exists $filedata->{link} ? ' -> ' . $filedata->{link} : ''), "\n"
        if @fails;
 
       # unix, once gets match on user or group, stops looking at subsequent
@@ -311,7 +312,8 @@ sub check_access {
     }
   }
   warn 'info: other +', join('', @fails), ' fails: ', $filedata->{type}, ' ',
-   $filedata->{unix_mode_octal}, ' ', $filedata->{name}, "\n"
+   $filedata->{unix_mode_octal}, ' ', $filedata->{name},
+   (exists $filedata->{link} ? ' -> ' . $filedata->{link} : ''), "\n"
    if @fails;
 }
 
