@@ -9,16 +9,21 @@
 
 use Data::Dumper;
 
+use Cwd;
 use File::Basename;
 use File::Path;
 #use File::Spec;
+use Getopt::Std;  # command line option processing
 
 use URI;
 use YAML ();
 
+my (%opts);
+
 my %pfiles = (
   shortcuts => '~/.ow/shortcuts',
   homepage  => '~/.ow/homepage',
+  dirmap   => '~/.ow/dirmap',
 );
 
 my $scuts;
@@ -44,6 +49,9 @@ unless (-e $pfiles{shortcuts}) {
   $scuts = YAML::LoadFile($pfiles{shortcuts});
 }
 
+# parse command-line options
+getopts('d', \%opts);
+
 # TODO have a "list" mode to show shortcuts, where they map too
 
 # TODO means to write new shortcuts back to OmniWeb prefs file?
@@ -51,26 +59,47 @@ unless (-e $pfiles{shortcuts}) {
 # what to launch URLs with
 my @open = qw(open);
 
+# -d flag does directory->web map lookup (if possible)
+if (exists $opts{d}) {
+  my $dir = getcwd;
+  my $dirmap = YAML::LoadFile($pfiles{dirmap});
+
+# longest first, so subdirs can override parent
+for (sort { length $b <=> length $a } keys %$dirmap) {
+  my $pos = index $dir, $_;
+  if ($pos > -1) {
+    my $frag = substr $dir, $pos + length $_;
+    $frag =~ s,^/+,, if $dirmap->{$_} =~ m,\Q/%@,;
+    visit(expand($dirmap->{$_}, $frag));
+  }
+}
+
+}
+
 if (@ARGV == 0) {
 
-  eval { require XML::XPath; };
-  unless ($@) {
-    require XML::XPath;
-  } else {
-    die "error: could not load XML::XPath to parse omniweb preferences\n";
-  }
+# TODO put this in the to-be-written ow-sync program :)
+#  eval { require XML::XPath; };
+#  unless ($@) {
+#    require XML::XPath;
+#  } else {
+#    die "error: could not load XML::XPath to parse omniweb preferences\n";
+#  }
+#
+#  my $f = $ENV{HOME} . "/Library/Preferences/com.apple.internetconfig.plist";
+#  my $x = XML::XPath->new(filename => $f);
+#
+#  # find WWWHomePage entry
+#  # TODO fix // search, which is slow.  or cache the entry somewhere for
+#  # faster lookup?
+#  my @sn =
+#   $x->find('//dict[preceding::key="WWWHomePage"]/string')->get_nodelist;
+#  my $homepage = $sn[0]->string_value;
 
-  my $f = $ENV{HOME} . "/Library/Preferences/com.apple.internetconfig.plist";
-  my $x = XML::XPath->new(filename => $f);
+  open HP, $pfiles{homepage} or die "error: could not open $pfiles{homepage}: $!\n";
+  $homepage = <HP>;
 
-  # find WWWHomePage entry
-  # TODO fix // search, which is slow.  or cache the entry somewhere for
-  # faster lookup?
-  my @sn =
-   $x->find('//dict[preceding::key="WWWHomePage"]/string')->get_nodelist;
-  my $homepage = $sn[0]->string_value;
-
-  die "could not find homepage\n" unless $homepage;
+  die "no homepage specified\n" unless $homepage;
 
   visit($homepage);
 
