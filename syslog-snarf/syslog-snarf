@@ -156,6 +156,15 @@ and prints out a formatted message of all incoming syslog messages:
 
   foo.example.org:514   user.info    testing, testing...
 
+Decoding the syslog protocol is fairly easy; one begins with something
+wierd like:
+
+  <14>testing, testing...
+
+The 14 is a specially encoded combination of the facility and priority
+codes; it can be extracted using funny bit twiddling operations one
+can glean from syslog.h with enough study.
+
 =head2 Normal Usage
 
   $ syslog_snarf.pl [options]
