@@ -2,157 +2,176 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# The author disclaims all copyrights and releases this document into
+# the public domain.
+#
+# Simple syslogd server for debugging or experimenting with syslog.
 #
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
+use IO::Socket;
 
-######################################################################
-#
-# MODULES
+# what address to listen on (default everywhere)
+my $bind;
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+# what port to bind to by default
+my $port = 514;
 
-use IO::Socket;			# for the UDP server
+# max message length for incoming data ([RFC 3164] limits this to 1024
+# by default, though things might not follow the standards)
+my $max_msg_len = 5000;
 
-######################################################################
-#
-# VARIABLES
+# to match PRI header plus remaining fields
+my $PRI_data_re = qr/^ < (\d{1,3}) > (.*) /x;
 
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
-
-my (%opts, $port, $max_msg_len, $sock, $msg_in);
-
-$port = 514;			# what port to bind to by default
-$max_msg_len = 5000;		# max message length for incoming data
+# to decode remaining data past the priority into TIMESTAMP, HOSTNAME,
+# and MSG fields
+my $HEADER_MSG_re = qr/^ ((  # match HEADER, TIMESTAMP for reference
+  (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)  # Month
+  (?:[ ][ ]\d|[ ]\d\d)   # day of month, '  5' or ' 10'
+  [ ] \d\d:\d\d:\d\d)    # timestamp
+  ([\w.:-]+))            # HOSTNAME host|IPv4|IPv6 and close HEADER
+  [ ] (.*)               # MSG data
+/x;
 
 # syslog.h code->name mappings for better output
-my %syslog_priorities=(
-        0 => "emerg",
-        1 => "alert",
-        2 => "crit",
-        3 => "err",
-        4 => "warning",
-        5 => "notice",
-        6 => "info",
-        7 => "debug"
+my %syslog_priorities = (
+  0 => 'emerg',
+  1 => 'alert',
+  2 => 'crit',
+  3 => 'err',
+  4 => 'warning',
+  5 => 'notice',
+  6 => 'info',
+  7 => 'debug'
 );
 
-my %syslog_facilities=(
-        0 => "kern",
-        1 => "user",
-        2 => "mail",
-        3 => "daemon",   
-        4 => "auth",
-        5 => "syslog",
-        6 => "lpr",
-        7 => "news",
-        8 => "uucp",
-        9 => "cron",
-        10 => "authpriv",
-        11 => "ftp",
-        16 => "local0",
-        17 => "local1",
-        18 => "local2",
-        19 => "local3",
-        20 => "local4",
-        21 => "local5",
-        22 => "local6",
-	23 => "local7"
+# TODO some vendors (notably Apple) have fiddled with these to add
+# NETINFO and similar... support this by reading these defintions
+# from a file?
+my %syslog_facilities = (
+  0  => 'kern',
+  1  => 'user',
+  2  => 'mail',
+  3  => 'daemon',
+  4  => 'auth',
+  5  => 'syslog',
+  6  => 'lpr',
+  7  => 'news',
+  8  => 'uucp',
+  9  => 'cron',
+  10 => 'authpriv',
+  11 => 'ftp',
+  16 => 'local0',
+  17 => 'local1',
+  18 => 'local2',
+  19 => 'local3',
+  20 => 'local4',
+  21 => 'local5',
+  22 => 'local6',
+  23 => 'local7'
 );
 
-######################################################################
-#
-# MAIN
-
-$SIG{'INT'} = sub { exit 0 };	# C-c handler
+my $VERSION;
+( $VERSION = '$Revision$ ' ) =~ s/[^0-9.]//g;
 
 # parse command-line options
-getopts('h?', \%opts);
+use Getopt::Std;
+my %opts;
+getopts 'h?b:p:', \%opts;
 
-help() if exists $opts{'h'} or exists $opts{'?'};
+print_help() if exists $opts{'h'} or exists $opts{'?'};
+
+# no input checking as let IO::Socket handle any errors
+$bind = $opts{'b'} if exists $opts{'b'};
+$port = $opts{'p'} if exists $opts{'p'};
+
+$SIG{'INT'} = sub { exit 0 };  # control+c handler
 
 # start up the syslog server
-$sock = IO::Socket::INET->new(Proto=>'udp',
-			      LocalPort=>$port) or die $@;
+my $sock = IO::Socket::INET->new(
+  Proto => 'udp',
+  ( $bind ? LocalAddr => $bind : () ),
+  LocalPort => $port
+ )
+ or die "error: could not start server: errno=$@\n";
 
-$|=1;				# autoflush output
+$| = 1;                        # autoflush output
 
 while (1) {
-    next unless $sock->recv($msg_in, $max_msg_len);
+  my %message;
+  next unless $sock->recv( $message{'raw'}, $max_msg_len );
 
-    # get various info on the packet in question
-    my $peerhost = gethostbyaddr($sock->peeraddr,AF_INET) || $sock->peerhost;
-    my $peerport = $sock->peerport;
-    my $length   = length($msg_in);
-    
-    my ($code, $log) = $msg_in =~ m/<(\d{3})>(.*)/;
+  # get various info on the packet in question
+  $message{'peerhost'} = gethostbyaddr( $sock->peeraddr, AF_INET )
+   || $sock->peerhost;
+  $message{'peerport'} = $sock->peerport;
 
-    # decode facility/priority & a little message
-    if ($code) {
-	my $facility = ($code & 0x03f8) >> 3;
-	my $priority = ($code & 0x07);
+  # TODO warn if this above 1024 somehow
+  $message{'length'} = length($msg_in);
 
-	print $peerhost, ':', $peerport, "\t",
-	$syslog_facilities{$facility}, '.', 
-	$syslog_priorities{$priority}, "\t",
-	$log, "\n";
-    }
+  # see [RFC 3164] for syslog message format details
+
+  # TODO need to somehow warn when incoming data does not match the
+  # specifications of the syslog format?
+  ( $message{'PRI'}, $message{'data'} ) = $message{'raw'} =~ m/$PRI_data_re/o;
+
+  (
+    $message{'HEADER'},   $message{'TIMESTAMP'},
+    $message{'HOSTNAME'}, $mesage{'MSG'}
+  )
+   = $message{'data'} =~ m/$HEADER_MSG_re/o;
+
+  # decode facility/priority (see [RFC 2234] for PRI part values
+  if ( $message{'PRI'} ) {
+    # TODO replace with simpler 'int($PRI/8)' and '$PRI%8' ?
+    $message{'facility'} = ( $message{'PRI'} & 0x03f8 ) >> 3;
+    $message{'priority'} = ( $message{'PRI'} & 0x07 );
+  }
+
+  # TODO use template to produce this...
+  use Data::Dumper;
+  warn Dumper \%message;
 }
 
-$sock->close;
-
-exit;
-
-######################################################################
-#
-# SUBROUTINES
+END {
+  $sock->close if $sock;
+}
 
 # a generic help blarb
-sub help {
-    print <<"HELP";
+sub print_help {
+  print <<"HELP";
 Usage: $0 [opts]
 
-A simple syslog server.
+Simple syslogd server for debugging or experimenting with syslog.
 
 Options for version $VERSION:
   -h/-?  Display this message
 
+  -b bb  Bind to host or address instead of to everything
+  -p pp  Use UDP port instead of default ($port)
+
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit 100;
 }
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
-syslog_snarf.pl - Simple syslogd server.
+syslog_snarf.pl - Simple syslogd server for debugging syslog
 
 =head1 SYNOPSIS
 
 Close any running syslog daemon (syslogd binds to UDP port 514 even in
 client-only mode), then run:
 
-  $ perl syslog_snarf.pl
+  $ syslog_snarf.pl
 
 =head1 DESCRIPTION
 
-This script is a simple syslog "server" that binds to the syslog port,
+This script is a simple syslog server that binds to the syslog port,
 and prints out a formatted message of all incoming syslog messages:
 
   foo.example.org:514   user.info    testing, testing...
@@ -182,6 +201,10 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
+=item B<-P> I<port>
+
+Listen on the specified UDP port instead of the default.
+
 =back
 
 =head1 BUGS
@@ -201,7 +224,7 @@ No known bugs.
 
 =head1 SEE ALSO
 
-perl(1)
+perl(1), [RFC 3164]
 
 =head1 AUTHOR
 
@@ -209,9 +232,8 @@ Jeremy Mates, http://sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001, Jeremy Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+The author disclaims all copyrights and releases this document into the
+public domain.
 
 =head1 HISTORY
 
@@ -225,3 +247,4 @@ header file.
 $Id$
 
 =cut
+
