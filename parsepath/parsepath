@@ -1,0 +1,60 @@
+#!/usr/bin/perl -wl
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Prints path information about specified file paths with optional
+# warnings about particular user or group problems with specified paths.
+
+use strict;
+use File::Spec;
+
+sub showfileinfo;
+
+my %opts;
+
+# unix file type mappings
+my %filetype = (
+  '0010000' => 'p',
+  '0020000' => 'c',
+  '0040000' => 'd',
+  '0060000' => 'b',
+  '0100000' => 'f',
+  '0120000' => 'l',
+  '0140000' => 's',
+  '0160000' => 'w',
+);
+
+my $what = shift || die "usage: $0 file\n";
+my $real = File::Spec->rel2abs($what);
+die "error: could not determine realpath from $what\n" unless $real;
+
+my @dirs = File::Spec->splitdir($real);
+die "error: unable to split realpath: $real" unless @dirs;
+
+my $current = '';
+for my $file (@dirs) {
+  $current = File::Spec->catdir($current, $file);
+  showfileinfo $current;  # if exists $opts{list};
+}
+
+# shows information about specified file
+sub showfileinfo {
+  my $file = shift;
+
+  my %filedata;
+  $filedata{name} = $file;
+  @filedata{qw(unix_mode unix_uid unix_gid)} = (lstat $file)[2, 4, 5];
+
+  $filedata{type} = $filetype{sprintf "%07o", $filedata{unix_mode} & 0170000};
+  $filedata{unix_mode_octal} = sprintf "%04o", $filedata{unix_mode} & 07777;
+
+  $filedata{unix_user}  = getpwuid $filedata{unix_uid} || $filedata{unix_uid};
+  $filedata{unix_group} = getgrgid $filedata{unix_gid} || $filedata{unix_gid};
+
+  # TODO means of supplying output fields and their order?
+  print join " ", map $filedata{$_},
+   qw(type unix_mode_octal unix_user unix_group name);
+}
