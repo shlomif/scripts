@@ -17,6 +17,9 @@
 use Carp;
 use Getopt::Std;
 
+# for the format() and write() reports
+use FileHandle;
+
 # file locking related modules
 use Fcntl qw(:DEFAULT :flock);
 use IO::Handle;
@@ -29,7 +32,7 @@ use vars qw:$VERSION:;
 # CONSTANTS
 
 my (%opts, $procmailrc, $logfile, $days_of_week, $months_of_year, $backup,
-    @data, %folders);
+    @data, %folders, %folder_sizes, $oldest, $newest);
 
 # where to look for the procmailrc...
 $procmailrc = $ENV{'HOME'} . '/.procmailrc';
@@ -73,21 +76,64 @@ print_report();
 
 # dumps a pretty report to STDOUT...
 sub print_report {
-    print "Destination Counts:\n";
+    my ($subject, $from, $folder, $size, $date);
+
+    print "Email report from $oldest to $newest\n\n";
+
+    # use format to easily line up everything the way I want...
+
+    # disable notion of "pages" in resulting format
+    format_lines_per_page STDOUT 99999999;
+    format_formfeed       STDOUT "";
+
+    format STDOUT_TOP = 
+Count   Destination                                       Size (bytes)
+----------------------------------------------------------------------
+.
+    format STDOUT = 
+@>>>>   @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<                 @>>>>>>>>>>
+$folders{$_}, $_, $folder_sizes{$_}
+.
 
     foreach (sort { $a cmp $b } keys %folders) {
-	print '  ', $folders{$_}, "\t", $_, "\n";
+	write;
     }
-    print "\n";
 
-    print "Message Summaries by Date:\n\n";
+print "\n";
 
-    # could also include _size and _date in report...
+# select new format style
+format_name         STDOUT "MESSAGE";
+format_top_name     STDOUT "MESSAGE_TOP";
+
+# reset line count to force header
+format_lines_left   STDOUT 0;
+
+format MESSAGE_TOP =
+Message Summaries by Date                                 Size (bytes)
+----------------------------------------------------------------------
+.
+
+format MESSAGE =
+Subject:  ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          $subject
+~         ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
+          $subject
+From:     @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          $from
+To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
+          $folder, $size
+
+.
+
     foreach (@data) {
-	print 'Subject: ', $_->{'_subject'}, "\n";
-	print 'From: ', $_->{'_from'}, "\n";
-	print 'Folder: ', $_->{'_folder'}, "\n";
-	print "\n";
+	# use strict complains if use funky calls, so de-ref 'em...
+	$subject = $_->{'_subject'};
+	$from    = $_->{'_from'};
+	$folder  = $_->{'_folder'};
+	$size    = $_->{'_size'};
+	$date    = $_->{'_date'};
+
+	write;
     }
 }
 
@@ -140,9 +186,13 @@ sub parse_logfile {
 	if (m/^\s*Folder:\s+(.*?)\s+(\d+)$/) {
 	    $data[$count]->{'_folder'} = $1;
 	    $data[$count]->{'_size'} = $2;
+
 	    # keep separate track of folder locs for ease
 	    # of lookup at cost of more memory
 	    $folders{$1}++;
+
+	    # and also amount of data gone to specific destinations
+	    $folder_sizes{$1} += $2;
 	}
     }
 
@@ -160,6 +210,11 @@ sub parse_logfile {
 
     flock (FD, LOCK_UN);
     close (FD);
+
+    # finally, extract out the oldest & newest dates from
+    # the data array using a lot of assumptions
+    $oldest = $data[0]->{'_date'};
+    $newest = $data[$#data]->{'_date'};
 }
 
 # automagically gets logfile location from .procmailrc file,
