@@ -2,9 +2,9 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
-# you can redistribute it and/or modify it under the same terms as
-# Perl itself.
+# Copyright (c) 2001-2002, Jeremy A. Mates.  This script is free
+# software; you can redistribute it and/or modify it under the same
+# terms as Perl itself.
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -20,10 +20,10 @@ use strict;
 #
 # MODULES
 
-use Carp;			# better error reporting
-use Getopt::Std;		# command line option processing
+use Carp;           # better error reporting
+use Getopt::Std;    # command line option processing
 
-use File::Tail 0.91;		# tail -f on steroids
+use File::Tail 0.91;    # tail -f on steroids
 
 ######################################################################
 #
@@ -37,10 +37,10 @@ my (%opts, @files, $prefix);
 # various File::Tail object preferences.  listen much faster than default
 # to emulate tail(1) at expense of more busy wait.
 my $maxinterval = 2;
-my $interval = 1;
+my $interval    = 1;
 my $adjustafter = 1;
-my $tail = 0;
-my $reset_tail = -1;
+my $tail        = 0;
+my $reset_tail  = -1;
 
 ######################################################################
 #
@@ -52,10 +52,10 @@ getopts('h?m:i:a:t:r:f', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 $maxinterval = $opts{'m'} if exists $opts{'m'} and $opts{'m'} =~ /^\d+$/;
-$interval =    $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
+$interval    = $opts{'i'} if exists $opts{'i'} and $opts{'i'} =~ /^\d+$/;
 $adjustafter = $opts{'a'} if exists $opts{'a'} and $opts{'a'} =~ /^\d+$/;
-$tail =        $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
-$reset_tail =  $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
+$tail        = $opts{'t'} if exists $opts{'t'} and $opts{'t'} =~ /^-?\d+$/;
+$reset_tail  = $opts{'r'} if exists $opts{'r'} and $opts{'r'} =~ /^-?\d+$/;
 
 $prefix = 1 if exists $opts{'f'};
 
@@ -66,17 +66,18 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 help() unless @ARGV;
 
 for (@ARGV) {
-    push @files, File::Tail->new(
-				 name=>"$_",
-				 maxinterval => $maxinterval,
-				 interval => $interval,
-				 adjustafter => $adjustafter,
-				 tail => $tail,
-				 reset_tail => $reset_tail,
-				 );
+    push @files,
+      File::Tail->new(
+        name        => "$_",
+        maxinterval => $maxinterval,
+        interval    => $interval,
+        adjustafter => $adjustafter,
+        tail        => $tail,
+        reset_tail  => $reset_tail,
+    );
 }
 
-my $rin='';
+my $rin = '';
 my $nfound;
 
 # don't buffer STDOUT
@@ -85,16 +86,16 @@ $| = 1;
 while (1) {
     $nfound = File::Tail::select(undef, undef, undef, 60, @files);
     unless ($nfound) {
-	my @ints;
-	for (@files) {
-	    push @ints, $_->interval;
-	}
+        my @ints;
+        for (@files) {
+            push @ints, $_->interval;
+        }
     }
     for (@files) {
-	unless ($_->predict) {
-	    print $_->{"input"}, ': ' if $prefix;
-	    print $_->read;
-	}
+        unless ($_->predict) {
+            print $_->{"input"}, ': ' if $prefix;
+            print $_->read;
+        }
     }
 }
 
@@ -148,8 +149,7 @@ To follow two log files at the same time:
 =head2 Overview
 
 This script does rougly the opposite of tee(1), reading in from
-multiple files and merging them all into STDOUT via the File::Tail
-module from CPAN.
+multiple files and merging them all into STDOUT via L<File::Tail>.
 
 =head2 Normal Usage
 
@@ -173,7 +173,7 @@ Prints a brief usage note about the script.
 =item B<-f>
 
 Prefix output with source filenames.  This only kinda worked during
-testing, and is probably due to how File::Tail behaves.
+testing, and is probably due to how L<File::Tail|File::Tail> behaves.
 
 =item B<-m> I<seconds> (maxinterval)
 
@@ -198,12 +198,13 @@ Lines to read after file reset.
 =back
 
 See L<File::Tail> for more information on the parenthesized parameter
-names, which are File::Tail parameters passed directy to the object.
+names, which are L<File::Tail|File::Tail> parameters passed directy to
+the object.
 
 =head1 EXAMPLES
 
 Read through then follow several Apache VirtualHost logfiles, and send
-them off to colorize.pl (available on http://freshmeat.net):
+them off to colorize.pl (http://colorize.raszi.hu/):
 
   $ eet.pl -t -1 /www/site/logs/*_log | colorize.pl
 
@@ -236,17 +237,18 @@ Jeremy A. Mates, http://www.sial.org/contact/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
-you can redistribute it and/or modify it under the same terms as Perl
-itself.
+Copyright (c) 2001-2002, Jeremy A. Mates.  This script is free
+software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
 
 =head1 HISTORY
 
-Based heavily on the select_demo script from File::Tail by Matija
-Grabnar.
+Based heavily on the select_demo script from L<File::Tail|File::Tail>
+by Matija Grabnar.
 
 =head1 VERSION
 
   $Id$
 
 =cut
+
