@@ -113,7 +113,7 @@ sub pb_get {
   my ($url, $content);
 
   # look for server alias + paste id, or fully qualified URL to nab
-  if (exists $opts{s}) {
+  if (exists $opts{s} and defined $opts{s}) {
     unless (exists $servers->{$opts{s}}) {
       remark('alert', "no server entry for: $opts{s}");
       exit 105;
@@ -160,7 +160,7 @@ sub pb_put {
   my ($url, $channel, $nick, $summary, $paste);
 
   # either use pb server name, or a fully qualified url
-  if (exists $opts{s}) {
+  if (exists $opts{s} and defined $opts{s}) {
     unless (exists $servers->{$opts{s}}) {
       remark('alert', "no server entry for: $opts{s}");
       exit 105;
