@@ -5,14 +5,11 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
+# Command interface to OpenSSH authorized_keys file.
+#
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
 
 require 5;
-
 use strict;
 
 # clean up env for taint mode ("perldoc perlsec" for more information)
@@ -21,23 +18,10 @@ sub BEGIN {
   $ENV{'PATH'} = '/bin:/usr/bin:/usr/local/bin';
 }
 
-######################################################################
-#
-# MODULES
+use Digest::MD5 qw(md5);
+use Fcntl qw(:DEFAULT :flock);
 
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-use Digest::MD5 qw(md5);        # Perl interface to the MD5 Algorithm
-use Fcntl qw(:DEFAULT :flock);  # file locking
-
-use Sys::Syslog;                # interface to the UNIX syslog(3) calls
-
-######################################################################
-#
-# VARIABLES
-
-my (%opts);
+use Sys::Syslog;
 
 # path to authorized_keys file.  OpenSSH >= 3.0 should merge old
 # authorized_keys2 files into authorized_keys.
@@ -62,11 +46,8 @@ my %command = (
   'alter'  => \&do_alter
 );
 
-######################################################################
-#
-# MAIN
-
-# parse command-line options
+use Getopt::Std;
+my %opts;
 getopts('h?f:l:aiqL', \%opts);
 
 help() if exists $opts{'h'} or exists $opts{'?'};
@@ -166,10 +147,6 @@ unless (exists $opts{'L'}) {
 close $akfh or remark('notice', "problem closing $auth_key_file: $!");
 
 exit;
-
-######################################################################
-#
-# SUBROUTINES
 
 # shows some info about known keys
 sub do_list {
@@ -437,9 +414,7 @@ HELP
   exit;
 }
 
-######################################################################
-#
-# DOCUMENTATION
+__END__
 
 =head1 NAME
 
