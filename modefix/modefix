@@ -17,6 +17,7 @@ use File::Find;
 use Getopt::Std;
 
 use strict;
+use warnings;
 
 ######################################################################
 #
@@ -25,8 +26,7 @@ use strict;
 my (%opts, $dirmode, $filemode, $user, $userid, $group, $groupid,
     $verbose, $quiet, %badgroups, %badperms);
 
-use vars qw:$VERSION:;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 ######################################################################
 #
@@ -131,11 +131,14 @@ if (exists $opts{'g'} || defined $group) {
 
     # some user/group sanity checking: check whether user is a member
     # of the group in question
+    #
+    # JAM 2000-09-20 still needs some fixing, as user's name often not in
+    # /etc/groups entry for their default group...
     if (exists $opts{'u'} && defined $members) {
 	# username had better appear as a word in $members...
 	unless ( $members =~ m/\b$user\b/o ) {
 	    warn 'warning: ', $user, ' not member of group ', $group, "\n"
-		unless $quiet;
+		unless $quiet || $userid == 0;
 	}
     }
 }
@@ -430,33 +433,32 @@ __END__
 
 =head1 NAME
 
-B<modefix.pl> - recursive permission and ownership changer.
+modefix.pl - recursive permission and ownership changer.
 
 =head1 SYNOPSIS
 
 To manually set the directory and file permissions, as well as the
 ownerships under /home/john:
 
-B<$ modefix.pl -d 2750 -f 0640 -u john -g doe /home/john>
+  $ modefix.pl -d 2750 -f 0640 -u john -g doe /home/john
 
 To ensure all files are group writable, and that "others" do not have
 any access whatsoever to the files under the current directory:
 
-B<$ modefix.pl -f g+w,o-rwx .>
+  $ modefix.pl -f g+w,o-rwx .
 
 =head1 DESCRIPTION
 
 B<modefix.pl> is a pure-perl implementation of the following three shell
 commands I was getting tired of typing:
 
-    $ find . -type d -exec chmod 2750 {} \;
-    $ find . -type f -exec chmod 640 {} \;
-    $ find . -exec chown john:doe {} \;
+    $ find . -type d | xargs chmod 2750
+    $ find . -type f | xargs chmod 640
+    $ find . | xargs chown john:doe
 
 Which really isn't all that efficient or practical, if you want to
-skip certain items, prune out a few directories, avoid rampaging 
-over the file system three times in a row, and not exec chmod/chown
-a few thousand times.
+skip certain items, prune out a few directories, and avoid rampaging
+over the file system three times in a row.
 
 I also don't trust the -R flag on certain unix utilities.  See the
 B<BUGS> section for more details.
