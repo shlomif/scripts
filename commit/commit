@@ -25,8 +25,8 @@ getopts 'h?F:m:r:n', \%opts;
 $defaults{'revision'} = $opts{'r'} if exists $opts{'r'};
 if ( exists $opts{'m'} ) {
   $defaults{'msg'} = $opts{'m'};
-} elsif ( exists $opts{'f'} ) {
-  $defaults{'msgfile'} = $opts{'f'};
+} elsif ( exists $opts{'F'} ) {
+  $defaults{'msgfile'} = $opts{'F'};
 }
 
 # default to "current" directory if no args (to emulate 'cvs ci'
