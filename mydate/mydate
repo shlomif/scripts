@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Prints the date in a format to the liking of the author.
+
+DODATE=no
+DOTIME=no
+DOTIME_ZONE=no
+QUERY=
+
+# process arguments
+OPT=
+while getopts dtz OPT; do
+  case $OPT in
+    d)
+      DODATE=yes
+    ;;
+    t)
+      DOTIME=yes
+    ;;
+    z)
+      DOTIME_ZONE=yes
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+# form up query specification for date(1) command
+if test $DODATE = yes ; then
+  QUERY='%Y-%m-%d'
+fi
+if test $DOTIME = yes ; then
+  QUERY="${QUERY:+$QUERY }%H:%M:%S"
+fi
+if test $DOTIME_ZONE = yes ; then
+  QUERY=${QUERY:+$QUERY}%z
+fi
+
+date "+$QUERY"
