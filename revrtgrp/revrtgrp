@@ -1,0 +1,85 @@
+#!/usr/local/bin/perl -w
+#
+# $Id$
+# By Jeremy Mates <mailto:jmates@sial.org>
+#
+# A recursive group fixer that parses a directory tree, correcting
+# the group on each file to the default group of the owner.
+#
+# Distributed under the Artistic License:
+# http://www.sial.org/artistic_license.txt
+
+# MODULES
+
+use Carp;           # to die for
+use File::Find;
+use Getopt::Std;    # command line option handling
+
+use strict;
+
+# CONSTANTS
+
+my (%opts, $verbose);
+
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists($opts{'h'}) || exists($opts{'?'});
+
+$verbose  = 1 if exists $opts{'v'};
+
+# read from STDIN if no args left
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+# and flag the help text if nothing from STDIN
+help() unless @ARGV;
+
+# build a lookup table of user -> default group from passwd file
+while(my ($defuid, undef, $defgid) = getpwent()) {
+    warn "$defuid $defgid\n";
+}
+
+exit;
+
+# loop over the remaining input, looking for dirs and parsing them
+foreach ( @ARGV ) {
+    unless (-d $_) {
+        warn "error: $_ not a directory, skipping\n" if $verbose;
+        next;
+    }
+
+    find(\&do_stuff, $_);
+}
+
+# SUBROUTINES
+
+sub do_stuff {
+    # get current user/group ids off of item
+    my ($cur_uid, $cur_gid) = (stat)[4,5];
+
+    
+}
+
+sub help {
+    print <<"HELP";
+Usage: $0 [options] dir1 dir2 .. dirN
+
+$0 is a recursive group fixing utility.
+
+Options:
+  -h/-?    Display this message
+  
+  -v       Be verbose
+
+HELP
+    exit;
+}
+
+__END__
+
+$Log$
+Revision 1.1  2000/02/09 18:19:08  jmates
+Initial work import
+
