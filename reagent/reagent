@@ -13,7 +13,12 @@
 killall -u `id -un` ssh-agent
 
 ssh-agent -s | grep -v echo > $HOME/.ssh-agent
-allsh - < $HOME/.ssh-agent
 
-# TODO only do this if have tty?
-ssh-add $HOME/.ssh/id_*[^pub]
+# if have tty, try to read in keys (which could prompt for passwords)
+if test -t 0; then
+  . $HOME/.ssh-agent
+  ssh-add $HOME/.ssh/id_*[^pub]
+fi
+
+# this takes some time, so do it after above...
+allsh - < $HOME/.ssh-agent
