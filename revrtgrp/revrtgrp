@@ -75,7 +75,7 @@ foreach ( @ARGV ) {
 
 sub do_stuff {
     # get current user/group ids off of file
-    my ($uid, $gid) = (stat)[4,5];
+    my ($uid, $gid) = (lstat)[4,5];
 
     # see if we should "prune" this directory
     if (exists $opts{'p'} && -d) {
@@ -155,6 +155,9 @@ HELP
 __END__
 
 $Log$
+Revision 1.6  2000/02/09 23:41:40  jmates
+Changed stat() to lstat() to prevent copious uninitialized value errors as null links are looked up.
+
 Revision 1.5  2000/02/09 23:29:34  jmates
 Added -g option to skip chgrp if group of file is valid for user, by parsing
 the user's presence from the getgrent() call.
