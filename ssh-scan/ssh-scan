@@ -97,7 +97,7 @@ sub help {
     print <<"HELP";
 Usage: $0 <host or net #1 ... [#N]>
 
-Help for a generic script template.
+See nmap(1) for details on the host or net specifications allowed.
 
 Options for version $VERSION:
   -h/-?  Display this message
