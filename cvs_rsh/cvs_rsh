@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
+#
+# CVS_RSH wrapper script that allows arguments to the target binary.
+
+# require non-interactive authuentication methods to prevent things from
+# stalling on a password prompt
+exec /usr/bin/ssh -o PreferredAuthentications=hostbased,publickey $@
