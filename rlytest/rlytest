@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # $Id$
 #
@@ -17,6 +17,7 @@ require 5.002;
 use strict;
 use Getopt::Std;
 use IO::Socket; # warning - IO::Socket was an optional add-on prior to 5.004
+use Term::ANSIColor;
 use Time::gmtime;
 use vars qw($Usage $Dflt_hostname $Dflt_domain $Root_check %Opts
         $Target_host $Port $Timeout $Hostname $Username $Comment
@@ -70,7 +71,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts('c:f:t:u:p:', \%Opts)
+getopts('c:f:t:u:p:m', \%Opts)
         or die "$Usage";
 die "$Usage\n"
         unless (@ARGV == 1);
@@ -79,7 +80,7 @@ $Target_host = shift;
 #
 # Initialize parameters.
 #
-$Timeout = $Opts{'t'} || 60;
+$Timeout = $Opts{'t'} || 300;
 $Hostname = calculate_fqdn()
         or die "$0: cannot determine FQDN\n";
 $Port = $Opts{'p'} || 25;               # default to SMTP port
@@ -135,7 +136,9 @@ ${Comment}
 #
 # Connect and execute SMTP diaglog.
 #
+print color 'bold red' if $Opts{m};
 print "Connecting to $Target_host ...\n";
+print color 'reset' if $Opts{m};
 my $sock = IO::Socket::INET->new(
                 Proto => "tcp",
                 PeerAddr => $Target_host,
@@ -168,7 +171,9 @@ sub write_command
         my $sock = shift;
         my $data = shift;
         my $mssg = shift || $data;
+	print color 'bold red' if $Opts{m};
         print ">>> $mssg";
+	print color 'reset' if $Opts{m};
         $data =~ s/\n/\r\n/g;
         alarm($Timeout);
         $sock->print($data)
@@ -191,7 +196,9 @@ sub read_response
                 chop($_ = $sock->getline());
                 alarm(0);
                 ($code, $cont, $mssg) = /(\d\d\d)(.)(.*)/;
+		print color 'bold blue' if $Opts{m};
                 print "<<< ", $_, "\n";
+		print color 'reset' if $Opts{m};
         } while ($cont eq "-");
         return $code
                 if ($code >= 200 && $code < 400);
