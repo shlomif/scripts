@@ -29,7 +29,7 @@ my $basename = basename $0;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?Ts:w:t:i:o:', \%opts;
+getopts 'h?Tls:w:t:i:o:', \%opts;
 print_help() if $opts{h} or $opts{'?'} or not @ARGV or not exists $opts{s};
 
 # sanitize search directories specified
@@ -107,7 +107,11 @@ if ( exists $opts{o} ) {
 $output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
 
 # look for files
-find { wanted => \&process, no_chdir => 1 }, @dirs;
+my $parent;
+for (@dirs) {
+  $parent = $_;
+  find { wanted => \&process, no_chdir => 1 }, $parent;
+}
 
 # update seen index
 # TODO replace with DB File or SQL?
@@ -123,12 +127,21 @@ exit;
 
 # File::Find file handler
 sub process {
-  return unless -f;
+  my @stat = stat;
+
+  if ( exists $opts{l} and -d _ and $_ ne $parent ) {
+    $File::Find::prune = 1;
+    return;
+  }
+
+  # TODO support for directories, so can spot new/removed dirs, or is
+  # that getting outside the domain of this script too much?
+  return unless -f _;
 
   my %filedata;
 
   # skip logfiles outside of processing window by modification time
-  $filedata{mtime} = ( stat _ )[9];
+  $filedata{mtime} = $stat[9];
   return if $filedata{mtime} < $window;
 
   # skip files modified today if needed
@@ -267,6 +280,7 @@ sub duration2seconds {
 
   # how to convert short human durations into seconds
   my %factor = (
+    y => 31536000,
     w => 604800,
     d => 86400,
     h => 3600,
@@ -278,10 +292,10 @@ sub duration2seconds {
   if ( $tmpdur =~ m/^\d+$/ ) {
     $seconds = $tmpdur * 60;
 
-  } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
+  } elsif ( $tmpdur =~ m/^[ywdhms\d\s]+$/ ) {
 
     # match "2m 5s" style input and convert to seconds
-    while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
+    while ( $tmpdur =~ m/(\d+)\s*([ywdhms])/g ) {
       $seconds += $1 * $factor{$2};
     }
   } else {
@@ -323,6 +337,8 @@ Options supported:
   -i ii  File data to base index on.
 
   -o oo  Custom output template.
+
+  -l     Do not recurse into sub directories.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -467,6 +483,10 @@ The template uses the same fields that are available to the B<-i> index
 fields option. Backslashed characters such as C<\n> will be converted to
 their literal equivalent, such as a newline. Some form of a newline or
 other delimiter at the end of the custom template is highly advised.
+
+=item B<-l>
+
+Do not recurse into subdirectories below the parent directory.
 
 =back
 
