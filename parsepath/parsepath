@@ -122,8 +122,8 @@ if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
 # fix perms hash to use array for easier subsequent work
 $opts{'perms'} = [sort keys %{$opts{'perms'}}];
 
-for my $pnum (0..$#{$opts{'path'}}) {
-  my $path = $opts{'path'}->[$pnum];
+for my $pnum (0 .. $#{$opts{'path'}}) {
+  my $path     = $opts{'path'}->[$pnum];
   my @pathbits = File::Spec->splitdir($path);
 
   unless (@pathbits) {
@@ -131,7 +131,7 @@ for my $pnum (0..$#{$opts{'path'}}) {
     exit 101;
   }
 
-  print "p $path\n";
+  print "% $path\n" unless exists $opts{'constraint'};
 
   my $current = '';
   for my $i (0 .. $#pathbits) {
@@ -139,16 +139,16 @@ for my $pnum (0..$#{$opts{'path'}}) {
     my $filedata = getfileinfo $current;
 
     unless ($filedata) {
-      warn "error: no data about $current\n";
+      warn "error: no permission data for $pathbits[$i] in $current\n";
       exit 103;
     }
 
     # TODO means of supplying output fields and their order?
     if (exists $opts{'options'}->{'l'}) {
-      print join " ", map $filedata->{$_},
-       qw(type unix_mode_octal unix_user unix_group name);
-      print ' -> ', $filedata->{'link'} if exists $filedata->{'link'};
-      print "\n";
+      print join(' ',
+        map { exists $filedata->{$_} ? $filedata->{$_} : () }
+         qw(type unix_mode_octal unix_user unix_group name)),
+       (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n";
     }
 
     if (exists $opts{'constraint'}) {
@@ -295,11 +295,15 @@ sub check_access {
           $exit_status = 10;
         }
       }
-      warn 'info: ', $role->{'type'}, ' ', $role->{'name'}, ' +',
-       join('', @fails), ' fails: ', $filedata->{'type'}, ' ',
-       $filedata->{'unix_mode_octal'}, ' ', $filedata->{'name'},
-       (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n"
-       if @fails;
+
+      if (@fails) {
+        warn '! ', $role->{'type'}, '=', $role->{'name'}, ' +',
+         join('', sort @fails), ' fails: ',
+         join(' ',
+          map { exists $filedata->{$_} ? $filedata->{$_} : () }
+           qw(type unix_mode_octal unix_user unix_group name)),
+         (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n";
+      }
 
       # unix, once gets match on user or group, stops looking at subsequent
       return;
@@ -314,10 +318,14 @@ sub check_access {
       $exit_status = 10;
     }
   }
-  warn 'info: other +', join('', @fails), ' fails: ', $filedata->{'type'}, ' ',
-   $filedata->{'unix_mode_octal'}, ' ', $filedata->{'name'},
-   (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n"
-   if @fails;
+
+  if (@fails) {
+    warn '! unix-other +', join('', sort @fails), ' fails: ',
+     join(' ',
+      map { exists $filedata->{$_} ? $filedata->{$_} : () }
+       qw(type unix_mode_octal unix_user unix_group name link)),
+     (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n";
+  }
 }
 
 # usage notes
@@ -361,7 +369,7 @@ See whether current user has write access to a specified file.
 
   $ parsepath +w /var/tmp
 
-See whether the specified group can read and execute a script.
+See whether the www group can read and execute (+rx) a script.
 
   $ parsepath +rx /var/www/cgi-bin/printenv group=www
 
