@@ -5,7 +5,7 @@
 # The author disclaims all copyrights and releases this document into
 # the public domain.
 #
-# Simple syslogd server for debugging or experimenting with syslog.
+# Syslogd server for debugging or experimenting with syslog.
 #
 # Run perldoc(1) on this file for additional documentation.
 
@@ -225,7 +225,7 @@ sub print_help {
   print <<"HELP";
 Usage: $0 [opts]
 
-Simple syslogd server for debugging or experimenting with syslog.
+Syslogd server for debugging or experimenting with syslog.
 
 Options for version $VERSION:
   -h/-?  Display this message
@@ -247,7 +247,7 @@ HELP
 
 =head1 NAME
 
-syslog-snarf - Simple syslogd server for debugging syslog
+syslog-snarf - Syslogd server for debugging or experimenting with syslog
 
 =head1 SYNOPSIS
 
