@@ -1,0 +1,121 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+#
+# Use perldoc on this file for documentation/licensing information.
+#
+######################################################################
+#
+# REQUIREMENTS
+
+require 5.005;
+
+use strict;
+use warnings;
+#no warnings qw(uninitialized);
+
+######################################################################
+#
+# MODULES
+
+use Carp;
+use Getopt::Std;
+
+######################################################################
+#
+# VARIABLES
+
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts);
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+# read from STDIN if no args left
+#chomp(@ARGV = <STDIN>) unless @ARGV;
+#
+# and flag the help text if nothing from STDIN
+#help() unless @ARGV;
+
+
+
+exit;
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+Usage: $0 [options]
+
+Options:
+  -h/-?  Display this message
+
+Run perldoc on this script for more documentation.
+
+HELP
+    exit;
+}
+
+__END__
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+blank.pl - a stub perl script.
+
+$Id$
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 USAGE
+
+=head1 OPTIONS
+
+=head1 ENVIRONMENT
+
+No environment details.
+
+=head1 FILES
+
+No file dependancies.
+
+=head1 BUGS
+
+Please send any bug reports (preferably with a patch) to:
+
+jmates@sial.org
+
+=head1 SEE ALSO
+
+perl(1).
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000, Jeremy A. Mates.  All Rights Reserved.
+
+This file is licensed under the terms of the Artistic License:
+
+http://www.sial.org/artistic_license.txt
+
+=cut
