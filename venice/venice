@@ -41,22 +41,25 @@ while ( my $arg = shift @ARGV ) {
 
 print_help() unless @ARGV;
 
-# Command to renice with. Use sudo if negative, and test sudo to avoid
-# password prompt following the fork.
-my @renice = qw{renice};
-if ( $nice_value < 0 ) {
-  # TODO this returns -1 not 0 when verify works??
-  system qw{sudo -v};
-  unshift @renice, 'sudo';
+# positive priorities require no special handling
+if ( $nice_value >= 0 ) {
+  exec qw{nice -n}, $nice_value, @ARGV;
+  warn "error: could not exec command: errno=$!\n";
 }
+
+# for negative priorities, need to fork and sudo
+system qw{sudo -v};
 
 # TODO need to muck with CHLD signal handling or anything?
 if ( my $child_pid = fork ) {
 
-  exec @renice, $nice_value, '-p', $child_pid;
+  # parent
+  exec qw{sudo renice}, $nice_value, '-p', $child_pid;
   die "error: could not renice: errno=$!\n";
 
 } else {
+
+  # run command in child
   exec @ARGV;
   warn "error: could not exec command: errno=$!\n";
 }
