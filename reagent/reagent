@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Starts and configures the ssh-agent(1) utility. Kills ssh-agent if
+# found running already. Uses my allsh utility to reconfigure any
+# running shells with the new ssh-agent details.
+
+# TODO portability problems of killall (e.g. Solaris?)
+killall -u `id -un` ssh-agent
+
+ssh-agent -s | grep -v echo > $HOME/.ssh-agent
+allsh - < $HOME/.ssh-agent
+
+# TODO only do this if have tty?
+ssh-add $HOME/.ssh/id_*[^pub]
