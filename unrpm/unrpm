@@ -2,26 +2,35 @@
 #
 # $Id$
 #
-# Copyright (c) 2001, Jeremy A. Mates.  All Rights Reserved.
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 #
-# This file is licensed under the terms of the Artistic License:
-# http://www.sial.org/artistic_license.txt
-#
-# Script to ease the expansion of src RPM's via rpm2cpio(8) and
-# cpio(1).
+# Expands source RPMs via rpm2cpio(8) and cpio(1) into directories under
+# the current directory.
 
-# preamble argument checking for fun
 if [ -z "$1" ]; then
-    echo "usage: `basename $0` file1 [file2 .. fileN]"
-    exit 1
+  echo "usage: `basename $0` srcrpm [srcrpm2 .. srcrpmN]"
+  exit 1
 fi
 
-# quick n' dirty expansion
 for file in "$@" ; do
-    if [ -f $file ]; then
-	dir=`echo $file | perl -ple 's/.src.rpm$//'`
-        mkdir $dir 2>/dev/null || ( rm -rf $dir && mkdir $dir )
-        rpm2cpio $file | ( cd $dir && cpio -id 2>/dev/null )
-    fi
-done
+  if [ -f $file ]; then
+    dir=`rpm -qp --queryformat '%{NAME}' $file`
 
+    if [ -z "$dir" ]; then
+      dir="$file.d"
+      echo "notice: could not determine package name for $file, using $dir" >&2
+    fi
+
+    if [ -e $dir ]; then
+      echo "warning: $dir already exists, skipping $file" >&2
+      continue
+    fi
+
+    mkdir $dir
+    rpm2cpio $file | ( cd $dir && cpio -id 2>/dev/null )
+    echo $dir
+  else
+    echo "notice: no such file $file" >&2
+  fi
+done
