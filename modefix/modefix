@@ -43,7 +43,7 @@ getopts('h?p:s:d:f:u:g:vq', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
-$verbose  = 1 if exists $opts{'v'};
+$verbose = 1 if exists $opts{'v'};
 if (exists $opts{'q'}) {
     $verbose = 0;
     $quiet = 1;
@@ -62,6 +62,8 @@ if (exists $opts{'d'}) {
     } else {
 	# or an array ref for apply_mode to use
 	$dirmode = parse_mode($temp_dirmode);
+
+	die "Invalid directory mode: $temp_dirmode\n" unless $dirmode;
     }
 }
 
@@ -74,6 +76,8 @@ if (exists $opts{'f'}) {
 
     } else {
 	$filemode = parse_mode($temp_filemode);
+
+	die "Invalid file mode: $temp_filemode\n" unless $filemode;
     }
 }
 
@@ -334,14 +338,18 @@ sub zapit {
 sub parse_mode {
     my $temp_mode = shift;
 
+    return unless $temp_mode =~ m/^[augorwxs,+-]+$/;
+
     my (@modes, $bitmask, $value, $sticky, $mode);
 
     for (split ',', $temp_mode) {
+	my ($what, $operator, $flags) = split /([+-])/, $_, 2;
+
+	return unless $operator and $flags;
+
 	$mode = 1;		# whether adding or subtracting bits
 	$bitmask = 0000;	# default bits to operate on
 	$value = $sticky = 0;
-
-	my ($what, $operator, $flags) = split /([+-])/, $_, 2;
 
 	$what = 'ugo' if $what eq 'a' or $what eq '';
 
