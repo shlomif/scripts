@@ -25,6 +25,7 @@ my %open = (
   safari        => [qw(open -a Safari)],
   'omniweb-bg'  => \&open_omniweb_bg,
   mozilla       => [qw(mozilla)],
+  firefox       => [qw(open -a Firefox)],
   lwp           => [qw(lwp-request)],
   'lwp-noproxy' => [qw(lwp-request -P)],
   wget          => [qw(wget)],
