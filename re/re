@@ -18,7 +18,7 @@ my %param = ( force => 0 );
 
 use Getopt::Std;
 my %opts;
-getopts 'h?fl', \%opts;
+getopts 'h?flq', \%opts;
 
 print_help() if $opts{h} or $opts{'?'};
 
@@ -29,7 +29,8 @@ my ( $sessions, $shortnames ) = get_screen_sessions();
 
 # listing of screen sessions, for autocomplete needs
 if ( exists $opts{l} ) {
-  print join( "\n", sort keys %$sessions ), "\n" if keys %$sessions;
+  my @sessions = (keys %$sessions, keys %$shortnames);
+  print join( "\n", sort @sessions ), "\n" if @sessions;
   exit;
 }
 
@@ -38,9 +39,10 @@ unless ( $param{name} =~ m/^$session_re$/ ) {
   exit 101;
 }
 
-# figure out what to do
+# run if no prior sessions found
 exec_screen() unless ( keys %$sessions );
 
+# otherwise, consult session structures and figure out what to do
 my $running = 0;
 my $state   = 0;
 
@@ -56,18 +58,23 @@ if ( exists $shortnames->{ $param{name} } ) {
 
 exec_screen() if not $running or $param{force} or not $state;
 
+# otherwise, we give up
 remark(
   'error',
   'existing session attatched elsewhere',
   { session => $param{name} }
-);
+) unless exists $opts{q};
 exit 1;
 
+# how screen is run. Requires '-d -R' to automagically create or resume
+# a named session and detatch it else where. (-D -R should also work,
+# but does a logout, which I dislike.)
 sub exec_screen {
-  # TODO need means of customizing (some) of the options...
+  # TODO need means of customizing (some) of the options
   exec qw(screen -A -d -R -S), $param{name};
 }
 
+# parses output of screen session listings into data structures
 sub get_screen_sessions {
   unless ( open SCREENLS, 'screen -ls |' ) {
     remark( 'error', 'could not run screen', { errno => $! } );
