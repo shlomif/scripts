@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/perl -w
 #
 # $Id$
 #
@@ -6,30 +6,186 @@
 # public domain.
 #
 # Extracts links from a requested document and runs them by a supplied
-# search string via grep.
+# regular expression to grep for URL.
 
-myn=`basename $0`
+use strict;
 
-if [ -z $1 ]; then
-  echo "usage: ${myn} URL search-string" >&2
-  exit 1
-fi
-if [ -z $2 ]; then
-  echo "usage: ${myn} URL search-string" >&2
-  exit 1
-fi
+use File::Basename qw(basename);
+my $basename = basename($0);
 
-URL=$1
-SEARCH=$2
+use HTML::TokeParser ();
+use URI              ();
 
-TMPFILE=`mktemp -q /tmp/${myn}.XXXXXXX` || exit 1
-trap "rm -f $TMPFILE" 0 1 2 13 15
+use Getopt::Std;
+my %opts;
+getopts 'h?b:', \%opts;
 
-wget -q -O $TMPFILE $URL
+print_help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
+my $base_uri = $opts{b} if exists $opts{b};
 
-<$TMPFILE \
-  perl -nle '@hits=/\s+href="([^"]+)"/ig; $"="\n"; print "@hits"' | \
-  grep "$SEARCH" | \
-  perl -ple s,^,$URL,
+my $document = shift;
+# regular expression, or match everything by default
+my $pattern = shift || qr/^/;
 
-rm $TMPFILE
+# TODO this might be xlink:href in XML... ?
+my $href = 'href';
+
+my $urls = parse_document( get_document($document), $base_uri );
+
+unless (@$urls) {
+  remark( 'error', 'no URL found', { source => $document } );
+  exit 101;
+}
+
+# TODO need template output, and means to select "a href" along with
+# others like img src or anything with a href...
+for my $result (@$urls) {
+  my $url = $result->{url};
+  print $url, "\n" if $result->{element} eq 'a' and $url =~ m/$pattern/o;
+}
+
+# gets document into something HTML::TokeParser can deal with
+sub get_document {
+  my $document = shift;
+  return { document => $document, source => \*STDIN } if $document eq '-';
+
+  my $source;
+  $source->{document} = $document;
+
+  my $target = URI->new($document);
+
+  if ( $target->scheme ) {
+    # TODO URL lookup needs more error checking
+    use LWP::UserAgent;
+    my $ua =
+     LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
+    $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
+    my $response = $ua->get( $target->canonical );
+    if ( $response->is_success ) {
+      $source->{base_uri} = $target->canonical->as_string;
+      delete $source->{base_uri}
+       unless defined $source->{base_uri}
+       and length $source->{base_uri} >= 1;
+      $source->{source} = \$response->content;
+    } else {
+      remark(
+        'error',
+        'could not fetch resource',
+        { status => $response->code, errno => $response->message }
+      );
+      exit 102;
+    }
+  } else {
+    # treat as filename as no scheme
+    $source->{source} = $target->canonical->as_string;
+  }
+
+  return $source;
+}
+
+# pulls out URL from document
+sub parse_document {
+  my $source   = shift;
+  my $base_uri = shift;
+
+  my $p = HTML::TokeParser->new( $source->{source} );
+  unless ($p) {
+    remark(
+      'error',
+      'could not parse document',
+      { source => $source->{document}, errno => $! }
+    );
+    exit 103;
+  }
+
+  my ( @found, $inbody, $seenbase, %seenurl );
+
+  # command line base_uri wins if set
+  $seenbase = 1 if defined $base_uri;
+
+  while ( my $token = $p->get_tag ) {
+    $inbody = 1 if $token->[0] eq 'body' or $token->[0] eq '/head';
+
+    # skip closing tags
+    next if $token->[0] =~ m{^/};
+
+    # pull optional <base> from HTML header
+    if ( not $inbody and not $seenbase and $token->[0] eq 'base' ) {
+      my $url = get_url_from_token($token);
+      $base_uri = $url if $url;
+      $seenbase = 1;
+    }
+
+    # check if this tag is something we want
+    # TODO img use src, not href...
+    my $url = get_url_from_token($token);
+    if ($url) {
+      # TODO unique gets tricky, if looking for 'a href' or 'img src'
+      # but do or do not want URL that are set for both?
+      next if exists $seenurl{"$token->[0].$href.$url"};
+      $seenurl{"$token->[0].$href.$url"} = 1;
+      push @found, { element => $token->[0], attribute => $href, url => $url }
+    }
+  }
+
+  # set base_uri from document URL if possible (allows command line or
+  # <base> to take precedence)
+  if ( not defined $base_uri and defined $source->{base_uri} ) {
+    $base_uri = $source->{base_uri};
+  }
+
+  for my $result (@found) {
+    my $uri;
+    if ($base_uri) {
+      $uri = URI->new_abs( $result->{url}, $base_uri )->canonical->as_string;
+    } else {
+      $uri = URI->new( $result->{url} )->canonical->as_string;
+    }
+    unless ($uri) {
+      remark(
+        'warning',
+        'skipping URL as unable to canonicalize',
+        { url => $result->{url} }
+      );
+      next;
+    }
+    $result->{url} = $uri;
+  }
+
+  return \@found;
+}
+
+sub get_url_from_token {
+  my $token = shift;
+  my $href = shift || $href;
+  return
+   unless exists $token->[1]{$href}
+   and defined $token->[1]{$href}
+   and length $token->[1]{$href} >= 1;
+  return $token->[1]{$href};
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
+}
+
+sub print_help {
+  print "usage: $basename URL|file|- [regular-expression]\n";
+  exit 100;
+}
+
