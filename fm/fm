@@ -196,7 +196,6 @@ Options:
   -h/-?  Display this message
 
   -b xx  Make a backup of the LOGFILE, where xx is the (optional) target.
-
   -s     Do not truncate logfile after parsing it.
 
 Run perldoc on this script for more documentation.
@@ -241,10 +240,14 @@ fm.pl supports the following command line options:
 
 -h     Get a brief help blarb
 
--s    Save the logfile.
+-b xx  Save a backup of the LOGFILE to location xx.
+
+By default, no backups of the logfile are made.  Caveat actor.
+
+-s     Save the logfile.
 
 The default behaviour is to truncate the logfile down to nothing once
-done parsing it.
+done parsing it.  Setting -s will preserve the current logfile.
 
 =head1 LICENSE
 
