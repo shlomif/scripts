@@ -216,18 +216,18 @@ Options:
   -s xx  Perl expression that will result in the current file (stored in \$_)
          being skipped if the expression turns out to be "true."  Example:
 
-         -s 'm/^\\.rsrc\$/'
+         -s 'm/^\\.rsrc\$/ || -z $pti'
 
-         Would skip the checksum on '.rsrc' files.
+         Would skip the checksum on files named '.rsrc', or files that are
+         empty via the -z is-empty test.
 
   -p xx  Perl expression that will result in the current directory (stored in 
          \$_) being pruned out of the tree.  Like config dirs, for example:
 
          -p 'm/etc/'
 
-         Both -s and -p expressions should use the shortcut _ operator in
-         any stat() calls to avoid race conditions. (Perhaps!)
-
+         Both -s and -p have access to the filename in \$_, and can find
+         the full filepath in the variable \$pti.
 HELP
     exit;
 }
