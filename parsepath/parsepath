@@ -15,6 +15,7 @@ use File::Spec;
 sub resolve_path;
 sub getfileinfo;
 sub determine_role;
+sub check_access;
 sub print_help;
 
 # unix file type mappings
@@ -127,21 +128,16 @@ for my $i (0 .. $#pathbits) {
     die "error: no data about $current\n";
   }
 
-  # TODO for constraint, user (or group, other; or for group then other)
-  # need to check whether preceeding dirs allow access (just read, or
-  # +rx?) and whether the final item allows access in question (write or
-  # whatnot). Probably need to use 0..$#dirs so know when on last item?
-  #
-  # if user constraint, need also to lookup their group memberships, and
-  # also failover to "other". For group, check group and fail over to
-  # other... sub to handle these steps?
-
   # TODO means of supplying output fields and their order?
   if (exists $opts{options}->{l}) {
     print join " ", map $filedata->{$_},
      qw(type unix_mode_octal unix_user unix_group name);
     print ' -> ', $filedata->{link} if exists $filedata->{link};
     print "\n";
+  }
+
+  if (exists $opts{constraint}) {
+    check_access $filedata, $i != $#pathbits ? {qw(r 1 x 1)} : $opts{perms};
   }
 }
 
@@ -260,6 +256,49 @@ sub getfileinfo {
   $filedata{unix_group} = getgrgid $filedata{unix_gid} || $filedata{unix_gid};
 
   return \%filedata;
+}
+
+sub check_access {
+  my $filedata = shift;
+  my $perms    = shift;
+
+  #  use Data::Dumper; print Dumper $filedata, $perms;
+  my %modemap = (
+    userr  => 256,
+    userw  => 128,
+    userx  => 64,
+    groupr => 32,
+    groupw => 16,
+    groupx => 8,
+    otherr => 4,
+    otherw => 2,
+    otherx => 1
+  );
+
+  for my $role (@{$opts{role}}) {
+    if ($role->{name} eq $filedata->{"unix_" . $role->{type}}) {
+
+      my @fails;
+      for my $bit (keys %$perms) {
+        push @fails, $bit
+         unless $filedata->{unix_mode} & $modemap{$role->{type} . $bit};
+      }
+      print $role->{type}, ' ', $role->{name}, ' +', join('', @fails),
+       ' fails on ', $filedata->{name}, "\n"
+       if @fails;
+
+      # unix, once gets match on user or group, stops looking at subsequent
+      return;
+    }
+  }
+
+  # if drop off here without being restricted, need to check other access
+  my @fails;
+  for my $bit (keys %$perms) {
+    push @fails, $bit unless $filedata->{unix_mode} & $modemap{'other' . $bit};
+  }
+  print 'other', ' +', join('', @fails), ' fails on ', $filedata->{name}, "\n"
+   if @fails;
 }
 
 # usage notes
