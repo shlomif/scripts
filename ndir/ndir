@@ -5,17 +5,31 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Creates new directories.
+# Creates new directories.  Acts like 'mkdir -p' to create parent
+# directories by default, and is aware of CVS, so will add new
+# directories to the repository automagically.
 
 for f in $@; do
+  # create at depth
   mkdir -p $f
+
   if [ $? -ne 0 ]; then
     echo "warning: problem creating $f" >&2
     continue
   fi
 
-  # if in a CVS area, add directory for us
+  # if in a CVS area, add the directory or directories to repository
   if [ -f CVS/Root ]; then
-    cvs -q up 2>/dev/null | grep $f | sed 's/..//' | xargs cvs add
+  (
+    IFS=' '
+    for sdir in `echo $f | sed 's/\// /g'`; do
+      cvs add $sdir >/dev/null
+      if [ $? -ne 0 ]; then
+        echo "warning: problem adding $sdir to repository" >&2
+        break
+      fi
+      cd $sdir
+    done
+  )
   fi
 done
