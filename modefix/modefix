@@ -221,14 +221,25 @@ sub zapit {
 
 	# apply mode changes as needed to directory
 	if (defined $dirmode) {
-	    if ($dirmode != $cur_mode) {
+	    my $new_mode;
+
+	    # if ARRAY, do the funky stuff, assume regular octal otherwise
+	    if (ref $dirmode eq 'ARRAY') {
+		$new_mode = apply_mode($cur_mode, $dirmode);
+	    } else {
+		$new_mode = $dirmode;
+	    }
+
+	    # this next bit could be subroutined w/ the filemode change
+	    # code below being identical...
+	    if ($new_mode != $cur_mode) {
 		# show the offending file if verbose on
 		print 'MODE', "\t", 
 		sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
 
 		# attempt the change
-		my $result = chmod $dirmode, $_;
+		my $result = chmod $new_mode, $_;
 		warn "error: chmod on ", 
 		$File::Find::name, " failed\n" if $result == 0;
 
@@ -254,17 +265,27 @@ sub zapit {
 
 	# set file modes if needed
 	if (defined $filemode) {
-	    if ($filemode != $cur_mode) {
+	    my $new_mode;
+
+	    # if ARRAY, do the funky stuff, assume regular octal otherwise
+	    if (ref $filemode eq 'ARRAY') {
+		$new_mode = apply_mode($cur_mode, $filemode);
+	    } else {
+		$new_mode = $filemode;
+	    }
+
+	    # only perform the chmod if modes are different...
+	    if ($new_mode != $cur_mode) {
 		# show the offending file if verbose on
 		print 'MODE', "\t", 
 		sprintf ("%04o", $cur_mode), "\t", 
 		$File::Find::name, "\n" if $verbose;
-
-		my $result = chmod $filemode, $_;
-
+		
+		my $result = chmod $new_mode, $_;
+		
 		warn "error: chmod on ", 
 		$File::Find::name, " failed\n" if $result == 0;
-
+		
 		# log bad permissions
 		$badperms{$cur_uid}++;
 	    }
@@ -291,6 +312,87 @@ sub zapit {
 	# log this change so we know whose been setting bad groups
 	$badgroups{$cur_uid}++ if defined $groupid;
     }
+}
+
+# parse_mode takes incoming ug+rw,o-rwx requests and returns
+# an array reference suitable for use in apply_mode().
+#
+# the array for ug+rw,o-rwx should look like ([1,0660],[0,0007])
+#                                                sugo
+sub parse_mode {
+    my $temp_mode = shift;
+
+    my (@temp, @modes, $i);
+
+    @temp = split ',', $temp_mode;
+
+    for ($i = 0; $i < scalar @temp; $i++) {
+	warn "dealing with $temp[$i]\n";
+
+	my ($what, $operator, $flags) = split /([+-])/, $temp[$i];
+
+	# test for remove bit, otherwise assume add bit
+	if ($operator eq "-") {
+	    $modes[$i][0] = 0;
+	} else {
+	    $modes[$i][0] = 1;
+	}
+
+	my $bitmask  = 0000;
+	my $value  = 0;
+	my $sticky = 0;
+
+	$value += 4 if $flags =~ /r/;
+	$value += 2 if $flags =~ /w/;
+	$value += 1 if $flags =~ /x/;
+
+	# default to all modes on
+	$what = 'ugo' unless defined $what;
+
+	# or all on if they used the 'a' mode
+	$what = 'ugo' if $what =~ /a/;
+
+	if ($what =~ /u/) {
+	    $bitmask |= oct "0${value}00";
+	    $sticky += 4 if $flags =~ /s/;
+	}
+	if ($what =~ /g/) {
+	    $bitmask |= oct "00${value}0";
+	    $sticky += 2 if $flags =~ /s/;
+	}
+	if ($what =~ /o/) {
+	    $bitmask |= oct "000${value}";
+	    $sticky += 1 if $flags =~ /s/;
+	}
+
+	# apply sticky mode to finish off this bitmask
+	$bitmask |= oct "${sticky}000";
+
+	$modes[$i][1] = $bitmask;
+    }
+
+    return \@modes;
+}
+
+# expects file's current mode and a parse_mode array reference
+# returns the mode the file should be changed to
+sub apply_mode {
+    my $cur_mode = shift;
+    my $r_mode   = shift;
+
+    my $temp_mode = $cur_mode;
+
+    foreach my $element ( @{$r_mode} ) {
+	# &~ removes bitmask in element from file's permissions,
+	# | operator adds bitmask in if necessary
+	if ($element->[0] == 0) {
+	    $temp_mode &= ~$element->[1];
+	} else {
+	    $temp_mode |= $element->[1];
+	}
+    }
+
+    return $temp_mode;
 }
 
 # a standardized help blarb: should move some of this into perldoc
