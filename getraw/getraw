@@ -15,29 +15,36 @@ use Term::ReadKey;
 my $VERSION;
 ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
-my $spec = 'Yy:+ Nn:- *:';
+my $default_spec = 'Yy:+ Nn:- *:';
+my $spec;
 
-my $prompt;
-$prompt->{first} = '';
-$prompt->{first} = $ENV{GETRAW1} if exists $ENV{GETRAW1};
-$prompt->{annoy} = 'Are you really sure? %s';
-$prompt->{annoy} = $ENV{GETRAW2} if exists $ENV{GETRAW2};
+# "true" is 0 for shell exits, 1 for "false"
+my $status_map = {'+' => 0, '-' => 1};
+
+# by default wait forever
+my $timeout = -1;
 
 use Getopt::Std;
 my %opts;
-getopts('h?o:A:t:ar', \%opts);
+getopts('h?o:t:r', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
-if (exists $opts{o}) {
-  parse_spec($opts{o});
-} else {
-  parse_spec($spec);
+$spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
+
+# TODO only allow non--1 timeouts if non-null default action exists
+if (exists $opts{t} and exists $spec->{default} and $spec->{default} =~ /^\d+$/)
+{
+  $timeout = duration2seconds($opts{t});
 }
 
-$prompt->{first} = "@ARGV"  if @ARGV;
-$prompt->{annoy} = $opts{A} if exists $opts{A};
-
-my $key = get_key();
+while (1) {
+  my $key = get_key();
+  if (exists $spec->{keys}->{$key} and $spec->{keys}->{$key} =~ /^\d+$/) {
+    exit $spec->{keys}->{$key};
+  } elsif (exists $spec->{default} and $spec->{default} =~ /^\d+$/) {
+    exit $spec->{default};
+  }
+}
 
 ######################################################################
 #
@@ -47,9 +54,10 @@ sub get_key {
   ReadMode 4;
   my $first;
 
-  # TODO add timeout support via -t timeout option
   do {
-    $first = ReadKey(-1);
+
+    # TODO way to spot timeouts and break the loop?
+    $first = ReadKey($timeout);
   } until defined $first;
 
   if (exists $opts{r}) {
@@ -61,7 +69,7 @@ sub get_key {
     # wait for user to hit \r hit, but still take first key they type
     do {
       do {
-        $ret = ReadKey(-1);
+        $ret = ReadKey($timeout);
       } until defined $ret;
     } until $ret eq "\n";
   }
@@ -72,33 +80,92 @@ sub get_key {
 
 sub parse_spec {
   my $string = shift;
+  my $spec;
 
-  for (split /(?<!\\)[ ,]+/, $string) {
+  for (reverse split /(?<!\\)[ ,]+/, $string) {
     my ($keys, $status) = /(.+?):(.)?$/;
-    $status ||= '';
+    $status ||= '';  # "do nothing" status, no return code
+
+    $spec->{human}->{$status} .= $keys;
+
+    if (exists $status_map->{$status}) {
+      $status = $status_map->{$status};
+    }
+
+    # TODO warn about not getting numeric exit status
+    if ($status ne '' and $status !~ /^\d+$/) {
+      $status = 0;
+    }
+
+    # unescaped * means "any key"
+    if ($keys =~ s/(?<!\\)\*//) {
+      $spec->{default} = $status;
+    }
 
     # unescape backwhacked things (\r, etc.)
     $keys =~ s/(\\.)/qq!"$1"!/eeg;
 
-    # DBG    print "k $keys   s $status\n";
+    # quick lookup map for key typed
+    for (split //, $keys) {
+      $spec->{keys}->{$_} = $status;
+    }
   }
+
+  # DBG
+#  use Data::Dumper;
+#  print Dumper $spec;
+
+  return $spec;
+}
+
+sub duration2seconds {
+  my $tmpdur = shift;
+  my $timeout;
+
+  # how to convert short human durations into seconds
+  my %factor = (
+    'w' => 604800,
+    'd' => 86400,
+    'h' => 3600,
+    'm' => 60,
+    's' => 1,
+  );
+
+  # assume raw seconds for plain number
+  if ($tmpdur =~ m/^\d+$/) {
+    $timeout = $tmpdur;
+
+  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+
+    # match "2m 5s" style input and convert to seconds
+    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
+      $timeout += $1 * $factor{$2};
+    }
+  } else {
+    die "Error: unknown characters in duration.\n";
+  }
+
+  unless (defined $timeout and $timeout =~ m/^\d+$/) {
+    die "Error: unable to parse duration.\n";
+  }
+
+  return $timeout;
 }
 
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts] [prompt string]
+Usage: $0 [opts]
 
 Means to prompt for human interaction.
 
 Options for version $VERSION:
   -h/-?  Display this message
 
-  -o fmt Key mapping specification
-
-  -a     Annoy with additional "Are you sure?"
+  -o ss  Key mapping specification
 
   -r     Require return key (default: on keystroke)
+  -t dd  Timeout to default after dd seconds
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -123,7 +190,7 @@ with a human, for example to choose from a list.
 
 =head2 Normal Usage
 
-  $ getraw [options] [prompt message]
+  $ getraw [options]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -152,15 +219,13 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known bugs.
+The -t timeout option does not really work, as I currently know no
+way to detect that a Term::ReadKey timeout has occured soas to break
+the read key loop.
 
 =head1 TODO
 
-Means to pass -wyY -Wn format to prompt somehow for indication of what
-keys the program wants?
-
-Way to return arbitrary exit code, to support more than just positive or
-negative exits?
+Write own alarm signal handler to replace Term::ReadKey one.
 
 =head1 SEE ALSO
 
