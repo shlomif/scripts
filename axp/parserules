@@ -1,0 +1,63 @@
+#!/usr/bin/perl -w
+use strict;
+
+my $file = shift || 'rules';
+
+my @rules;
+
+open my $fh, "< $file" or die "$!\n";
+while (<$fh>) {
+  next if /^\s*$/;
+  s/^\s+//;
+  next if /^#/;
+  chomp;
+  s/\s+$//;
+
+  if (s/\\$//) {
+    $_ .= <$fh>;
+    print "redo: $_\n";
+    redo unless eof;
+  }
+
+  my @tokens = split /(?<!\\)\s+/, $_;
+  # anything shorter does not make sense
+  next unless @tokens >= 4;
+  
+  my %rule;
+  $rule{subject} = shift @tokens;
+  if ( $tokens[0] eq 'not' ) {
+    $rule{negate} = 1;
+    shift @tokens;
+  }
+  $rule{operator} = shift @tokens;
+  $rule{value}    = cleanup_token(shift @tokens);
+
+  $rule{action} = 'continue';
+  if ( $tokens[0] eq 'stop'
+    or $tokens[0] eq 'ignore'
+    or $tokens[0] eq 'continue' ) {
+    $rule{action} = shift @tokens;
+  }
+
+  for my $default (@tokens) {
+    my ($k, $v) = split /=/, $default;
+    if (defined $k and defined $v) {
+      $rule{defaults}->{$k} = cleanup_token($v);
+    }
+  }
+
+  push @rules, \%rule;
+}
+
+sub cleanup_token {
+  my $token = shift;
+  $token =~ s/^"//;
+  $token =~ s/"$//;
+
+  # unescapes things like "\ " or "\n"
+  $token =~ s/(\\.)/qq!"$1"!/eeg;
+  
+  return $token;
+}
+
+use Data::Dumper; warn Dumper \@rules;
