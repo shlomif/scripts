@@ -6,4 +6,4 @@ all:
 	rm pbotutil.pl* pod2htm*
 
 test:
-	date | ./pbotutil -s test -c '' | xargs ./pbotutil get
+	date | ./pbotutil -s sial -c '' | xargs ./pbotutil get
