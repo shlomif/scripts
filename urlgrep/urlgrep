@@ -5,8 +5,8 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Extracts links from a requested document and runs them by a supplied
-# Perl regular expression to grep for URL. Hence, 'urlgrep' as the name.
+# Extracts URL from a HTML document and optionally applies a supplied
+# Perl regular expression to the URL to search for matches.
 #
 # Run perldoc(1) on this script for additional documentation.
 
@@ -23,9 +23,40 @@ use URI              ();
 
 use Getopt::Std;
 my %opts;
-getopts 'h?tTb:o:', \%opts;
+getopts 'h?tTb:o:m:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
+
+# only include <a href="... tags by default for matching
+# TODO configuration file for this specification?
+my %elements = ( a => { href => 1 } );
+my $allelements = 0;
+my %attributes;
+
+# TODO this interface may need some improvement for production use??
+if ( exists $opts{m} ) {
+  %elements = ();
+
+  for my $pair ( split /\s*,\s*/, $opts{m} ) {
+    my ( $element, @attributes ) = split /\s+/, $pair;
+    next unless defined $element;
+    if ( $element eq '*' ) {
+      $allelements = 1;
+    }
+
+    if (@attributes) {
+      $elements{$element} = { map { $_ => 1 } @attributes };
+    }
+  }
+
+  if ($allelements) {
+    # merge all wanted attributes into hash for quick lookup
+    for my $attrs ( values %elements ) {
+      %attributes = ( %attributes, %$attrs );
+    }
+    %elements = ();
+  }
+}
 
 $output_tmpl = $opts{o} if exists $opts{o};
 $opts{t} = 1 if $output_tmpl =~ m/ %{text} /x;
@@ -43,25 +74,9 @@ my $document = shift;
 # regular expression, or match everything by default
 my $pattern = shift || qr/^/;
 
-# TODO this might be xlink:href in XML... ?
-my $href = 'href';
+print_urls( parse_document( get_document($document), $base_uri ) );
 
-my $urls = parse_document( get_document($document), $base_uri );
-
-unless (@$urls) {
-  remark( 'error', 'no URL found', { source => $document } );
-  exit 101;
-}
-
-# TODO need template output, and means to select "a href" along with
-# others like img src or anything with a href...
-for my $result (@$urls) {
-  next unless $result->{url} =~ m/$pattern/o;
-
-  my $str_out = $output_tmpl;
-  $str_out =~ s/ %{ (\w+) } / defined $result->{$1} ? $result->{$1} : '' /egx;
-  print $str_out;
-}
+exit;
 
 # gets document into something HTML::TokeParser can deal with
 sub get_document {
@@ -125,25 +140,32 @@ sub parse_document {
     $inbody = 1 if $token->[0] eq 'body' or $token->[0] eq '/head';
 
     # skip closing tags
+    # TODO does this match empty <img /> tags or not?
     next if $token->[0] =~ m{^/};
 
-    # pull optional <base> from HTML header
+    # pull optional <base> from HTML header, use first <base>
+    # element found
     if ( not $inbody and not $seenbase and $token->[0] eq 'base' ) {
-      my $url = get_url_from_token($token);
+      my $url = get_url_from_token( $token, 'href' );
       $base_uri = $url if $url;
       $seenbase = 1;
     }
 
-    # check if this tag is something we want
-    # TODO img use src, not href...
-    my $url = get_url_from_token($token);
-    if ($url) {
-      # TODO unique gets tricky, if looking for 'a href' or 'img src'
-      # but do or do not want URL that are set for both?
-      next if exists $seenurl{"$token->[0].$href.$url"};
-      $seenurl{"$token->[0].$href.$url"} = 1;
+    next unless $allelements or exists $elements{ $token->[0] };
+    my $attr_ref = $allelements ? \%attributes : $elements{ $token->[0] };
 
-      my $result = { element => $token->[0], attribute => $href, url => $url };
+    for my $attr ( keys %{ $token->[1] } ) {
+      next unless exists $attr_ref->{$attr};
+
+      my $url = get_url_from_token( $token, $attr );
+      next unless $url;
+
+      # TODO this does unique on "a href" or "img src" but not both...
+      # need option to specify a broader duplicate check?
+      next if exists $seenurl{"$token->[0].$attr.$url"};
+      $seenurl{"$token->[0].$attr.$url"} = 1;
+
+      my $result = { element => $token->[0], attribute => $attr, url => $url };
 
       # save text inside <a> with URL for reference, or any tag that has
       # a URL with the -T option
@@ -170,10 +192,10 @@ sub parse_document {
   for my $result (@found) {
     my $uri;
     if ($base_uri) {
-      $uri = URI->new_abs( $result->{url}, $base_uri )->canonical->as_string;
+      $uri = URI->new_abs( $result->{url}, $base_uri )->canonical;
       $result->{base_uri} = $base_uri;
     } else {
-      $uri = URI->new( $result->{url} )->canonical->as_string;
+      $uri = URI->new( $result->{url} )->canonical;
     }
     unless ($uri) {
       remark(
@@ -183,8 +205,11 @@ sub parse_document {
       );
       next;
     }
-    $result->{url}    = $uri;
+    $result->{url}    = $uri->as_string;
     $result->{source} = $source->{document};
+
+    # TODO would be nice to include the "filename" here so can match the
+    # last bit in the URL path before any ? or other URL stuff
   }
 
   return \@found;
@@ -192,12 +217,29 @@ sub parse_document {
 
 sub get_url_from_token {
   my $token = shift;
-  my $href = shift || $href;
+  my $attr = shift || 'href';
   return
-   unless exists $token->[1]{$href}
-   and defined $token->[1]{$href}
-   and length $token->[1]{$href} >= 1;
-  return $token->[1]{$href};
+   unless exists $token->[1]{$attr}
+   and defined $token->[1]{$attr}
+   and length $token->[1]{$attr} >= 1;
+  return $token->[1]{$attr};
+}
+
+# handles output via template
+sub print_urls {
+  my $urls = shift;
+  unless (@$urls) {
+    remark( 'error', 'no URL found', { source => $document } );
+    exit 101;
+  }
+
+  for my $result (@$urls) {
+    next unless $result->{url} =~ m/$pattern/o;
+
+    my $str_out = $output_tmpl;
+    $str_out =~ s/ %{ (\w+) } / defined $result->{$1} ? $result->{$1} : '' /egx;
+    print $str_out;
+  }
 }
 
 sub remark {
@@ -229,20 +271,25 @@ __DATA__
 
 =head1 NAME
 
-urlgrep - extract links from a given URL or file
+urlgrep - extract URL from HTML given as input
 
 =head1 SYNOPSIS
 
-List the RPM for PostgreSQL of the 7.4 version, first release.
-
-  $ urlgrep http://www.postgresql.org/download.html \
-    '/7\.4-1\.[^.]+\.rpm$'
-
-Match any C<*.patch> files on the OpenBSD errata page and download any
-with C<wget>.
+Match any C<*.patch> files on the OpenBSD errata page and download the
+matches by piping them to C<wget> via C<xargs>.
 
   $ urlgrep http://openbsd.org/errata.html '.patch$' | \
     xargs wget
+
+List both regular links and image sources.
+
+  $ urlgrep -m 'a href,img src' http://www.apple.com/
+
+Look for most any link attributes in the file C<example.html> and use
+custom output template.
+
+  $ urlgrep -o '%{element} %{attribute} %{url}' \
+    -m '* href src' example.html
 
 =head1 DESCRIPTION
 
@@ -290,6 +337,34 @@ Specify custom base URL that will be used to qualify any relative links
 in the document. This custom URL will override any C<base> element found
 in the document, or the URL if a URL was specified to download instead
 of a local file or standard input.
+
+=item B<-m> I<specification>
+
+Match custom elements and attributes instead of default match on only
+C<href> attributes of C<a> elements. The I<specification> is a comma
+separated list of element attribute pairs, where a single element is
+followed by one or more attribute names. To match all elements, use an
+element name of C<*>.
+
+=over 4
+
+=item Default specification.
+
+  -m 'a href'
+
+=item Match image sources.
+
+  -m 'img src'
+
+=item Match both images and regular links.
+
+  -m 'a href,img src'
+
+=item Match attributes under any element.
+
+  -m '* href src'
+
+=back
 
 =item B<-t> and B<-T>
 
@@ -341,12 +416,18 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-No known issues. See the source for TODO and other ideas for
-improvements.
+The B<-t> and B<-T> options may exclude URL in rare cases such as the
+following where a URL is embedded inside another URL. This would be a
+limitation of the current HTML processing module that could be fixed via
+the use of a more featureful HTML module.
+
+  <a href="/"> text <a href="#subsection"> more text </a> </a>
+
+See the source for C<TODO> notes on ideas for improvements.
 
 =head1 SEE ALSO
 
-perl(1), HTML::TokeParser, LWP::UserAgent, URI
+perl(1), perlre(1), HTML::TokeParser, LWP::UserAgent, URI
 
 =head1 AUTHOR
 
