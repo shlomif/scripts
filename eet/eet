@@ -136,13 +136,13 @@ HELP
 
 =head1 NAME
 
-eet.pl - merges growing files into single stream
+eet - merges growing files into single stream
 
 =head1 SYNOPSIS
 
 To follow two log files at the same time:
 
-  $ eet.pl /var/log/messages /var/log/maillog
+  $ eet /var/log/messages /var/log/maillog
 
 =head1 DESCRIPTION
 
@@ -154,7 +154,7 @@ L<File::Tail|File::Tail>.
 
 =head2 Normal Usage
 
-  $ eet.pl [options] [file1 file2 .. fileN]
+  $ eet [options] [file1 file2 .. fileN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -207,7 +207,7 @@ the object.
 Read through then follow several Apache VirtualHost logfiles, and send
 them off to colorize.pl:
 
-  $ eet.pl -t -1 /www/site/logs/*_log | colorize.pl
+  $ eet -t -1 /www/site/logs/*_log | colorize.pl
 
 See http://colorize.raszi.hu/ for colorize.pl.
 
