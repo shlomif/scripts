@@ -23,6 +23,7 @@ my %opts;
 getopts 'h?xc:o:d:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'};
+print_help() if not exists $opts{c} and not @ARGV;
 
 # KLUGE pass through on -x "one filesystem" option to du
 if (exists $opts{x}) {
@@ -336,7 +337,7 @@ sub remark {
 
 sub print_help {
   print <<"HELP";
-Usage: $0 [-c configfile] [-o outputtemplate] [-d defaults] [dir ..|-]
+Usage: $0 [options] [directory ..] [-]
 
 'du' output parser and reporter
 
@@ -368,7 +369,7 @@ diskusage - du output parser and reporter
 
 Run C<diskusage> to report on home directory usage:
 
-  $ diskusage ~/
+  $ diskusage $HOME
 
 Load configuration, specify custom output template:
 
@@ -383,19 +384,24 @@ certain areas on disk and better output control via a template.
 
 =head2 Normal Usage
 
-  $ diskusage [-c configfile] [-o outputtemplate] [-d defaults] [dir ..|-]
+  $ diskusage [options] [directory ..] [-]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-The C<du> command will be run on each directory specified on the
-command line or from a configuration file, and results printed to
-standard out according to the output template. The default output
-format copies that of C<du>, though with only a single space between the
-size and the path.
+The C<du> command will be run on each directory specified on the command
+line or from a configuration file, and results printed to standard out
+according to the output template. The default output format is similar
+to that of C<du>, but with a human readable size following the path.
+This allows easy sorting by size.
+
+  $ diskusage . | sort -n
+  12 ./CVS 12.0K
+  28 . 28.0K
 
 Directory specifications can either be loaded from the B<-c>
 configuration file option, and passed in on standard input if a hyphen
-is the last option on the command line.
+is the last option on the command line. Otherwise, one or more directory
+names will need to be specified as arguments to the script.
 
 To change the C<du> command that is run, set the C<DU_CMD> environment
 variable. Bear in mind this script expects sizes to be reported in
@@ -420,8 +426,9 @@ Load configuration data from the specified file.
 
 Specify a custom output template. Values to be expanded on should be
 written as C<%{name}>, and ideally a C<\n> included at the end of the
-template to print a newline between records. Currently available
-parameters for expansion include:
+template to print a newline between records. A newline will be added to
+the output template unless the template ends with whitespace. Currently
+available parameters for expansion include:
 
   size - to emulate regular du(1) output with
   path
