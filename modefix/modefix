@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # $Id$
 # By Jeremy Mates <mailto:jmates@sial.org>
@@ -82,6 +82,9 @@ if (exists $opts{'f'}) {
 if (exists $opts{'u'}) {
     my $temp_user = $opts{'u'};
 
+    # check whether user:group notation in use...
+    ($temp_user, $group) = split ':', $temp_user, 2;
+
     # by userid, otherwise attempt by user name
     if ($temp_user =~ m/^\d+$/) {
 	# check that this userid exists in passwd file
@@ -101,16 +104,24 @@ if (exists $opts{'u'}) {
 }
 
 # group to set
-if (exists $opts{'g'}) {
+if (exists $opts{'g'} || defined $group) {
     my $members; # for sanity checking
+    my $temp_group;
 
-    my $temp_group = $opts{'g'};
+    # if group already defined, using -u user:group notation,
+    # ignore the -g option!
+    if (defined $group) {
+	$temp_group = $group;
+    } else {
+	$temp_group = $opts{'g'};
+    }
 
     # by groupid, otherwise attempt by group name
     if ($temp_group =~ m/^\d+$/) {
 	unless (($group, undef, $groupid, $members) = getgrgid $temp_group) {
-	    warn 'warning: groupid ', $temp_group, " not found on system\n"
-		unless $quiet;
+	    # hmmm, at least Linux doesn't appear to allow me to
+	    # set the gid to a non-existant group number in perl...
+	    die 'groupid ', $temp_group, " not found on system, quitting\n"
 	}
     } else {
 	# extract more info on the group they gave us
@@ -388,8 +399,7 @@ sub apply_mode {
     return $temp_mode;
 }
 
-# a standardized help blarb: should move some of this into perldoc
-# format so the blarb is a bit shorter...
+# a standardized help blarb, see perldoc stuff for more meat
 sub help {
      print <<"HELP";
 $0 version $VERSION
@@ -401,17 +411,14 @@ Options
   -v     Verbose mode, shows files fixing.
   -q     Overrides -v, only output will be on serious failures.
     
-  -d     Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
-  -f     File mode to set,      e.g. '0660' or 'ug+rw'
-  -u     User name to set,      e.g. 'jdoe' or '42'
-  -g     Group name to set,     e.g. 'goobers' or '1492'
+  -d nn  Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
+  -f nn  File mode to set,      e.g. '0660' or 'ug+rw'
+  -u uu  User name to set,      e.g. 'jdoe' or '42'
+  -g gg  Group name to set,     e.g. 'goobers' or '1492'
 
   -s xx  Perl expression that will result in the current item
-         (stored in \$_) being skipped if the expression turns
-         out to be "true."
-
-  -p xx  Perl expression that will result in the current directory
-         (stored in \$_) being pruned out of the tree.
+         being skipped if the expression turns out to be "true."
+  -p xx  Prune matching diretories from search tree.
 
 Use perldoc on this script for more help.
 
@@ -548,6 +555,10 @@ the script do something:
         Also, unless quiet mode is on, modefix.pl warns if you
         enter id's that do not exist on the system, or if the
         user is not a member of the specified group.
+
+        You can also use the -u user:group syntax common to
+        chmod(1); this format will cause the -g option to be
+        ignored.
         
 B<Search Customization>:
 
@@ -577,11 +588,13 @@ using perl expressions that get eval'ed:
 
 =head1 BUGS
 
-B<modefix.pl> doesn't deal well with soft linked directories.
+B<modefix.pl> doesn't deal well with soft links.  Well, File::Find has
+trouble with directories, and I'm using lstat, and you can't really
+chmod the soft link to a file...
 
-This can be considered a feature, as I've seen systems taken out by
-rampant chmod -R invocations.  Well, a single Solaris system, and it was
-the kid's first week on the job-- wasn't me, and I'm not telling who. :)
+(I've seen systems taken out by rampant chmod -R invocations.  Well, a 
+single Solaris system, and it was the kid's first week on the job-- 
+wasn't me, and I'm not telling who. :)
 
 =head1 SEE ALSO
 
