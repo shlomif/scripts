@@ -422,10 +422,11 @@ sub init {
 HEADER
 
   # pull default preferences from POD to avoid duplication here
+  my $boundary = qr/^\s+# example config/;
   seek DATA, 0, 0;
   while (<DATA>) {
-    if (/^\s+# BEGIN/ .. /^\s+# END/) {
-      next     if /^\s+# (?:BEGIN|END)/;
+    if (/$boundary/ .. /$boundary END/) {
+      next     if /$boundary/;
       s/^\s+// if /\S/;
       print FILE $_;
     }
@@ -637,7 +638,7 @@ alternate names to be set for a particular server (space separated
 list). Aliases can be identical for multiple server entries, and the
 script will failover between the named sites.
 
-  # BEGIN example config
+  # example config BEGIN
   # freenode.net, #perl
   name perl
   alias pp
@@ -659,7 +660,11 @@ script will failover between the named sites.
   name dragon
   alias nochan
   url http://dragon.cbi.tamucc.edu:8080/
-  # END example config
+
+  name snit
+  alias nochan
+  url http://nopaste.snit.ch:8001/
+  # example config END
 
 The C<channel> and C<nick> keys provide defaults to use, though will be
 overridden by the appropriate command line options. The C<network> field
