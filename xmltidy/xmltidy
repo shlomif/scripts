@@ -21,10 +21,10 @@ use File::Temp qw(tempfile);
 
 my $basename = basename $0;
 
-# TODO use these
 use Getopt::Std;
 my %opts;
-getopts 'h?i', \%opts;
+getopts 'h?', \%opts || print_help();
+print_help() if $opts{h} or $opts{'?'};
 
 # to preserve any $! from the tidy command out of a function call
 my $error;
@@ -101,6 +101,21 @@ sub xmltidy {
   return $tidyfh;
 }
 
+sub print_help {
+  print <<"HELP";
+Usage: $basename [file [file ...]]
+
+Cleans up XML via the xmllint utility from the libxml2 project.
+
+Options:
+  -h/-?  Display this message.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
 sub remark {
   my $priority   = shift;
   my $message    = shift;
@@ -127,3 +142,83 @@ END {
    or remark( 'error', 'could not close STDOUT', { errno => $! } )
    and exit 104;
 }
+
+__END__
+=head1 NAME
+
+xmltidy - cleans up XML via the xmllint utility from the libxml2 project
+
+=head1 SYNOPSIS
+
+Tidy up input data, print output to standard out:
+
+  $ xmltidy < input.xml
+
+Clean up named files in place:
+
+  $ xmltidy first.xml second.xml
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Wrapper for the C<xmllint> utility from the libxml2 project to allow
+cleanup on data from standard input and also tidy multiple files in
+place.
+
+=head2 Normal Usage
+
+  $ xmltidy [file [file ...]]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+If no filenames are supplied as arguments, the script will wait for
+input on the standard input filehandle, and tidy that data, then print
+the results to standard out. Otherwise, files named as arguments will be
+cleaned up using in place editing on the files.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
