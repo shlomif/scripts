@@ -112,14 +112,17 @@ sub output {
 
   # TODO encode filenames, form into lines, limit number of lines to show...
   if (@overview) {
-    $output .=
-     wrap( 'f  ', 'f  ', sort(@overview), $overview_overflow ? '...' : () )
-     . "\n";
+    $output .= wrap( 'f  ', 'f  ', sort @overview ) . "\n";
   }
 
   my $io = IO::String->new($output);
   while (<$io>) {
+    if ( $. == $output_max ) {
+      $_ =~ s/(\S+)$/.../;
+      print;
+      last;
+    }
+
     print;
-    last if $. >= $output_max;
   }
 }
