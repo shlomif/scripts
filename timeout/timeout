@@ -1,8 +1,54 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
+# you can redistribute it and/or modify it under the same terms as
+# Perl itself.
+#
+# Run perldoc(1) on this file for additional documentation.
+#
+######################################################################
+#
+# REQUIREMENTS
 
+require 5;
+
+use strict;
+
+######################################################################
+#
+# MODULES
+
+use Carp;         # better error reporting
+use Getopt::Std;  # command line option processing
+
+# TODO make this optional!
 use Time::HiRes qw(gettimeofday tv_interval);
 
+######################################################################
+#
+# VARIABLES
+
+my $VERSION;
+($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts);
+
+######################################################################
+#
+# MAIN
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+
 my $duration = shift;
+
+help() unless @ARGV;
+
 
 my $timeout = parse_duration($duration);
 
@@ -45,15 +91,19 @@ if ($pid) { # parent
   exec @ARGV or die "Error: could not exec: $!\n";
 }
 
+######################################################################
+#
+# SUBROUTINES
+
 sub parse_duration {
   my $tmpdur = shift;
   my $timeout;
 
   # assume raw seconds for plain number
-  if ($tmpdur =~ /^\d+$/) {
+  if ($tmpdur =~ m/^\d+$/) {
     $timeout = $tmpdur * 60;
 
-  } elsif (my @matches = $tmpdur =~ /(\d+\s*[wdhms])/g) {
+  } elsif (my @matches = $tmpdur =~ m/(\d+\s*[wdhms])/g) {
     my %factor = (
       'w' => 604800,
       'd' => 86400,
@@ -63,7 +113,7 @@ sub parse_duration {
     );
 
     for my $match (@matches) {
-      $match =~ /(\d+)(\w)/;
+      $match =~ m/(\d+)(\w)/;
       $timeout += $1 * $factor{$2};
     }
 
@@ -73,3 +123,120 @@ sub parse_duration {
 
   return $timeout;
 }
+
+# a generic help blarb
+sub help {
+  print <<"HELP";
+Usage: $0 duration program [program args]
+
+Stops operation of long running programs.  Duration is either seconds,
+or a shorthand format of "2m3s" for 123 seconds.
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit;
+}
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+timeout.pl - stop operation of long running programs
+
+=head1 SYNOPSIS
+
+Break out of sleep program after five seconds:
+
+  $ timeout.pl 5s sleep 60
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+This script allows programs to be stopped after a specified period of
+time.  Practical uses for this script include escape from buggy
+programs that stall from Makefile, where a SIGINT to stop the program
+will also stop make.
+
+TODO: Currently, a hard upper time limit must be specified.  In
+theory, one could watch the output from the program and stop the
+program if it remains idle for some period of time.
+
+=head2 Normal Usage
+
+  $ timeout.pl duration program [program args]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+The duration can either be a number (raw seconds), or a shorthand
+format of the form "2m3s" for 120 seconds.  The following factors are
+recognized:
+
+  w - weeks
+  d - days
+  h - hours
+  m - minutes
+  s - seconds
+
+Multiple factors will be added together, allowing easy addition of
+time values to existing timeouts:
+
+  $ timeout.pl 3s3s sleep 60
+
+Would only allow the sleep to run for six seconds.
+
+An error will occur if the script is unable to parse the supplied
+duration.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs.
+
+=head1 SEE ALSO
+
+perl(1), perlipc(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, http://www.sial.org/contact/
+
+=head1 COPYRIGHT
+
+Copyright (c) 2002, Jeremy A. Mates.  This script is free software;
+you can redistribute it and/or modify it under the same terms as Perl
+itself.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
