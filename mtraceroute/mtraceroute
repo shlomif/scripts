@@ -72,21 +72,21 @@ foreach my $host (@ARGV) {
 	$stats{$host}->{'timeouts'} = 0;
 
 	while (<TRACE>) {
-#	    print;		# DBG
+	    print;		# DBG
 
 	    # head off timeouts at the pass, otherwise rip by regex
 	    if (m/^\s*\d+\s+\* \* \*$/) {
 		push(@{$data{$host}}, undef);
 		$stats{$host}->{'timeouts'}++;
 
-	    } elsif (m/^\s*\d+(\s+|\*) # optional leading whitespace & index
-		     (\S+)\s+	       # hostname   $2
-		     \(([^\)]+)\)\s+   # ip address (inside ()'s)   $3
-		     (.*?)$/x	       # the probe times $4
+	    } elsif (m/^\s*\d+[ *]+    # optional leading whitespace & index
+		     (\S+)\s+	       # hostname   $1
+		     \(([^\)]+)\)\s+   # ip address (inside ()'s)   $2
+		     (.*?)$/x	       # the probe times $3
 		     ) {
 
 		# extract probe times hackishly
-		my (@times) = split /[^0-9.]+/, $4;
+		my (@times) = split /[^0-9.]+/, $3;
 
 		# catch triple failed probes; mean/stddev don't like
 		# null arrays, as it turns out...
@@ -94,10 +94,12 @@ foreach my $host (@ARGV) {
 		    push(@times, -1);
 		}
 
+		print "                                         ", join("   ", @times), "\n"; # DBG
+
 		# righty, form up data thingy...
 		push(@{$data{$host}}, {
-		    'ip' => $3,
-		    'hostname' => $2,
+		    'ip' => $2,
+		    'hostname' => $1,
 		    'times'    => \@times,
 		    'mean'     => mean(\@times),
 		    'stddev'   => standard_deviation_data(\@times),
