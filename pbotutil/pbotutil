@@ -49,7 +49,7 @@ my $VERSION;
 # parse command-line options
 use Getopt::Std;
 my %opts;
-getopts('h?qu:s:', \%opts);
+getopts('h?qu:s:c:m:', \%opts);
 help() if exists $opts{'h'} or exists $opts{'?'};
 
 for (keys %pfiles) {
@@ -71,7 +71,7 @@ for (keys %pfiles) {
 my $servers = server_load({filename => $pfiles{servers}});
 
 # figure out what to do
-my $verb = shift or help();
+my $verb = shift || 'put';
 unless (exists $actions{$verb}) {
   remark('alert', "no such action: $verb") and exit 101;
 }
@@ -93,11 +93,17 @@ sub pb_get {
   my ($url, $content);
 
   # look for server alias + paste id, or fully qualified URL to nab
-  if (exists $opts{s} and exists $servers->{$opts{s}}) {
-    $url =
-     URI->new($servers->{$opts{s}}->{url}
-       . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
-       . $id)->canonical;
+  if (exists $opts{s}) {
+    unless (exists $servers->{$opts{s}}) {
+      remark('alert', "no server entry for: $opts{s}");
+      exit 105;
+
+    } else {
+      $url =
+       URI->new($servers->{$opts{s}}->{url}
+         . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
+         . $id)->canonical;
+    }
   } else {
     $url = URI->new($id)->canonical;
   }
@@ -131,29 +137,40 @@ sub pb_get {
 }
 
 sub pb_put {
-  my $channel = shift;
-  my ($url, $nick, $summary, $paste);
-
-  $nick = $opts{u};
+  my ($url, $channel, $nick, $summary, $paste);
 
   # either use pb server name, or a fully qualified url
-  if (exists $opts{s} and exists $servers->{$opts{s}}) {
-    $url =
-     URI->new($servers->{$opts{s}}->{url}
-       . (($servers->{$opts{s}}->{url} !~ m,/$,) ? '/' : '')
-       . 'paste')->canonical;
-    $nick = $servers->{$opts{s}}->{nick} if exists $servers->{$opts{s}}->{nick};
+  if (exists $opts{s}) {
+    unless (exists $servers->{$opts{s}}) {
+      remark('alert', "no server entry for: $opts{s}");
+      exit 105;
+    } else {
+      my $server = $servers->{$opts{s}};
+
+      $url =
+       URI->new(
+        $server->{url} . (($server->{url} !~ m,/$,) ? '/' : '') . 'paste')
+       ->canonical;
+
+      $nick    = $server->{nick}    if exists $server->{nick};
+      $channel = $server->{channel} if exists $server->{channel};
+    }
   } else {
+    my $tmpurl = shift;
     $url =
-     URI->new($channel . (($channel !~ m,/$,) ? '/' : '') . 'paste')->canonical;
-    $channel = shift;
+     URI->new($tmpurl . (($tmpurl !~ m,/$,) ? '/' : '') . 'paste')->canonical;
   }
 
-  # pull summary text from rest of command line
-  # TODO better means of doing this?  -m flag like CVS?
-  if (@_) {
-    $summary = "@_";
-  }
+  $nick    = $opts{u} if exists $opts{u};
+  $channel = $opts{c} if exists $opts{c};
+  $summary = $opts{m} if exists $opts{m};
+
+  # also need to pull args from after the put verb, which take precedence
+  my %putopts;
+  getopts('c:m:u:', \%putopts);
+  $nick    = $putopts{u} if exists $putopts{u};
+  $summary = $putopts{m} if exists $putopts{m};
+  $channel = $putopts{c} if exists $putopts{c};
 
   unless (defined $url) {
     remark('alert', 'could not determine url');
@@ -169,8 +186,7 @@ sub pb_put {
     $channel = '';
   }
 
-  # TODO other means of paste data entry besides stdin?
-  $paste = do { local $/; <STDIN> };
+  $paste = do { local $/; <> };
   unless (defined $paste) {
     remark('notice', 'nothing to paste, quitting');
     exit 105;
@@ -384,23 +400,7 @@ sub remark {
 
   return 1 if exists $opts{'q'} and $priority eq 'info';
 
-  #  if (exists $opts{'l'}) {
-  #    if ($opts{'l'} eq "syslog") {
-  #      openlog($0, 'cons', $facility);
-  #      syslog($priority, $message);
-  #      closelog();
-  #
-  #    } elsif ($opts{'l'} eq "logger") {
-  #      system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
-  #
-  #    } else {
-  #      die "alert: unknown log handler: ", $opts{'l'};
-  #    }
-  #
-  #  } else {
   warn $priority, ": ", $message, "\n";
-
-  #  }
 
   return 1;
 }
@@ -436,15 +436,16 @@ Get first post, either by server name or fully qualified URL.
   $ pbotutil -s server get 1
   $ pbotutil get http://example.org:8080/1
 
-Put data to a server.  The channel will have # prefixed if needed.
+Put data to a server.  The channel will have # prefixed if needed.  The
+put verb is optional.  Again, either -s server or or full URL.
 
-  $ pbotutil -s server put channel "optional summary" < file
+  $ pbotutil -s server -c perl file
   $ pbotutil put http://example.org:8080 channel < file
 
 Use the null channel when testing, to avoid pestering a real channel
 with upload messages.
 
-  $ pbotutil -s server put '' < file
+  $ date | pbotutil -s server -c ''
 
 =head1 DESCRIPTION
 
@@ -460,9 +461,29 @@ http://sourceforge.net/projects/pastebot/
 
   $ pbotutil [global-options] action [args]
 
-The C<action> can be one of get or put at present.
+The C<action> can be one of get or put at present.  The put verb is the
+default option.
 
-See L<"OPTIONS"> for details on the command line switches supported.
+=over 4
+
+=item B<get>
+
+  $ pbotutil [-s server] get [pasteid|URL]
+
+Output will be sent to stdout by default.
+
+=item B<put> (default)
+
+  $ pbotutil [-s server] [-c channel] [-m summary] [-u nick] \
+    [put] [URL] [-c|-m|-u] [files|-]
+
+Attempts to upload the combined files or stdin to the server in
+question.  -s and the URL argument are exclusive.  Some options appear
+on either side of the optional put verb due to command line processing;
+options after the verb override those before the verb, and command line
+options trump any server preference settings.
+
+=back
 
 =head1 OPTIONS
 
@@ -480,20 +501,25 @@ Use I<server> definition to get URL, default nickname, and other details
 from the preference file.  Optional, as the get and put commands accept
 fully qualified URL, though recommended to simplify useage.
 
+=item B<-c> I<channel>
+
+Channel to target.  Overrides preference file setting.  Setting it to an
+empty string will target the "null" channel, which avoids channel
+announcements: good for testing.
+
 =item B<-u> I<nick>
 
-Use I<nick> as username when posting.  Will be overridden if a nick
-entry exists for a server definition.
+Use I<nick> as username when posting.  Will override preference file
+setting, if any.
+
+=item B<-m> I<summary>
+
+Short, descriptive summary about the data being pasted.  This doe not
+include things like "help!"
+
+http://www.catb.org/~esr/faqs/smart-questions.html
 
 =back
-
-=head1 EXAMPLES
-
-Additional examples/helpfull hints expanding on SYNOPSIS.
-
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
 
 =head1 FILES
 
@@ -501,16 +527,32 @@ A preferences file is used to store server definitions.  This may either
 be a list of pastebot urls, which will be expanded out and given short
 names, or a list of key/value blocks representing pastebot servers.
 
-  url http://example.org:8080
-  name foo
-  nick bar
+  # easy reference to perl
+  name     perl
+  url      http://example.org:8080
+  nick     mumble
+  channel  #perl
 
-  url http://example.net:8888
-  name bar
+  # ditto linux
+  name     linux
+  url      http://example.org:8080
+  nick     mumble
+  channel  #linux
+
+  # for testing this script, no channel -> null channel by default
+  name     test
+  url      http://example.org:8080
+  nick     testing
+
+  # nick, channel optional, though recommended
+  name     other
+  url      http://example.net:8888/
 
 The name field is for the -s option for easy reference to a particular
-server.  The nick field specifies a default nickname to use for the
-pastings, which may vary by pastebot for someone on multiple networks.
+server (and optionally channel/nick, as the same server can be
+referenced with different names).  The channel and nick provide
+defaults to use, though will be overridden by the appropriate command
+line options.
 
 The preference file will be created automagically if it cannot be found.
 
@@ -531,7 +573,7 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-Yes.  See TODO in source, etc.
+Yes.  See TODO in source, etc.  New code, still being worked on.
 
 =head1 TODO
 
@@ -555,3 +597,4 @@ public domain.
   $Id$
 
 =cut
+
