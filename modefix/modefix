@@ -71,7 +71,6 @@ if (keys %badgroups > 0) {
 	my ($name, $uid, $gid, $gcos, $dir) = (getpwuid $_)[0,2,3,6,7];
 	print '  ', $name, ':', $uid, ':', $gid, ':', $gcos, ':', $dir, "\n";
     }
-    print "\n";
 }
 
 # and same for the permissions on files
@@ -143,7 +142,7 @@ sub zapit {
     if (defined $groupid) {
 	if ($groupid != $cur_gid) {
 	    # yak if verbose
-	    print 'GROUP', "\t", $cur_gid, "\t", $File::Find::name, "\n";
+	    print 'GROUP', "\t", $cur_gid, "\t", $File::Find::name, "\n" if $verbose;
 
 	    my $result = chown $cur_uid, $groupid, $_;
 	    warn "error: chown on ", $File::Find::name, " failed\n" if $result == 0;
@@ -169,7 +168,7 @@ Options
          (stored in \$_) being pruned out of the tree.  Use this to
          skip "dot directories," for example:
 
-         -p 'm/^\../' .
+         -p 'm/^\\../' .
 
          The -d check is used to ensure the prune test is only run
          on directories, so any stat() calls in your expression
@@ -184,6 +183,12 @@ HELP
 __END__
 
 $Log$
+Revision 1.7  2000/02/04 02:23:22  jmates
+Fixed bug in help() where a \ wasn't being printed right.
+
+Fixed bug where only-on-$verbose wasn't being honored properly in the group-
+hacking section.
+
 Revision 1.6  2000/02/04 01:50:47  jmates
 Am still having trouble with getting -r updates to work right...
 
