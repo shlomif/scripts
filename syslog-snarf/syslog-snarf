@@ -100,28 +100,35 @@ my $sock = IO::Socket::INET->new(
 $| = 1;                        # autoflush output
 
 while (1) {
-  my %message;
+  my ( %message, @errors );
   next unless $sock->recv( $message{'raw'}, $max_msg_len );
+
+  $message{'time_recv'} = time;
 
   # get various info on the packet in question
   $message{'peerhost'} = gethostbyaddr( $sock->peeraddr, AF_INET )
    || $sock->peerhost;
   $message{'peerport'} = $sock->peerport;
 
-  # TODO warn if this above 1024 somehow
-  $message{'length'} = length($msg_in);
-
   # see [RFC 3164] for syslog message format details
+  $message{'length'} = length($msg_in);
+  push @errors, 'message exceeds length limit' if $message{'length'} > 1024;
 
-  # TODO need to somehow warn when incoming data does not match the
-  # specifications of the syslog format?
-  ( $message{'PRI'}, $message{'data'} ) = $message{'raw'} =~ m/$PRI_data_re/o;
+  if ( $message{'raw'} =~ m/$PRI_data_re/o ) {
+    ( $message{'PRI'}, $message{'data'} ) = ( $1, $2 );
+  } else {
+    push @errors, 'could not parse PRI field';
+  }
 
-  (
-    $message{'HEADER'},   $message{'TIMESTAMP'},
-    $message{'HOSTNAME'}, $mesage{'MSG'}
-  )
-   = $message{'data'} =~ m/$HEADER_MSG_re/o;
+  if ( $message{'data'} =~ m/$HEADER_MSG_re/o ) {
+    (
+      $message{'HEADER'},   $message{'TIMESTAMP'},
+      $message{'HOSTNAME'}, $mesage{'MSG'}
+    )
+     = ( $1, $2, $3, $4 );
+  } else {
+    push @errors, 'could not parse HEADER and MSG fields';
+  }
 
   # decode facility/priority (see [RFC 2234] for PRI part values
   if ( $message{'PRI'} ) {
@@ -130,9 +137,11 @@ while (1) {
     $message{'priority'} = ( $message{'PRI'} & 0x07 );
   }
 
+  # TODO error checking on facility and priority codes?
+
   # TODO use template to produce this...
   use Data::Dumper;
-  warn Dumper \%message;
+  warn Dumper \%message, \@errors;
 }
 
 END {
