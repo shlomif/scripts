@@ -24,7 +24,7 @@ my (%opts, $dirmode, $filemode, $group, $groupid, $members, $verbose,
 # MAIN
 
 # deal with command line options
-getopts('h?p:d:f:g:v', \%opts);
+getopts('h?p:s:d:f:g:v', \%opts);
 
 help() if exists $opts{'h'} || exists $opts{'?'};
 
@@ -87,7 +87,7 @@ if (keys %badperms > 0) {
 
 sub zapit {
     # get current user/group ids off of item
-    my ($cur_mode, $cur_uid, $cur_gid) = (stat)[2,4,5];
+    my ($cur_mode, $cur_uid, $cur_gid) = (lstat)[2,4,5];
 
     $cur_mode = $cur_mode & 07777; # remove type from mode, leaving permission
 
@@ -109,6 +109,20 @@ sub zapit {
 	    }
 	}
 
+	# or whether simply "skipped" over
+	if (exists $opts{'s'}) {
+	    my $result = eval "return 1 if( " . $opts{'s'} . " );";
+	    
+	    if($@) {
+		chomp($@);
+		die "Skip error: ", $@; # croak on errors
+	    }
+	    
+	    if($result) {
+		return;
+	    }
+	}
+
 	# apply mode changes as needed to directory
 	if (defined $dirmode) {
 	    if (oct($dirmode) != $cur_mode) {
@@ -124,6 +138,20 @@ sub zapit {
 	}
 
     } elsif (-f) {
+	# see whether to skip this file
+	if (exists $opts{'s'}) {
+	    my $result = eval "return 1 if( " . $opts{'s'} . " );";
+	    
+	    if($@) {
+		chomp($@);
+		die "Skip error: ", $@; # croak on errors
+	    }
+	    
+	    if($result) {
+		return;
+	    }
+	}
+
 	# set file modes if needed
 	if (defined $filemode) {
 	    if (oct($filemode) != $cur_mode) {
@@ -164,15 +192,21 @@ Options
   -f     File mode to set,      e.g. '0660'
   -g     Group mode to set,     e.g. 'goobers'
 
-  -p     Perl expression that will result in the current directory
-         (stored in \$_) being pruned out of the tree.  Use this to
-         skip "dot directories," for example:
+  -s xx  Perl expression that will result in the current item (stored in \$_)
+         being skipped if the expression turns out to be "true."  Example:
+
+         -s '-d || m/^\\.rsrc\$/' .
+
+         Would skip applying the group change to directories or '.rsrc' files.
+         (But would still traverse down into any "skipped" directories!)
+
+  -p xx  Perl expression that will result in the current directory (stored in 
+         \$_) being pruned out of the tree, e.g. to skip dot directories:
 
          -p 'm/^\\../' .
 
-         The -d check is used to ensure the prune test is only run
-         on directories, so any stat() calls in your expression
-         should use the shortcut _ operator.
+         Both -s and -p expressions should use the shortcut _ operator in
+         any stat() calls, to avoid race conditions.
 
   -v     Verbose mode, shows files fixing.
 
@@ -183,6 +217,14 @@ HELP
 __END__
 
 $Log$
+Revision 1.8  2000/02/12 00:49:52  jmates
+Changed stat() to lstat() to make the script behave better in link-rich
+environs.
+
+Added -s option to skip over files/directories.
+
+Updated documentation.
+
 Revision 1.7  2000/02/04 02:23:22  jmates
 Fixed bug in help() where a \ wasn't being printed right.
 
