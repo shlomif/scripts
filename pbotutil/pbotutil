@@ -659,6 +659,10 @@ command line:
 
   $ pbpaste | pbotutil -s server -m "my code"
 
+An Emacs interface is available:
+
+http://tierra.dyndns.org:81/emacs/pastebot
+
 =head1 DIAGNOSTICS
 
 There are magic number exit codes.  See source.  :)
