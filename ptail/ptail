@@ -29,7 +29,7 @@ use File::Tail;   # tail -f on steroids
 #
 # VARIABLES
 
-my (%opts, $filename, $file);
+my ( %opts, $filename, $file );
 
 # various File::Tail object preferences.  listen much faster than default
 # to emulate tail(1) at expense of more busy wait.
@@ -50,7 +50,7 @@ my $preop = "";
 # MAIN
 
 # parse command-line options
-getopts('h?m:i:a:t:r:p:', \%opts);
+getopts( 'h?m:i:a:t:r:p:', \%opts );
 
 help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 
@@ -66,15 +66,6 @@ $preop = $opts{p} if exists $opts{p};
 $filename   = shift;
 $expression = "@ARGV" if @ARGV;
 
-$file = File::Tail->new(
-  name        => $filename,
-  maxinterval => $maxinterval,
-  interval    => $interval,
-  adjustafter => $adjustafter,
-  tail        => $tail,
-  reset_tail  => $reset_tail,
-);
-
 # don't buffer STDOUT soas to interoperate with tee(1) properly
 $| = 1;
 
@@ -82,25 +73,39 @@ $| = 1;
 eval $preop;
 die 'Preop failed: ', $@, if $@;
 
-# loop forever on file; apply supplied expression to each line
-while (defined($_ = $file->read)) {
-  eval $expression;
+# KLUGE read from standard input for filename of -
+if ( $filename eq '-' ) {
+  while (<STDIN>) {
+    eval $expression;
+    die 'Expression error: ', $@ if $@;
+  }
+} else {
 
-  die 'Expression error: ', $@ if $@;
+  $file = File::Tail->new(
+    name        => $filename,
+    maxinterval => $maxinterval,
+    interval    => $interval,
+    adjustafter => $adjustafter,
+    tail        => $tail,
+    reset_tail  => $reset_tail,
+  );
+
+  # loop forever on file; apply supplied expression to each line
+  while ( defined( $_ = $file->read ) ) {
+    eval $expression;
+
+    die 'Expression error: ', $@ if $@;
+  }
 }
 
 exit;
 
-######################################################################
-#
-# SUBROUTINES
-
 # a generic help blarb
 sub help {
   print <<"HELP";
-Usage: $0 [opts] file [expression]
+Usage: $0 [opts] [file|-] [expression]
 
-tails a file and applies perl expression to each line
+Tails a file and applies perl expression to each line.
 
 Options:
   -h/-?   Display this message
@@ -117,16 +122,13 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 100;
 }
 
-######################################################################
-#
-# DOCUMENTATION
-
+__END__
 =head1 NAME
 
-ptail - follows a file and applies a perl expression to each line
+ptail - tails a file and applies a perl expression to each line
 
 =head1 SYNOPSIS
 
@@ -149,7 +151,7 @@ specific lines of interest from a busy logfile.
 
 =head2 Normal Usage
 
-  $ ptail [options] file [expression]
+  $ ptail [options] [file|-] [expression]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -157,6 +159,9 @@ The file to watch is required, and the expression defaults to "print"
 to emulate the behaviour of a C<tail -f>.  The expression is built
 from any number of arguments following the file, for greater
 flexibility.  $_ is used to store each line in turn.
+
+To read from standard input instead of a file, use C<-> in place of
+a filename.
 
 =head1 OPTIONS
 
