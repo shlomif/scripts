@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Creates new directories.
+
+for f in $@; do
+  mkdir -p $f
+  if [ $? -ne 0 ]; then
+    echo "warning: problem creating $f" >&2
+    continue
+  fi
+
+  # if in a CVS area, add directory for us
+  if [ -f CVS/Root ]; then
+    cvs -q up 2>/dev/null | grep $f | sed 's/..//' | xargs cvs add
+  fi
+done
