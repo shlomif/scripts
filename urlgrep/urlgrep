@@ -89,10 +89,16 @@ sub get_document {
   my $target = URI->new($document);
 
   if ( $target->scheme ) {
-    # TODO URL lookup needs more error checking
-    my $ua =
-     LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
+    my $ua = LWP::UserAgent->new(
+      env_proxy         => 1,
+      keep_alive        => 0,
+      timeout           => 30,
+      protocols_allowed => [qw(http https ftp)],
+      max_size          => 25000000
+    );
     $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
+    $ua->cookie_jar( { file => "$ENV{HOME}/.lwp-cookies" } );
+
     my $response = $ua->get( $target->canonical );
     if ( $response->is_success ) {
       $source->{base_uri} = $target->canonical->as_string;
