@@ -15,17 +15,16 @@
 # hsort file1 file2 file3
 # ls | hsort
 
-print sort {
-  my ($la, $lb) = ($a, $b);
+my @input = <>;
+keys my %lookup = @input;
 
-  # convert numbers to bit strings so 10 sorts after 2
-  $la =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
-  $lb =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
+@lookup{ map {
+  my $new;
+  ($new = $_) =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
+  lc $new
+} @input } = @input;
 
-  # case insensitive compare
-  lc $la cmp lc $lb;
-
-} <>;
+print @lookup{sort keys %lookup};
 
 =pod SCRIPT CATEGORIES
 
