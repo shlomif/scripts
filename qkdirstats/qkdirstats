@@ -1,0 +1,76 @@
+#!/usr/bin/perl -w
+use strict;
+
+use Cwd qw(getcwd);
+my $pwd = getcwd;
+
+my %keys;
+my %counts;
+my @overview;
+
+# TODO want to set 'readonly' key if do not have write permission in
+# directory
+
+eval {
+  local $SIG{ALRM} = sub { die "alarm timeout\n" };
+  alarm 7;
+
+  # directory listing can hang or take far too long, so need timeouts
+  dirdata();
+
+  alarm 0;
+};
+if ($@) {
+  if ( $@ !~ /alarm timeout/ ) {
+    chomp $@;
+    die "error: unknown error: dir=$pwd, errno=$@\n";
+  } else {
+    $keys{timeout} = 1;
+  }
+}
+
+exit if not @overview and not keys %keys;
+output();
+
+sub dirdata {
+  opendir DIR, '.' or die "error: could not open directory: dir=$pwd\n";
+  while ( $_ = readdir DIR ) {
+    next if $_ eq '.' or $_ eq '..';
+
+    $counts{total}++;
+    if (-f) {
+      $counts{files}++;
+    } elsif ( -d _ ) {
+      $counts{dirs}++;
+    } else {
+      $counts{other}++;
+    }
+
+    if ( $_ eq 'CVS' ) {
+      $keys{CVS} = 1;
+      next;
+    } elsif ( $_ eq '.svn' ) {
+      $keys{SVN} = 1;
+      next;
+    }
+
+    push @overview, $_ unless @overview > 7;
+  }
+}
+
+sub output {
+  if (@overview) {
+    print 'files:  ',
+     join( ' ', sort(@overview), $counts{total} > @overview ? '...' : () ),
+     "\n";
+  }
+
+  if ( $counts{total} and $counts{total} > @overview ) {
+    print 'counts: ', join( ', ', map { "$_=$counts{$_}" } sort keys %counts ),
+     "\n";
+  }
+
+  if ( keys %keys ) {
+    print 'keys:   ', join( ' ', sort keys %keys ), "\n";
+  }
+}
