@@ -48,8 +48,8 @@ if (exists $opts{'f'}) {
 
 if (exists $opts{'u'}) {
     $user = $opts{'u'};
-    # get user id
-    (undef, undef, $userid) = getpwnam $user or die 'no such user: ', $user, "\n";
+    # get userid by name
+    $userid = getpwnam $user or 'no such user: ', $user, "\n";
 }
 
 if (exists $opts{'g'}) {
@@ -235,6 +235,9 @@ HELP
 __END__
 
 $Log$
+Revision 1.10  2000/02/16 22:03:44  jmates
+Improved getpwnam code by removing uneeded undef's (scalar context works fine here).
+
 Revision 1.9  2000/02/16 19:30:22  jmates
 Added -u change-the-userid-too option plus documentaton.
 
