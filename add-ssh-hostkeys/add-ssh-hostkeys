@@ -19,12 +19,14 @@ KHF=$1
 TMPFILE=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
 trap "rm -f $TMPFILE" 0 1 2 13 15
 
+# scan for all key types to avoid "MitM server runs DSA instead of RSA"
+# potential issue
 cat | \
   ssh-keyscan -t rsa,dsa,rsa1 -f - 2>/dev/null | \
   ssh-hkutil -v $KHF - > $TMPFILE || exit 1
 
 if [ ! -s $TMPFILE ]; then
-  echo "error: temporary file empty" >&2
+  echo "error: no keys in temporary file" >&2
   exit 1
 fi
 
@@ -34,6 +36,7 @@ STATUS=$?
 if [ $STATUS -eq 1 ]; then
   # use cat to preserve perms that cp or mv might fuddle with
   cat $TMPFILE > $KHF
+  rm $TMPFILE
 elif [ $STATUS -gt 1 ]; then
   echo "error: cmp failed: status=$STATUS" >&2
 fi
