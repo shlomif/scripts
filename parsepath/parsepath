@@ -10,15 +10,10 @@
 
 use strict;
 use Cwd qw(realpath);
-use File::Spec;
+use File::Spec ();
 
-sub resolve_path;
-sub getfileinfo;
-sub determine_role;
-sub check_access;
-sub print_help;
-
-my $exit_status = 0;
+# NOTE may need alteration per site policy on usernames
+my $match_username = qr/\w{1,32}/;
 
 # limit on symlink recursion
 my $max_link_follow = 15;
@@ -47,8 +42,9 @@ my %modemap = (
   otherx => 1
 );
 
-# NOTE could tighten up per site policy...
-my $match_username = qr/\w+/;
+my @paths;
+my $output;
+my $exit_status = 0;
 
 my %opts;
 for (
@@ -69,34 +65,34 @@ for (
     next;
   }
 
-  if (/^(user|group)=($match_username)$/) {
+  if (/^\s*(user|group)=($match_username)\s*$/) {
 
     if (exists $opts{'role'}) {
-      warn "notice: ignoring extra role: $_\n";
+      warn "notice: ignoring additional role: $1=$2\n";
       next;
     }
 
     my $what = $1;
     my $who  = $2;
 
-    $opts{'role'} = determine_role $what, $who;
+    $opts{'role'} = determine_role($what, $who);
     $opts{'constraint'} = 1;
     next;
   }
 
-  if (/^file=(.+)$/) {
-    push @{$opts{'path'}}, resolve_path $1;
+  if (/^\s*file=(.+)$/) {
+    push @paths, resolve_path($1);
     next;
   }
 
-  push @{$opts{'path'}}, resolve_path $_;
+  push @paths, resolve_path($_);
 }
 
-print_help if exists $opts{'options'}->{'h'};
+print_help() if exists $opts{'options'}->{'h'};
 
-push @{$opts{'path'}}, resolve_path '.' unless exists $opts{'path'};
-unless (exists $opts{'path'} and @{$opts{'path'}}) {
-  warn "error: no path to work with\n";
+push @paths, resolve_path('.') unless @paths;
+unless (@paths) {
+  warn "error: no path supplied\n";
   exit 101;
 }
 
@@ -111,11 +107,12 @@ $opts{'options'}->{'v'} = 1 unless exists $opts{'constraint'};
 # use current user if constrained and no user set
 if (exists $opts{'constraint'} and not exists $opts{'role'}) {
   if (exists $opts{'options'}->{'g'}) {
-    $opts{'role'} = determine_role 'group', split / /,
-     exists $opts{'options'}->{'R'} ? $( : $);
+    $opts{'role'} =
+     determine_role('group', split / /,
+      exists $opts{'options'}->{'R'} ? $( : $));
   } else {
-    $opts{'role'} = determine_role 'user',
-     exists $opts{'options'}->{'R'} ? $< : $>;
+    $opts{'role'} =
+     determine_role('user', exists $opts{'options'}->{'R'} ? $< : $>);
   }
 }
 if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
@@ -125,59 +122,69 @@ if (exists $opts{'constraint'} and not exists $opts{'perms'}) {
 # fix perms hash to use array for easier subsequent work
 $opts{'perms'} = [sort keys %{$opts{'perms'}}];
 
-DIR: for (my $pnum = 0; $pnum <= $#{$opts{'path'}}; $pnum++) {
-  my $path           = $opts{'path'}->[$pnum];
+my $text_block = 1;
+
+PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
+  my $path           = $paths[$pnum];
   my @pathbits       = File::Spec->splitdir($path);
   my $links_followed = 0;
 
-  unless (@pathbits) {
-    warn "error: unable to split realpath: $path";
+  $output = '';
+
+  #$output = "\n" unless $pnum == 0;
+  unless ($text_block == 1) {
     print "\n";
-    next DIR;
+    $text_block = 1;
   }
 
-  print "% $path\n" unless exists $opts{'constraint'};
+  unless (@pathbits) {
+    warn "error: unable to split path: path=$path";
+    next PATH;
+  }
+
+  $output .= "% $path\n" if exists $opts{'options'}->{'v'};
 
   my $current  = '';
   my $previous = '';
   for (my $i = 0; $i <= $#pathbits; $i++) {
     $previous = $current;
     $current = File::Spec->catdir($current, $pathbits[$i]);
-    my $filedata = getfileinfo $current;
+    my $filedata = getfileinfo($current);
 
     unless ($filedata) {
-      warn "error: no permission data for $pathbits[$i] in $current\n";
-      print "\n";
-      next DIR;
+      warn "error: no permission data: file=$pathbits[$i], path=$current\n";
+      next PATH;
     }
 
     # TODO means of supplying output fields and their order?
     if (exists $opts{'options'}->{'v'}) {
-      print join(' ',
-        map { exists $filedata->{$_} ? $filedata->{$_} : () }
-         qw(type unix_mode_octal unix_user unix_group name)),
-       (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n";
+      $output .= render_filedata($filedata) . "\n";
     }
 
     if (exists $opts{'constraint'}) {
-      check_access $filedata, $i != $#pathbits ? [qw(r x)] : $opts{'perms'};
+      check_access($filedata, $i != $#pathbits ? [qw(r x)] : $opts{'perms'});
     }
 
     if (  $i == $#pathbits
       and $filedata->{'type'} eq 'l'
       and exists $opts{'options'}->{'l'}) {
+
       $links_followed++;
       if ($links_followed > $max_link_follow) {
-        warn "error: max symlink recursion ($max_link_follow) exceeded\n";
-        print "\n";
-        next DIR;
+        warn
+"error: symlink recursion exceeded: limit=$max_link_follow, path=$path\n";
+        next PATH;
       }
       $current = $previous;
       push @pathbits,
        resolve_path(File::Spec->catfile($previous, $filedata->{'link'}));
     }
   }
-  print "\n" unless $pnum == $#{$opts{'path'}};
+
+  unless ($output =~ /^\s*$/) {
+    print $output;
+    $text_block = 0;
+  }
 }
 
 exit $exit_status;
@@ -188,7 +195,7 @@ sub resolve_path {
     my $tmp = realpath($potential);
     defined $tmp
      ? return $tmp
-     : warn "warning: could not convert to real path: $potential\n";
+     : warn "warning: could not convert with realpath: path=$potential\n";
   }
   File::Spec->rel2abs($potential);
 }
@@ -223,7 +230,7 @@ sub determine_role {
 
         # TODO figure out how unix deals with [gu]id that does not exist..
         # treat in "other" category??
-        warn "warning: no data from $function $who\n";
+        warn "warning: no data returned: function=$function, $type=$who\n";
         $userdata{'name'} = $who;
       }
       $userdata{'id'}     = $who;
@@ -233,7 +240,7 @@ sub determine_role {
       $function .= 'nam';
       $userdata{'id'} = eval qq{$function("$who")};
       unless (defined $userdata{'id'}) {
-        warn "error: could not determine id from $function $who\n";
+        warn "error: could not determine id: function=$function, $type=$who\n";
         exit 102;
       }
       next if exists $seen{"$type.$userdata{'id'}"};
@@ -260,7 +267,7 @@ sub determine_role {
 
     # TODO iterate groups for which user has membership in...
     while (my ($name, $pw, $gid, $members) = getgrent) {
-      if (grep { $_ eq $userdata[0]->{'name'} } split " ", $members) {
+      if (grep { $_ eq $userdata[0]->{'name'} } split ' ', $members) {
         unless (exists $seen{"group.$gid"}) {
           push @userdata,
            {
@@ -303,6 +310,7 @@ sub getfileinfo {
   return \%filedata;
 }
 
+# TODO $filedata has lstat value, not the info for the target... ergh.
 sub check_access {
   my $filedata = shift;
   my $perms    = shift;
@@ -319,12 +327,12 @@ sub check_access {
       }
 
       if (@fails) {
-        warn '! ', $role->{'type'}, '=', $role->{'name'}, ' +',
-         join('', sort @fails), ' fails: ',
-         join(' ',
-          map { exists $filedata->{$_} ? $filedata->{$_} : () }
-           qw(type unix_mode_octal unix_user unix_group name)),
-         (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n";
+        $output .= '! '
+         . $role->{'type'} . '='
+         . $role->{'name'} . ' +'
+         . join('', sort @fails)
+         . ' fails: '
+         . render_filedata($filedata) . "\n";
       }
 
       # unix, once gets match on user or group, stops looking at subsequent
@@ -342,12 +350,20 @@ sub check_access {
   }
 
   if (@fails) {
-    warn '! unix-other +', join('', sort @fails), ' fails: ',
-     join(' ',
-      map { exists $filedata->{$_} ? $filedata->{$_} : () }
-       qw(type unix_mode_octal unix_user unix_group name link)),
-     (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : ''), "\n";
+    $output .=
+       '! unix-other +'
+     . join('', sort @fails)
+     . ' fails: '
+     . render_filedata($filedata) . "\n";
   }
+}
+
+sub render_filedata {
+  my $filedata = shift;
+
+  return
+"$filedata->{'type'} $filedata->{'unix_mode_octal'} $filedata->{'unix_user'}:$filedata->{'unix_group'} $filedata->{'name'}"
+   . (exists $filedata->{'link'} ? ' -> ' . $filedata->{'link'} : '')
 }
 
 # usage notes
