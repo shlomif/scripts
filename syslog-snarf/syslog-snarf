@@ -1,0 +1,212 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
+# you can redistribute it and/or modify it under the same terms as
+# Perl itself.
+#
+# Run perldoc(1) on this file for additional documentation.
+#
+######################################################################
+#
+# REQUIREMENTS
+
+require 5.005;
+
+use strict;
+
+######################################################################
+#
+# MODULES
+
+use Carp;			# better error reporting
+use Getopt::Std;		# command line option processing
+
+use IO::Socket;			# for the UDP server
+
+######################################################################
+#
+# VARIABLES
+
+my $VERSION; ($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
+
+my (%opts, $port, $max_msg_len, $sock, $msg_in);
+
+$port = 514;			# what port to bind to by default
+$max_msg_len = 5000;		# max message length for incoming data
+
+# syslog.h code->name mappings for better output
+my %syslog_priorities=(
+        0 => "emerg",
+        1 => "alert",
+        2 => "crit",
+        3 => "err",
+        4 => "warning",
+        5 => "notice",
+        6 => "info",
+        7 => "debug"
+);
+
+my %syslog_facilities=(
+        0 => "kern",
+        1 => "user",
+        2 => "mail",
+        3 => "daemon",   
+        4 => "auth",
+        5 => "syslog",
+        6 => "lpr",
+        7 => "news",
+        8 => "uucp",
+        9 => "cron",
+        10 => "authpriv",
+        11 => "ftp",
+        16 => "local0",
+        17 => "local1",
+        18 => "local2",
+        19 => "local3",
+        20 => "local4",
+        21 => "local5",
+        22 => "local6",
+	23 => "local7"
+);
+
+######################################################################
+#
+# MAIN
+
+$SIG{'INT'} = sub { exit 0 };	# C-c handler
+
+# parse command-line options
+getopts('h?', \%opts);
+
+help() if exists $opts{'h'} or exists $opts{'?'};
+
+# start up the syslog server
+$sock = IO::Socket::INET->new(Proto=>'udp',
+			      LocalPort=>$port) or die $@;
+
+$|=1;				# autoflush output
+
+while (1) {
+    next unless $sock->recv($msg_in, $max_msg_len);
+
+    # get various info on the packet in question
+    my $peerhost = gethostbyaddr($sock->peeraddr,AF_INET) || $sock->peerhost;
+    my $peerport = $sock->peerport;
+    my $length   = length($msg_in);
+    
+    my ($code, $log) = $msg_in =~ m/<(\d{3})>(.*)/;
+
+    # decode facility/priority & a little message
+    if ($code) {
+	my $facility = ($code & 0x03f8) >> 3;
+	my $priority = ($code & 0x07);
+
+	print $peerhost, ':', $peerport, "\t",
+	$syslog_facilities{$facility}, '.', 
+	$syslog_priorities{$priority}, "\t",
+	$log, "\n";
+    }
+}
+
+$sock->close;
+
+exit;
+
+######################################################################
+#
+# SUBROUTINES
+
+# a generic help blarb
+sub help {
+    print <<"HELP";
+Usage: $0 [opts]
+
+A simple syslog server.
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+    exit;
+}
+
+######################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+syslog_snarf.pl - Simple syslogd server.
+
+=head1 SYNOPSIS
+
+Close any running syslog daemon (binds to UDP port 514 even in
+client-only mode), then run:
+
+  $ perl syslog_snarf.pl
+
+=head1 DESCRIPTION
+
+This script is a simple syslog "server" that binds to the syslog port,
+and prints out a formatted message of all incoming syslog messages:
+
+  foo.example.org:514   user.info    testing, testing...
+
+=head2 Normal Usage
+
+  $ syslog_snarf.pl [options]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=back
+
+=head1 BUGS
+
+Newer versions of this script may be available from:
+
+http://www.sial.org/code/perl/
+
+If not, or the bug is in the latest version, send the bug report to:
+
+jmates@sial.org
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy A. Mates, jmates@sial.org
+
+=head1 COPYRIGHT
+
+Copyright (c) 2001, Jeremy A. Mates.  This script is free software;
+you can redistribute it and/or modify it under the same terms as Perl
+itself.
+
+=head1 HISTORY
+
+Adapted from udp_echo_serv.pl by Lincoln D. Stein in the text
+http://www.modperl.com/perl_networking/ (Chapter 18), plus data from
+the Net::Syslog module as well as information in the sys/syslog.h
+header file.
+
+=head1 VERSION
+
+$Id$
+
+=cut
