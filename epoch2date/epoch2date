@@ -21,10 +21,10 @@ use POSIX qw(strftime);
 
 use Getopt::Std;
 my %opts;
-getopts('ef:glq', \%opts);
+getopts( 'ef:glq', \%opts );
 
-if (not @ARGV or (exists $opts{g} and exists $opts{l})) {
-  die "usage: $basename [-q] [-f fmt] [-g|-l] [-e] epoch [epoch ...]\n";
+if ( not @ARGV or ( exists $opts{g} and exists $opts{l} ) ) {
+  die "usage: $basename [-q] [-f fmt] [-g|-l] [-e] [epoch [epoch ...]|-]\n";
 }
 
 my $format = $opts{f} || "%Y-%m-%d %H:%M:%S";
@@ -36,10 +36,12 @@ $function = 'gmtime'    if $basename eq 'epoch2gmdate';
 $function = 'localtime' if exists $opts{l};
 $function = 'gmtime'    if exists $opts{g};
 
+chomp( @ARGV = <STDIN> ) if $ARGV[-1] eq '-';
+
 for my $epoch (@ARGV) {
 
   # scrub input
-  unless ($epoch =~ m/^\d+$/) {
+  unless ( $epoch =~ m/^\d+$/ ) {
     warn "warning: skipping non-integer input: $epoch\n"
      unless exists $opts{q};
     next;
@@ -57,3 +59,4 @@ for my $epoch (@ARGV) {
 Utilities
 
 =cut
+
