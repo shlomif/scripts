@@ -28,6 +28,7 @@ if (not @ARGV or (exists $opts{g} and exists $opts{l})) {
 }
 
 my $format = $opts{f} || "%Y-%m-%d %H:%M:%S";
+$format =~ s/(\\.)/qq!"$1"!/eeg;
 
 # gmtime or localtime, depending on program name or options supplied
 my $function = 'localtime';
