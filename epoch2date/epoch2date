@@ -21,14 +21,17 @@ use POSIX qw(strftime);
 
 use Getopt::Std;
 my %opts;
-getopts( 'ef:glq', \%opts );
+getopts( 'f:r:glq', \%opts );
 
 if ( not @ARGV or ( exists $opts{g} and exists $opts{l} ) ) {
-  die "usage: $basename [-q] [-f fmt] [-g|-l] [-e] [epoch [epoch ...]|-]\n";
+  die
+   "usage: $basename [-q] [-f fmt] [-r regex] [-g|-l] [epoch [epoch ...]|-]\n";
 }
 
 my $format = $opts{f} || "%Y-%m-%d %H:%M:%S";
 $format =~ s/(\\.)/qq!"$1"!/eeg;
+
+my $epoch_re = $opts{r} || '\d{9,10}';
 
 # gmtime or localtime, depending on program name or options supplied
 my $function = 'localtime';
@@ -36,22 +39,14 @@ $function = 'gmtime'    if $basename eq 'epoch2gmdate';
 $function = 'localtime' if exists $opts{l};
 $function = 'gmtime'    if exists $opts{g};
 
-chomp( @ARGV = <STDIN> ) if $ARGV[-1] eq '-';
+@ARGV = <STDIN> if $ARGV[-1] eq '-';
 
-for my $epoch (@ARGV) {
-
-  # scrub input
-  unless ( $epoch =~ m/^\d+$/ ) {
-    warn "warning: skipping non-integer input: $epoch\n"
-     unless exists $opts{q};
-    next;
-  }
-
-  # prefix output with original epoch value if needed
-  print $epoch, ' ' if exists $opts{e};
-
-  print strftime $format, eval "$function $epoch";
-  print "\n";
+for my $entry (@ARGV) {
+  # TODO need output templating so can include original value, otherwise
+  # tweak output
+  $entry =~ s/($epoch_re)/ strftime $format, eval "$function $1" /eg;
+  print $entry;
+  print $/ unless $entry =~ m/[\n\r]$/;
 }
 
 =pod SCRIPT CATEGORIES
