@@ -179,6 +179,7 @@ sub remark {
 }
 
 END {
+  close STDERR;
   if ($dbh) {
     $_->finish for values %sql;
     $dbh->disconnect;
