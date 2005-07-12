@@ -5,20 +5,27 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Takes specified files into target directory.
+# Copies (or moves) the specified files into target directory.
 
 require 5;
 use strict;
 
-# command to use to create target directory if does not exist
-# use qw(mkdir -p) if you lack ndir
+# command to use to create target directory if does not exist use
+# qw(mkdir -p) if you lack ndir (ndir does Clever (or Wrong) things
+# under CVS and SVN repositories)
 my @make_target_dir = qw(ndir);
 
 # commands to use to copy the files in form of "command files dir"
 # TODO other methods like rsync to pull from remote hosts, or wget?
 my %copy_with = (
-  cp  => [qw(cp -p)],
-  svn => [qw(svn copy -q)],
+  cp             => [qw(cp -p)],
+  cp_force       => '-f',
+  cp_move        => [qw(mv)],
+  cp_move_force  => '-f',
+  svn            => [qw(svn copy -q)],
+  svn_force      => '--force',
+  svn_move       => [qw(svn move)],
+  svn_move_force => '--force'
 );
 my $default_copy_method = 'cp';
 
@@ -33,7 +40,7 @@ sub remark;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?fq', \%opts;
+getopts 'h?fmq', \%opts;
 print_help if exists $opts{h} or exists $opts{'?'};
 
 print_usage unless @ARGV > 1;
@@ -41,7 +48,7 @@ print_usage unless @ARGV > 1;
 # figure out directories to deal with
 my $target_dir    = pop @ARGV;
 my $target_exists = 0;
-if (-d $target_dir) {
+if ( -d $target_dir ) {
   $target_dir    = realpath $target_dir;
   $target_exists = 1;
   unless ($target_dir) {
@@ -55,7 +62,7 @@ unless ($current_dir) {
   remark 'error', 'could not determine current directory';
   exit 101;
 }
-if ($target_dir eq $current_dir) {
+if ( $target_dir eq $current_dir ) {
   remark 'error', "target is current directory: $current_dir";
   exit 101;
 }
@@ -63,7 +70,7 @@ if ($target_dir eq $current_dir) {
 unless ($target_exists) {
   system @make_target_dir, $target_dir;
   my $status = $? >> 8;
-  if ($status != 0) {
+  if ( $status != 0 ) {
     remark 'error', "problem creating target directory: $target_dir";
     exit $status;
   }
@@ -71,43 +78,44 @@ unless ($target_exists) {
 
 # whether target under Subversion
 my $subversive_target =
- -f File::Spec->catfile($target_dir, qw{.svn entries}) ? 1 : 0;
+ -f File::Spec->catfile( $target_dir, qw{.svn entries} ) ? 1 : 0;
 
 # sanity checks, copy method determination on input files
 my %files;
 {
-  my (%seen, @replacing);
+  my ( %seen, @replacing );
   for my $file (@ARGV) {
-    if (exists $seen{$file}) {
+    if ( exists $seen{$file} ) {
       remark 'notice', "skipping duplicate file: $file";
       next;
     }
     $seen{$file} = 1;
 
-    unless (-r $file) {
+    unless ( -r $file ) {
       remark 'warning', "skipping unreadable file: $file";
       next;
     }
     if (  $target_exists
       and not exists $opts{f}
-      and -e File::Spec->catfile($target_dir, $file)) {
+      and -e File::Spec->catfile( $target_dir, $file ) ) {
 
       # TODO other options to handle already existing target file?
       push @replacing, $file;
       next;
     }
 
-    if ($subversive_target
-      and -f File::Spec->catfile(dirname(realpath $file), qw{.svn entries})) {
+    if ( $subversive_target
+      and -f File::Spec->catfile( dirname( realpath $file), qw{.svn entries} ) )
+    {
 
-      # need URL, so copies from other repositories work right
-      if (my $svn_url = get_subversion_url $file) {
-        push @{$files{svn}}, $svn_url;
+      # need URL, so copies from other SVN repositories work right
+      if ( my $svn_url = get_subversion_url $file) {
+        push @{ $files{svn} }, $svn_url;
         next;
       }
     }
 
-    push @{$files{$default_copy_method}}, $file;
+    push @{ $files{$default_copy_method} }, $file;
   }
 
   if (@replacing) {
@@ -116,15 +124,31 @@ my %files;
   }
 }
 
-unless (keys %files) {
+unless ( keys %files ) {
   remark 'error', 'no files to operate on';
   exit 102;
 }
 
-for my $method (keys %files) {
-  system @{$copy_with{$method}}, @{$files{$method}}, $target_dir;
+METHOD: for my $method ( keys %files ) {
+
+  # check whether move involved
+  my $command = exists $opts{m} ? "${method}_move" : $method;
+
+  unless ( exists $copy_with{$command} ) {
+    remark 'error', 'no such method', { name => $command };
+    next METHOD;
+  }
+
+  # tack on 'force' flag, if needed
+  push @{ $copy_with{$command} }, $copy_with{"${command}_force"}
+   if exists $opts{f}
+   and exists $copy_with{"${command}_force"}
+   and defined $copy_with{"${command}_force"}
+   and length $copy_with{"${command}_force"} > 0;
+
+  system @{ $copy_with{$command} }, @{ $files{$method} }, $target_dir;
   my $status = $? >> 8;
-  if ($status != 0) {
+  if ( $status != 0 ) {
     remark 'error', "problem copying files to target via $method";
     exit $status;
   }
@@ -140,7 +164,7 @@ exit;
 sub get_subversion_url {
   my $file = shift;
 
-  unless (open SVNINFO, "svn info $file |") {
+  unless ( open SVNINFO, "svn info $file |" ) {
     remark 'error', "could not run svn info $file: $!";
     exit 105;
   }
@@ -166,6 +190,8 @@ Takes files into specified dir.
 
 Options:
   -h/-?  Display this message.
+
+  -m     Move instead of copying.
 
   -f     Force copy files.
 
@@ -210,17 +236,19 @@ it does not exist.
 
 Copies files into a directory, creating the target directory if it does
 not exist. Returns created directory, so subsequent shell command may
-optionally chdir into the new directory.
+optionally chdir into the new directory. With the C<-m> option, files
+are moved instead of copied. Copies (or moves) can be forced with the
+C<-f> option.
 
-Recommended for the ZSH shell is the following function, which will copy
+Recommended for the ZSH shell is the following function, which will move
 the named files to the target directory, then take the shell to them:
 
   function take {
-    cd `copyto $@ | tail -1`
+    cd `copyto -m $@ | tail -1`
   } 
 
 If the target directory is under Subversion, any of the source files
-also under subversion will be moved using C<svn copy> instead of the
+also under subversion will be copied using C<svn copy> instead of the
 default copy command.
 
 =head2 Normal Usage
@@ -246,6 +274,10 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note about the script.
+
+=item B<-m>
+
+Move files instead of copying them.
 
 =item B<-f>
 
