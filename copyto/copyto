@@ -32,6 +32,7 @@ my $default_copy_method = 'cp';
 use Cwd qw(getcwd realpath);
 use File::Spec;
 use File::Basename;
+my $basename = basename $0;
 
 sub get_subversion_url;
 sub print_usage;
@@ -44,6 +45,8 @@ getopts 'h?fmq', \%opts;
 print_help if exists $opts{h} or exists $opts{'?'};
 
 print_usage unless @ARGV > 1;
+
+$opts{m} = 1 if $basename eq 'moveto';
 
 # figure out directories to deal with
 my $target_dir    = pop @ARGV;
@@ -182,7 +185,6 @@ sub get_subversion_url {
 }
 
 sub print_help {
-  my $basename = basename $0;
   print <<"HELP";
 Usage: $basename [opts] file [file2 ...] dir
 
