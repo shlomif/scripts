@@ -41,7 +41,7 @@ sub remark;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?fmq', \%opts;
+getopts 'h?fmqd:', \%opts;
 print_help if exists $opts{h} or exists $opts{'?'};
 
 print_usage unless @ARGV > 1;
@@ -49,7 +49,7 @@ print_usage unless @ARGV > 1;
 $opts{m} = 1 if $basename eq 'moveto';
 
 # figure out directories to deal with
-my $target_dir    = pop @ARGV;
+my $target_dir = $opts{d} || pop @ARGV;
 my $target_exists = 0;
 if ( -d $target_dir ) {
   $target_dir    = realpath $target_dir;
@@ -193,6 +193,8 @@ Takes files into specified dir.
 Options:
   -h/-?  Display this message.
 
+  -d dir Specify target directory (instead of last argument).
+
   -m     Move instead of copying.
 
   -f     Force copy files.
@@ -286,6 +288,11 @@ Move files instead of copying them.
 Force copy files. Prevents script from complaining about and stopping
 when the target contains files that would be replaced. May not prevent
 interactive options on the copy command called out to later.
+
+=item B<-d> I<directory>
+
+Specify target directory. Without this option set, the target directory
+is read from the last command line argument.
 
 =item B<-q>
 
