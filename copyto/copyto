@@ -11,9 +11,9 @@ require 5;
 use strict;
 
 # command to use to create target directory if does not exist use
-# qw(mkdir -p) if you lack ndir (ndir does Clever (or Wrong) things
-# under CVS and SVN repositories)
-my @make_target_dir = qw(ndir);
+# qw(mkdir -p) if you lack buildir (buildir does (hopefully) Clever
+# things under CVS and SVN repositories)
+my @make_target_dir = qw(buildir);
 
 # commands to use to copy the files in form of "command files dir"
 # TODO other methods like rsync to pull from remote hosts, or wget?
