@@ -1,0 +1,45 @@
+#!/usr/bin/perl -wl
+use strict;
+
+use File::Path qw(mkpath);
+use File::Spec ();
+
+use Getopt::Std;
+my %opts;
+getopts 'p', \%opts;
+
+for my $dir (@ARGV) {
+
+  my @dirbits = File::Spec->splitdir($dir);
+
+  # KLUGE determine absolute vs. relative path for upcoming loop
+  my $workdir;
+  if ( $dirbits[0] eq '' ) {
+    $workdir = File::Spec->rootdir();
+    shift @dirbits;
+  } else {
+    $workdir = File::Spec->curdir();
+  }
+
+  # work through dirbits, as not all mkdir support -p, and do special
+  # things under CVS and Subversion sandboxes
+  for my $dirbit (@dirbits) {
+    $workdir = File::Spec->catdir( $workdir, $dirbit );
+
+    if ( -f File::Spec->catfile( $workdir, qw{CVS Root} ) ) {
+      # CVS: add dir automagically
+      mkdir $workdir;
+      system qw{cvs add}, $workdir;
+
+    } elsif ( -f File::Spec->catfile( $workdir, qw{.svn entries} ) ) {
+      # SVN: use mkdir subcommand
+      system qw{svn mkdir}, $workdir;
+
+    } else {
+      mkdir $workdir;
+
+    }
+  }
+
+  print $dir, $/ if exists $opts{p};
+}
