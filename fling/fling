@@ -5,7 +5,9 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Copies files into a predetermined target directory.
+# Moves files into a predetermined target directory.
+#
+# TODO need copy option somehow.
 
 if [ -z $FTARGET ]; then
   echo "error: must specify FTARGET env. variable as target directory" >&2
@@ -15,4 +17,4 @@ if [ -z $1 ]; then
   echo "usage: `basename $0` file [file2 ...]" >&2
 fi
 
-copyto "$@" $FTARGET >/dev/null
+copyto -m "$@" $FTARGET >/dev/null
