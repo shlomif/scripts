@@ -7,18 +7,23 @@ use Getopt::Std;
 my %opts;
 getopts 'p', \%opts;
 
+my $start_dir = File::Spec->curdir();
+
 for my $dir (@ARGV) {
 
   my @dirbits = File::Spec->splitdir($dir);
 
-  my $parent;
+  # start directory build from working directory for relative paths,
+  # root directory for absolute paths
+  my $parent = $start_dir;
   if ( $dirbits[0] eq '' ) {
     $parent = File::Spec->rootdir();
     shift @dirbits;
-  } else {
-    $parent = File::Spec->curdir();
   }
   chdir $parent;
+
+  # KLUGE // in pathes add empty bits to the list, evict
+  @dirbits = grep { defined and $_ ne '' } @dirbits;
 
   # work through dirbits, as not all mkdir support -p, and do special
   # things under CVS and Subversion sandboxes
