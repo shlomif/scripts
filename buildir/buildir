@@ -1,11 +1,30 @@
 #!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Like 'mkdir -p', but does 'cvs add' if under CVS sandboxes, or other
+# extensible actions. Prints directories created when run with -p
+# option, used by other tools, such as a shell function to change the
+# working directory to a newly created directory:
+#
+# function ndir {
+#   NDIR=`buildir -p $@ | tail -1`
+#   [ $? -ne 0 ] && exit $?
+#   builtin cd "$NDIR"
+# }
+
 use strict;
 
 use File::Spec ();
 
 use Getopt::Std;
 my %opts;
-getopts 'p', \%opts;
+getopts 'h?p', \%opts;
+
+print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
 my $start_dir = File::Spec->curdir();
 
@@ -22,12 +41,11 @@ for my $dir (@ARGV) {
   }
   chdir $parent;
 
-  # KLUGE // in pathes add empty bits to the list, evict
-  @dirbits = grep { defined and $_ ne '' } @dirbits;
-
   # work through dirbits, as not all mkdir support -p, and do special
   # things under CVS and Subversion sandboxes
-  for my $dirbit (@dirbits) {
+  #
+  # KLUGE // in pathes add empty bits to the list, evict with grep
+  for my $dirbit (grep { defined and $_ ne '' } @dirbits) {
     goto NEXTDIR if -d $dirbit;
 
     if ( -f File::Spec->catfile(qw{CVS Root}) ) {
@@ -48,4 +66,19 @@ for my $dir (@ARGV) {
   }
 
   print $dir, $/ if exists $opts{p};
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] dir [dir2 ...]
+
+Creates directories.
+
+Options:
+  -h/-?  Display this message.
+
+  -p     Print directories created.
+
+HELP
+  exit 100;
 }
