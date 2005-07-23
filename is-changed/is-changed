@@ -60,11 +60,8 @@ my $return_value = 1;  # 0 is for "something changed"
 for my $what (@ARGV) {
 
   # need to figure out what got passed
-  my $uri = URI->new($what);
-  if (not $uri->scheme and -e $what) {
-    $uri = URI->new($what);
-    $uri->scheme('file');
-  }
+  my $uri = -f $what ? URI::file->new_abs( $what ) : URI->new($what);
+
   unless ($uri->scheme) {
     remark('error', "no scheme found for: $what") && exit 102;
   }
