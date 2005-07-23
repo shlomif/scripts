@@ -39,18 +39,21 @@ for my $dir (@ARGV) {
     $parent = File::Spec->rootdir();
     shift @dirbits;
   }
-  chdir $parent;
+  chdir $parent
+   or die "error: could not chdir: errno=$!, path=$parent\n";
 
   # work through dirbits, as not all mkdir support -p, and do special
   # things under CVS and Subversion sandboxes
   #
   # KLUGE // in pathes add empty bits to the list, evict with grep
-  for my $dirbit (grep { defined and $_ ne '' } @dirbits) {
+  for my $dirbit ( grep { defined and $_ ne '' } @dirbits ) {
     goto NEXTDIR if -d $dirbit;
 
     if ( -f File::Spec->catfile(qw{CVS Root}) ) {
       # CVS: add dir automagically
-      mkdir $dirbit;
+      mkdir $dirbit
+       or die
+       "error: could not create directory: errno=$!, name=$dirbit, path=$dir\n";
       system qw{cvs -Q add}, $dirbit;
 
     } elsif ( -f File::Spec->catfile(qw{.svn entries}) ) {
@@ -62,7 +65,8 @@ for my $dir (@ARGV) {
 
     }
 
-   NEXTDIR: chdir $dirbit;
+   NEXTDIR: chdir $dirbit
+     or die "error: could not chdir: errno=$!, name=$dirbit, path=$dir\n";
   }
 
   print $dir, $/ if exists $opts{p};
