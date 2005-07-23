@@ -31,6 +31,7 @@ my $start_dir = File::Spec->curdir();
 for my $dir (@ARGV) {
 
   my @dirbits = File::Spec->splitdir($dir);
+  my @seen;
 
   # start directory build from working directory for relative paths,
   # root directory for absolute paths
@@ -38,35 +39,64 @@ for my $dir (@ARGV) {
   if ( $dirbits[0] eq '' ) {
     $parent = File::Spec->rootdir();
     shift @dirbits;
+    push @seen, $parent;
   }
   chdir $parent
-   or die "error: could not chdir: errno=$!, path=$parent\n";
+   or remark(
+    'error',
+    'could not chdir',
+    { errno => $!, dir => File::Spec->catfile(@seen) }
+   )
+   and exit 101;
 
   # work through dirbits, as not all mkdir support -p, and do special
   # things under CVS and Subversion sandboxes
   #
   # KLUGE // in pathes add empty bits to the list, evict with grep
   for my $dirbit ( grep { defined and $_ ne '' } @dirbits ) {
+    push @seen, $dirbit;
+
     goto NEXTDIR if -d $dirbit;
 
     if ( -f File::Spec->catfile(qw{CVS Root}) ) {
       # CVS: add dir automagically
       mkdir $dirbit
-       or die
-       "error: could not create directory: errno=$!, name=$dirbit, path=$dir\n";
+       or remark(
+        'error',
+        'could not create directory',
+        { errno => $!, dir => File::Spec->catfile(@seen) }
+       )
+       and exit 102;
       system qw{cvs -Q add}, $dirbit;
 
     } elsif ( -f File::Spec->catfile(qw{.svn entries}) ) {
       # SVN: use mkdir subcommand
-      system qw{svn mkdir}, $dirbit;
+      system qw{svn mkdir}, $dirbit
+       or remark(
+        'error',
+        'could not create directory',
+        { errno => $!, dir => File::Spec->catfile(@seen), type => 'svn' }
+       )
+       and exit 102;
 
     } else {
-      mkdir $dirbit;
+      mkdir $dirbit
+       or remark(
+        'error',
+        'could not create directory',
+        { errno => $!, dir => File::Spec->catfile(@seen) }
+       )
+       and exit 102;
 
     }
 
    NEXTDIR: chdir $dirbit
-     or die "error: could not chdir: errno=$!, name=$dirbit, path=$dir\n";
+     or remark(
+      'error',
+      'could not chdir',
+      { errno => $!, dir => File::Spec->catfile(@seen) }
+     )
+     and exit 101;
   }
 
   print $dir, $/ if exists $opts{p};
@@ -85,4 +115,23 @@ Options:
 
 HELP
   exit 100;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+  return 1;
 }
