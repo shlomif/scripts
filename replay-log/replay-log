@@ -1,0 +1,81 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Replays log data, simulating the time delays present in the
+# source data.
+
+use Date::Parse qw(str2time);
+use POSIX qw(strftime);
+use Time::Local qw(timelocal);
+use Time::HiRes qw(sleep);
+
+use Getopt::Std;
+my %opts;
+getopts 'r:', \%opts;
+
+my ( $previous_epoch, $random_seed );
+
+if (  exists $opts{r}
+  and defined $opts{r}
+  and $opts{r} > 0 ) {
+
+  $random_seed    = $opts{r};
+  $previous_epoch = time;
+}
+
+while (<>) {
+  chomp;
+
+  # TODO will need to read different log formats (standard syslog, squid,
+  # apache, custom...): split into "time, rest of data" and have means to
+  # output "time with format, rest of data"
+  my %data;
+
+  ( $data{rawtime}, $data{suffix} ) =
+   $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
+
+  $data{epoch} =
+     $random_seed
+   ? $previous_epoch + rand $random_seed
+   : syslog_to_epoch( $data{rawtime} );
+
+  sleep $data{epoch} - $previous_epoch if defined $previous_epoch;
+
+  # TODO for output, either want original string, or rework with new
+  # timestamp based on the current time. Allow templating off %data,
+  # different time formatting via strftime.
+  if ($random_seed) {
+    print epoch_to_str( $data{epoch} ), $data{suffix}, $/;
+  } else {
+    print $_, $/;
+  }
+
+  $previous_epoch = $data{epoch};
+}
+
+sub epoch_to_str {
+  my $str = strftime( "%b %d %H:%M:%S", localtime $_[0] );
+  return $str;
+}
+
+# convert default syslog timestamp into epoch seconds. Uses current
+# year, as syslog does not record the year (nor the timezone, but that's
+# another rant).
+sub syslog_to_epoch {
+  my $date = shift;
+  my $epoch;
+
+  my %month_map;
+  @month_map{qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)} = 0 .. 11;
+
+  my ( $month, $day, $hour, $min, $sec ) =
+   $date =~ m/^(\w{3}) \s\s? (\d\d?) \s (\d\d):(\d\d):(\d\d)/x;
+  $epoch = timelocal $sec, $min, $hour, $day, $month_map{$month},
+   1900 + (localtime)[5];
+
+  return $epoch;
+}
