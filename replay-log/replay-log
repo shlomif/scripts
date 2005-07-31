@@ -6,12 +6,14 @@
 # public domain.
 #
 # Replays log data, simulating the time delays present in the source
-# data. Use the -r option to specify a random seed to replay log
-# entries with:
+# data. Use the -r option to specify a random seed to replay log entries
+# with, or a -f factor to speed replay:
 #
 # replay-log /var/log/messages
 #
 # tail -30 /var/log/messages | replay-log -r 3
+#
+# replay-log -f 1000 /var/log/messages
 
 use Date::Parse qw(str2time);
 use POSIX qw(strftime);
@@ -20,10 +22,17 @@ use Time::HiRes qw(sleep);
 
 use Getopt::Std;
 my %opts;
-getopts 'r:', \%opts;
+getopts 'r:f:', \%opts;
 
-my ( $previous_epoch, $random_seed );
+my ( $previous_epoch, $random_seed, $speed_factor );
 
+if ( exists $opts{f} and defined $opts{f} and $opts{f} > 1 ) {
+  $speed_factor = $opts{f};
+} else {
+  $speed_factor = 1;
+}
+
+# use random seed to determine delay for next log entry
 if (  exists $opts{r}
   and defined $opts{r}
   and $opts{r} > 0 ) {
@@ -48,7 +57,9 @@ while (<>) {
    ? $previous_epoch + rand $random_seed
    : syslog_to_epoch( $data{rawtime} );
 
-  sleep $data{epoch} - $previous_epoch if defined $previous_epoch;
+  if ( defined $previous_epoch ) {
+    sleep( ( $data{epoch} - $previous_epoch ) / $speed_factor );
+  }
 
   # TODO for output, either want original string, or rework with new
   # timestamp based on the current time. Allow templating off %data,
@@ -63,8 +74,8 @@ while (<>) {
 }
 
 sub epoch_to_str {
-  my $str = strftime( "%b %d %H:%M:%S", localtime $_[0] );
-  return $str;
+  # epoch may have .123 microseconds (squid logs), so whack that off
+  strftime "%b %d %H:%M:%S", localtime( int $_[0] || 0 );
 }
 
 # convert default syslog timestamp into epoch seconds. Uses current
