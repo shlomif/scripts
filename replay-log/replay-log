@@ -5,8 +5,13 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Replays log data, simulating the time delays present in the
-# source data.
+# Replays log data, simulating the time delays present in the source
+# data. Use the -r option to specify a random seed to replay log
+# entries with:
+#
+# replay-log /var/log/messages
+#
+# tail -30 /var/log/messages | replay-log -r 3
 
 use Date::Parse qw(str2time);
 use POSIX qw(strftime);
