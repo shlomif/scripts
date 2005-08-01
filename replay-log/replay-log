@@ -41,6 +41,9 @@ if (  exists $opts{r}
   $previous_epoch = time;
 }
 
+# force flush on output for better replay of logs
+$| = 1;
+
 while (<>) {
   chomp;
 
