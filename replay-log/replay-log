@@ -5,24 +5,20 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Replays log data, simulating the time delays present in the source
-# data. Use the -r option to specify a random seed to replay log entries
-# with, or a -f factor to speed replay:
+# Replays logs, simulating the time delays present in the source
+# data. Only supports the standard Unix syslogd(8) format at present.
 #
-# replay-log /var/log/messages
-#
-# tail -30 /var/log/messages | replay-log -r 3
-#
-# replay-log -f 1000 /var/log/messages
+# Run perldoc(1) on this script for additional documentation.
 
-use Date::Parse qw(str2time);
 use POSIX qw(strftime);
 use Time::Local qw(timelocal);
 use Time::HiRes qw(sleep);
 
 use Getopt::Std;
 my %opts;
-getopts 'r:f:o:', \%opts;
+getopts 'h?r:f:o:', \%opts;
+
+print_help() if exists $opts{h} or exists $opts{'?'};
 
 my ( $previous_epoch, $random_seed, $speed_factor );
 
@@ -103,3 +99,129 @@ sub syslog_to_epoch {
 
   return $epoch;
 }
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [-o output-file] [-f factor] [-r random-seed] < input-file
+
+Replays logs, simulating the time delays present in the source data.
+
+Options:
+  -h/-?  Display this message.
+
+  -o ff  Write output to this file instead of standard out.
+  
+  -f nn  Numeric factor to speed replay up by, such as 3600.
+  -r nn  Specify random seed to rand() for random replay speed.
+
+Run perldoc(1) on this script for additional documentation.
+
+HELP
+  exit 100;
+}
+
+__DATA__
+
+=head1 NAME
+
+replay-log - replays logs with simulated time delays
+
+=head1 SYNOPSIS
+
+Replay logs from C</var/log/messages> (may take some time!):
+
+  $ replay-log </var/log/messages
+
+A three second random seed causes faster playback:
+
+  $ </var/log/messages replay-log -r 3
+
+As does using a higher replay factor:
+
+  $ replay-log -f 3600 </var/log/messages
+
+Send logs to named pipe, to be read by some other utility:
+
+  $ mkfifo logfile
+  $ grep sshd </var/log/messages | replay-log -f 1000 -o logfile &
+  $ sec.pl --conf=sshd.conf --input=logfile
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Replays log data, simulating the time delays of the log data. Faster
+playback possible via the random seed and factor options. Good for
+replaying logs to tools such as C<swatch> or SEC:
+
+http://swatch.sourceforge.net/
+
+http://kodu.neti.ee/~risto/sec/
+
+Only supports Unix syslogd(8) data at present.
+
+=head2 Normal Usage
+
+  $ replay-log [-o output-file] [-f factor] [-r random-seed] < input-file
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+Log data is read from standard input, and sent to standard output,
+unless a custom output file is specified.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-o> I<filename>
+
+Send output to I<filename> instead of standard out.
+
+=item B<-r> I<random-seed>
+
+Use I<random-seed> as the random seed to C<rand()>; logs will playback
+using a random delay based on the seed.
+
+=item B<-f> I<factor>
+
+Speed playback of logs. I<factor> must be a number greater than one;
+higher values lead to faster replays.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+Only supports Unix syslogd(8) data at present. Output could be formatted
+in different ways and offer better control of timestamp display.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
