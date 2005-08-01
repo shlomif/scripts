@@ -16,12 +16,13 @@ use Time::HiRes qw(sleep);
 
 use Getopt::Std;
 my %opts;
-getopts 'h?r:f:o:', \%opts;
+getopts 'h?r:f:o:s:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'};
 
 my ( $previous_epoch, $random_seed, $speed_factor );
 
+# increase playback speed
 if ( exists $opts{f} and defined $opts{f} and $opts{f} > 1 ) {
   $speed_factor = $opts{f};
 } else {
@@ -37,9 +38,15 @@ if (  exists $opts{r}
   $previous_epoch = time;
 }
 
+# use custom output file
 if ( exists $opts{o} ) {
   open STDOUT, '>', $opts{o}
    or die "error: could not open: errno=$!, file=$opts{o}\n";
+}
+
+# leading delay (good if need time to get something else running)
+if ( exists $opts{s} and defined $opts{s} and $opts{s} > 0 ) {
+  sleep $opts{s};
 }
 
 # force flush on output for better replay of logs
@@ -113,6 +120,7 @@ Options:
   
   -f nn  Numeric factor to speed replay up by, such as 3600.
   -r nn  Specify random seed to rand() for random replay speed.
+  -s nn  Sleep this long before starting.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -140,7 +148,7 @@ As does using a higher replay factor:
 
   $ replay-log -f 3600 </var/log/messages
 
-Send logs to named pipe, to be read by some other utility:
+Send C<sshd> logs to a named pipe, read them with C<sec.pl>:
 
   $ mkfifo logfile
   $ grep sshd </var/log/messages | replay-log -f 1000 -o logfile &
@@ -192,6 +200,10 @@ using a random delay based on the seed.
 
 Speed playback of logs. I<factor> must be a number greater than one;
 higher values lead to faster replays.
+
+=item B<-s> I<leading-sleep>
+
+Sleep I<leading-sleep> seconds before replaying any logs.
 
 =back
 
