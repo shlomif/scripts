@@ -22,7 +22,7 @@ use Time::HiRes qw(sleep);
 
 use Getopt::Std;
 my %opts;
-getopts 'r:f:', \%opts;
+getopts 'r:f:o:', \%opts;
 
 my ( $previous_epoch, $random_seed, $speed_factor );
 
@@ -39,6 +39,11 @@ if (  exists $opts{r}
 
   $random_seed    = $opts{r};
   $previous_epoch = time;
+}
+
+if ( exists $opts{o} ) {
+  open STDOUT, '>', $opts{o}
+   or die "error: could not open: errno=$!, file=$opts{o}\n";
 }
 
 # force flush on output for better replay of logs
