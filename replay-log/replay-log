@@ -75,7 +75,7 @@ while (<>) {
     # in negative time differences. Workaround: detect and sleep random
     # time value. (TODO use moving average instead?)
     if ( $delay < 0 ) {
-      $delay = rand $random_seed || 3;
+      $delay = rand ($random_seed || 3);
     }
 
     sleep $delay;
