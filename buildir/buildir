@@ -56,7 +56,7 @@ for my $dir (@ARGV) {
   for my $dirbit ( grep { defined and $_ ne '' } @dirbits ) {
     push @seen, $dirbit;
 
-    goto NEXTDIR if -d $dirbit;
+    next if -d $dirbit;
 
     if ( -f File::Spec->catfile(qw{CVS Root}) ) {
       # CVS: add dir automagically
@@ -90,7 +90,9 @@ for my $dir (@ARGV) {
 
     }
 
-   NEXTDIR: chdir $dirbit
+  } continue {
+
+    chdir $dirbit
      or remark(
       'error',
       'could not chdir',
