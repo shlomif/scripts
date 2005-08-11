@@ -70,7 +70,7 @@ for my $dir (@ARGV) {
       system qw{cvs -Q add}, $dirbit;
 
     } elsif ( -f File::Spec->catfile(qw{.svn entries}) ) {
-      # SVN: use mkdir subcommand
+      # Subversion: use mkdir subcommand (not tested much!)
       system qw{svn mkdir}, $dirbit
        or remark(
         'error',
