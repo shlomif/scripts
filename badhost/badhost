@@ -1,0 +1,66 @@
+#!/usr/bin/perl
+#
+# $Id$
+#
+# Adds the specified IP addresses to the <badhosts> table in a Packet
+# Filter (pf) firewall, then finds and removes state entries involving
+# the addresses. Requires a table defined in pf.conf:
+#
+#   table <badhosts> persist
+#
+# And blocking rules involving the <badhosts> table, along the lines of:
+#
+#   block        in  quick on $ext_if from <badhosts>
+#   block return out quick on $ext_if to   <badhosts>
+#
+# Warning: either ensure that blocked hosts are remove automatically
+# after some period of time, or that good hosts cannot be blocked.
+
+die "usage: $0 [ [ip] [ip2 ..] | - ]\n" unless @ARGV;
+
+# TODO steal regex from Regexp::Common or something
+my $ip_re = qr/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/;
+
+my %badhost;
+
+# read from STDIN if - only argument
+chomp( @ARGV = <STDIN> ) if $ARGV[-1] eq '-' and @ARGV == 1;
+
+# add each entry to hash, add to blocking table
+for my $entry (@ARGV) {
+  next unless $entry =~ m/$ip_re/;
+  next if $badhost{$entry}++;
+
+  system qw{/sbin/pfctl -t badhosts -T add}, $entry;
+}
+
+# parse state list for badhosts, kill of any existing states
+open STATELIST, '-|'
+ or exec qw{/sbin/pfctl -s state}
+ or die "error: pfctl -s state failed: $!\n";
+
+while (<STATELIST>) {
+  if (
+    m/^
+    \w+ \s+ \w+ \s+ # leading 'self tcp' or similar
+  ($ip_re):\d+ \s+ (<-|->) \s+ ($ip_re):\d+ # source to dest
+  \s+ (.+) # state (established, etc.)
+ /x
+   ) {
+
+    my ( $one, $direction, $two, $reason ) = ( $1, $2, $3, $4 );
+
+    # if state, kill it off, and remove host from additional state
+    # matches (which should now be dead)
+    if ( exists $badhost{$one} and $direction eq '->' ) {
+      system qw{/sbin/pcftl -k}, $one;
+      delete $badhost{$one};
+    } elsif ( exists $badhost{$two} and $direction eq '<-' ) {
+      system qw{/sbin/pcftl -k}, $two;
+      delete $badhost{$two};
+    }
+
+   } else {
+    die "error: unparseable pfctl -s state output: $_";
+  }
+}
