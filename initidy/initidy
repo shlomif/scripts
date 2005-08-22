@@ -88,6 +88,10 @@ sub initidy {
       $data{type}   = 'comment';
       $data{indent} = $default ? '' : $section_indent;
 
+      if ( $line =~ m/ \[ [^\]]+ \] /x ) {
+        $data{indent} = '';
+      }
+
       if ( $previous_type eq $data{type} ) {
         push @{ $lines[-1]->{lines} }, $line;
         next;
@@ -119,6 +123,9 @@ sub initidy {
     $previous_type = $data{type};
   }
 
+  #use Data::Dumper; warn Dumper \@lines;
+  #exit;
+
   # walk over in-memory representation of configuration and write out tidy
   for my $i ( 0 .. $#lines ) {
     my $entry  = $lines[$i];
@@ -139,7 +146,7 @@ sub initidy {
        @{ $entry->{lines} };
 
       if ( $comment =~ m/ \[ [^\]]+ \] /x or $comment =~ m/ [\w-]+ \s* = /x ) {
-        $output .= $comment;
+        $output .= $comment . "\n";
       } else {
         $output .= autoformat $comment, { all => 1 }
       }
