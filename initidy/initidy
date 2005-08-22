@@ -10,9 +10,6 @@
 #
 # TODO options to customize output (blank line handling, comment string,
 # indents, sorting).
-#
-# TODO means to avoid autoformat() of commented out blocks of code,
-# which then become very hard to untidy
 
 use strict;
 
@@ -140,8 +137,12 @@ sub initidy {
 
       my $comment = $indent . $comment_str . join "\n$indent$comment_str",
        @{ $entry->{lines} };
-      $output .= autoformat $comment, { all => 1 }
-       unless $comment =~ m/\[[^\]]+\]/;
+
+      if ( $comment =~ m/ \[ [^\]]+ \] /x or $comment =~ m/ [\w-]+ \s* = /x ) {
+        $output .= $comment;
+      } else {
+        $output .= autoformat $comment, { all => 1 }
+      }
 
     } elsif ( $entry->{type} eq 'blank' ) {
       # gobble blank line runs by default
