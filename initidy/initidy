@@ -140,7 +140,8 @@ sub initidy {
 
       my $comment = $indent . $comment_str . join "\n$indent$comment_str",
        @{ $entry->{lines} };
-      $output .= autoformat $comment, { all => 1 };
+      $output .= autoformat $comment, { all => 1 }
+       unless $comment =~ m/\[[^\]]+\]/;
 
     } elsif ( $entry->{type} eq 'blank' ) {
       # gobble blank line runs by default
