@@ -5,7 +5,17 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Copies (or moves) the specified files into target directory.
+# Copies (or moves) the specified files into target directory. Relies on
+# buildir script to create directory trees.
+#
+# With the ZSH shell, a 'take' function can move files into a directory,
+# and move the shell into the said directory:
+#
+# function take {
+#   NDIR=`copyto -m $@ | tail -1`
+#   [[ $? -ne 0 ]] && exit $?
+#   builtin cd "$NDIR"
+# }
 
 require 5;
 use strict;
