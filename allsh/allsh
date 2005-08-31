@@ -56,6 +56,5 @@ fi
 # KLUGE this signal is dependent on how the shell shows itself via the
 # ps command run... need to add more shells, maybe figure out something
 # more portable?
-if [ "$SHELL" = '/bin/zsh' ]; then
-  signalit '[-/]zsh$' USR2
-fi
+signalit '[-/]zsh$' USR2
+#signalit '[-/]bash$' USR2
