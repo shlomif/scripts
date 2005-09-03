@@ -407,6 +407,12 @@ same filename suffixes.
   preserve p
   destopt C
 
+  name gztarpipe
+  class list
+  suffix tar.gz tgz
+  exec gunzip -c %{file} | tar x%{verbose}f -
+  verbose v
+
   name gnutargz
   class list
   suffix tar.gz tgz
@@ -414,7 +420,7 @@ same filename suffixes.
 
   name gnutarbz
   comment GNU tar with bzip support (or compatible)
-  suffix tar.bz tar.bz2 tbz
+  suffix tar.bz tar.bz2 tbz tbz2
   exec tar x%{verbose}j%{preserve}%{destopt}f %{dest} %{file}
   verbose v
   preserve p
@@ -422,7 +428,7 @@ same filename suffixes.
 
   name gnutarbz
   class list
-  suffix tar.bz tar.bz2 tbz
+  suffix tar.bz tar.bz2 tbz tbz2
   exec tar tvjf %{file}
 
   name Apple disk image
@@ -432,11 +438,17 @@ same filename suffixes.
   quiet -quiet
 
   name bztarpipe
-  suffix tar.bz tar.bz2 tbz
+  suffix tar.bz tar.bz2 tbz tbz2
   exec bunzip2 -c %{file} | tar x%{verbose}%{preserve}%{destopt}f %{dest} -
   verbose v
   preserve p
   destopt C
+
+  name bztarpipe
+  class list
+  suffix tar.bz tar.bz2 tbz tbz2
+  exec bunzip2 -c %{file} | tar t%{verbose}f -
+  verbose v
 
   name tar
   suffix tar
