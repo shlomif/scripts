@@ -191,7 +191,7 @@ sub rundu {
     }
 
     # determine path excluding leading root
-    $duinfo{subpath} = '';
+    $duinfo{subpath} = q{};
     my $offset = index $duinfo{path}, $parentdir;
     if ( $offset > -1 ) {
       $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
@@ -204,7 +204,7 @@ sub rundu {
     for my $entry (@$wanted) {
       if ( $duinfo{ $entry->{subject} } =~ m/$entry->{value}/ ) {
         my $str_out = $output_tmpl;
-        $str_out =~ s/ %{ (\w+) } / defined $duinfo{$1} ? $duinfo{$1} : '' /egx;
+        $str_out =~ s/ %{ (\w+) } / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
         print $str_out;
         last;
       }
@@ -273,8 +273,8 @@ sub humanize {
 
   # some local working variables
   my $count  = 0;
-  my $prefix = '';
-  my $tmp    = '';
+  my $prefix = q{};
+  my $tmp    = q{};
 
   # handle negatives
   if ( $num < 0 ) {
@@ -326,12 +326,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 

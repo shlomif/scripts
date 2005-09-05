@@ -124,7 +124,7 @@ sub print_report {
   format_lines_per_page STDOUT 99999999;
 
   # perl doesn't like format_formfeed on a per-handle basis, ergo:
-  $^L = '';
+  $^L = q{};
 
   format STDOUT_TOP = 
  Count  Destination                                               Size
@@ -441,8 +441,8 @@ sub humanize {
 
   # some local working variables
   my $count  = 0;
-  my $prefix = '';
-  my $tmp    = '';
+  my $prefix = q{};
+  my $tmp    = q{};
 
   # handle negatives
   if ( $num < 0 ) {

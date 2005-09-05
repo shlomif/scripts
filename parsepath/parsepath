@@ -129,7 +129,7 @@ PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
   my @pathbits       = File::Spec->splitdir($path);
   my $links_followed = 0;
 
-  $output = '';
+  $output = q{};
 
   #$output = "\n" unless $pnum == 0;
   unless ($text_block == 1) {
@@ -144,8 +144,8 @@ PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
 
   $output .= "% $path\n" if exists $opts{options}->{v};
 
-  my $current  = '';
-  my $previous = '';
+  my $current  = q{};
+  my $previous = q{};
   for (my $i = 0; $i <= $#pathbits; $i++) {
     $previous = $current;
     $current = File::Spec->catdir($current, $pathbits[$i]);
@@ -330,7 +330,7 @@ sub check_access {
         $output .= '! '
          . $role->{type} . '='
          . $role->{name} . ' +'
-         . join('', sort @fails)
+         . join(q{}, sort @fails)
          . ' fails: '
          . render_filedata($filedata) . "\n";
       }
@@ -352,7 +352,7 @@ sub check_access {
   if (@fails) {
     $output .=
        '! unix-other +'
-     . join('', sort @fails)
+     . join(q{}, sort @fails)
      . ' fails: '
      . render_filedata($filedata) . "\n";
   }
@@ -363,7 +363,7 @@ sub render_filedata {
 
   return
 "$filedata->{type} $filedata->{unix_mode_octal} $filedata->{unix_user}:$filedata->{unix_group} $filedata->{name}"
-   . (exists $filedata->{link} ? ' -> ' . $filedata->{link} : '')
+   . (exists $filedata->{link} ? ' -> ' . $filedata->{link} : q{})
 }
 
 # usage notes

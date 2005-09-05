@@ -52,7 +52,7 @@ for (@ARGV) {
 }
 
 for my $domain (@domains) {
-  print +(@domains > 1 ? "$domain: " : ''), join ' ', get_mx $domain;
+  print +(@domains > 1 ? "$domain: " : q{}), join ' ', get_mx $domain;
 }
 
 sub get_mx {

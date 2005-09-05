@@ -151,12 +151,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 

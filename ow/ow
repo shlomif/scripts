@@ -74,12 +74,12 @@ if ( exists $opts{d} ) {
 
       my $pos = index $dir, $_;
       if ( $pos > -1 ) {
-        my $frag = substr( $dir, $pos + length $_ ) || '';
+        my $frag = substr( $dir, $pos + length $_ ) || q{};
         $frag .= "/";
 
         # prevent // issues
         $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
-        $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq '';
+        $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq q{};
 
         visit( expand( $dirmap->{$_}, [$frag] ) );
         $got_url = 1;
@@ -173,7 +173,7 @@ sub expand {
   my $terms   = shift;
 
   $pattern =~ s/\Q%@/join '+', @$terms/ge;
-  $pattern =~ s/%(\d+)/$terms->[$1-1]||''/ge;
+  $pattern =~ s/%(\d+)/$terms->[$1-1]||q{}/ge;
 
   my $url = URI->new($pattern)->canonical;
 
@@ -209,7 +209,7 @@ sub open_omniweb_bg {
 
   # for Mac OS X, use AppleScript to open pages in background, as
   # open(1) brings the browser forward, which annoys me.
-  my $omniweb_open_script = <<EOF;
+  my $omniweb_open_script = <<"END_OMNIWEB_SCRIPT";
 set url_new to "$url"
 set AppleScript's text item delimiters to {"#"}
 tell application "OmniWeb"
@@ -230,7 +230,7 @@ tell application "OmniWeb"
     OpenURL url_new
   end if
 end tell
-EOF
+END_OMNIWEB_SCRIPT
 
   # TODO error checking!
   # TODO better handling of annoying output from osascript
@@ -291,12 +291,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 

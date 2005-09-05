@@ -100,7 +100,7 @@ if ( $verb eq 'get' ) {
     if (@non) {
       remark( 'error',
            'cannot upload non-existent file'
-         . ( @non == 1 ? '' : 's' )
+         . ( @non == 1 ? q{} : 's' )
          . ": @non" );
       exit 101;
     }
@@ -134,7 +134,7 @@ if ( $verb eq 'get' ) {
   push @potentials, $args{name};
 
   # network and channel same mean multiple pastebots for channel
-  if ( $primary->{network} ne '' ) {
+  if ( $primary->{network} ne q{} ) {
     push @potentials, grep {
            $servers->{$_}->{name} ne $primary->{name}
        and $servers->{$_}->{network} eq $primary->{network}
@@ -145,7 +145,7 @@ if ( $verb eq 'get' ) {
   # can also fallback to entries without channels; these should not be
   # announced anywhere: better to paste somewhere than fail if all the
   # announcing ones are unavailable
-  push @potentials, grep { $servers->{$_}->{channel} eq '' } @server_list;
+  push @potentials, grep { $servers->{$_}->{channel} eq q{} } @server_list;
 
   # screen out same url on assumption url being down more common than a
   # channel-specific problem with the paste site (the site having
@@ -173,7 +173,7 @@ sub pb_get {
   my $url;
 
   # if get a URL, run with that; otherwise expect shortcut and paste id
-  my $urltmp = URI->new( $id . ( ( $id !~ m,\?tx=on$, ) ? '?tx=on' : '' ) );
+  my $urltmp = URI->new( $id . ( ( $id !~ m,\?tx=on$, ) ? '?tx=on' : q{} ) );
 
   if ( defined $urltmp and defined $urltmp->scheme ) {
     $url = $urltmp->canonical;
@@ -182,7 +182,7 @@ sub pb_get {
 
     $url =
      URI->new( $prefs->{url}
-       . ( ( $prefs->{url} !~ m,/$, ) ? '/' : '' )
+       . ( ( $prefs->{url} !~ m,/$, ) ? '/' : q{} )
        . $id
        . '?tx=on' )->canonical;
 
@@ -214,7 +214,7 @@ sub pb_put {
 
   my $url =
    URI->new(
-    $prefs->{url} . ( ( $prefs->{url} !~ m,/$, ) ? '/' : '' ) . 'paste' )
+    $prefs->{url} . ( ( $prefs->{url} !~ m,/$, ) ? '/' : q{} ) . 'paste' )
    ->canonical;
 
   unless ( defined $url ) {
@@ -224,7 +224,7 @@ sub pb_put {
 
   # ensure non-null channel prefixed with #
   $prefs->{channel} =~ s/^/#/
-   if $prefs->{channel} ne ''
+   if $prefs->{channel} ne q{}
    and $prefs->{channel} !~ /^#/;
 
   eval { require LWP::UserAgent; };
@@ -236,7 +236,7 @@ sub pb_put {
      LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 17 );
 
     my %postargs = map {
-         ( defined $prefs->{$_} and $prefs->{$_} ne '' )
+         ( defined $prefs->{$_} and $prefs->{$_} ne q{} )
        ? ( $_ => $prefs->{$_} )
        : ()
     } qw(channel nick summary);
@@ -370,7 +370,7 @@ sub server_load {
 
     # empty strings for optional stuff to avoid uninitialized value warnings
     for my $key (qw(channel nick network)) {
-      $server->{$key} = ''
+      $server->{$key} = q{}
        unless exists $server->{$key}
        and defined $server->{$key};
     }
@@ -630,7 +630,7 @@ Channel the pastebot should send the "new paste" notice to.  Overrides
 preference file setting, if any.  Setting it to an empty string will
 target the "null" channel, which avoids channel announcements.
 
-  $ date | pbotutil -s perl -c ''
+  $ date | pbotutil -s perl -c q{}
 
 Entries in the preferences file default to no channel pastes should the
 C<channel> keyword be left out for the entry in question.

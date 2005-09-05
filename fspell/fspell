@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # $Id$
 #
@@ -9,17 +9,16 @@
 #
 # Run perldoc(1) on this file for additional documentation.
 
-require 5;
 use strict;
 
-use DBI;
+use DBI ();
 
-use Text::Levenshtein;    # qw(distance);
-use Text::WagnerFischer;  # qw(distance);
-use Text::Metaphone;
+use Text::Levenshtein   qw{};
+use Text::WagnerFischer qw{};
+use Text::Metaphone     qw{Metaphone};
 
 my $dbh =
- DBI->connect("dbi:SQLite:/home/jmates/.fspell/words.db", '', '',
+ DBI->connect("dbi:SQLite:/home/jmates/.fspell/words.db", q{}, q{},
   {AutoCommit => 0, PrintError => 1, RaiseError => 1});
 
 sub print_help;
@@ -53,9 +52,9 @@ while (my @row = $findmeta->fetchrow_array) {
 #  print $row[0], " tl ", Text::Levenshtein::distance("$string", $row[0]), " tw ", Text::WagnerFischer::distance($string, $row[0]), "\n";
 }
 
-print join "\n",
- map { $_->[0] . " " . $_->[1] } sort { $a->[1] <=> $b->[1] } @results;
-print "\n";
+for my $entry (sort { $a->[1] <=> $b->[1] } @results) {
+  print $entry->[0], ' ', $entry->[1], $/;
+}
 
 sub _init {
   my $dict_file = '/usr/share/dict/words';

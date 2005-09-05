@@ -144,7 +144,7 @@ sub init {
     remark('notice', "creating new cache file: $cache_file");
     $create_table = 1;
   }
-  my $dbh = DBI->connect("dbi:SQLite:dbname=$cache_file", '', '');
+  my $dbh = DBI->connect("dbi:SQLite:dbname=$cache_file", q{}, q{});
   if ($create_table) {
     $dbh->do(
       q{

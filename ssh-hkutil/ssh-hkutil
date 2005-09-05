@@ -123,7 +123,7 @@ sub print_known_hosts {
     my $host_spec = join ',', clean_hosts( @{ $hkr->{hosts} } );
 
     # KLUGE sanity check for missing host I saw once...
-    if ( not $host_spec or $host_spec eq '' ) {
+    if ( not $host_spec or $host_spec eq q{} ) {
       require Data::Dumper;
       my $d = Data::Dumper->new( [$hkr], ['hkr'] );
       warn "error: skipping as no hosts found, please report to author: ",

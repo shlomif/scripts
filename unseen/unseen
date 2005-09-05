@@ -174,11 +174,11 @@ sub process {
 
   for my $tag (@tags) {
     $filedata{tag}   = $tag;
-    $filedata{index} = join '.', map { $filedata{$_} || '' } sort keys %index;
+    $filedata{index} = join '.', map { $filedata{$_} || q{} } sort keys %index;
 
     next if exists $seen->{ $filedata{index} };
 
-    ( my $output = $output_tmpl ) =~ s/ %{ (\w+) } / $filedata{$1} || '' /egx;
+    ( my $output = $output_tmpl ) =~ s/ %{ (\w+) } / $filedata{$1} || q{} /egx;
     print $output unless exists $printed{$output};
     $printed{$output} = 1;
 
@@ -260,7 +260,7 @@ sub remark {
   my $attr_str;
   if ( keys %$attributes ) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
 
     # escape wacky characters to avoid messing up things
@@ -268,7 +268,7 @@ sub remark {
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
 
   return 1;
 }

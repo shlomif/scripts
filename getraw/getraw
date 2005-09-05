@@ -64,10 +64,10 @@ eval {
 
     # check for specific key, default action, or default to nothing for
     # the key in question
-    if (exists $ref->{$key} and $ref->{$key} ne '') {
+    if (exists $ref->{$key} and $ref->{$key} ne q{}) {
       print $writeto "\n" if exists $opts{n};
       exit $ref->{$key};
-    } elsif (exists $spec->{default} and $spec->{default} ne '') {
+    } elsif (exists $spec->{default} and $spec->{default} ne q{}) {
       print $writeto "\n" if exists $opts{n};
       exit $spec->{default};
     }
@@ -108,7 +108,7 @@ sub parse_spec {
 
   for (reverse split /(?<!\\)[ ,]+/, $string) {
     my ($keys, $status) = /(.+?):(.)?$/;
-    $status ||= '';  # "do nothing" status, no return code
+    $status ||= q{};  # "do nothing" status, no return code
 
     $spec->{human}->{$status} .= $keys;
 
@@ -117,7 +117,7 @@ sub parse_spec {
     }
 
     # TODO warn about not getting numeric exit status
-    if ($status ne '' and $status !~ /^\d+$/) {
+    if ($status ne q{} and $status !~ /^\d+$/) {
       remark('warning', "non-numeric exit status for $_, defaulting to 0");
       $status = 0;
     }

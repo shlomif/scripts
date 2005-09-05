@@ -129,8 +129,8 @@ sub humanize {
 
   # some local working variables
   my $count  = 0;
-  my $prefix = '';
-  my $tmp    = '';
+  my $prefix = q{};
+  my $tmp    = q{};
 
   # handle negatives
   if ($num < 0) {

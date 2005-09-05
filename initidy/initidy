@@ -49,8 +49,8 @@ sub initidy {
 
   my @lines;
   my $default       = 1;
-  my $previous_type = '';
-  my $output        = '';
+  my $previous_type = q{};
+  my $output        = q{};
 
   while (<$fh>) {
     s/^\s+//;
@@ -82,14 +82,14 @@ sub initidy {
     } elsif (m/^ ($comment_char_re) (.*) $/x) {
       $data{comment_str} = "$1 ";
 
-      my $line = $2 || '';
+      my $line = $2 || q{};
       $line =~ s/^\s+//;
 
       $data{type}   = 'comment';
-      $data{indent} = $default ? '' : $section_indent;
+      $data{indent} = $default ? q{} : $section_indent;
 
       if ( $line =~ m/ \[ [^\]]+ \] /x ) {
-        $data{indent} = '';
+        $data{indent} = q{};
       }
 
       if ( $previous_type eq $data{type} ) {
@@ -101,7 +101,7 @@ sub initidy {
 
     } elsif (m/=/) {
       $data{type}   = 'statement';
-      $data{indent} = $default ? '' : $section_indent;
+      $data{indent} = $default ? q{} : $section_indent;
 
       my ( $key, $value ) = split /\s*=\s*/, $_, 2;
 
@@ -129,7 +129,7 @@ sub initidy {
   # walk over in-memory representation of configuration and write out tidy
   for my $i ( 0 .. $#lines ) {
     my $entry  = $lines[$i];
-    my $indent = $entry->{indent} || '';
+    my $indent = $entry->{indent} || q{};
 
     if ( $entry->{type} eq 'section' ) {
       $output .= "[$entry->{lines}->[0]]\n";
@@ -137,7 +137,7 @@ sub initidy {
 
       # no indent pre-section comments
       if ( $i != $#lines and $lines[ $i + 1 ]->{type} eq 'section' ) {
-        $indent = '';
+        $indent = q{};
       }
 
       my $comment_str = $entry->{comment_str} || '# ';

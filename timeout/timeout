@@ -156,11 +156,11 @@ sub seconds2duration {
   my $weeks = ($tmpsec - $days) / 7;
 
   # TODO better way to do this?
-  my $temp = ($weeks) ? "${weeks}w" : '';
-  $temp .= ($days)    ? "${days}d"    : '';
-  $temp .= ($hours)   ? "${hours}h"   : '';
-  $temp .= ($minutes) ? "${minutes}m" : '';
-  $temp .= ($seconds) ? "${seconds}s"  : '';
+  my $temp = ($weeks) ? "${weeks}w" : q{};
+  $temp .= ($days)    ? "${days}d"    : q{};
+  $temp .= ($hours)   ? "${hours}h"   : q{};
+  $temp .= ($minutes) ? "${minutes}m" : q{};
+  $temp .= ($seconds) ? "${seconds}s"  : q{};
   return $temp;
 }
 

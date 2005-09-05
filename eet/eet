@@ -73,7 +73,7 @@ for (@ARGV) {
     );
 }
 
-my $rin = '';
+my $rin = q{};
 my $nfound;
 
 # don't buffer STDOUT

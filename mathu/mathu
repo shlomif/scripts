@@ -44,7 +44,7 @@ sub handle_sum {
   my $result;
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
     $result += $_;
   }
   $result = numbertidy($result) if $result =~ /\./;
@@ -55,7 +55,7 @@ sub handle_mean {
   my @array;
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
     push @array, $_;
   }
   my $result = mean(\@array);
@@ -67,7 +67,7 @@ sub handle_sdev {
   my @array;
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
     push @array, $_;
   }
   my $result = standard_deviation(\@array, mean(\@array));
@@ -83,7 +83,7 @@ sub handle_max {
   my $result;
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
     $result = $_ unless defined $result;
     $result = $_ if $_ > $result;
   }
@@ -95,7 +95,7 @@ sub handle_min {
   my $result;
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
 
     $result = $_ unless defined $result;
     $result = $_ if $_ < $result;
@@ -110,7 +110,7 @@ sub handle_basic {
 
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
     $results{sum} += $_;
 
     $results{min} = $_ unless exists $results{min};
@@ -139,7 +139,7 @@ sub handle_distribution {
 
   while (<STDIN>) {
     chomp;
-    next if $_ eq '';
+    next if $_ eq q{};
     $results{min} = $_ unless exists $results{min};
     $results{max} = $_ unless exists $results{max};
     $results{min} = $_ if $_ < $results{min};

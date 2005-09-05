@@ -396,7 +396,7 @@ sub parse_mode {
     $bitmask = 0000;        # default bits to operate on
     $value   = $sticky = 0;
 
-    $what = 'ugo' if $what eq 'a' or $what eq '';
+    $what = 'ugo' if $what eq 'a' or $what eq q{};
 
     $value += 4 if $flags =~ /r/;
     $value += 2 if $flags =~ /w/;

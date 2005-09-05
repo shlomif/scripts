@@ -333,7 +333,7 @@ sub parse_authkey_options {
 # authorized keys file use
 sub data2keystring {
   my $href = shift;
-  my $ks = '';
+  my $ks = q{};
   
   if (exists $href->{options}) {
     $ks .= authkey_options2str($href->{options}) . ' ';

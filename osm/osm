@@ -95,7 +95,7 @@ sub handle_file {
   }
   delete $tmp{destopt} unless exists $param->{dest};
 
-  $tmp{exec} =~ s/%{(\w+)}/$tmp{$1}||''/ge;
+  $tmp{exec} =~ s/%{ (\w+) }/$tmp{$1} || q{}/egx;
 
   if ( exists $opts{n} ) {
     print "@{$tmp{exec}}\n";
@@ -275,12 +275,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 

@@ -105,7 +105,7 @@ FILE: for my $file (@ARGV) {
   my $output_file;
   if ( exists $opts{o} ) {
     ( $output_file = $opts{o} ) =~
-     s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || '' /egx;
+     s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || q{} /egx;
 
     # TODO use IO::Atomic or something?
     open OUTPUT, "> $output_file"
@@ -183,12 +183,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 

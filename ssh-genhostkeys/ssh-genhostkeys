@@ -34,7 +34,7 @@ fi
 while read type keyfile; do
   # TODO interrupt while these are running might lead to problems,
   # though atomic writes hard to integrate into a shell script...
-  yes | ssh-keygen -t "$type" -f "$keydir/$keyfile" -N ''
+  yes | ssh-keygen -t "$type" -f "$keydir/$keyfile" -N q{}
 
   # preserve non-zero exits, as running multiple commands
   if [ $RETVAL != 0 ]; then

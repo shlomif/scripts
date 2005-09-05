@@ -36,7 +36,7 @@ for my $dir (@ARGV) {
   # start directory build from working directory for relative paths,
   # root directory for absolute paths
   my $parent = $start_dir;
-  if ( $dirbits[0] eq '' ) {
+  if ( $dirbits[0] eq q{} ) {
     $parent = File::Spec->rootdir();
     shift @dirbits;
     push @seen, $parent;
@@ -53,7 +53,7 @@ for my $dir (@ARGV) {
   # things under CVS and Subversion sandboxes
   #
   # KLUGE // in pathes add empty bits to the list, evict with grep
-  for my $dirbit ( grep { defined and $_ ne '' } @dirbits ) {
+  for my $dirbit ( grep { defined and $_ ne q{} } @dirbits ) {
     push @seen, $dirbit;
 
     next if -d $dirbit;
@@ -129,11 +129,11 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= ''; "$_=$attributes->{$_}" }
+     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : '' ) . "\n";
+   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }

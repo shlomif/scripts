@@ -37,7 +37,7 @@ unless ($@) {
    or die "error: could not calculate days in month\n";
 }
 
-my $factors = join '', keys %factor;
+my $factors = join q{}, keys %factor;
 
 use Getopt::Std;
 my %opts;
@@ -99,11 +99,11 @@ sub deltatimefmt {
   my $weeks = ($difference - $days) / 7;
 
   # better way to do this?
-  my $temp = ($weeks) ? "${weeks}w " : '';
-  $temp .= ($days)    ? "${days}d "    : '';
-  $temp .= ($hours)   ? "${hours}h "   : '';
-  $temp .= ($minutes) ? "${minutes}m " : '';
-  $temp .= ($seconds) ? "${seconds}s"  : '';
+  my $temp = ($weeks) ? "${weeks}w " : q{};
+  $temp .= ($days)    ? "${days}d "    : q{};
+  $temp .= ($hours)   ? "${hours}h "   : q{};
+  $temp .= ($minutes) ? "${minutes}m " : q{};
+  $temp .= ($seconds) ? "${seconds}s"  : q{};
   return $temp;
 }
 

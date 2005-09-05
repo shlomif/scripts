@@ -45,7 +45,7 @@ sub handle_class2host {
 
   my $domain = $opts{d} if exists $opts{d};
 
-  my $action = '';
+  my $action = q{};
   my %hosts;
   my %host2class;
 
