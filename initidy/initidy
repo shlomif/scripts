@@ -16,153 +16,177 @@ use strict;
 use Text::Autoformat qw(autoformat);
 
 # how to match comments
-my $comment_char_re = qr/[#;]/;
+my $COMMENT_MATCH = qr/[#;]/;
 
-my $section_indent = '  ';
+# how much to indent section elements by
+my $INDENT_AMOUNT = q{  };
 
-unless (@ARGV) {
+my $exit_value = 0;
+
+# no args: operate on standard input
+if ( !@ARGV ) {
   print initidy( input => \*STDIN, filename => '-' );
+  close STDOUT or die "error: could not close stdout: errno=$!\n";
+  exit;
+}
 
-} else {
-  for my $file ( grep -f, @ARGV ) {
+# otherwise, tidy files on command line in place
+for my $file (@ARGV) {
+  if ( !-f $file ) {
+    warn "notice: skipping non-file: file=$file\n";
+    $exit_value = 1;
+    next;
+  }
 
-    unless ( open INPUT, "< $file" ) {
-      warn "warning: skipping as could not read: errno=$!, file=$file\n";
-      next;
-    }
-    my $output = initidy( input => \*INPUT, filename => $file );
-    close INPUT;
+  if ( !open INPUT, '<', $file ) {
+    warn "warning: skipping as could not read: errno=$!, file=$file\n";
+    $exit_value = 1;
+    next;
+  }
+  my $output = initidy( input => \*INPUT, filename => $file );
+  close INPUT;
 
-    unless ( open OUTPUT, "> $file" ) {
-      warn "warning: skipping as could not write: errno=$!, file=$file\n";
-      next;
-    }
-    print OUTPUT $output;
-    close OUTPUT
-     or warn "warning: problem closing file: errno=$!, file=$file\n";
+  # TODO use File::Temp and rename() instead, or inplace edit
+  if ( !open OUTPUT, '>', $file ) {
+    warn "warning: skipping as could not write: errno=$!, file=$file\n";
+    $exit_value = 1;
+    next;
+  }
+  print OUTPUT $output;
+  if ( !close OUTPUT ) {
+    warn "warning: problem closing file: errno=$!, file=$file\n";
+    $exit_value = 1;
   }
 }
+
+exit $exit_value;
 
 sub initidy {
   my %param = @_;
   my $fh    = $param{input};
 
-  my @lines;
+  my @ini_blocks;
   my $default       = 1;
   my $previous_type = q{};
   my $output        = q{};
 
-  while (<$fh>) {
-    s/^\s+//;
-    s/\s+$//;
+  while ( my $line = <$fh> ) {
+    $line =~ s/^\s+//;
+    $line =~ s/\s+$//;
 
-    my %data;
+    my %ini_block;
 
-    if (m/^ \[ ([^\]]+) \] $/x) {
-      $data{type}  = 'section';
-      $data{lines} = [$1];
+    if ( $line =~ m/^ \[ ([^\]]+) \] $/x ) {
+      $ini_block{type}  = 'section';
+      $ini_block{lines} = [$1];
 
-      if ( $previous_type eq $data{type} ) {
+      if ( $previous_type eq $ini_block{type} ) {
         # TODO error if empty configuration block?
       }
 
       # disable as in a block now
       $default = 0;
 
-    } elsif (m/^$/x) {
-      $data{type} = 'blank';
+    } elsif ( $line =~ m/^$/x ) {
+      $ini_block{type} = 'blank';
 
-      if ( $previous_type eq $data{type} ) {
-        $lines[-1]->{count}++;
+      if ( $previous_type eq $ini_block{type} ) {
+        $ini_blocks[-1]->{count}++;
         next;
       } else {
-        $data{count} = 1;
+        $ini_block{count} = 1;
       }
 
-    } elsif (m/^ ($comment_char_re) (.*) $/x) {
-      $data{comment_str} = "$1 ";
+    } elsif ( $line =~ m/^ ($COMMENT_MATCH) (.*) $/x ) {
+      $ini_block{comment_str} = "$1 ";
 
       my $line = $2 || q{};
       $line =~ s/^\s+//;
 
-      $data{type}   = 'comment';
-      $data{indent} = $default ? q{} : $section_indent;
+      $ini_block{type}   = 'comment';
+      $ini_block{indent} = $default ? q{} : $INDENT_AMOUNT;
 
       if ( $line =~ m/ \[ [^\]]+ \] /x ) {
-        $data{indent} = q{};
+        $ini_block{indent} = q{};
       }
 
-      if ( $previous_type eq $data{type} ) {
-        push @{ $lines[-1]->{lines} }, $line;
+      if ( $previous_type eq $ini_block{type} ) {
+        push @{ $ini_blocks[-1]->{lines} }, $line;
         next;
       } else {
-        $data{lines} = [$line];
+        $ini_block{lines} = [$line];
       }
 
-    } elsif (m/=/) {
-      $data{type}   = 'statement';
-      $data{indent} = $default ? q{} : $section_indent;
+    } elsif ( $line =~ m/=/ ) {
+      $ini_block{type}   = 'statement';
+      $ini_block{indent} = $default ? q{} : $INDENT_AMOUNT;
 
-      my ( $key, $value ) = split /\s*=\s*/, $_, 2;
+      my ( $key, $value ) = split /\s*=\s*/, $line, 2;
 
-      if ( $previous_type eq $data{type} ) {
-        push @{ $lines[-1]->{lines} }, { key => $key, value => $value };
-        $lines[-1]->{keylength} = length $key
-         if length $key > $lines[-1]->{keylength};
+      if ( $previous_type eq $ini_block{type} ) {
+        push @{ $ini_blocks[-1]->{lines} }, { key => $key, value => $value };
+        $ini_blocks[-1]->{keylength} = length $key
+          if length $key > $ini_blocks[-1]->{keylength};
         next;
       } else {
-        $data{lines} = [ { key => $key, value => $value } ];
-        $data{keylength} = length $key;
+        $ini_block{lines} = [ { key => $key, value => $value } ];
+        $ini_block{keylength} = length $key;
       }
 
     } else {
       die "error: ini parse error: file=$param{filename}, line=$.\n";
     }
 
-    push @lines, \%data;
-    $previous_type = $data{type};
+    push @ini_blocks, \%ini_block;
+    $previous_type = $ini_block{type};
   }
 
-  #use Data::Dumper; warn Dumper \@lines;
-  #exit;
-
   # walk over in-memory representation of configuration and write out tidy
-  for my $i ( 0 .. $#lines ) {
-    my $entry  = $lines[$i];
+  for my $i ( 0 .. $#ini_blocks ) {
+    my $entry  = $ini_blocks[$i];
     my $indent = $entry->{indent} || q{};
 
     if ( $entry->{type} eq 'section' ) {
       $output .= "[$entry->{lines}->[0]]\n";
+
     } elsif ( $entry->{type} eq 'comment' ) {
 
       # no indent pre-section comments
-      if ( $i != $#lines and $lines[ $i + 1 ]->{type} eq 'section' ) {
+      if ( $i != $#ini_blocks and $ini_blocks[ $i + 1 ]->{type} eq 'section' )
+      {
         $indent = q{};
       }
 
       my $comment_str = $entry->{comment_str} || '# ';
 
       my $comment = $indent . $comment_str . join "\n$indent$comment_str",
-       @{ $entry->{lines} };
+        @{ $entry->{lines} };
 
-      if ( $comment =~ m/ \[ [^\]]+ \] /x or $comment =~ m/ [\w-]+ \s* = /x ) {
+      if ( $comment =~ m/ \[ [^\]]+ \] /x or $comment =~ m/ [\w-]+ \s* = /x )
+      {
         $output .= $comment . "\n";
       } else {
         $output .= autoformat $comment, { all => 1 }
       }
 
     } elsif ( $entry->{type} eq 'blank' ) {
-      # gobble blank line runs by default
-      $output .= "\n" unless $i == $#lines;
+
+      # TODO does this work??
+      if ( $i != $#ini_blocks ) {
+        $output .= "\n";
+      }
 
     } elsif ( $entry->{type} eq 'statement' ) {
-      for
-       my $statement ( sort { $a->{key} cmp $b->{key} } @{ $entry->{lines} } ) {
+
+      for my $statement ( sort { $a->{key} cmp $b->{key} }
+        @{ $entry->{lines} } ) {
         $output .= $indent
-         . $statement->{key}
-         . ' ' x ( 1 + $entry->{keylength} - length $statement->{key} ) . '= '
-         . $statement->{value} . "\n";
+          . $statement->{key}
+          . ' ' x ( 1 + $entry->{keylength} - length $statement->{key} )
+          . '= '
+          . $statement->{value} . "\n";
       }
+
     }
   }
 
