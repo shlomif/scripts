@@ -40,21 +40,19 @@ my %copy_with = (
 my $default_copy_method = 'cp';
 
 use Cwd qw(getcwd realpath);
-use File::Spec;
-use File::Basename;
+use File::Spec ();
+
+use File::Basename qw(basename);
 my $basename = basename $0;
 
-sub get_subversion_url;
-sub print_usage;
-sub print_help;
-sub remark;
-
-use Getopt::Std;
+use Getopt::Std qw(getopts);
 my %opts;
 getopts 'h?fmqd:', \%opts;
-print_help if exists $opts{h} or exists $opts{'?'};
 
-print_usage unless @ARGV > 1;
+if ( exists $opts{h} or exists $opts{'?'} or !@ARGV ) {
+  print_help();
+  exit 100;
+}
 
 $opts{m} = 1 if $basename eq 'moveto';
 
@@ -64,48 +62,51 @@ my $target_exists = 0;
 if ( -d $target_dir ) {
   $target_dir    = realpath $target_dir;
   $target_exists = 1;
-  unless ($target_dir) {
-    remark 'error', 'could not determine realpath to target';
+  if ( !$target_dir ) {
+    remark( 'error', 'could not determine realpath', { dir => $target_dir } );
     exit 101;
   }
 }
 
 my $current_dir = realpath getcwd;
-unless ($current_dir) {
-  remark 'error', 'could not determine current directory';
+if ( !$current_dir ) {
+  remark( 'error', 'could not determine current directory' );
   exit 101;
 }
 if ( $target_dir eq $current_dir ) {
-  remark 'error', "target is current directory: $current_dir";
-  exit 101;
+  # dir already exist, nothing to do!
+  exit;
 }
 
-unless ($target_exists) {
+if ( !$target_exists ) {
   system @make_target_dir, $target_dir;
   my $status = $? >> 8;
   if ( $status != 0 ) {
-    remark 'error', "problem creating target directory: $target_dir";
+    remark(
+      'error',
+      'problem creating target directory',
+      { dir => $target_dir }
+    );
     exit $status;
   }
 }
 
 # whether target under Subversion
 my $subversive_target =
- -f File::Spec->catfile( $target_dir, qw{.svn entries} ) ? 1 : 0;
+  -f File::Spec->catfile( $target_dir, qw{.svn entries} ) ? 1 : 0;
 
 # sanity checks, copy method determination on input files
 my %files;
 {
   my ( %seen, @replacing );
   for my $file (@ARGV) {
-    if ( exists $seen{$file} ) {
-      remark 'notice', "skipping duplicate file: $file";
+    if ( $seen{$file}++ ) {
+      remark( 'notice', 'skipping duplicate', { file => $file } );
       next;
     }
-    $seen{$file} = 1;
 
-    unless ( -r $file ) {
-      remark 'warning', "skipping unreadable file: $file";
+    if ( !-r $file ) {
+      remark( 'warning', 'skipping unreadable file', { file => $file } );
       next;
     }
     if (  $target_exists
@@ -118,11 +119,11 @@ my %files;
     }
 
     if ( $subversive_target
-      and -f File::Spec->catfile( dirname( realpath $file), qw{.svn entries} ) )
-    {
+      and -f File::Spec->catfile( dirname( realpath $file), qw{.svn entries} )
+      ) {
 
       # need URL, so copies from other SVN repositories work right
-      if ( my $svn_url = get_subversion_url $file) {
+      if ( my $svn_url = get_subversion_url($file) ) {
         push @{ $files{svn} }, $svn_url;
         next;
       }
@@ -132,13 +133,13 @@ my %files;
   }
 
   if (@replacing) {
-    remark 'error', "cannot replace: @replacing";
+    remark( 'error', 'cannot replace', { files => join q{,}, @replacing } );
     exit 104;
   }
 }
 
-unless ( keys %files ) {
-  remark 'error', 'no files to operate on';
+if ( !keys %files ) {
+  remark( 'error', 'no files to operate on' );
   exit 102;
 }
 
@@ -147,22 +148,29 @@ METHOD: for my $method ( keys %files ) {
   # check whether move involved
   my $command = exists $opts{m} ? "${method}_move" : $method;
 
-  unless ( exists $copy_with{$command} ) {
-    remark 'error', 'no such method', { name => $command };
+  if ( not exists $copy_with{$command} ) {
+    remark( 'error', 'no such method', { name => $command } );
     next METHOD;
   }
 
   # tack on 'force' flag, if needed
-  push @{ $copy_with{$command} }, $copy_with{"${command}_force"}
-   if exists $opts{f}
-   and exists $copy_with{"${command}_force"}
-   and defined $copy_with{"${command}_force"}
-   and length $copy_with{"${command}_force"} > 0;
+  if (  exists $opts{f}
+    and exists $copy_with{"${command}_force"}
+    and defined $copy_with{"${command}_force"}
+    and length $copy_with{"${command}_force"} > 0 ) {
+
+    push @{ $copy_with{$command} }, $copy_with{"${command}_force"};
+
+  }
 
   system @{ $copy_with{$command} }, @{ $files{$method} }, $target_dir;
   my $status = $? >> 8;
   if ( $status != 0 ) {
-    remark 'error', "problem copying files to target via $method";
+    remark(
+      'error',
+      'problem copying files to target',
+      { method => $method }
+    );
     exit $status;
   }
 }
@@ -177,25 +185,33 @@ exit;
 sub get_subversion_url {
   my $file = shift;
 
-  unless ( open SVNINFO, "svn info $file |" ) {
-    remark 'error', "could not run svn info $file: $!";
+  open my $fh, '-|' or exec qw{svn info}, $file;
+  if ( !$fh ) {
+    remark(
+      'error',
+      'could not run svn info',
+      { file => $file, errno => $! }
+    );
     exit 105;
   }
+
   my $svn_url;
-  while (<SVNINFO>) {
-    if (/^URL: (.+)$/) {
+  while ( my $line = <$fh> ) {
+    if ( $line =~ m/^ URL: \s+ (\S.+)/x ) {
       $svn_url = $1;
-      chomp $svn_url;
       last;
     }
   }
-  close SVNINFO;
+  if ( !defined $svn_url ) {
+    remark( 'error', 'could not determine svn URL', { file => $file } );
+    exit 106;
+  }
 
   return $svn_url;
 }
 
 sub print_help {
-  print <<"HELP";
+  print <<"END_USAGE";
 Usage: $basename [opts] file [file2 ...] dir
 
 Takes files into specified dir.
@@ -211,23 +227,26 @@ Options:
 
 Run perldoc(1) on this script for additional documentation.
 
-HELP
-  exit 100;
-}
-
-sub print_usage {
-  my $basename = basename $0;
-  warn "usage: $basename file [file2 ...] dir\n";
-  exit 100;
+END_USAGE
 }
 
 sub remark {
-  my $priority = shift;
-  my $message  = shift;
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
 
-  return if exists $opts{q} and $priority eq 'notice';
+  chomp $message;
 
-  warn "$priority: $message\n";
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+  return 1;
 }
 
 __END__
