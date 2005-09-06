@@ -5,9 +5,12 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Shows quick directory statistics and other summary information.
+# Shows quick directory statistics and other summary information. Add as
+# a chpwd function under zsh(1) for an overview on interactive cd:
 #
-# Run perldoc(1) on this script for additional documentation.
+# function chpwd {
+#   [[ "$PWD" == "$HOME" ]] || qkdirstats
+# }
 
 use strict;
 
@@ -18,16 +21,16 @@ my $pwd = getcwd;
 
 use Text::Wrap qw(wrap);
 # TODO could lookup from terminal information?
-$Text::Wrap::columns = 78;
+local $Text::Wrap::columns = 78;
 
 # summary information in global vars
 my %keys;
 my %counts;
-my @overview;
-my $overview_max      = 50;
-my $overview_overflow = 0;
 
-my $overview_max_lines = 5;
+my @overview;
+my $OVERVIEW_MAX       = 50;
+my $OVERVIEW_MAX_LINES = 5;
+my $overview_overflow  = 0;
 
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
@@ -51,14 +54,14 @@ if ($@) {
 }
 
 exit if not @overview and not keys %keys;
-output();
+print_output();
 
 sub dirdata {
   opendir DIR, '.' or die "error: could not open directory: dir=$pwd\n";
-  while ( $_ = readdir DIR ) {
-    next if $_ eq '.' or $_ eq '..';
+  while ( my $file = readdir DIR ) {
+    next if $file eq '.' or $file eq '..';
 
-    my @stat = lstat;
+    my @stat = lstat $file;
 
     $counts{total}++;
     if ( -f _ ) {
@@ -71,33 +74,38 @@ sub dirdata {
       $counts{other}++;
     }
 
-    if ( $_ eq 'CVS' ) {
+    if ( $file eq 'CVS' ) {
       $keys{CVS} = 1;
       next;
-    } elsif ( $_ eq '.svn' ) {
+    } elsif ( $file eq '.svn' ) {
       $keys{SVN} = 1;
       next;
     }
 
-    if ( $_ =~ m/^\./ ) {
+    if ( $file =~ m/^\./ ) {
       $keys{hidden} = 1;
       next;
     }
 
-    if ( @overview <= $overview_max ) {
-      push @overview, $_;
+    if ( @overview <= $OVERVIEW_MAX ) {
+      push @overview, $file;
     } else {
       $overview_overflow = 1;
     }
   }
 
-  $keys{empty} = 1 unless @overview;
+  $keys{empty} = 1 if !@overview;
 }
 
-sub output {
+sub print_output {
+  if ( exists $keys{empty} and exists $keys{hidden} and keys %keys == 2 ) {
+    return;
+  }
+
   my @metadata = sort keys %keys;
-  push @metadata, map { "$_=$counts{$_}" } sort keys %counts
-   unless exists $keys{empty};
+  if ( not exists $keys{empty} ) {
+    push @metadata, map { "$_=$counts{$_}" } sort keys %counts;
+  }
 
   # TODO this also needs to be wrapped on lines and limited...
   if (@metadata) {
@@ -108,11 +116,11 @@ sub output {
   if (@overview) {
     my $output = wrap( 'f  ', 'f  ', sort @overview );
     my @lines = split /\n/, $output;
-    if ( @lines >= $overview_max_lines ) {
-      if ( @lines > $overview_max_lines ) {
-        $lines[ $overview_max_lines - 1 ] =~ s/(\S+)$/.../;
+    if ( @lines >= $OVERVIEW_MAX_LINES ) {
+      if ( @lines > $OVERVIEW_MAX_LINES ) {
+        $lines[ $OVERVIEW_MAX_LINES - 1 ] =~ s/(\S+)$/.../;
       }
-      @lines = @lines[ 0 .. $overview_max_lines - 1 ];
+      @lines = @lines[ 0 .. $OVERVIEW_MAX_LINES - 1 ];
     }
     print join( "\n", @lines ), "\n";
   }
