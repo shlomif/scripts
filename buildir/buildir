@@ -20,11 +20,14 @@ use strict;
 
 use File::Spec ();
 
-use Getopt::Std;
+use Getopt::Std qw(getopts);
 my %opts;
 getopts 'h?p', \%opts;
 
-print_help() if $opts{h} or $opts{'?'} or not @ARGV;
+if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
+  print_help();
+  exit 100;
+}
 
 my $start_dir = File::Spec->curdir();
 
@@ -41,13 +44,14 @@ for my $dir (@ARGV) {
     shift @dirbits;
     push @seen, $parent;
   }
-  chdir $parent
-   or remark(
-    'error',
-    'could not chdir',
-    { errno => $!, dir => File::Spec->catfile(@seen) }
-   )
-   and exit 101;
+  if ( !chdir $parent ) {
+    remark(
+      'error',
+      'could not chdir',
+      { errno => $!, dir => File::Spec->catfile(@seen) }
+    );
+    exit 101;
+  }
 
   # work through dirbits, as not all mkdir support -p, and do special
   # things under CVS and Subversion sandboxes
@@ -56,56 +60,61 @@ for my $dir (@ARGV) {
   for my $dirbit ( grep { defined and $_ ne q{} } @dirbits ) {
     push @seen, $dirbit;
 
-    next if -d $dirbit;
+    if ( -d $dirbit ) {
+      next;
+    }
 
     if ( -f File::Spec->catfile(qw{CVS Root}) ) {
       # CVS: add dir automagically
-      mkdir $dirbit
-       or remark(
-        'error',
-        'could not create directory',
-        { errno => $!, dir => File::Spec->catfile(@seen) }
-       )
-       and exit 102;
+      if ( !mkdir $dirbit ) {
+        remark(
+          'error',
+          'could not create directory',
+          { errno => $!, dir => File::Spec->catfile(@seen) }
+        );
+        exit 102;
+      }
       system qw{cvs -Q add}, $dirbit;
 
     } elsif ( -f File::Spec->catfile(qw{.svn entries}) ) {
       # Subversion: use mkdir subcommand (not tested much!)
-      system qw{svn mkdir}, $dirbit
-       or remark(
-        'error',
-        'could not create directory',
-        { errno => $!, dir => File::Spec->catfile(@seen), type => 'svn' }
-       )
-       and exit 102;
+      if ( !system qw{svn mkdir}, $dirbit ) {
+        remark(
+          'error',
+          'could not create directory',
+          { errno => $!, dir => File::Spec->catfile(@seen), type => 'svn' }
+        );
+        exit 102;
+      }
 
     } else {
-      mkdir $dirbit
-       or remark(
-        'error',
-        'could not create directory',
-        { errno => $!, dir => File::Spec->catfile(@seen) }
-       )
-       and exit 102;
-
+      if ( !mkdir $dirbit ) {
+        remark(
+          'error',
+          'could not create directory',
+          { errno => $!, dir => File::Spec->catfile(@seen) }
+        );
+        exit 102;
+      }
     }
 
   } continue {
 
-    chdir $dirbit
-     or remark(
-      'error',
-      'could not chdir',
-      { errno => $!, dir => File::Spec->catfile(@seen) }
-     )
-     and exit 101;
+    if ( !chdir $dirbit ) {
+      remark(
+        'error',
+        'could not chdir',
+        { errno => $!, dir => File::Spec->catfile(@seen) }
+      );
+      exit 101;
+    }
   }
 
   print $dir, $/ if exists $opts{p};
 }
 
 sub print_help {
-  print <<"HELP";
+  print <<"END_USAGE";
 Usage: $0 [options] dir [dir2 ...]
 
 Creates directories.
@@ -115,8 +124,7 @@ Options:
 
   -p     Print directories created.
 
-HELP
-  exit 100;
+END_USAGE
 }
 
 sub remark {
@@ -129,11 +137,11 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
