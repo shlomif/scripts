@@ -30,7 +30,6 @@ my %counts;
 my @overview;
 my $OVERVIEW_MAX       = 50;
 my $OVERVIEW_MAX_LINES = 5;
-my $overview_overflow  = 0;
 
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
@@ -53,7 +52,9 @@ if ($@) {
   }
 }
 
-exit if not @overview and not keys %keys;
+if ( not @overview and not keys %keys ) {
+  exit;
+}
 print_output();
 
 sub dirdata {
@@ -89,8 +90,6 @@ sub dirdata {
 
     if ( @overview <= $OVERVIEW_MAX ) {
       push @overview, $file;
-    } else {
-      $overview_overflow = 1;
     }
   }
 
@@ -99,7 +98,7 @@ sub dirdata {
 
 sub print_output {
   if ( exists $keys{empty} and exists $keys{hidden} and keys %keys == 2 ) {
-    return;
+    exit;
   }
 
   my @metadata = sort keys %keys;
