@@ -78,7 +78,9 @@ for my $dir (@ARGV) {
 
     } elsif ( -f File::Spec->catfile(qw{.svn entries}) ) {
       # Subversion: use mkdir subcommand (not tested much!)
-      if ( !system qw{svn mkdir}, $dirbit ) {
+      system qw{svn mkdir}, $dirbit;
+      my $status = $? >> 8;
+      if ( $status != 0 ) {
         remark(
           'error',
           'could not create directory',
