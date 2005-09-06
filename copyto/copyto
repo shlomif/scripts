@@ -16,8 +16,15 @@
 #   [[ $? -ne 0 ]] && exit $?
 #   builtin cd "$NDIR"
 # }
+#
+# And a 'bring' function to copy files to a directory:
+#
+# function bring {
+#   NDIR=`copyto $@ | tail -1`
+#   [[ $? -ne 0 ]] && exit $?
+#   builtin cd "$NDIR"
+# }
 
-require 5;
 use strict;
 
 # command to use to create target directory if does not exist use
