@@ -24,6 +24,18 @@
 #   [[ $? -ne 0 ]] && exit $?
 #   builtin cd "$NDIR"
 # }
+#
+# And a fling to move files into a target directory:
+#
+# function fling {
+#   if [ -z "$FTARGET" -o ! -d "$FTARGET" ]; then
+#     echo "error: set FTARGET directory" >&2
+#     return 1
+#   fi
+#   copyto -q -m -d "$FTARGET" $@
+# }
+#
+# To set FTARGET in all shells, see: http://sial.org/howto/shell/allsh/
 
 use strict;
 
