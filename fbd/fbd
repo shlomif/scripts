@@ -10,85 +10,125 @@
 #
 # Run perldoc(1) on this script for additional documentation.
 
-require 5;
 use strict;
 
-# what stat() colume to read time from (e.g. mtime, atime, ctime)
-my $timef = 9;
+use Date::Parse qw(str2time);
+use File::Find qw(find);
+use File::Spec ();
 
-use Getopt::Std;
+# what stat() colum to read time from (9 mtime, 8 atime, 10 ctime)
+my $TIME_INDEX = 9;
+
+use Getopt::Std qw(getopts);
 my %opts;
-getopts('h?f:d:a:b:p:s:q', \%opts);
-help() if exists $opts{h} or exists $opts{'?'};
-help() unless @ARGV;
+getopts( 'h?f:d:a:b:p:s:q', \%opts );
 
-my $src_date;
+if ( exists $opts{h} or exists $opts{'?'} or !@ARGV ) {
+  print_help();
+  exit 100;
+}
 
-if (exists $opts{d}) {
-  $src_date = $opts{d} or die "error: could not parse empty date\n";
+if ( exists $opts{d} and exists $opts{f} ) {
+  print_help();
+  exit 101;
+}
+
+if ( !exists $opts{d} and !exists $opts{f} ) {
+  print_help();
+  exit 101;
+}
+
+# epoch value to compare searched files against
+my $base_date;
+
+if ( exists $opts{d} ) {
+  $base_date = $opts{d};
 
   # treat all numeric as epoch date, otherwise attempt to parse
-  unless ($src_date =~ /^\d+/) {
-    require Date::Parse;
-    $src_date = Date::Parse::str2time($src_date);
-    die "error: could not parse supplied date\n" unless $src_date;
+  if ( $base_date !~ m/^ \d+ $/x ) {
+    $base_date = str2time($base_date);
   }
+} elsif ( exists $opts{f} ) {
+  $base_date = ( lstat $opts{f} )[$TIME_INDEX];
 }
 
-if (exists $opts{f}) {
-  $src_date = (lstat $opts{f})[$timef];
-  die "error: could not read date from $opts{f}\n"
-   if not $src_date
-   or $src_date !~ /^\d+$/;
+if ( !defined $base_date or $base_date !~ m/^ \d+ $/x ) {
+  die "error: could not determine base date\n";
 }
-
-die "error: no source date or file to check against\n" unless $src_date;
 
 my $skip  = $opts{s} if exists $opts{s};
 my $prune = $opts{p} if exists $opts{p};
 
-my ($fudge, $min_date, $max_date);
+# fudge - plus or minus tolerance range
+my ( $fudge, $min_date, $max_date );
 
-if (exists $opts{a}) {
-  $fudge    = duration2seconds($opts{a});
-  $min_date = $src_date - $fudge;
-  $max_date = $src_date + $fudge;
+if ( exists $opts{a} ) {
+  $fudge    = duration2seconds( $opts{a} );
+  $min_date = $base_date - $fudge;
+  $max_date = $base_date + $fudge;
 }
-if (exists $opts{b}) {
-  $fudge    = duration2seconds($opts{b});
-  $min_date = $src_date - $fudge;
-  $max_date = $src_date unless $max_date;
-}
-
-# filter remaining arguments for directories to search with File::Find
-use File::Find;
-for my $parent (
-  grep {
-    unless (-d) {
-      warn "notice: skipping as not directory: $_\n" unless exists $opts{q};
-      undef
-    }
-  } @ARGV
- ) {
-  find {
-    no_chdir => 1,
-    wanted   => \&handle_file,
-   },
-   $parent
+if ( exists $opts{b} ) {
+  $fudge    = duration2seconds( $opts{b} );
+  $min_date = $base_date - $fudge;
+  $max_date = $base_date unless defined $max_date;
 }
 
-######################################################################
-#
-# SUBROUTINES
+my $exit_value = 0;
 
-# File::Find file handler
+for my $file (@ARGV) {
+  lstat $file;  # populate _ cache for future use
+
+  if ( !-e _ ) {
+    warn "warning: skipping non-existant file: file=$file\n";
+    $exit_value = 102;
+    next;
+  }
+
+  if ( -d _ ) {
+    find { no_chdir => 1, wanted => \&handle_dir }, $file;
+  } else {
+    handle_file( File::Spec->catfile( File::Spec->curdir(), $file ) );
+  }
+}
+
+exit $exit_value;
+
 sub handle_file {
-  if ($prune and -d _) {
+  my $file = shift;
+
+  my $file_date = ( lstat _ )[$TIME_INDEX];
+
+  if (
+    ( defined $fudge
+      and ( $file_date >= $min_date and $file_date <= $max_date )
+    )
+    or ( $file_date == $base_date )
+    ) {
+
+    if ( defined $skip ) {
+      my $result = eval "return 1 if (" . $skip . ");";
+
+      if ($@) {
+        chomp $@;
+        die "error: skip eval failure: errno=$@\n";
+      }
+
+      if ($result) {
+        return;
+      }
+    }
+
+    print "$file\n";
+  }
+}
+
+sub handle_dir {
+  if ( defined $prune and -d _ ) {
     my $result = eval "return 1 if (" . $prune . ");";
 
     if ($@) {
       chomp $@;
-      die "error: prune eval failure: ", $@;  # croak on errors
+      die "error: prune eval failure: errno=$@";
     }
 
     if ($result) {
@@ -97,36 +137,12 @@ sub handle_file {
     }
   }
 
-  my $file_date = (lstat $_)[$timef];
-  unless (defined $file_date) {
-    warn "notice: skipping due to no date field: $File::Find::name\n"
-     unless exists $opts{q};
-    return;
-  }
-
-  if ((defined $fudge and ($file_date >= $min_date and $file_date <= $max_date))
-    or ($file_date == $src_date)) {
-
-    if ($skip) {
-      my $result = eval "return 1 if (" . $skip . ");";
-
-      if ($@) {
-        chomp $@;
-        die "error: skip eval failure: ", $@;  # croak on errors
-      }
-
-      if ($result) {
-        return;
-      }
-    }
-
-    print $File::Find::name, "\n";
-  }
+  handle_file($File::Find::name);
 }
 
 # takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
-  my $tmpdur = shift;
+  my $duration_str = shift;
   my $seconds;
 
   # how to convert short human durations into seconds
@@ -139,30 +155,30 @@ sub duration2seconds {
   );
 
   # assume raw seconds for plain number
-  if ($tmpdur =~ m/^\d+$/) {
-    $seconds = $tmpdur * 60;
+  if ( $duration_str =~ m/^\d+$/ ) {
+    $seconds = $duration_str * 60;
 
-  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+  } elsif ( $duration_str =~ m/^ [wdhms\d\s]+ $/x ) {
 
     # match "2m 5s" style input and convert to seconds
-    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
+    while ( $duration_str =~ m/ (\d+) \s* ([wdhms]) /gx ) {
       $seconds += $1 * $factor{$2};
     }
   } else {
-    die "Error: unknown characters in duration.\n";
+    die "error: unknown characters in duration: value=$duration_str\n";
   }
 
-  unless (defined $seconds and $seconds =~ m/^\d+$/) {
-    die "Error: unable to parse duration.\n";
+  if ( !defined $seconds or $seconds !~ m/^ \d+ $/x ) {
+    die "error: unable to parse duration: value=$duration_str\n";
   }
 
   return $seconds;
 }
 
 # a generic help blarb
-sub help {
-  print <<"HELP";
-Usage: $0 [opts] searchdir1 [sd2 .. sdN]
+sub print_help {
+  print <<"END_USAGE";
+Usage: $0 [-d date|-f file] [options] file [file ..]
 
 Finds files with similar date to specified date or file.
 
@@ -180,13 +196,10 @@ Options:
 
 Run perldoc(1) on this script for additional documentation.
 
-HELP
-  exit;
+END_USAGE
 }
 
-######################################################################
-#
-# DOCUMENTATION
+__END__
 
 =head1 NAME
 
@@ -207,18 +220,18 @@ current date.
 
 =head2 Overview
 
-Provides means to list files under specified search directories that
-have or have similar modification (mtime) dates set.
+Provides means to list files that have or have similar modification
+(mtime) dates set.
 
 =head2 Normal Usage
 
-  $ fbd [opts] searchdir1 [sd2 .. sdN]
+  $ fbd [-d date|-f file] [options] file [file ..]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-Either a single or multiple search directories must be specified. Each
-directory will be searched recursively. A date to search by must be
-supplied either from a file with B<-f> or manually with B<-d>.
+At lease one file must be supplied. Each directory of the inputt files
+will be searched recursively. A date to search by must be supplied
+either from a file with B<-f> or manually with B<-d>.
 
 =head1 OPTIONS
 
