@@ -64,6 +64,14 @@ sub dirdata {
 
     my @stat = lstat $file;
 
+    if ( $file eq 'CVS' ) {
+      $keys{CVS} = 1;
+      next;
+    } elsif ( $file eq '.svn' ) {
+      $keys{SVN} = 1;
+      next;
+    }
+
     $counts{total}++;
     if ( -f _ ) {
       $counts{file}++;
@@ -73,14 +81,6 @@ sub dirdata {
       $counts{link}++;
     } else {
       $counts{other}++;
-    }
-
-    if ( $file eq 'CVS' ) {
-      $keys{CVS} = 1;
-      next;
-    } elsif ( $file eq '.svn' ) {
-      $keys{SVN} = 1;
-      next;
     }
 
     if ( $file =~ m/^\./ ) {
