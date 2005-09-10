@@ -90,10 +90,15 @@ for (
   push @paths, resolve_path($_);
 }
 
-print_help() if exists $opts{options}->{h};
+if ( exists $opts{options}->{h} ) {
+  print_help();
+}
 
-push @paths, resolve_path('.') unless @paths;
-unless (@paths) {
+# try for current directory, or fail
+if ( !@paths ) {
+  push @paths, resolve_path('.');
+}
+if ( !@paths ) {
   warn "error: no path supplied\n";
   exit 101;
 }
@@ -104,7 +109,9 @@ $opts{constraint} = 1
   or exists $opts{options}->{R};
 
 # verbose list by default unless checking something specific
-$opts{options}->{v} = 1 unless exists $opts{constraint};
+if ( !exists $opts{constraint} ) {
+  $opts{options}->{v} = 1;
+}
 
 # use current user if constrained and no user set
 if ( exists $opts{constraint} and not exists $opts{role} ) {
@@ -139,7 +146,7 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
     $text_block = 1;
   }
 
-  unless (@pathbits) {
+  if ( !@pathbits ) {
     warn "error: unable to split path: path=$path";
     next PATH;
   }
@@ -153,7 +160,7 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
     $current = File::Spec->catdir( $current, $pathbits[$i] );
     my $filedata = getfileinfo($current);
 
-    unless ($filedata) {
+    if ( !$filedata ) {
       warn "error: no permission data: file=$pathbits[$i], path=$current\n";
       next PATH;
     }
@@ -183,7 +190,7 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
     }
   }
 
-  unless ( $output =~ /^\s*$/ ) {
+  if ( $output !~ /^\s*$/ ) {
     print $output;
     $text_block = 0;
   }
@@ -228,35 +235,44 @@ sub determine_role {
       next if exists $seen{"$type.$who"};
 
       $userdata{name} = eval qq{$function("$who")};
-      unless ( defined $userdata{name} ) {
+
+      if ( !defined $userdata{name} ) {
 
         # TODO figure out how unix deals with [gu]id that does not exist..
         # treat in "other" category??
         warn "warning: no data returned: function=$function, $type=$who\n";
         $userdata{name} = $who;
       }
+
       $userdata{id}       = $who;
       $userdata{type}     = $type;
       $seen{"$type.$who"} = 1;
+
     } else {
       $function .= 'nam';
       $userdata{id} = eval qq{$function("$who")};
-      unless ( defined $userdata{id} ) {
+
+      if ( !defined $userdata{id} ) {
         warn
           "error: could not determine id: function=$function, $type=$who\n";
         exit 102;
       }
+
       next if exists $seen{"$type.$userdata{id}"};
+
       $userdata{name}              = $who;
       $userdata{type}              = $type;
       $seen{"$type.$userdata{id}"} = 1;
+
     }
+
     push @userdata, \%userdata;
   }
 
   if ( $type eq 'user' ) {
     my $id = ( getpwuid $userdata[0]->{id} )[3];
-    unless ( exists $seen{"group.$id"} ) {
+
+    if ( !exists $seen{"group.$id"} ) {
 
       my $name = getgrgid $id;
       push @userdata,
@@ -271,7 +287,7 @@ sub determine_role {
     # TODO iterate groups for which user has membership in...
     while ( my ( $name, $pw, $gid, $members ) = getgrent ) {
       if ( grep { $_ eq $userdata[0]->{name} } split ' ', $members ) {
-        unless ( exists $seen{"group.$gid"} ) {
+        if ( !exists $seen{"group.$gid"} ) {
           push @userdata,
             {
             type => 'group',
@@ -295,7 +311,9 @@ sub getfileinfo {
   $filedata{name} = $file;
   @filedata{qw(unix_mode unix_uid unix_gid)} = ( lstat $file )[ 2, 4, 5 ];
 
-  return unless defined $filedata{unix_mode};
+  if ( !defined $filedata{unix_mode} ) {
+    return;
+  }
 
   # TODO means of converting unix mode to drwx------ format?
 
