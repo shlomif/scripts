@@ -5,8 +5,10 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Prints path information about specified file paths with optional
-# warnings about particular user or group problems with specified paths.
+# Prints information about file paths, or checks for permissions
+# problems.
+#
+# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 use Cwd qw(realpath);
@@ -49,25 +51,25 @@ my $exit_status = 0;
 my %opts;
 for (
   map { $_->[0] }
-  sort { $a->[1] <=> $b->[1] } map { [$_, /^[+-]/ ? 0 : 1] } @ARGV
- ) {
+  sort { $a->[1] <=> $b->[1] } map { [ $_, /^[+-]/ ? 0 : 1 ] } @ARGV
+  ) {
 
   if (/^\+([rwx]+)$/) {
     my $perms = $1;
-    for ($perms =~ /(.)/g) { $opts{perms}->{$_} = 1 }
+    for ( $perms =~ /(.)/g ) { $opts{perms}->{$_} = 1 }
     $opts{constraint} = 1;
     next;
   }
 
   if (/^-([\w]+)$/) {
     my $opts = $1;
-    for ($opts =~ /(.)/g) { $opts{options}->{$_} = 1 }
+    for ( $opts =~ /(.)/g ) { $opts{options}->{$_} = 1 }
     next;
   }
 
   if (/^\s*(user|group)=($match_username)\s*$/) {
 
-    if (exists $opts{role}) {
+    if ( exists $opts{role} ) {
       warn "notice: ignoring additional role: $1=$2\n";
       next;
     }
@@ -75,7 +77,7 @@ for (
     my $what = $1;
     my $who  = $2;
 
-    $opts{role} = determine_role($what, $who);
+    $opts{role} = determine_role( $what, $who );
     $opts{constraint} = 1;
     next;
   }
@@ -97,34 +99,34 @@ unless (@paths) {
 }
 
 $opts{constraint} = 1
- if exists $opts{options}->{u}
- or exists $opts{options}->{g}
- or exists $opts{options}->{R};
+  if exists $opts{options}->{u}
+  or exists $opts{options}->{g}
+  or exists $opts{options}->{R};
 
 # verbose list by default unless checking something specific
 $opts{options}->{v} = 1 unless exists $opts{constraint};
 
 # use current user if constrained and no user set
-if (exists $opts{constraint} and not exists $opts{role}) {
-  if (exists $opts{options}->{g}) {
+if ( exists $opts{constraint} and not exists $opts{role} ) {
+  if ( exists $opts{options}->{g} ) {
     $opts{role} =
-     determine_role('group', split / /,
-      exists $opts{options}->{R} ? $( : $));
+      determine_role( 'group', split / /,
+      exists $opts{options}->{R} ? $( : $) );
   } else {
     $opts{role} =
-     determine_role('user', exists $opts{options}->{R} ? $< : $>);
+      determine_role( 'user', exists $opts{options}->{R} ? $< : $> );
   }
 }
-if (exists $opts{constraint} and not exists $opts{perms}) {
+if ( exists $opts{constraint} and not exists $opts{perms} ) {
   $opts{perms}->{r} = 1;
 }
 
 # fix perms hash to use array for easier subsequent work
-$opts{perms} = [sort keys %{$opts{perms}}];
+$opts{perms} = [ sort keys %{ $opts{perms} } ];
 
 my $text_block = 1;
 
-PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
+PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
   my $path           = $paths[$pnum];
   my @pathbits       = File::Spec->splitdir($path);
   my $links_followed = 0;
@@ -132,7 +134,7 @@ PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
   $output = q{};
 
   #$output = "\n" unless $pnum == 0;
-  unless ($text_block == 1) {
+  unless ( $text_block == 1 ) {
     print "\n";
     $text_block = 1;
   }
@@ -146,9 +148,9 @@ PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
 
   my $current  = q{};
   my $previous = q{};
-  for (my $i = 0; $i <= $#pathbits; $i++) {
+  for ( my $i = 0; $i <= $#pathbits; $i++ ) {
     $previous = $current;
-    $current = File::Spec->catdir($current, $pathbits[$i]);
+    $current = File::Spec->catdir( $current, $pathbits[$i] );
     my $filedata = getfileinfo($current);
 
     unless ($filedata) {
@@ -157,31 +159,31 @@ PATH: for (my $pnum = 0; $pnum <= $#paths; $pnum++) {
     }
 
     # TODO means of supplying output fields and their order?
-    if (exists $opts{options}->{v}) {
+    if ( exists $opts{options}->{v} ) {
       $output .= render_filedata($filedata) . "\n";
     }
 
-    if (exists $opts{constraint}) {
-      check_access($filedata, $i != $#pathbits ? [qw(r x)] : $opts{perms});
+    if ( exists $opts{constraint} ) {
+      check_access( $filedata, $i != $#pathbits ? [qw(r x)] : $opts{perms} );
     }
 
     if (  $i == $#pathbits
       and $filedata->{type} eq 'l'
-      and exists $opts{options}->{l}) {
+      and exists $opts{options}->{l} ) {
 
       $links_followed++;
-      if ($links_followed > $max_link_follow) {
+      if ( $links_followed > $max_link_follow ) {
         warn
-"error: symlink recursion exceeded: limit=$max_link_follow, path=$path\n";
+          "error: symlink recursion exceeded: limit=$max_link_follow, path=$path\n";
         next PATH;
       }
       $current = $previous;
       push @pathbits,
-       resolve_path(File::Spec->catfile($previous, $filedata->{link}));
+        resolve_path( File::Spec->catfile( $previous, $filedata->{link} ) );
     }
   }
 
-  unless ($output =~ /^\s*$/) {
+  unless ( $output =~ /^\s*$/ ) {
     print $output;
     $text_block = 0;
   }
@@ -191,11 +193,11 @@ exit $exit_status;
 
 sub resolve_path {
   my $potential = shift;
-  if (exists $opts{options}->{r}) {
+  if ( exists $opts{options}->{r} ) {
     my $tmp = realpath($potential);
     defined $tmp
-     ? return $tmp
-     : warn "warning: could not convert with realpath: path=$potential\n";
+      ? return $tmp
+      : warn "warning: could not convert with realpath: path=$potential\n";
   }
   File::Spec->rel2abs($potential);
 }
@@ -206,10 +208,10 @@ sub determine_role {
   my $what = shift;
   my @who  = @_;
 
-  my (@userdata, $type, %seen);
+  my ( @userdata, $type, %seen );
 
   my $function = 'get';
-  if ($what eq 'group') {
+  if ( $what eq 'group' ) {
     $function .= 'gr';
     $type = 'group';
   } else {
@@ -219,28 +221,29 @@ sub determine_role {
 
   for my $who (@who) {
     my %userdata;
-    if ($who =~ /^\d+$/) {
+    if ( $who =~ /^\d+$/ ) {
       $function .= $type eq 'group' ? 'g' : 'u';
       $function .= 'id';
 
       next if exists $seen{"$type.$who"};
 
       $userdata{name} = eval qq{$function("$who")};
-      unless (defined $userdata{name}) {
+      unless ( defined $userdata{name} ) {
 
         # TODO figure out how unix deals with [gu]id that does not exist..
         # treat in "other" category??
         warn "warning: no data returned: function=$function, $type=$who\n";
         $userdata{name} = $who;
       }
-      $userdata{id}     = $who;
-      $userdata{type}   = $type;
+      $userdata{id}       = $who;
+      $userdata{type}     = $type;
       $seen{"$type.$who"} = 1;
     } else {
       $function .= 'nam';
       $userdata{id} = eval qq{$function("$who")};
-      unless (defined $userdata{id}) {
-        warn "error: could not determine id: function=$function, $type=$who\n";
+      unless ( defined $userdata{id} ) {
+        warn
+          "error: could not determine id: function=$function, $type=$who\n";
         exit 102;
       }
       next if exists $seen{"$type.$userdata{id}"};
@@ -251,30 +254,30 @@ sub determine_role {
     push @userdata, \%userdata;
   }
 
-  if ($type eq 'user') {
-    my $id = (getpwuid $userdata[0]->{id})[3];
-    unless (exists $seen{"group.$id"}) {
+  if ( $type eq 'user' ) {
+    my $id = ( getpwuid $userdata[0]->{id} )[3];
+    unless ( exists $seen{"group.$id"} ) {
 
       my $name = getgrgid $id;
       push @userdata,
-       {
+        {
         type => 'group',
         id   => $id,
         name => $name
-       };
+        };
       $seen{"group.$id"} = 1;
     }
 
     # TODO iterate groups for which user has membership in...
-    while (my ($name, $pw, $gid, $members) = getgrent) {
-      if (grep { $_ eq $userdata[0]->{name} } split ' ', $members) {
-        unless (exists $seen{"group.$gid"}) {
+    while ( my ( $name, $pw, $gid, $members ) = getgrent ) {
+      if ( grep { $_ eq $userdata[0]->{name} } split ' ', $members ) {
+        unless ( exists $seen{"group.$gid"} ) {
           push @userdata,
-           {
+            {
             type => 'group',
             id   => $gid,
             name => $name
-           };
+            };
           $seen{"group.$gid"} = 1;
         }
       }
@@ -290,7 +293,7 @@ sub getfileinfo {
 
   my %filedata;
   $filedata{name} = $file;
-  @filedata{qw(unix_mode unix_uid unix_gid)} = (lstat $file)[2, 4, 5];
+  @filedata{qw(unix_mode unix_uid unix_gid)} = ( lstat $file )[ 2, 4, 5 ];
 
   return unless defined $filedata{unix_mode};
 
@@ -299,13 +302,13 @@ sub getfileinfo {
   $filedata{unix_mode_octal} = sprintf "%04o", $filedata{unix_mode} & 07777;
 
   $filedata{type} =
-   $filetype{sprintf "%07o", $filedata{unix_mode} & 0170000};
+    $filetype{ sprintf "%07o", $filedata{unix_mode} & 0170000 };
   $filedata{link} = readlink $file if $filedata{type} eq 'l';
 
   $filedata{unix_user} = getpwuid $filedata{unix_uid}
-   || $filedata{unix_uid};
+    || $filedata{unix_uid};
   $filedata{unix_group} = getgrgid $filedata{unix_gid}
-   || $filedata{unix_gid};
+    || $filedata{unix_gid};
 
   return \%filedata;
 }
@@ -315,12 +318,12 @@ sub check_access {
   my $filedata = shift;
   my $perms    = shift;
 
-  for my $role (@{$opts{role}}) {
-    if ($role->{name} eq $filedata->{"unix_" . $role->{type}}) {
+  for my $role ( @{ $opts{role} } ) {
+    if ( $role->{name} eq $filedata->{ "unix_" . $role->{type} } ) {
 
       my @fails;
       for my $bit (@$perms) {
-        unless ($filedata->{unix_mode} & $modemap{$role->{type} . $bit}) {
+        unless ( $filedata->{unix_mode} & $modemap{ $role->{type} . $bit } ) {
           push @fails, $bit;
           $exit_status = 10;
         }
@@ -328,11 +331,11 @@ sub check_access {
 
       if (@fails) {
         $output .= '! '
-         . $role->{type} . '='
-         . $role->{name} . ' +'
-         . join(q{}, sort @fails)
-         . ' fails: '
-         . render_filedata($filedata) . "\n";
+          . $role->{type} . '='
+          . $role->{name} . ' +'
+          . join( q{}, sort @fails )
+          . ' fails: '
+          . render_filedata($filedata) . "\n";
       }
 
       # unix, once gets match on user or group, stops looking at subsequent
@@ -343,7 +346,7 @@ sub check_access {
   # if drop off to here without being restricted, need to check "other"
   my @fails;
   for my $bit (@$perms) {
-    unless ($filedata->{unix_mode} & $modemap{'other' . $bit}) {
+    unless ( $filedata->{unix_mode} & $modemap{ 'other' . $bit } ) {
       push @fails, $bit;
       $exit_status = 10;
     }
@@ -351,10 +354,10 @@ sub check_access {
 
   if (@fails) {
     $output .=
-       '! unix-other +'
-     . join(q{}, sort @fails)
-     . ' fails: '
-     . render_filedata($filedata) . "\n";
+        '! unix-other +'
+      . join( q{}, sort @fails )
+      . ' fails: '
+      . render_filedata($filedata) . "\n";
   }
 }
 
@@ -362,8 +365,8 @@ sub render_filedata {
   my $filedata = shift;
 
   return
-"$filedata->{type} $filedata->{unix_mode_octal} $filedata->{unix_user}:$filedata->{unix_group} $filedata->{name}"
-   . (exists $filedata->{link} ? ' -> ' . $filedata->{link} : q{})
+    "$filedata->{type} $filedata->{unix_mode_octal} $filedata->{unix_user}:$filedata->{unix_group} $filedata->{name}"
+    . ( exists $filedata->{link} ? ' -> ' . $filedata->{link} : q{} );
 }
 
 # usage notes
@@ -397,19 +400,19 @@ HELP
 
 =head1 NAME
 
-parsepath - parse unix file paths
+parsepath - Unix file path checker
 
 =head1 SYNOPSIS
 
-List permissions for the current working directory.
+List permissions for the current working directory:
 
   $ parsepath
 
-See whether current user has write access to a specified file.
+Check whether the current user has write access to C</var/tmp>:
 
   $ parsepath +w /var/tmp
 
-See whether the www group can read and execute (+rx) a script.
+See if the www group can read and execute a script:
 
   $ parsepath +rx /var/www/cgi-bin/printenv group=www
 
@@ -417,10 +420,10 @@ See whether the www group can read and execute (+rx) a script.
 
 =head2 Overview
 
-A utility that assists debugging of permissions problems by showing file
-path listings for manual study, along with means to check whether the
-specified user or group has particular access to a file in question.
-Currently, only unix users, groups, and file permissions are supported.
+A utility to display file path permissions and ownerships, or check
+whether the specified user or group has particular access rights to a
+file. Currently, only Unix users, groups, and file permissions are
+supported.
 
 =head2 Normal Usage
 
@@ -514,8 +517,10 @@ No known issues.
 
 Confirm permission checks properly emulate unix.
 
-Support for other ACL systems and permissions on other operating
-systems?
+Support for other ACL systems (AFS, for example) or permissions on other
+operating systems?
+
+See source for other TODO.
 
 =head1 SEE ALSO
 
