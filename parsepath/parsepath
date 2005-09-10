@@ -15,10 +15,10 @@ use Cwd qw(realpath);
 use File::Spec ();
 
 # NOTE may need alteration per site policy on usernames
-my $match_username = qr/\w{1,32}/;
+my $USERNAME_MATCH = qr/\w{1,32}/;
 
 # limit on symlink recursion
-my $max_link_follow = 15;
+my $LINK_FOLLOW_MAX = 15;
 
 # unix file type mappings
 # TODO use "use Fcntl ':mode';" instead?
@@ -44,11 +44,11 @@ my %modemap = (
   otherx => 1
 );
 
-my @paths;
-my $output;
+my @paths       = ();
+my $output      = q{};
 my $exit_status = 0;
 
-my %opts;
+my %opts = ();
 for (
   map { $_->[0] }
   sort { $a->[1] <=> $b->[1] } map { [ $_, /^[+-]/ ? 0 : 1 ] } @ARGV
@@ -67,7 +67,7 @@ for (
     next;
   }
 
-  if (/^\s*(user|group)=($match_username)\s*$/) {
+  if (/^\s*(user|group)=($USERNAME_MATCH)\s*$/) {
 
     if ( exists $opts{role} ) {
       warn "notice: ignoring additional role: $1=$2\n";
@@ -172,9 +172,9 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
       and exists $opts{options}->{l} ) {
 
       $links_followed++;
-      if ( $links_followed > $max_link_follow ) {
+      if ( $links_followed > $LINK_FOLLOW_MAX ) {
         warn
-          "error: symlink recursion exceeded: limit=$max_link_follow, path=$path\n";
+          "error: symlink recursion exceeded: limit=$LINK_FOLLOW_MAX, path=$path\n";
         next PATH;
       }
       $current = $previous;
