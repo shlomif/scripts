@@ -41,13 +41,18 @@ my %pfiles = (
 use Getopt::Std;
 my %opts;
 getopts( 'h?dlo:T:', \%opts );
-print_help() if $opts{h} or $opts{'?'};
+
+if ( exists $opts{h} or $opts{'?'} ) {
+  print_help();
+  exit 100;
+}
 
 for ( keys %pfiles ) {
   $pfiles{$_} = tilde_expand( $pfiles{$_} );
 }
 
-# -d flag does directory->web map lookup
+# -d flag does directory->web map lookup ("wv" mode)
+# TODO rename to "file" instead of @dir !!
 if ( exists $opts{d} ) {
   my $dirmap = loadconfig( $pfiles{dirmap} );
 
@@ -59,7 +64,7 @@ if ( exists $opts{d} ) {
 
   my @dir;
   if (@ARGV) {
-    @dir = map { Cwd::abs_path($_) } grep -d, @ARGV;
+    @dir = map { Cwd::abs_path($_) } @ARGV;
   }
 
   # default to current directory
@@ -75,10 +80,10 @@ if ( exists $opts{d} ) {
       my $pos = index $dir, $_;
       if ( $pos > -1 ) {
         my $frag = substr( $dir, $pos + length $_ ) || q{};
-        $frag .= "/";
 
         # prevent // issues
         $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
+
         $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq q{};
 
         visit( expand( $dirmap->{$_}, [$frag] ) );
@@ -86,7 +91,9 @@ if ( exists $opts{d} ) {
       }
     }
 
-    warn "notice: no map for $dir\n" unless $got_url;
+    if ( !$got_url ) {
+      visit( expand( 'file://' . $dir ) );
+    }
   }
 
   exit;
@@ -236,8 +243,8 @@ END_OMNIWEB_SCRIPT
   # TODO better handling of annoying output from osascript
   close STDOUT;
   open OSASCRIPT, "|-"
-   or exec 'osascript'
-   or die "problem with osascript: $!";
+    or exec 'osascript'
+    or die "problem with osascript: $!";
   print OSASCRIPT $omniweb_open_script;
   close OSASCRIPT;
 
@@ -291,20 +298,20 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
 sub print_help {
-  print <<"HELP";
+  print <<"END_USAGE";
 Usage: $0 [options] file [file2 ...]
 
-Command line shortcuts and directory to URL mapping.
+Command line shortcuts and file to URL mapping.
 
 Options:
   -h/-?  Display this message.
@@ -317,8 +324,7 @@ Options:
 
 Run perldoc(1) on this script for additional documentation.
 
-HELP
-  exit 100;
+END_USAGE
 }
 
 __END__
@@ -329,7 +335,7 @@ ow - command line shortcuts and directory to URL mapping
 
 =head1 SYNOPSIS
 
-Do a google search for 'foo'. Assumes appropriate shortcut has
+Do a Google search for C<foo>. Assumes appropriate shortcut has
 been created.
 
   $ ow g foo
