@@ -55,12 +55,12 @@ if ( exists $opts{q} ) {
 
 $defaults{class}    = $opts{c} if exists $opts{c};
 $defaults{dest}     = $opts{d} if exists $opts{d};
-$defaults{preserve} = 1          if exists $opts{p};
+$defaults{preserve} = 1        if exists $opts{p};
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
     remark( 'notice', 'skipping as does not exist', { file => $file } )
-     unless exists $defaults{quiet};
+      unless exists $defaults{quiet};
     next FILE;
   }
 
@@ -71,8 +71,10 @@ FILE: for my $file (@ARGV) {
       for my $index (
         @{ $data->{_suffixmap}->{ $defaults{class} }->{$suffix} } ) {
         next FILE
-         if handle_file( { %defaults, file => $file_quoted },
-          $data->{ $defaults{class} }->[$index] );
+          if handle_file(
+          { %defaults, file => $file_quoted },
+          $data->{ $defaults{class} }->[$index]
+          );
       }
     }
   }
@@ -80,8 +82,8 @@ FILE: for my $file (@ARGV) {
     'notice',
     'no means to handle file',
     { file => $file, class => $defaults{class} }
-   )
-   unless exists $defaults{quiet};
+    )
+    unless exists $defaults{quiet};
 }
 
 sub handle_file {
@@ -101,12 +103,12 @@ sub handle_file {
     print "@{$tmp{exec}}\n";
   } else {
     system( $tmp{exec} ) == 0
-     or remark(
+      or remark(
       'warning',
       'bad exit status',
       { errno => $!, map { $_ => $tmp{$_} } qw(file name class) }
-     )
-     and return 0;
+      )
+      and return 0;
   }
 
   return 1;
@@ -126,7 +128,7 @@ sub get_suffixes {
   my @suffixes;
   local $" = $suffix_char;
   for my $i ( 1 .. $#portions ) {
-    push @suffixes, "@portions[$i..$#portions]"
+    push @suffixes, "@portions[$i..$#portions]";
   }
   return @suffixes;
 }
@@ -134,14 +136,14 @@ sub get_suffixes {
 sub load_prefs {
   my $file = shift;
 
-  open my $fh, "< $file"
-   or remark( 'error', 'could not load preferences', { file => $file } )
-   and exit 101;
+  open FILE, "< $file"
+    or remark( 'error', 'could not load preferences', { file => $file } )
+    and exit 101;
 
   my %data;
   my %tmp = %defaults;
 
-  while (<$fh>) {
+  while (<FILE>) {
     s/^\s+//;
     next if /^#/;
     chomp;
@@ -165,6 +167,7 @@ sub load_prefs {
     $tmp{$k} = $v;
   }
   pref_finish( \%tmp, \%data ) if exists $tmp{name};
+  close FILE;
 
   return \%data;
 }
@@ -182,7 +185,7 @@ sub pref_finish {
   if ( exists $tmp->{suffix} ) {
     for my $suffix ( @{ $tmp->{suffix} } ) {
       push @{ $data->{_suffixmap}->{ $tmp->{class} }->{$suffix} },
-       $#{ $data->{ $tmp->{class} } };
+        $#{ $data->{ $tmp->{class} } };
     }
   }
 
@@ -195,12 +198,12 @@ sub init {
   remark( 'notice', 'creating default preferences file', { file => $file } );
   mkpath( dirname($file) );
   open FILE, "> $file"
-   or remark(
+    or remark(
     'error',
     'could not create default preferences file',
     { file => $file, errno => $! }
-   )
-   and exit 102;
+    )
+    and exit 102;
   print FILE <<"HEADER";
 # Documentation on this file and the associated script can be found by
 # running perldoc(1) on $0
@@ -218,11 +221,11 @@ HEADER
   }
 
   close FILE
-   or remark(
+    or remark(
     'warning',
     'problem closing write to default preferences',
     { file => $file, errno => $! }
-   );
+    );
 }
 
 # expands ~username syntax to full home directory path
@@ -275,12 +278,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
