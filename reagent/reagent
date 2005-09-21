@@ -12,13 +12,22 @@
 # TODO portability problems of killall (e.g. Solaris?)
 killall -u `id -un` ssh-agent
 
-ssh-agent -s | grep -v echo > $HOME/.ssh-agent
+ssh-agent -s | grep -v echo > "$HOME/.ssh-agent"
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo "error: non-zero exit starting ssh-agent: status=$STATUS" >&2
+  exit $STATUS
+fi
 
 # if have tty, try to read in keys (which could prompt for passwords)
 if test -t 0; then
-  . $HOME/.ssh-agent
-  ssh-add $HOME/.ssh/id_*[^pub]
+  . "$HOME/.ssh-agent"
+  for private_key in $HOME/.ssh/id_*[^pub] $HOME/.ssh/identity; do
+    if [ -f "$private_key" ]; then
+      ssh-add "$private_key"
+    fi
+  done
 fi
 
 # this takes some time, so do it after above...
-allsh - < $HOME/.ssh-agent
+allsh - < "$HOME/.ssh-agent"
