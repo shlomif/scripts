@@ -5,9 +5,12 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Starts and configures the ssh-agent(1) utility. Kills ssh-agent if
-# found running already. Uses my allsh utility to reconfigure any
-# running shells with the new ssh-agent details.
+# Starts and configures the OpenSSH ssh-agent(1) utility. Kills ssh-
+# agent if found running already. Uses my allsh utility to reconfigure
+# any running shells with the new ssh-agent details.
+
+# timeout keys automatically (not compatible with older versions of OpenSSH)
+KEY_TIMEOUT="-t 10h"
 
 # TODO portability problems of killall (e.g. Solaris?)
 killall -u `id -un` ssh-agent
@@ -24,7 +27,7 @@ if test -t 0; then
   . "$HOME/.ssh-agent"
   for private_key in $HOME/.ssh/id_*[^pub] $HOME/.ssh/identity; do
     if [ -f "$private_key" ]; then
-      ssh-add "$private_key"
+      ssh-add $KEY_TIMEOUT "$private_key"
     fi
   done
 fi
