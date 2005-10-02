@@ -36,19 +36,19 @@ for my $entry (@ARGV) {
 
 # parse state list for badhosts, kill of any existing states
 open STATELIST, '-|'
- or exec qw{/sbin/pfctl -s state}
- or die "error: pfctl -s state failed: $!\n";
+  or exec qw{/sbin/pfctl -s state}
+  or die "error: pfctl -s state failed: $!\n";
 
-while (<STATELIST>) {
-  if (
-    m/^
-    \w+ \s+ \w+ \s+ # leading 'self tcp' or similar
-  ($ip_re):\d+ \s+ (<-|->) \s+ ($ip_re):\d+ # source to dest
-  \s+ (.+) # state (established, etc.)
- /x
-   ) {
+while ( my $line = <STATELIST> ) {
+  chomp $line;
 
-    my ( $one, $direction, $two, $reason ) = ( $1, $2, $3, $4 );
+  if ( $line =~ m/^
+    \w+ \s+ \w+ \s+                           # leading 'self tcp' or similar
+    ($ip_re):\d+ \s+ (<-|->) \s+ ($ip_re):\d+ # source to dest
+    \s+ (.+)                                  # state (established, etc.)
+   /x ) {
+
+    my ( $one, $direction, $two, $state ) = ( $1, $2, $3, $4 );
 
     # if state, kill it off, and remove host from additional state
     # matches (which should now be dead)
@@ -60,7 +60,7 @@ while (<STATELIST>) {
       delete $badhost{$two};
     }
 
-   } else {
-    die "error: unparseable pfctl -s state output: $_";
+  } else {
+    die "error: unparseable pfctl -s state output: line=$line\n";
   }
 }
