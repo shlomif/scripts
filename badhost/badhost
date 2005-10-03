@@ -53,10 +53,13 @@ while ( my $line = <STATELIST> ) {
     # if state, kill it off, and remove host from additional state
     # matches (which should now be dead)
     if ( exists $badhost{$one} and $direction eq '->' ) {
-      system qw{/sbin/pcftl -k}, $one;
+
+      system qw{/sbin/pfctl -k}, $one;
       delete $badhost{$one};
-    } elsif ( exists $badhost{$two} and $direction eq '<-' ) {
-      system qw{/sbin/pcftl -k}, $two;
+
+    } elsif ( exists $badhost{$two} ) {
+
+      system qw{/sbin/pfctl -k}, $one, '-k', $two;
       delete $badhost{$two};
     }
 
