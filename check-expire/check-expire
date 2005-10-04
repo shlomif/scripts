@@ -12,6 +12,7 @@
 
 use strict;
 
+use Config::General qw(ParseConfig);
 use Date::Parse qw(str2time);
 use File::Temp qw(tempfile);
 
@@ -24,7 +25,10 @@ my $expire_epoch;
 # and dire warnings around ~7d)
 my $expire_window;
 
+# subroutine table for different modes of operation
 my %actions;
+
+# parse for date using 'openssl x509'
 $actions{openssl_x509} = sub {
   my @x509_arguments = @_;
 
@@ -67,7 +71,7 @@ my @actions = sort keys %actions;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?e:l:', \%opts;
+getopts 'h?l:c:f:', \%opts;
 
 if ( exists $opts{l} ) {
   print "@actions\n";
@@ -79,7 +83,7 @@ if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
   exit 100;
 }
 
-$expire_window = duration2seconds( $opts{e} || '7d' );
+my %config = ParseConfig( -ConfigFile => $opts{f}, -LowerCaseNames => 1 );
 
 my $op_mode = shift || q{};
 $op_mode =~ tr/-/_/;
@@ -97,18 +101,82 @@ if ( !defined $expire_epoch ) {
   die "error: no expire date found\n";
 }
 
-warn "expire: $expire_epoch\n";    # DBG
-
-# this is for SiteScope, need to tempalate output...
-# two conditions: already expired, or about to
-# TODO boundary test all the possibilities to confirm logic!!
-# TODO also need to save extra data for templating, like how far
-# away the expire is, or how far past?
 my $return_code = 0;
+
+# where in the prefs to read expire, window handlers from
+my $report_handler = exists $opts{c} ? $opts{c} : 'default';
+my $report_ref     = $config{class}->{$report_handler};
+
+# check whether expired, or if within a window
 if ( $expire_epoch <= $cur_epoch ) {
-  $return_code = 2;
-} elsif ( $expire_epoch <= ( $cur_epoch + $expire_window ) ) {
-  $return_code = 1;
+  handle_condition(
+    $report_ref->{expired},
+    { name         => 'expired',
+      expire_epoch => $expire_epoch,
+      cur_epoch    => $cur_epoch
+    }
+  );
+} else {
+
+  if ( @{ $report_ref->{window} } ) {
+
+    # build Windows to look at (sanity checks, duration conversion)
+    my @windows;
+    for my $window_ref ( @{ $report_ref->{window} } ) {
+      if ( !exists $window_ref->{inside} ) {
+        remark( 'error', 'skipping window without date setting' );
+        next;
+      }
+      $window_ref->{inside} = duration2seconds( $window_ref->{inside} );
+      push @windows, $window_ref;
+    }
+
+  WINDOW:
+    for my $window_ref ( sort { $a->{inside} <=> $b->{inside} } @windows ) {
+      if ( $expire_epoch <= ( $cur_epoch + $window_ref->{inside} ) ) {
+
+        handle_condition(
+          $window_ref,
+          { name         => 'warning',
+            export_epoch => $expire_epoch,
+            cur_epoch    => $cur_epoch,
+            seconds_left => $expire_epoch - $cur_epoch,
+          }
+        );
+        last WINDOW;
+
+      }
+    }
+
+  }
+
+  if ( exists $report_ref->{default} ) {
+    handle_condition(
+      $report_ref->{default},
+      { name         => 'default',
+        export_epoch => $expire_epoch,
+        cur_epoch    => $cur_epoch
+      }
+    );
+  }
+}
+
+# parses handler prefs from under config, figures out what to do...
+sub handle_condition {
+  my $handle_ref = shift;
+  my $param_ref  = shift;
+
+  # TODO write support for 'exec' or 'pipe' action handlers (for e-mail
+  # or other utilities)
+
+  if ( exists $handle_ref->{stdout} ) {
+    # TODO need to template this for variable expansion...
+    print "$handle_ref->{stdout}\n";
+  }
+
+  if ( exists $handle_ref->{exit_value} ) {
+    exit $handle_ref;
+  }
 }
 
 print "Return Code: $return_code\n";
