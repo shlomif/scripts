@@ -30,7 +30,9 @@ my %actions;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?', \%opts;
+getopts 'h?e:', \%opts;
+
+my $expire_window = duration2seconds( $opts{e} || '7d' );
 
 if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
   print_help();
@@ -47,10 +49,18 @@ die "error: unknown handler: mode=$op_mode\n"
   $expire_epoch = $actions{$op_mode}->(@ARGV);
 }
 
-# TODO check $expire_epoch against $cur_epoch ... need to figure out
-# warning levels/prefs, so can do one thing if ~30 days, and another
-# if under 7 days...
-print "$expire_epoch vs $cur_epoch\n";
+# this is for SiteScope, need to tempalate output...
+# two conditions: already expired, or about to
+# TODO boundary test all the possibilities to confirm logic!!
+# TODO also need to save extra data for templating, like how far
+# away the expire is, or how far past?
+my $return_code =
+    ( $cur_epoch >= $expire_epoch ) ? 2
+  : ( $cur_epoch - $expire_window ) <= $expire_epoch ? 1
+  : 0;
+
+print "Return Code: $return_code\n";
+exit $return_code;
 
 sub date_openssl2epoch {
   my $date = shift;
@@ -163,6 +173,40 @@ sub get_output {
   my $status = $result{exit_value} ? 0 : 1;
 
   return $result_fh;
+}
+
+sub duration2seconds {
+  my $tmpdur = shift;
+  my $seconds;
+
+  # how to convert short human durations into seconds
+  my %factor = (
+    w => 604800,
+    d => 86400,
+    h => 3600,
+    m => 60,
+    s => 1,
+  );
+
+  # assume raw seconds for plain number
+  if ( $tmpdur =~ m/^\d+$/ ) {
+    $seconds = $tmpdur * 60;
+
+  } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
+
+    # match "2m 5s" style input and convert to seconds
+    while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
+      $seconds += $1 * $factor{$2};
+    }
+  } else {
+    die "error: unknown characters in duration: input=$tmpdur\n";
+  }
+
+  unless ( defined $seconds and $seconds =~ m/^\d+$/ ) {
+    die "error: unable to parse duration: input=$tmpdur\n";
+  }
+
+  return $seconds;
 }
 
 sub remark {
