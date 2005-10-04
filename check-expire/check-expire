@@ -15,49 +15,101 @@ use strict;
 use Date::Parse qw(str2time);
 use File::Temp qw(tempfile);
 
+use File::Basename qw(basename);
+my $basename = basename($0);
+
 my $cur_epoch = time;
 my $expire_epoch;
+# TODO window will vary by notification rule (e.g. e-mail ~30d, pages
+# and dire warnings around ~7d)
+my $expire_window;
 
 my %actions;
-{
-  no strict 'refs';
-  my $pkgname = __PACKAGE__ . '::';
-  %actions = (
-    map { $_ =~ m/^ do_ (\w{1,32}) /x ? ( $1 => $_ ) : () }
-      keys %$pkgname
-  );
-}
+$actions{openssl_x509} = sub {
+  my @x509_arguments = @_;
+
+  my @command = ( qw{openssl x509 -noout -enddate}, @x509_arguments );
+
+  my $results = get_output(@command);
+  if ( !defined $results ) {
+    die "error: no output: command=@command\n";
+  }
+
+  my $date_str;
+  for my $line (@$results) {
+    if ( $line =~ m/^notAfter=(.+)/ ) {
+      return date_openssl2epoch($1);
+    }
+  }
+
+  return;
+};
+
+# runs a command that should return a certificate to stdout that
+# 'openssl x509' can parse for the dates
+$actions{certificate} = sub {
+  my @command = @_;
+  my $results = get_output(@command);
+  if ( !defined $results ) {
+    die "error: no output: command=@command\n";
+  }
+
+  my ( $tmp_fh, $filename ) = tempfile();
+  die "error: no temporary file created\n" unless $tmp_fh;
+  for my $line (@$results) {
+    print $tmp_fh $line;
+  }
+
+  return $actions{openssl_x509}->( '-in', $filename );
+};
+
+my @actions = sort keys %actions;
 
 use Getopt::Std;
 my %opts;
-getopts 'h?e:', \%opts;
+getopts 'h?e:l:', \%opts;
 
-my $expire_window = duration2seconds( $opts{e} || '7d' );
+if ( exists $opts{l} ) {
+  print "@actions\n";
+  exit;
+}
 
 if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
+  print_help();
+  exit 100;
+}
+
+$expire_window = duration2seconds( $opts{e} || '7d' );
+
+my $op_mode = shift || q{};
+$op_mode =~ tr/-/_/;
+
+if ( !exists $actions{$op_mode} ) {
+  remark( 'error', 'unknown mode',
+    { allowed => join( q{,}, @actions ), mode => $op_mode } );
   print_help();
   exit 101;
 }
 
-my $op_mode = shift || die "Usage: $0 [options] mode [arguments]\n";
-$op_mode =~ tr/-/_/;
+$expire_epoch = $actions{$op_mode}->(@ARGV);
 
-die "error: unknown handler: mode=$op_mode\n"
-  unless exists $actions{$op_mode};
-{
-  no strict 'refs';
-  $expire_epoch = $actions{$op_mode}->(@ARGV);
+if ( !defined $expire_epoch ) {
+  die "error: no expire date found\n";
 }
+
+warn "expire: $expire_epoch\n";    # DBG
 
 # this is for SiteScope, need to tempalate output...
 # two conditions: already expired, or about to
 # TODO boundary test all the possibilities to confirm logic!!
 # TODO also need to save extra data for templating, like how far
 # away the expire is, or how far past?
-my $return_code =
-    ( $cur_epoch >= $expire_epoch ) ? 2
-  : ( $cur_epoch - $expire_window ) <= $expire_epoch ? 1
-  : 0;
+my $return_code = 0;
+if ( $expire_epoch <= $cur_epoch ) {
+  $return_code = 2;
+} elsif ( $expire_epoch <= ( $cur_epoch + $expire_window ) ) {
+  $return_code = 1;
+}
 
 print "Return Code: $return_code\n";
 exit $return_code;
@@ -69,37 +121,8 @@ sub date_openssl2epoch {
   return $time;
 }
 
-sub do_openssl_x509 {
-  my @x509_arguments = @_;
-
-  my @command = ( qw{openssl x509 -noout -enddate}, @x509_arguments );
-
-  my $results = get_output(@command);
-  if ( !$results ) {
-    die "error: no output: command=@command\n";
-  }
-
-  my $date_str;
-  while ( my $line = <$results> ) {
-    if ( $line =~ m/^notAfter=(.+)/ ) {
-      return date_openssl2epoch($1);
-    }
-  }
-
-  return;
-}
-
-sub do_openssl_sclient {
-  my @sclient_arguments = @_;
-  my $results = get_output( qw{openssl s_client}, @sclient_arguments );
-
-  my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
-  die "error: no temporary file created\n" unless $tmp_fh;
-  print $tmp_fh, <$results>;
-
-  return do_openssl_x509( '-in', $filename );
-}
-
+# takes command to run (and optional leading hashref with parameters),
+# returns filehandle (or undef on error) with STDOUT of program
 sub get_output {
   my $param = {};
   if ( @_ and ref $_[0] eq 'HASH' ) {
@@ -114,65 +137,32 @@ sub get_output {
 
   my $timeout = $param->{timeout} || 60;
 
-  my $result_fh;
+  my @results;
 
   eval {
     local $SIG{ALRM} = sub { die "alarm\n" };
 
     alarm $timeout;
 
-    #unless ( exists $ENV{CFALLCLASSES}
-    #  and $ENV{CFALLCLASSES} =~ m/\bcf_debug\b/ ) {
-    #  close STDERR;
-    #}
-
-    open $result_fh, '-|' or exec @command;
-
-    if ( !$result_fh ) {
-      remark(
-        'error',
-        'could not run',
-        { command => "@command", errno => $! }
-      );
-    }
-
-    #unless ( exists $ENV{CFALLCLASSES}
-    #  and $ENV{CFALLCLASSES} =~ m/\bcf_debug\b/ ) {
-    #  open STDERR, ">&SAVERRR";
-    #}
+    open OUTPUT, '-|' or exec @command or die "exec error\n";
+    @results = <OUTPUT>;
+    close OUTPUT;
 
     alarm 0;
   };
   if ($@) {
-    unless ( $@ eq "alarm\n" ) {
-      chomp $@;
-      remark(
-        'error',
-        'unexpected command error',
-        { command => "@command", errno => $@ }
-      );
-      return;
-    }
+    my $error_str =
+        $@ eq "alarm\n"      ? 'command timed out'
+      : $@ eq "exec error\n" ? undef
+      : 'unexpected command error';
 
-    remark(
-      'warning',
-      'command timed out',
-      { command => "@command", timeout => $timeout }
-    );
-    return;
+    if ( defined $error_str ) {
+      chomp $@;
+      remark( 'error', $error_str, { command => "@command", errno => $@ } );
+    }
   }
 
-  # TODO use POSIX for portable exit status checking?
-  my %result = (
-    exit_value => $? >> 8,
-    signal_num => $? & 127,
-  );
-
-  # invert exit logic (0 == good) to work with standard Perl checks;
-  # real exit in hash if needed
-  my $status = $result{exit_value} ? 0 : 1;
-
-  return $result_fh;
+  return @results ? \@results : undef;
 }
 
 sub duration2seconds {
@@ -181,6 +171,7 @@ sub duration2seconds {
 
   # how to convert short human durations into seconds
   my %factor = (
+    y => 31536000,
     w => 604800,
     d => 86400,
     h => 3600,
@@ -192,10 +183,10 @@ sub duration2seconds {
   if ( $tmpdur =~ m/^\d+$/ ) {
     $seconds = $tmpdur * 60;
 
-  } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
+  } elsif ( $tmpdur =~ m/^[ywdhms\d\s]+$/ ) {
 
     # match "2m 5s" style input and convert to seconds
-    while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
+    while ( $tmpdur =~ m/(\d+)\s*([ywdhms])/g ) {
       $seconds += $1 * $factor{$2};
     }
   } else {
@@ -230,7 +221,7 @@ sub remark {
 
 sub print_help {
   print <<"END_USAGE";
-Usage: $0 [options] mode [arguments]
+Usage: $basename [options] mode [arguments]
 
 Expiration date handler.
 
@@ -242,3 +233,5 @@ Run perldoc(1) on this script for additional documentation.
 END_USAGE
   return;
 }
+
+# TODO write perldoc
