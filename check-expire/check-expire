@@ -113,7 +113,8 @@ if ( $expire_epoch <= $cur_epoch ) {
     $report_ref->{expired},
     { name         => 'expired',
       expire_epoch => $expire_epoch,
-      cur_epoch    => $cur_epoch
+      cur_epoch    => $cur_epoch,
+      seconds_ago  => $cur_epoch - $expire_epoch,
     }
   );
 } else {
@@ -155,7 +156,8 @@ if ( $expire_epoch <= $cur_epoch ) {
       $report_ref->{default},
       { name         => 'default',
         export_epoch => $expire_epoch,
-        cur_epoch    => $cur_epoch
+        cur_epoch    => $cur_epoch,
+        seconds_left => $expire_epoch - $cur_epoch,
       }
     );
   }
