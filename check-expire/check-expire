@@ -1,0 +1,200 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Checks and handles expiry dates. Supports x509 certificates, and
+# ideally anything a wrapper script can be written for.
+#
+# Run perldoc(1) on this script for additional documentation.
+
+use strict;
+
+use Date::Parse qw(str2time);
+use File::Temp qw(tempfile);
+
+my $cur_epoch = time;
+my $expire_epoch;
+
+my %actions;
+{
+  no strict 'refs';
+  my $pkgname = __PACKAGE__ . '::';
+  %actions = (
+    map { $_ =~ m/^ do_ (\w{1,32}) /x ? ( $1 => $_ ) : () }
+      keys %$pkgname
+  );
+}
+
+use Getopt::Std;
+my %opts;
+getopts 'h?', \%opts;
+
+if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
+  print_help();
+  exit 101;
+}
+
+my $op_mode = shift || die "Usage: $0 [options] mode [arguments]\n";
+$op_mode =~ tr/-/_/;
+
+die "error: unknown handler: mode=$op_mode\n"
+  unless exists $actions{$op_mode};
+{
+  no strict 'refs';
+  $expire_epoch = $actions{$op_mode}->(@ARGV);
+}
+
+# TODO check $expire_epoch against $cur_epoch ... need to figure out
+# warning levels/prefs, so can do one thing if ~30 days, and another
+# if under 7 days...
+print "$expire_epoch vs $cur_epoch\n";
+
+sub date_openssl2epoch {
+  my $date = shift;
+
+  my $time = str2time($date);
+  return $time;
+}
+
+sub do_openssl_x509 {
+  my @x509_arguments = @_;
+
+  my @command = ( qw{openssl x509 -noout -enddate}, @x509_arguments );
+
+  my $results = get_output(@command);
+  if ( !$results ) {
+    die "error: no output: command=@command\n";
+  }
+
+  my $date_str;
+  while ( my $line = <$results> ) {
+    if ( $line =~ m/^notAfter=(.+)/ ) {
+      return date_openssl2epoch($1);
+    }
+  }
+
+  return;
+}
+
+sub do_openssl_sclient {
+  my @sclient_arguments = @_;
+  my $results = get_output( qw{openssl s_client}, @sclient_arguments );
+
+  my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
+  die "error: no temporary file created\n" unless $tmp_fh;
+  print $tmp_fh, <$results>;
+
+  return do_openssl_x509( '-in', $filename );
+}
+
+sub get_output {
+  my $param = {};
+  if ( @_ and ref $_[0] eq 'HASH' ) {
+    $param = { %$param, %{ $_[0] } };
+    shift @_;
+  }
+
+  my @command = @_;
+  return unless @command;
+
+  #remark( 'debug', 'command run', { command => "@command" } );
+
+  my $timeout = $param->{timeout} || 60;
+
+  my $result_fh;
+
+  eval {
+    local $SIG{ALRM} = sub { die "alarm\n" };
+
+    alarm $timeout;
+
+    #unless ( exists $ENV{CFALLCLASSES}
+    #  and $ENV{CFALLCLASSES} =~ m/\bcf_debug\b/ ) {
+    #  close STDERR;
+    #}
+
+    open $result_fh, '-|' or exec @command;
+
+    if ( !$result_fh ) {
+      remark(
+        'error',
+        'could not run',
+        { command => "@command", errno => $! }
+      );
+    }
+
+    #unless ( exists $ENV{CFALLCLASSES}
+    #  and $ENV{CFALLCLASSES} =~ m/\bcf_debug\b/ ) {
+    #  open STDERR, ">&SAVERRR";
+    #}
+
+    alarm 0;
+  };
+  if ($@) {
+    unless ( $@ eq "alarm\n" ) {
+      chomp $@;
+      remark(
+        'error',
+        'unexpected command error',
+        { command => "@command", errno => $@ }
+      );
+      return;
+    }
+
+    remark(
+      'warning',
+      'command timed out',
+      { command => "@command", timeout => $timeout }
+    );
+    return;
+  }
+
+  # TODO use POSIX for portable exit status checking?
+  my %result = (
+    exit_value => $? >> 8,
+    signal_num => $? & 127,
+  );
+
+  # invert exit logic (0 == good) to work with standard Perl checks;
+  # real exit in hash if needed
+  my $status = $result{exit_value} ? 0 : 1;
+
+  return $result_fh;
+}
+
+sub remark {
+  my $priority   = shift;
+  my $message    = shift;
+  my $attributes = shift;
+
+  chomp $message;
+
+  my $attr_str;
+  if ($attributes) {
+    $attr_str = join ', ',
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
+  }
+
+  print STDERR "$priority: $message"
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+  return 1;
+}
+
+sub print_help {
+  print <<"END_USAGE";
+Usage: $0 [options] mode [arguments]
+
+Expiration date handler.
+
+Options:
+  -h/-?  Display this message.
+
+Run perldoc(1) on this script for additional documentation.
+
+END_USAGE
+  return;
+}
