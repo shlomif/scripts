@@ -83,6 +83,14 @@ if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
 }
 
 my %config = ParseConfig( -ConfigFile => $opts{f}, -LowerCaseNames => 1 );
+if ( !defined $config{class} ) {
+  remark(
+    'error',
+    'no classes defined in configuration',
+    { file => $opts{f} }
+  );
+  exit 103;
+}
 
 my $op_mode = shift || q{};
 $op_mode =~ tr/-/_/;
@@ -103,6 +111,15 @@ if ( !defined $expire_epoch ) {
 # where in the prefs to read expire, window handlers from
 my $report_handler = exists $opts{c} ? $opts{c} : 'default';
 my $report_ref     = $config{class}->{$report_handler};
+
+if ( !defined $report_ref ) {
+  remark(
+    'error',
+    'class preferences not found',
+    { class => $report_handler, file => $opts{f} }
+  );
+  exit 103;
+}
 
 # check whether expired, or if within a window
 if ( $expire_epoch <= $cur_epoch ) {
@@ -165,17 +182,18 @@ sub handle_condition {
   my $handle_ref = shift;
   my $param_ref  = shift;
 
+  # handlers must exit, default to 0 if unset
   if ( !exists $handle_ref->{exit_value} ) {
     $handle_ref->{exit_value} = 0;
   }
 
   my %handlers = (
+    # runs a command, such as logger(1)
     exec => sub {
       my $cmd_str   = shift;
       my $param_ref = shift;
 
-      # TODO need grammar parser to pull out "" strings...
-      my @command = split /(?<!\\)\s+/, $cmd_str;
+      my @command = parse_tokens($cmd_str);
       for my $part (@command) {
         $part =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
@@ -192,16 +210,19 @@ sub handle_condition {
 
       return;
     },
+    # like exec, but takes first token as standard input to the program
+    # (to support sending data to things like mail(1))
     pipe => sub {
       my $cmd_str   = shift;
       my $param_ref = shift;
 
-      my @command = split /(?<!\\)\s+/, $cmd_str;
+      my @command = parse_tokens($cmd_str);
 
       for my $part (@command) {
         $part =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
       }
+
       my $stdin = shift @command;
 
       open TO_COMMAND, '|-' or exec @command or return;
@@ -210,6 +231,7 @@ sub handle_condition {
 
       return;
     },
+    # print to standard output
     stdout => sub {
       my $output_str = shift;
       my $param_ref  = shift;
@@ -235,6 +257,30 @@ sub handle_condition {
   }
 
   exit $handle_ref->{exit_value};
+}
+
+# converts a string into a list of tokens
+sub parse_tokens {
+  my $string = shift;
+  my @tokens;
+
+UBLE: {
+    # non-quoted strings, backslashed quotes and whitespace allowed
+    push( @tokens, $1 ), redo UBLE if $string =~ m/ \G ( [^"'\s]+ ) \s* /cgx;
+
+    # double-quoted strings, backslashed quotes allowed
+    push( @tokens, $1 ), redo UBLE
+      if $string =~ m/ \G " ((?: \\.|[^\\"] )+) " \s* /cgx;
+
+    push( @tokens, $1 ), redo UBLE
+      if $string =~ m/ \G ' ((?: \\.|[^\\'] )+) ' \s* /cgx;
+
+    last UBLE if $string =~ / \G $ /gcx;
+
+    die "error: unparseable token in string: data=$string\n";   # TODO improve
+  }
+
+  return @tokens;
 }
 
 sub date_openssl2epoch {
@@ -433,35 +479,35 @@ following outputs values read by SiteScope. For expired or near-expired
 data, errors are raised in SiteScope via the higher return codes. Data
 expiring inside a month generates an e-mail, but no SiteScope error.
 
-	<class default>
-	  # default handler used if nothing else matches
-		<default>
-			stdout "Return Code: 0"
-			exit_value 0
-		</default>
+  <class default>
+    # default handler used if nothing else matches
+    <default>
+      stdout "Return Code: 0"
+    </default>
 
     # handler for expired data (equal or past expiration date)
-		<expired>
-			stdout "Return Code: 2"
-			exit_value 2
-		</expired>
+    <expired>
+      exec /usr/bin/logger -i -t check-expire expired certificate
+      stdout "Return Code: 2"
+      exit_value 2
+    </expired>
 
     # higher return code if expiring inside 7 days
-		<window>
-			inside 7d
+    <window>
+      inside 7d
 
-			stdout "Return Code: 1"
-			exit_value 1
-		</window>
+      stdout "Return Code: 1"
+      exit_value 1
+    </window>
 
     # warn via e-mail if expiring inside 30 days
-		<window>
-			inside 30d
+    <window>
+      inside 30d
 
-			stdout "Return Code: 0"
-			pipe body /bin/mail -s Certificate\ Expiration\ Warning spam@example.com
-		</window>
-	</class>
+      stdout "Return Code: 0"
+      pipe "expiration warning" /usr/bin/logger -i -t check-expire
+    </window>
+  </class>
 
 See L<Config::General|Config::General> for details on the configuration
 file format.
