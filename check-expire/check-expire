@@ -21,9 +21,6 @@ my $basename = basename($0);
 
 my $cur_epoch = time;
 my $expire_epoch;
-# TODO window will vary by notification rule (e.g. e-mail ~30d, pages
-# and dire warnings around ~7d)
-my $expire_window;
 
 # subroutine table for different modes of operation
 my %actions;
@@ -32,6 +29,8 @@ my %actions;
 $actions{openssl_x509} = sub {
   my @x509_arguments = @_;
 
+  # TODO parse for more options, like start date and
+  # subject/fingerprint, so can include them in output templating
   my @command = ( qw{openssl x509 -noout -enddate}, @x509_arguments );
 
   my $results = get_output(@command);
@@ -101,14 +100,14 @@ if ( !defined $expire_epoch ) {
   die "error: no expire date found\n";
 }
 
-my $return_code = 0;
-
 # where in the prefs to read expire, window handlers from
 my $report_handler = exists $opts{c} ? $opts{c} : 'default';
 my $report_ref     = $config{class}->{$report_handler};
 
 # check whether expired, or if within a window
 if ( $expire_epoch <= $cur_epoch ) {
+  # TODO fill out more parameters (humanized time? strftime, parameters
+  # about the certificate, and etc.? - see what need for reporting)
   handle_condition(
     $report_ref->{expired},
     { name         => 'expired',
@@ -132,7 +131,6 @@ if ( $expire_epoch <= $cur_epoch ) {
       push @windows, $window_ref;
     }
 
-  WINDOW:
     for my $window_ref ( sort { $a->{inside} <=> $b->{inside} } @windows ) {
       if ( $expire_epoch <= ( $cur_epoch + $window_ref->{inside} ) ) {
 
@@ -144,11 +142,9 @@ if ( $expire_epoch <= $cur_epoch ) {
             seconds_left => $expire_epoch - $cur_epoch,
           }
         );
-        last WINDOW;
-
+        die "error: handler did not exit script\n";
       }
     }
-
   }
 
   if ( exists $report_ref->{default} ) {
@@ -162,27 +158,84 @@ if ( $expire_epoch <= $cur_epoch ) {
     );
   }
 }
+die "error: no handles found\n";
 
 # parses handler prefs from under config, figures out what to do...
 sub handle_condition {
   my $handle_ref = shift;
   my $param_ref  = shift;
 
-  # TODO write support for 'exec' or 'pipe' action handlers (for e-mail
-  # or other utilities)
-
-  if ( exists $handle_ref->{stdout} ) {
-    # TODO need to template this for variable expansion...
-    print "$handle_ref->{stdout}\n";
+  if ( !exists $handle_ref->{exit_value} ) {
+    $handle_ref->{exit_value} = 0;
   }
 
-  if ( exists $handle_ref->{exit_value} ) {
-    exit $handle_ref;
+  my %handlers = (
+    exec => sub {
+      my $cmd_str   = shift;
+      my $param_ref = shift;
+
+      # TODO need grammar parser to pull out "" strings...
+      my @command = split /(?<!\\)\s+/, $cmd_str;
+      for my $part (@command) {
+        $part =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
+        $part =~ s/(\\.)/qq("$1")/eeg;
+      }
+
+      my $status = system @command;
+      if ( $status != 0 ) {
+        remark(
+          'warning',
+          'command failed',
+          { command => "@command", errno => $? }
+        );
+      }
+
+      return;
+    },
+    pipe => sub {
+      my $cmd_str   = shift;
+      my $param_ref = shift;
+
+      my @command = split /(?<!\\)\s+/, $cmd_str;
+
+      for my $part (@command) {
+        $part =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
+        $part =~ s/(\\.)/qq("$1")/eeg;
+      }
+      my $stdin = shift @command;
+
+      open TO_COMMAND, '|-' or exec @command or return;
+      print TO_COMMAND "$stdin\n";
+      close TO_COMMAND;
+
+      return;
+    },
+    stdout => sub {
+      my $output_str = shift;
+      my $param_ref  = shift;
+
+      $output_str =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
+      $output_str =~ s/(\\.)/qq("$1")/eeg;
+      print "$output_str\n";
+
+      return;
+    }
+  );
+
+  for my $handle (qw{stdout exec pipe}) {
+    if ( exists $handle_ref->{$handle} ) {
+      if ( ref $handle_ref->{$handle} eq 'ARRAY' ) {
+        for my $item ( @{ $handle_ref->{$handle} } ) {
+          $handlers{$handle}->( $item, $param_ref );
+        }
+      } else {
+        $handlers{$handle}->( $handle_ref->{$handle}, $param_ref );
+      }
+    }
   }
+
+  exit $handle_ref->{exit_value};
 }
-
-print "Return Code: $return_code\n";
-exit $return_code;
 
 sub date_openssl2epoch {
   my $date = shift;
