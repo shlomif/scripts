@@ -5,8 +5,8 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
-# Checks and handles expiry dates. Supports x509 certificates, and
-# ideally anything a wrapper script can be written for.
+# Expiration date checker and handler. Supports x509 certificates, and
+# anything a wrapper script can be written for.
 #
 # Run perldoc(1) on this script for additional documentation.
 
@@ -344,12 +344,18 @@ sub remark {
 
 sub print_help {
   print <<"END_USAGE";
-Usage: $basename [options] mode [arguments]
+Usage: $basename -f prefs [options] mode [arguments]
 
 Expiration date handler.
 
 Options:
   -h/-?  Display this message.
+  
+  -f pp  Read preferences file from pp.
+  
+  -c cc  Specify custom class to read from preferences file.
+  
+  -l     List supported modes and exit.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -357,4 +363,139 @@ END_USAGE
   return;
 }
 
-# TODO write perldoc
+__DATA__
+
+=head1 NAME
+
+check-expire - expiration date checker and handler
+
+=head1 SYNOPSIS
+
+This script is under active development!
+
+Check the certificate on C<www.example.org:443>, and handle the expired
+or near-expired certificate via options in the C<prefs> configuration
+file:
+
+  $ check-expire -f prefs  certificate  check-web www.example.org:443
+
+Where the C<check-web> wrapper outputs the certificate via:
+
+  #!/bin/sh
+  echo GET / HTTP/1.0 | openssl s_client -connect "$1" 2>&1
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Checks expiration dates on data like x509 certificates. Uses preferences
+to handle expired certificates, or configurable actions should the
+expiration date be inside a particular time window. Requires wrapper
+scripts to obtain the certificate or expiration date to parse.
+
+=head2 Normal Usage
+
+  $ check-expire -f prefs  mode  [mode options]
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches.
+Arguments following the C<mode> will vary.
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-f> I<prefs>
+
+Read handling preferences from the I<prefs> file. See L<"FILES"> for
+configuration details.
+
+=item B<-c> I<class>
+
+Specify a custom handling class, otherwise set to C<default>. The class
+is read from the preferences file, see L<"FILES"> for details.
+
+=item B<-l>
+
+List allowed modes to standard output and exit.
+
+=back
+
+=head1 FILES
+
+The preferences file specifies how to handle expiration dates. The
+following outputs values read by SiteScope. For expired or near-expired
+data, errors are raised in SiteScope via the higher return codes. Data
+expiring inside a month generates an e-mail, but no SiteScope error.
+
+	<class default>
+	  # default handler used if nothing else matches
+		<default>
+			stdout "Return Code: 0"
+			exit_value 0
+		</default>
+
+    # handler for expired data (equal or past expiration date)
+		<expired>
+			stdout "Return Code: 2"
+			exit_value 2
+		</expired>
+
+    # higher return code if expiring inside 7 days
+		<window>
+			inside 7d
+
+			stdout "Return Code: 1"
+			exit_value 1
+		</window>
+
+    # warn via e-mail if expiring inside 30 days
+		<window>
+			inside 30d
+
+			stdout "Return Code: 0"
+			pipe body /bin/mail -s Certificate\ Expiration\ Warning spam@example.com
+		</window>
+	</class>
+
+See L<Config::General|Config::General> for details on the configuration
+file format.
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1), s_client(1), x509(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
