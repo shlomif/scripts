@@ -162,11 +162,24 @@ if ( $time_param{expire_epoch} <= $time_param{cur_epoch} ) {
   die "error: expired handler did not exit script\n";
 }
 
-if ( @{ $report_ref->{window} } ) {
+if ( exists $report_ref->{window} ) {
+  my @windows;
+
+  if ( ref $report_ref->{window} eq 'HASH' ) {
+    my %tmp = %{ $report_ref->{window} };
+    delete $report_ref->{window};
+    $report_ref->{window}->[0] = \%tmp;
+  } elsif ( ref $report_ref->{window} ne 'ARRAY' ) {
+    remark(
+      'error',
+      'unexpected reference type for window',
+      { ref => ref $report_ref->{window}, file => $opts{f} }
+    );
+    exit 104;
+  }
 
   # build Windows to look at (sanity checks, duration conversion)
   # TODO include window timevalue in time_param hash
-  my @windows;
   for my $window_ref ( @{ $report_ref->{window} } ) {
     if ( !exists $window_ref->{inside} ) {
       remark( 'error', 'skipping window without date setting' );
@@ -238,23 +251,23 @@ sub handle_condition {
       my $cmd_str    = shift;
       my $lookup_ref = shift;
 
-      my (@stdin, @command);
+      my ( @stdin, @command );
       my $is_command = 0;
 
-      for my $part (parse_tokens($cmd_str)) {
+      for my $part ( parse_tokens($cmd_str) ) {
         $part =~
           s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
 
-        if (!$is_command) {
-	  if ($part eq '|') {
-	    $is_command = 1;
-	    next;
-	  }
-	  push @stdin, $part;
-	} else {
-	  push @command, $part;
-	}
+        if ( !$is_command ) {
+          if ( $part eq '|' ) {
+            $is_command = 1;
+            next;
+          }
+          push @stdin, $part;
+        } else {
+          push @command, $part;
+        }
       }
 
       open TO_COMMAND, '|-' or exec @command or return;
@@ -279,7 +292,7 @@ sub handle_condition {
     }
   );
 
-  for my $handle (sort keys %handlers) {
+  for my $handle ( sort keys %handlers ) {
     if ( exists $handle_ref->{$handle} ) {
       if ( ref $handle_ref->{$handle} eq 'ARRAY' ) {
         for my $item ( @{ $handle_ref->{$handle} } ) {
