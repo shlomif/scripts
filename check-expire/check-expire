@@ -253,29 +253,19 @@ sub handle_condition {
       my $cmd_str    = shift;
       my $lookup_ref = shift;
 
-      my ( @stdin, @command );
-      my $is_command = 0;
+      # standard input everything before first unbackwhacked |
+      my ( $stdin, $cmd_tmp ) = split /\s*(?<!\\)\|\s*/, $cmd_str, 2;
+      my @command;
 
-      for my $part ( parse_tokens($cmd_str) ) {
+      for my $part ( parse_tokens($cmd_tmp) ) {
         $part =~
           s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
-
-        if ( !$is_command ) {
-          if ( $part eq '|' ) {
-            $is_command = 1;
-            next;
-          }
-          push @stdin, $part;
-        } else {
-          push @command, $part;
-        }
+        push @command, $part;
       }
 
       open TO_COMMAND, '|-' or exec @command or return;
-      for my $part (@stdin) {
-        print TO_COMMAND "$part\n";
-      }
+      print TO_COMMAND $stdin;
       close TO_COMMAND;
 
       return;
@@ -566,7 +556,7 @@ SiteScope error.
       stdout "Return Code: 1"
       exit_value 1
 
-      pipe "expiring soon: %{extra.subject}" | /bin/mail -s "cert warning" root
+      pipe expiring soon: %{extra.subject} | /bin/mail -s "cert warning" root
     </window>
 
     # just warn via e-mail if expiring inside 30 days
@@ -574,7 +564,7 @@ SiteScope error.
       inside 30d
 
       stdout "Return Code: 0"
-      pipe "expiring soon: %{extra.subject}" | /bin/mail -s "cert warning" root
+      pipe expiring soon: %{extra.subject} | /bin/mail -s "cert warning" root
     </window>
 
     # handler for expired data (equal to or past expiration date)
@@ -582,10 +572,10 @@ SiteScope error.
       exec /usr/bin/logger expired certificate: subject=%{extra.subject}
 
       pipe <<END_PIPE
-    "Expired certificate:"
-    "  subject=%{extra.subject}"
-    "  expired=%{time.expire_epoch}"
-    "  command=%{proogram.name} %{program.argv}"
+    Expired certificate:
+      subject=%{extra.subject}
+      expired=%{time.expire_epoch}
+      command=%{proogram.name} %{program.argv}
     | /bin/mail -s "expired cert" root
   END_PIPE
 
