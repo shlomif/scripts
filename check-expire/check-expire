@@ -465,8 +465,6 @@ check-expire - expiration date checker and handler
 
 =head1 SYNOPSIS
 
-This script is under active development!
-
 Check the certificate on C<www.example.org:443>, and handle the expired
 or near-expired certificate via options in the C<prefs> configuration
 file:
@@ -477,6 +475,10 @@ Where the C<check-web> wrapper outputs the certificate via:
 
   #!/bin/sh
   echo GET / HTTP/1.0 | openssl s_client -connect "$1" 2>&1
+
+Directly accessible certificate files can be checked via:
+
+  $ check-expire -f prefs  openssl-x509 -in /path/to/some.cert
 
 =head1 DESCRIPTION
 
