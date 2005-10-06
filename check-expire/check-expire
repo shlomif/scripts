@@ -19,37 +19,55 @@ use File::Temp qw(tempfile);
 use File::Basename qw(basename);
 my $basename = basename($0);
 
-my $cur_epoch = time;
-my $expire_epoch;
+my %program_param = ( name => $basename, argv => "@ARGV", pid => $$ );
 
-# subroutine table for different modes of operation
+# list different modes of operation (subroutine that obtains expiration
+# date and other metadata from an external command/code)
 my %actions;
 
-# parse for date using 'openssl x509'
+# Mode to parse for expiration date using 'openssl x509' (certificate)
 $actions{openssl_x509} = sub {
   my @x509_arguments = @_;
 
-  # TODO parse for more options, like start date and
-  # subject/fingerprint, so can include them in output templating
-  my @command = ( qw{openssl x509 -noout -enddate}, @x509_arguments );
+  my @command =
+    ( qw{openssl x509 -noout -dates -subject -issuer}, @x509_arguments );
 
   my $results = get_output(@command);
   if ( !defined $results ) {
     die "error: no output: command=@command\n";
   }
 
-  my $date_str;
+  my ( %time_param, %cert_param );
   for my $line (@$results) {
     if ( $line =~ m/^notAfter=(.+)/ ) {
-      return date_openssl2epoch($1);
+      $time_param{expire_epoch} = date_openssl2epoch($1)
+        if !exists $time_param{expire_epoch};
+      next;
+    }
+    if ( $line =~ m/^notBefore=(.+)/ ) {
+      $time_param{start_epoch} = date_openssl2epoch($1)
+        if !exists $time_param{start_epoch};
+      next;
+    }
+    if ( $line =~ m/^subject\s*=\s*(.+)/ ) {
+      $cert_param{subject} = $1 if !exists $cert_param{subject};
+      next;
+    }
+    if ( $line =~ m/^issuer\s*=\s*(.+)/ ) {
+      $cert_param{issuer} = $1 if !exists $cert_param{issuer};
+      next;
     }
   }
 
-  return;
+  if ( !exists $time_param{expire_epoch} ) {
+    return;
+  }
+
+  return \%time_param, \%cert_param;
 };
 
 # runs a command that should return a certificate to stdout that
-# 'openssl x509' can parse for the dates
+# 'openssl x509' can then parse for information
 $actions{certificate} = sub {
   my @command = @_;
   my $results = get_output(@command);
@@ -57,7 +75,7 @@ $actions{certificate} = sub {
     die "error: no output: command=@command\n";
   }
 
-  my ( $tmp_fh, $filename ) = tempfile();
+  my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
   die "error: no temporary file created\n" unless $tmp_fh;
   for my $line (@$results) {
     print $tmp_fh $line;
@@ -102,12 +120,6 @@ if ( !exists $actions{$op_mode} ) {
   exit 101;
 }
 
-$expire_epoch = $actions{$op_mode}->(@ARGV);
-
-if ( !defined $expire_epoch ) {
-  die "error: no expire date found\n";
-}
-
 # where in the prefs to read expire, window handlers from
 my $report_handler = exists $opts{c} ? $opts{c} : 'default';
 my $report_ref     = $config{class}->{$report_handler};
@@ -121,66 +133,75 @@ if ( !defined $report_ref ) {
   exit 103;
 }
 
+# lookup expiration date and other info via mode handler
+my ( %time_param, %extra_param );
+{
+  my ( $time_ref, $extra_ref ) = $actions{$op_mode}->(@ARGV);
+  if ( !defined $time_ref or !defined $time_ref->{expire_epoch} ) {
+    die "error: no expire date found\n";
+  }
+  @time_param{ keys %$time_ref }   = values %$time_ref;
+  @extra_param{ keys %$extra_ref } = values %$extra_ref;
+}
+$time_param{cur_epoch} = time;
+
+my %lookup = (
+  time    => \%time_param,
+  extra   => \%extra_param,
+  program => \%program_param
+);
+
 # check whether expired, or if within a window
-if ( $expire_epoch <= $cur_epoch ) {
+if ( $time_param{expire_epoch} <= $time_param{cur_epoch} ) {
+
   # TODO fill out more parameters (humanized time? strftime, parameters
   # about the certificate, and etc.? - see what need for reporting)
-  handle_condition(
-    $report_ref->{expired},
-    { name         => 'expired',
-      expire_epoch => $expire_epoch,
-      cur_epoch    => $cur_epoch,
-      seconds_ago  => $cur_epoch - $expire_epoch,
+  # seconds_ago  => $cur_epoch - $expire_epoch,
+  handle_condition( $report_ref->{expired}, \%lookup );
+
+  die "error: expired handler did not exit script\n";
+}
+
+if ( @{ $report_ref->{window} } ) {
+
+  # build Windows to look at (sanity checks, duration conversion)
+  # TODO include window timevalue in time_param hash
+  my @windows;
+  for my $window_ref ( @{ $report_ref->{window} } ) {
+    if ( !exists $window_ref->{inside} ) {
+      remark( 'error', 'skipping window without date setting' );
+      next;
     }
-  );
-} else {
-
-  if ( @{ $report_ref->{window} } ) {
-
-    # build Windows to look at (sanity checks, duration conversion)
-    my @windows;
-    for my $window_ref ( @{ $report_ref->{window} } ) {
-      if ( !exists $window_ref->{inside} ) {
-        remark( 'error', 'skipping window without date setting' );
-        next;
-      }
-      $window_ref->{inside} = duration2seconds( $window_ref->{inside} );
-      push @windows, $window_ref;
-    }
-
-    for my $window_ref ( sort { $a->{inside} <=> $b->{inside} } @windows ) {
-      if ( $expire_epoch <= ( $cur_epoch + $window_ref->{inside} ) ) {
-
-        handle_condition(
-          $window_ref,
-          { name         => 'warning',
-            export_epoch => $expire_epoch,
-            cur_epoch    => $cur_epoch,
-            seconds_left => $expire_epoch - $cur_epoch,
-          }
-        );
-        die "error: handler did not exit script\n";
-      }
-    }
+    $window_ref->{inside_sec} = duration2seconds( $window_ref->{inside} );
+    push @windows, $window_ref;
   }
 
-  if ( exists $report_ref->{default} ) {
-    handle_condition(
-      $report_ref->{default},
-      { name         => 'default',
-        export_epoch => $expire_epoch,
-        cur_epoch    => $cur_epoch,
-        seconds_left => $expire_epoch - $cur_epoch,
-      }
-    );
+  for
+    my $window_ref ( sort { $a->{inside_sec} <=> $b->{inside_sec} } @windows )
+  {
+
+    if ( $time_param{expire_epoch} <=
+      ( $time_param{cur_epoch} + $window_ref->{inside_sec} ) ) {
+
+      # TODO seconds_left => $expire_epoch - $cur_epoch,
+      handle_condition( $window_ref, \%lookup );
+
+      die "error: window handler did not exit script\n";
+    }
   }
+}
+
+if ( exists $report_ref->{default} ) {
+  # TODO seconds_left => $expire_epoch - $cur_epoch,
+  handle_condition( $report_ref->{default}, \%lookup );
+  die "error: default handler did not exit script\n";
 }
 die "error: no handles found\n";
 
 # parses handler prefs from under config, figures out what to do...
 sub handle_condition {
   my $handle_ref = shift;
-  my $param_ref  = shift;
+  my $lookup_ref = shift;
 
   # handlers must exit, default to 0 if unset
   if ( !exists $handle_ref->{exit_value} ) {
@@ -190,12 +211,13 @@ sub handle_condition {
   my %handlers = (
     # runs a command, such as logger(1)
     exec => sub {
-      my $cmd_str   = shift;
-      my $param_ref = shift;
+      my $cmd_str    = shift;
+      my $lookup_ref = shift;
 
       my @command = parse_tokens($cmd_str);
       for my $part (@command) {
-        $part =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
+        $part =~
+          s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
       }
 
@@ -213,20 +235,32 @@ sub handle_condition {
     # like exec, but takes first token as standard input to the program
     # (to support sending data to things like mail(1))
     pipe => sub {
-      my $cmd_str   = shift;
-      my $param_ref = shift;
+      my $cmd_str    = shift;
+      my $lookup_ref = shift;
 
-      my @command = parse_tokens($cmd_str);
+      my (@stdin, @command);
+      my $is_command = 0;
 
-      for my $part (@command) {
-        $part =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
+      for my $part (parse_tokens($cmd_str)) {
+        $part =~
+          s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
+
+        if (!$is_command) {
+	  if ($part eq '|') {
+	    $is_command = 1;
+	    next;
+	  }
+	  push @stdin, $part;
+	} else {
+	  push @command, $part;
+	}
       }
 
-      my $stdin = shift @command;
-
       open TO_COMMAND, '|-' or exec @command or return;
-      print TO_COMMAND "$stdin\n";
+      for my $part (@stdin) {
+        print TO_COMMAND "$part\n";
+      }
       close TO_COMMAND;
 
       return;
@@ -234,9 +268,10 @@ sub handle_condition {
     # print to standard output
     stdout => sub {
       my $output_str = shift;
-      my $param_ref  = shift;
+      my $lookup_ref = shift;
 
-      $output_str =~ s/ %{ ([^}]+) } / $param_ref->{$1} || '' /egx;
+      $output_str =~
+        s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
       $output_str =~ s/(\\.)/qq("$1")/eeg;
       print "$output_str\n";
 
@@ -244,14 +279,14 @@ sub handle_condition {
     }
   );
 
-  for my $handle (qw{stdout exec pipe}) {
+  for my $handle (sort keys %handlers) {
     if ( exists $handle_ref->{$handle} ) {
       if ( ref $handle_ref->{$handle} eq 'ARRAY' ) {
         for my $item ( @{ $handle_ref->{$handle} } ) {
-          $handlers{$handle}->( $item, $param_ref );
+          $handlers{$handle}->( $item, $lookup_ref );
         }
       } else {
-        $handlers{$handle}->( $handle_ref->{$handle}, $param_ref );
+        $handlers{$handle}->( $handle_ref->{$handle}, $lookup_ref );
       }
     }
   }
@@ -277,7 +312,7 @@ UBLE: {
 
     last UBLE if $string =~ / \G $ /gcx;
 
-    die "error: unparseable token in string: data=$string\n";   # TODO improve
+    die "error: unparseable token in string: data=$string\n";
   }
 
   return @tokens;
@@ -409,7 +444,7 @@ END_USAGE
   return;
 }
 
-__DATA__
+__END__
 
 =head1 NAME
 
@@ -474,10 +509,32 @@ List allowed modes to standard output and exit.
 
 =head1 FILES
 
-The preferences file specifies how to handle expiration dates. The
-following outputs values read by SiteScope. For expired or near-expired
-data, errors are raised in SiteScope via the higher return codes. Data
-expiring inside a month generates an e-mail, but no SiteScope error.
+The preferences file specifies how to handle expiration dates. See below
+for an example. At minimum, a named C<class> block should be created
+with the name C<default>. This block should contain rules to handle
+different conditions: C<expired> will be called if the data is expired,
+followed by any C<window> blocks, ordered to process the shortest
+durations first. If none match, a C<default> hander is called.
+
+The first matching handler block will exit the script, with an
+C<exit_value> of zero, unless a different C<exit_value> is set.
+
+Blocks can include C<stdout> to print output, C<exec> to run named
+commands, C<pipe> to send input to a named command, and C<exit_value> to
+change the exit status of C<check-expire>. Aruguments to these options
+can template information about the certificate and other data (see the
+example below for the syntax, and the source for available parameters).
+
+C<exec> and C<pipe> must be commands to run, not shell statements. If
+shell code is needed, write a wrapper script, and execute that.
+
+C<window> handlers must include a single C<inside> statement followed by
+a duration in sections, or a shorthand duration such as C<7d>.
+
+The following outputs values read by SiteScope. For expired or near-
+expired data, errors are raised in SiteScope via the higher return
+codes. Data expiring inside a month generates an e-mail, but no
+SiteScope error.
 
   <class default>
     # default handler used if nothing else matches
@@ -485,28 +542,40 @@ expiring inside a month generates an e-mail, but no SiteScope error.
       stdout "Return Code: 0"
     </default>
 
-    # handler for expired data (equal or past expiration date)
-    <expired>
-      exec /usr/bin/logger -i -t check-expire expired certificate
-      stdout "Return Code: 2"
-      exit_value 2
-    </expired>
-
-    # higher return code if expiring inside 7 days
+    # higher return code if expiring inside 7 days, e-mail warnings
     <window>
       inside 7d
 
       stdout "Return Code: 1"
       exit_value 1
+
+      pipe expiring soon: %{extra.subject} | /bin/mail -s "cert warning" root
     </window>
 
-    # warn via e-mail if expiring inside 30 days
+    # just warn via e-mail if expiring inside 30 days
     <window>
       inside 30d
 
       stdout "Return Code: 0"
-      pipe "expiration warning" /usr/bin/logger -i -t check-expire
+      pipe expiring soon: %{extra.subject} | /bin/mail -s "cert warning" root
     </window>
+
+    # handler for expired data (equal to or past expiration date)
+    <expired>
+      exec /usr/bin/logger expired certificate: subject=%{extra.subject}
+
+      pipe <<END_PIPE
+    Expired certificate:
+      subject=%{extra.subject}
+      expired=%{time.expire_epoch}
+      command=%{proogram.name} %{program.argv}
+    | /bin/mail -s "expired cert" root
+  END_PIPE
+
+      stdout "Return Code: 2"
+      exit_value 2
+    </expired>
+
   </class>
 
 See L<Config::General|Config::General> for details on the configuration
@@ -526,6 +595,19 @@ Patches that fix problems or add new features are welcome.
 =head2 Known Issues
 
 No known issues.
+
+=head1 TODO
+
+Mode handler for key=value output from a program, to facilitate
+interface scripts to other arbitrary systems.
+
+More metadata in %lookup (with modifying %lookup too much once doing
+tests!), for humanized dates, time durations, and other details.
+
+Document usage under Nagios or other interfaces.
+
+Read things to check from preferences file and loop over, instead of
+needing a different command run for each thing to check?
 
 =head1 SEE ALSO
 
