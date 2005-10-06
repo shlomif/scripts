@@ -23,67 +23,10 @@ my %program_param = ( name => $basename, argv => "@ARGV", pid => $$ );
 
 # list different modes of operation (subroutine that obtains expiration
 # date and other metadata from an external command/code)
-my %actions;
-
-# Mode to parse for expiration date using 'openssl x509' (certificate)
-$actions{openssl_x509} = sub {
-  my @x509_arguments = @_;
-
-  my @command =
-    ( qw{openssl x509 -noout -dates -subject -issuer}, @x509_arguments );
-
-  my $results = get_output(@command);
-  if ( !defined $results ) {
-    die "error: no output: command=@command\n";
-  }
-
-  my ( %time_param, %cert_param );
-  for my $line (@$results) {
-    if ( $line =~ m/^notAfter=(.+)/ ) {
-      $time_param{expire_epoch} = date_openssl2epoch($1)
-        if !exists $time_param{expire_epoch};
-      next;
-    }
-    if ( $line =~ m/^notBefore=(.+)/ ) {
-      $time_param{start_epoch} = date_openssl2epoch($1)
-        if !exists $time_param{start_epoch};
-      next;
-    }
-    if ( $line =~ m/^subject\s*=\s*(.+)/ ) {
-      $cert_param{subject} = $1 if !exists $cert_param{subject};
-      next;
-    }
-    if ( $line =~ m/^issuer\s*=\s*(.+)/ ) {
-      $cert_param{issuer} = $1 if !exists $cert_param{issuer};
-      next;
-    }
-  }
-
-  if ( !exists $time_param{expire_epoch} ) {
-    return;
-  }
-
-  return \%time_param, \%cert_param;
-};
-
-# runs a command that should return a certificate to stdout that
-# 'openssl x509' can then parse for information
-$actions{certificate} = sub {
-  my @command = @_;
-  my $results = get_output(@command);
-  if ( !defined $results ) {
-    die "error: no output: command=@command\n";
-  }
-
-  my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
-  die "error: no temporary file created\n" unless $tmp_fh;
-  for my $line (@$results) {
-    print $tmp_fh $line;
-  }
-
-  return $actions{openssl_x509}->( '-in', $filename );
-};
-
+my %actions = (
+  certificate  => \&action_certificate,
+  openssl_x509 => \&action_openssl_x509,
+);
 my @actions = sort keys %actions;
 
 use Getopt::Std;
@@ -211,6 +154,65 @@ if ( exists $report_ref->{default} ) {
 } else {
   # if no default, exit, assuming an implicit default exit
   exit;
+}
+
+# Mode to parse for expiration date using 'openssl x509' (certificate)
+sub action_openssl_x509 {
+  my @x509_arguments = @_;
+
+  my @command =
+    ( qw{openssl x509 -noout -dates -subject -issuer}, @x509_arguments );
+
+  my $results = get_output(@command);
+  if ( !defined $results ) {
+    die "error: no output: command=@command\n";
+  }
+
+  my ( %time_param, %cert_param );
+  for my $line (@$results) {
+    if ( $line =~ m/^notAfter=(.+)/ ) {
+      $time_param{expire_epoch} = date_openssl2epoch($1)
+        if !exists $time_param{expire_epoch};
+      next;
+    }
+    if ( $line =~ m/^notBefore=(.+)/ ) {
+      $time_param{start_epoch} = date_openssl2epoch($1)
+        if !exists $time_param{start_epoch};
+      next;
+    }
+    if ( $line =~ m/^subject\s*=\s*(.+)/ ) {
+      $cert_param{subject} = $1 if !exists $cert_param{subject};
+      next;
+    }
+    if ( $line =~ m/^issuer\s*=\s*(.+)/ ) {
+      $cert_param{issuer} = $1 if !exists $cert_param{issuer};
+      next;
+    }
+  }
+
+  if ( !exists $time_param{expire_epoch} ) {
+    return;
+  }
+
+  return \%time_param, \%cert_param;
+}
+
+# runs a command that should return a certificate to stdout that
+# 'openssl x509' can then parse for information
+sub action_certificate {
+  my @command = @_;
+  my $results = get_output(@command);
+  if ( !defined $results ) {
+    die "error: no output: command=@command\n";
+  }
+
+  my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
+  die "error: no temporary file created\n" unless $tmp_fh;
+  for my $line (@$results) {
+    print $tmp_fh $line;
+  }
+
+  return $actions{openssl_x509}->( '-in', $filename );
 }
 
 # parses handler prefs from under config, figures out what to do...
