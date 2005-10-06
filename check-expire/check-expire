@@ -208,8 +208,10 @@ if ( exists $report_ref->{default} ) {
   # TODO seconds_left => $expire_epoch - $cur_epoch,
   handle_condition( $report_ref->{default}, \%lookup );
   die "error: default handler did not exit script\n";
+} else {
+  # if no default, exit, assuming an implicit default exit
+  exit;
 }
-die "error: no handles found\n";
 
 # parses handler prefs from under config, figures out what to do...
 sub handle_condition {
