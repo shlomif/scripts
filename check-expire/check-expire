@@ -257,8 +257,12 @@ sub handle_condition {
 
       # standard input everything before first unbackwhacked |
       my ( $stdin, $cmd_tmp ) = split /\s*(?<!\\)\|\s*/, $cmd_str, 2;
-      my @command;
 
+      $stdin =~
+        s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
+      $stind =~ s/(\\.)/qq("$1")/eeg;
+
+      my @command;
       for my $part ( parse_tokens($cmd_tmp) ) {
         $part =~
           s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
