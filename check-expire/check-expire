@@ -581,7 +581,7 @@ SiteScope error.
     Expired certificate:
       subject=%{extra.subject}
       expired=%{time.expire_epoch}
-      command=%{proogram.name} %{program.argv}
+      command=%{program.name} %{program.argv}
     | /bin/mail -s "expired cert" root
   END_PIPE
 
