@@ -95,18 +95,17 @@ my %lookup = (
   program => \%program_param
 );
 
+my $exit_value = 0;
+
 # check whether expired, or if within a window
 if ( $time_param{expire_epoch} <= $time_param{cur_epoch} ) {
 
   # TODO fill out more parameters (humanized time? strftime, parameters
   # about the certificate, and etc.? - see what need for reporting)
   # seconds_ago  => $cur_epoch - $expire_epoch,
-  handle_condition( $report_ref->{expired}, \%lookup );
+  $exit_value = handle_condition( $report_ref->{expired}, \%lookup );
 
-  die "error: expired handler did not exit script\n";
-}
-
-if ( exists $report_ref->{window} ) {
+} elsif ( exists $report_ref->{window} ) {
   my @windows;
 
   if ( ref $report_ref->{window} eq 'HASH' ) {
@@ -141,22 +140,17 @@ if ( exists $report_ref->{window} ) {
       ( $time_param{cur_epoch} + $window_ref->{inside_sec} ) ) {
 
       # TODO seconds_left => $expire_epoch - $cur_epoch,
-      handle_condition( $window_ref, \%lookup );
-
-      die "error: window handler did not exit script\n";
+      $exit_value = handle_condition( $window_ref, \%lookup );
     }
   }
-}
 
-if ( exists $report_ref->{default} ) {
+} elsif ( exists $report_ref->{default} ) {
+
   # TODO seconds_left => $expire_epoch - $cur_epoch,
-  handle_condition( $report_ref->{default}, \%lookup );
+  $exit_value = handle_condition( $report_ref->{default}, \%lookup );
 
-  die "error: default handler did not exit script\n";
-} else {
-  # if no default, exit, assuming an implicit default exit
-  do_exit(0);
 }
+do_exit($exit_value);
 
 # Mode to parse for expiration date using 'openssl x509' (certificate)
 sub action_openssl_x509 {
@@ -309,7 +303,7 @@ sub handle_condition {
     }
   }
 
-  do_exit( $handle_ref->{exit_value} );
+  return $handle_ref->{exit_value};
 }
 
 # converts a string into a list of tokens
