@@ -1,4 +1,11 @@
 #!/bin/sh
+#
+# $Id$
+
+if [ -z "$1" ]; then
+  echo "Usage: `basename $0` png-image [...]" >&2
+  exit 1
+fi
 
 for file in "$@"; do
   TMPFILE=`mktemp .crush-png-tmp.XXXXXXXX` || exit 1
