@@ -35,12 +35,12 @@ getopts 'h?l:c:f:', \%opts;
 
 if ( exists $opts{l} ) {
   print "@actions\n";
-  exit;
+  do_exit(0);
 }
 
 if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
   print_help();
-  exit 100;
+  do_exit(100);
 }
 
 my %config = ParseConfig( -ConfigFile => $opts{f}, -LowerCaseNames => 1 );
@@ -50,7 +50,7 @@ if ( !defined $config{class} ) {
     'no classes defined in configuration',
     { file => $opts{f} }
   );
-  exit 103;
+  do_exit(103);
 }
 
 my $op_mode = shift || q{};
@@ -60,7 +60,7 @@ if ( !exists $actions{$op_mode} ) {
   remark( 'error', 'unknown mode',
     { allowed => join( q{,}, @actions ), mode => $op_mode } );
   print_help();
-  exit 101;
+  do_exit(101);
 }
 
 # where in the prefs to read expire, window handlers from
@@ -73,7 +73,7 @@ if ( !defined $report_ref ) {
     'class preferences not found',
     { class => $report_handler, file => $opts{f} }
   );
-  exit 103;
+  do_exit(103);
 }
 
 # lookup expiration date and other info via mode handler
@@ -81,7 +81,8 @@ my ( %time_param, %extra_param );
 {
   my ( $time_ref, $extra_ref ) = $actions{$op_mode}->(@ARGV);
   if ( !defined $time_ref or !defined $time_ref->{expire_epoch} ) {
-    die "error: no expire date found\n";
+    remark( 'error', 'no expire date found' );
+    do_exit(105);
   }
   @time_param{ keys %$time_ref }   = values %$time_ref;
   @extra_param{ keys %$extra_ref } = values %$extra_ref;
@@ -118,7 +119,7 @@ if ( exists $report_ref->{window} ) {
       'unexpected reference type for window',
       { ref => ref $report_ref->{window}, file => $opts{f} }
     );
-    exit 104;
+    do_exit(104);
   }
 
   # build Windows to look at (sanity checks, duration conversion)
@@ -150,10 +151,11 @@ if ( exists $report_ref->{window} ) {
 if ( exists $report_ref->{default} ) {
   # TODO seconds_left => $expire_epoch - $cur_epoch,
   handle_condition( $report_ref->{default}, \%lookup );
+
   die "error: default handler did not exit script\n";
 } else {
   # if no default, exit, assuming an implicit default exit
-  exit;
+  do_exit(0);
 }
 
 # Mode to parse for expiration date using 'openssl x509' (certificate)
@@ -165,7 +167,8 @@ sub action_openssl_x509 {
 
   my $results = get_output(@command);
   if ( !defined $results ) {
-    die "error: no output: command=@command\n";
+    remark( 'error', 'no output returned', { command => "@command" } );
+    do_exit(106);
   }
 
   my ( %time_param, %cert_param );
@@ -203,11 +206,15 @@ sub action_certificate {
   my @command = @_;
   my $results = get_output(@command);
   if ( !defined $results ) {
-    die "error: no output: command=@command\n";
+    remark( 'error', 'no output returned', { command => "@command" } );
+    do_exit(106);
   }
 
   my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
-  die "error: no temporary file created\n" unless $tmp_fh;
+  if ( !defined $tmp_fh ) {
+    remark( 'error', 'no temporary file created' );
+    do_exit(107);
+  }
   for my $line (@$results) {
     print $tmp_fh $line;
   }
@@ -302,7 +309,7 @@ sub handle_condition {
     }
   }
 
-  exit $handle_ref->{exit_value};
+  do_exit( $handle_ref->{exit_value} );
 }
 
 # converts a string into a list of tokens
@@ -323,7 +330,8 @@ UBLE: {
 
     last UBLE if $string =~ / \G $ /gcx;
 
-    die "error: unparseable token in string: data=$string\n";
+    remark( 'error', 'unparseable token in string', { data => $string } );
+    do_exit(108);
   }
 
   return @tokens;
@@ -405,14 +413,24 @@ sub duration2seconds {
       $seconds += $1 * $factor{$2};
     }
   } else {
-    die "error: unknown characters in duration: input=$tmpdur\n";
+    remark( 'error', 'unknown characters in duration', { data => $tmpdur } );
+    do_exit(109);
   }
 
   unless ( defined $seconds and $seconds =~ m/^\d+$/ ) {
-    die "error: unable to parse duration: input=$tmpdur\n";
+    remark( 'error', 'unable to parse duration', { data => $tmpdur } );
+    do_exit(109);
   }
 
   return $seconds;
+}
+
+# Wrapper for exit values, in case need to alter them under particular
+# monitoring systems. Script uses 100+ for various error conditions.
+sub do_exit {
+  my $exit_value = shift;
+
+  exit $exit_value;
 }
 
 sub remark {
