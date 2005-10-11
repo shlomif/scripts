@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for file in "$@"; do
+  TMPFILE=`mktemp .crush-png-tmp.XXXXXXXX` || exit 1
+  pngcrush -brute -fix -reduce "$file" "$TMPFILE" 1>/dev/null || exit 1
+  mv "$TMPFILE" "$file"
+done
