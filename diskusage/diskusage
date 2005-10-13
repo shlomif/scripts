@@ -8,6 +8,12 @@
 # 'du' output parser and reporter.
 #
 # Run perldoc(1) on this script for additional documentation.
+#
+# TODO stat() files so can include other information (whether file or
+# dir) in output?
+#
+# TODO support rsync-style exclude files, so can check totals as rsync
+# would see a directory tree?
 
 use strict;
 
@@ -26,7 +32,7 @@ print_help() if exists $opts{h} or exists $opts{'?'};
 print_help() if not exists $opts{c} and not @ARGV;
 
 # KLUGE pass through on -x "one filesystem" option to du
-if (exists $opts{x}) {
+if ( exists $opts{x} ) {
   push @du_cmd, '-x';
 }
 
@@ -53,9 +59,12 @@ my @directories;
 
 if ( exists $opts{c} ) {
   open PREFS, "< $opts{c}"
-   or
-   remark( 'error', 'could not load prefs', { file => $opts{c}, errno => $! } )
-   and exit 104;
+    or remark(
+    'error',
+    'could not load prefs',
+    { file => $opts{c}, errno => $! }
+    )
+    and exit 104;
 
   push @directories, load_dir_prefs( \*PREFS );
 }
@@ -100,14 +109,14 @@ sub load_dir_prefs {
     }
 
     my @tokens;
-   UBLE: {
+  UBLE: {
       # unquoted text
       push( @tokens, $1 ), redo UBLE
-       if m/ \G ( [^"'\s]+ ) \s* /cgx;
+        if m/ \G ( [^"'\s]+ ) \s* /cgx;
 
       # single or double quoted, allowing for backslashed internal escapes
       push( @tokens, $2 ), redo UBLE
-       if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
+        if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
 
       last UBLE if / \G $ /gcx;
     }
@@ -158,14 +167,14 @@ sub rundu {
 
   # KLUGE this is only a warning, as could be reading du output indirectly
   # from a file via cat
-  if ( ! -d $targetdir ) {
+  if ( !-d $targetdir ) {
     remark( 'warning', 'target not a directory', { dir => $parentdir } );
   }
 
-  open FROMDU,      '-|'
-   or exec @du_cmd, $targetdir
-   or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
-   and exit 102;
+  open FROMDU,       '-|'
+    or exec @du_cmd, $targetdir
+    or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
+    and exit 102;
 
   my %dudefaults = ( %defaults, parentdir => $parentdir, epoch => time );
 
@@ -200,12 +209,16 @@ sub rundu {
 
     # KLUGE this assumes 'du -k' is being used!
     $duinfo{humansize} = humanize( $duinfo{size}, { base => 1024 } )
-     if $output_tmpl =~ m/%{humansize}/;
+      if $output_tmpl =~ m/%{humansize}/;
+
+    # DBG to see what template values are available
+    #use Data::Dumper; warn Dumper \%duinfo;
 
     for my $entry (@$wanted) {
       if ( $duinfo{ $entry->{subject} } =~ m/$entry->{value}/ ) {
         my $str_out = $output_tmpl;
-        $str_out =~ s/ %{ (\w+) } / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
+        $str_out =~
+          s/ %{ (\w+) } / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
         print $str_out;
         last;
       }
@@ -213,11 +226,11 @@ sub rundu {
   }
 
   close FROMDU
-   or remark(
+    or remark(
     'warning',
     'problem closing pipe from du',
     { errno => $!, dir => $parentdir }
-   );
+    );
 }
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
@@ -327,12 +340,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
@@ -379,7 +392,7 @@ Load configuration, specify custom output template:
 Read disk usage information from a file. Good when C<du> must be run on
 remote system that does not have or cannot run C<diskusage>:
 
-  $ du -ak . > usage
+  $ du -a -k . > usage
   $ env DU_CMD=cat diskusage usage
 
 =head1 DESCRIPTION
@@ -414,6 +427,8 @@ To change the C<du> command that is run, set the C<DU_CMD> environment
 variable. Bear in mind this script expects sizes to be reported in
 kilobytes (e.g. with the C<-k> option to C<du>) for the C<humansize>
 output option.
+
+  $ env DU_CMD='du -ak' diskusage .
 
 =head1 OPTIONS
 
