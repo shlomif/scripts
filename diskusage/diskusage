@@ -156,9 +156,10 @@ sub rundu {
   # TODO warn about this and just change the parentdir?
   $targetdir = readlink $parentdir if -l $parentdir;
 
-  unless ( -d $targetdir ) {
-    remark( 'error', 'target not a directory', { dir => $parentdir } );
-    exit 101;
+  # KLUGE this is only a warning, as could be reading du output indirectly
+  # from a file via cat
+  if ( ! -d $targetdir ) {
+    remark( 'warning', 'target not a directory', { dir => $parentdir } );
   }
 
   open FROMDU,      '-|'
@@ -374,6 +375,12 @@ Run C<diskusage> to report on home directory usage:
 Load configuration, specify custom output template:
 
   $ diskusage -c ~/.diskusage/prefs -o '%{humansize} %{path}\n'
+
+Read disk usage information from a file. Good when C<du> must be run on
+remote system that does not have or cannot run C<diskusage>:
+
+  $ du -ak . > usage
+  $ env DU_CMD=cat diskusage usage
 
 =head1 DESCRIPTION
 
