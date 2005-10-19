@@ -430,6 +430,8 @@ the value.
 
   d@      http://dictionary.reference.com/search?db=*&q=%@
 
+  dp@     http://www.dogpile.com/info.dogpl/search/web/%@
+
   dnsr    http://www.DNSreport.com/
   dnsr@   http://www.DNSreport.com/tools/dnsreport.ch?domain=%@
 
@@ -460,6 +462,8 @@ the value.
   metro@  http://transit.metrokc.gov/cftemplates/show_schedule.cfm?BUS_ROUTE=%1
   metroplan       http://tripplanner.metrokc.gov/cgi-bin/itin_page.pl?resptype=U
 
+  msn@    http://search.msn.com/results.aspx?q=%@&FORM=MSNH&srch_type=0
+
   news    http://news.google.com/
 
   nut     http://www.nal.usda.gov/fnic/cgi-bin/nut_search.pl
@@ -467,8 +471,10 @@ the value.
 
   ordb@   http://www.ordb.org/lookup/?host=%1
 
-  pp      http://sial.org/pbot/
-  pp@     http://sial.org/pbot/%@
+  perldoc@        http://search.cpan.org/perldoc/%1
+  perlfunc@       http://perldoc.perl.org/functions/%1.html
+  pm      http://www.perlmonks.org/
+  pm@     http://www.perlmonks.org/index.pl?node=%@&go_button=Search
 
   ripe    http://www.ripe.net/ripencc/pub-services/db/whois/whois.html
   ripe@   http://www.ripe.net/perl/whois?form_type=simple&full_query_string=&searchtext=%@&do_search=Search
@@ -483,6 +489,16 @@ the value.
 
   vt      http://www.versiontracker.com/macosx/
   vt@     http://www.versiontracker.com/php/search.php?mode=basic&action=search&str=%@&plt%5B%5D=macosx&x=0&y=0
+
+  w3      http://www.w3.org/
+  wikiq   http://en.wikiquote.org/
+  wikiq@  http://en.wikiquote.org/wiki/Special:Search?search=%@&go=Go
+  wp      http://en.wikipedia.org/
+  wp@     http://en.wikipedia.org/wiki/Special:Search?search=%@&go=Go
+  wikit   http://en.wiktionary.org/
+  wikit@  http://en.wiktionary.org/wiki/Special:Search?search=%@&go=Go
+
+  y@      http://search.yahoo.com/search?p=%@&sm=Yahoo%21+Search&fr=FP-tab-web-t&toggle=1&cop=&ei=UTF-8
 
 =head1 DIRECTORY MAPS
 
