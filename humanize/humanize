@@ -6,47 +6,30 @@
 # public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
-
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-######################################################################
-#
-# VARIABLES
-
-my (%opts, $base, $regex);
-
 # default to working on runs of 4 or more digits
-$regex = '(-?\d{4,})';
+my $regex = '(-?\d{4,})';
 
-######################################################################
-#
-# MAIN
-
-# parse command-line options
-getopts('h?kb:m:r', \%opts);
+use Getopt::Std;
+my %opts;
+getopts( 'h?kb:m:rMG', \%opts );
 
 help() if exists $opts{h} or exists $opts{'?'};
 
+my $base;
+
 # set the base conversion factor
-if (exists $opts{b}) {
+if ( exists $opts{b} ) {
   ($base) = $opts{b} =~ m/(\d+)/;
   die "Error: base should be a positive integer\n" unless $base;
 }
 
-$base = 1024 if exists $opts{k};
+# TODO fail if multiple of these set...
+$base = 1073741824 if exists $opts{G};
+$base = 1048576    if exists $opts{M};
+$base = 1024       if exists $opts{k};
 
 # set different regex if requried, add matching parens if none
 # detected in input, as we need to match *something*
@@ -56,10 +39,10 @@ $regex = '(' . $regex . ')' unless $regex =~ m/\(.+\)/;
 @ARGV = <STDIN> unless @ARGV;
 
 for (@ARGV) {
-  if (exists $opts{r}) {
+  if ( exists $opts{r} ) {
     while (m/$regex/go) {
       my $orig = $1;
-      my $human = humanize($orig, {base => $base});
+      my $human = humanize( $orig, { base => $base } );
       s/$regex/' 'x(length($orig) - length($human)).$human/eo;
     }
   } else {
@@ -68,12 +51,6 @@ for (@ARGV) {
   $_ .= "\n" unless m/\n$/;
   print;
 }
-
-exit;
-
-######################################################################
-#
-# SUBROUTINES
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
 # to be something human readable.
@@ -117,12 +94,12 @@ sub humanize {
     'max_human_length' => 2,
 
     # list of suffixes for human readable output
-    'suffix' => ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+    'suffix' => [ 'B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
   );
 
   # merge passed options with defaults
-  while (my ($k, $v) = each %$prefs) {
-    if (exists $defaults{$k} and $v) {
+  while ( my ( $k, $v ) = each %$prefs ) {
+    if ( exists $defaults{$k} and $v ) {
       $defaults{$k} = $v;
     }
   }
@@ -133,7 +110,7 @@ sub humanize {
   my $tmp    = q{};
 
   # handle negatives
-  if ($num < 0) {
+  if ( $num < 0 ) {
     $num    = abs $num;
     $prefix = '-';
   }
@@ -142,14 +119,14 @@ sub humanize {
   $num *= $defaults{base};
 
   # reduce number to something readable by factor specified
-  while ($num > $defaults{factor}) {
+  while ( $num > $defaults{factor} ) {
     $num /= $defaults{factor};
     $count++;
   }
 
   # optionally fudge "near" values up to next higher level
-  if ($defaults{fudge}) {
-    if ($num > ($defaults{fudge} * $defaults{factor})) {
+  if ( $defaults{fudge} ) {
+    if ( $num > ( $defaults{fudge} * $defaults{factor} ) ) {
       $count++;
       $num /= $defaults{factor};
     }
@@ -157,13 +134,13 @@ sub humanize {
 
   # no .[1-9] decimal on longer numbers for easier reading
   # only show decimal if format say so
-  if (length sprintf("%.f", $num) > $defaults{max_human_length}
-    || !$defaults{decimal}) {
+  if ( length sprintf( "%.f", $num ) > $defaults{max_human_length}
+    || !$defaults{decimal} ) {
 
-    $tmp = sprintf("%.0f", $num);
+    $tmp = sprintf( "%.0f", $num );
 
     } else {
-    $tmp = sprintf("%.1f", $num);
+    $tmp = sprintf( "%.1f", $num );
 
     # optionally hack trailing .0
     $tmp =~ s/\.0$// unless $defaults{decimal_zero};
@@ -184,6 +161,8 @@ Options:
 
   -b nn  Integer to offset incoming data by.
   -k     Default incoming data to Kilobtyes.  Default: bytes.
+  -M     Default to Megabytes.
+  -G     Default to Gigabytes.
 
   -m rr  Regex to match what to operate on.  Default: $regex.
   -r     Align humanized numbers to right.  Default: left.
@@ -191,12 +170,10 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 101;
 }
 
-######################################################################
-#
-# DOCUMENTATION
+__END__
 
 =head1 NAME
 
@@ -268,6 +245,14 @@ each Kilobyte.
 =item B<-k>
 
 Overrides B<-b> and treats the incoming data as if in Kilobytes.
+
+=item B<-M>
+
+Treat incoming data as if in Megabytes.
+
+=item B<-G>
+
+Treat incoming data as if in Gigabytes.
 
 =item B<-m> I<regex>
 
@@ -342,3 +327,4 @@ inline with the unix philosphopy of filters.)
 Utilities
 
 =cut
+
