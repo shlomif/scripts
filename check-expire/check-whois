@@ -1,0 +1,74 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Script to parse domain whois information for expiration dates. Returns
+# key=value data about each domain mentioned on the command line.
+
+use strict;
+
+use Date::Parse qw(str2time);
+use Net::Whois::Raw;
+
+use Getopt::Std;
+my %opts;
+getopts 'h?t', \%opts;
+
+if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
+  print_help();
+  exit 101;
+}
+
+for my $domain (@ARGV) {
+  my %domain_info;
+  $domain_info{name} = $domain;
+
+  my $whois_str;
+  eval { $whois_str = whois($domain); };
+  if ($@) {
+    chomp $@;
+    $domain_info{error} = $@;
+
+  } elsif ( !defined $whois_str ) {
+    $domain_info{error} = 'error: no whois information returned';
+
+  } else {
+
+    # TODO extend this to support other registrar formats
+    my ($expire) = $whois_str =~ m/(?i) Expiration\s+Date: \s* (.+) /mx;
+
+    if ( !defined $expire ) {
+      $domain_info{error} = 'error: could not parse expiration date';
+    } else {
+      my $epoch = str2time($expire);
+      if (
+        !defined $epoch
+        or $epoch !~ m/^\d+$) {
+        $domain_info{error} = 'error: could not parse epoch';
+      } else {
+        $domain_info{expire_epoch} = $epoch;
+      }
+    }
+  }
+
+  # print out info in domain hash for parse by check-expire
+  for my $key ( sort keys %domain_info ) {
+    print "$key=$domain_info{$key}\n";
+  }
+  print "\n";
+}
+
+sub print_help {
+  print <<"END_USAGE";
+Usage: $0 [-t] example.com [example.org ..]
+
+Parse whois for expiration dates.
+
+Options:
+  -h/ - ?  Display this message.
+
+  -t     Emit whois results to debug why expiration date unparseable.
+
+END_USAGE
+  return;
+}
