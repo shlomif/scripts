@@ -20,7 +20,7 @@ if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
 }
 
 for my $domain (@ARGV) {
-  my %domain_info;
+  my %domain_info = ( 'check-type' => 'whois' );
   $domain_info{name} = $domain;
 
   my $whois_str;
@@ -41,9 +41,7 @@ for my $domain (@ARGV) {
       $domain_info{error} = 'error: could not parse expiration date';
     } else {
       my $epoch = str2time($expire);
-      if (
-        !defined $epoch
-        or $epoch !~ m/^\d+$) {
+      if ( !defined $epoch or $epoch !~ m/^\d+$/ ) {
         $domain_info{error} = 'error: could not parse epoch';
       } else {
         $domain_info{expire_epoch} = $epoch;
