@@ -1,0 +1,41 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Wrapper to sign multiple files with gpg.
+
+use strict;
+
+use Term::ReadKey qw(ReadMode);
+
+if ( !@ARGV ) {
+  die "Usage: $0 file [file2 ..]\n";
+}
+
+print "Passphrase: ";
+
+ReadMode('noecho');
+my $phrase = <STDIN>;
+ReadMode('restore');
+print "\n";
+
+chomp $phrase;
+
+for my $file (@ARGV) {
+  next unless -f $file;
+
+  # TODO use 'rpm --addsign' for RPM, though how pass password to it?
+  gpg_sign($file);
+}
+
+sub gpg_sign {
+  my $file = shift;
+  open SEND_PASS,                                                   '|-'
+    or exec qw(gpg --passphrase-fd 0 --sign --detach-sign --armor), $file
+    or die "error: exec failed: errno=$!\n";
+  print SEND_PASS $phrase;
+  close SEND_PASS or die "error: non-zero exit from command\n";
+}
