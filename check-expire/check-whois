@@ -23,7 +23,7 @@ if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
 }
 
 for my $domain (@ARGV) {
-  my %domain_info = ( 'check-type' => 'whois' );
+  my %domain_info = ( check_type => 'whois' );
   $domain_info{name} = $domain;
 
   my $whois_str;
