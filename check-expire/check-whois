@@ -4,6 +4,9 @@
 #
 # Script to parse domain whois information for expiration dates. Returns
 # key=value data about each domain mentioned on the command line.
+#
+# TODO use exDate from Net::DRI instead? (too many module deps. for me
+# to implement right now).
 
 use strict;
 
