@@ -9,7 +9,8 @@
 
 use strict;
 
-use Term::ReadKey qw(ReadMode);
+my @gpg_sign_cmd =
+  qw(gpg --passphrase-fd 0 --quiet --sign --detach-sign --armor);
 
 if ( !@ARGV ) {
   die "Usage: $0 file [file2 ..]\n";
@@ -17,6 +18,7 @@ if ( !@ARGV ) {
 
 print "Passphrase: ";
 
+use Term::ReadKey qw(ReadMode);
 ReadMode('noecho');
 my $phrase = <STDIN>;
 ReadMode('restore');
@@ -33,8 +35,8 @@ for my $file (@ARGV) {
 
 sub gpg_sign {
   my $file = shift;
-  open SEND_PASS,                                                   '|-'
-    or exec qw(gpg --passphrase-fd 0 --sign --detach-sign --armor), $file
+  open SEND_PASS,          '|-'
+    or exec @gpg_sign_cmd, $file
     or die "error: exec failed: errno=$!\n";
   print SEND_PASS $phrase;
   close SEND_PASS or die "error: non-zero exit from command\n";
