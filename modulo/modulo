@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# $Id$
+#
+# Return remainder of a given input number, broken down into two or
+# more values.
+#
+# Usage: modulo what-to-modulo-by value-to-modulo
+#
+#   $ modulo 2 1   
+#   1
+#   $ modulo 2 2
+#   0
+#   $ modulo 2 3
+#   1
+#
+# This can also be used for hostnames-containing-numbers:
+#
+#   $ modulo 2 node001
+#   1
+
+MODULUS=$( echo "$1" | tr -dc 0123456789 )
+if [ -z "$MODULUS" -o "$MODULUS" -lt 2 ]; then
+  MODULUS=2
+fi
+
+NUMBER=$( echo "$2" | tr -dc 0123456789 )
+if [ -z "$NUMBER" ]; then
+  NUMBER=$RANDOM
+fi
+
+RESULT=$(( $NUMBER % $MODULUS ))
+#echo "$NUMBER % $MODULUS = $RESULT"
+
+echo $RESULT
