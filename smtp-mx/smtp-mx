@@ -20,9 +20,9 @@ my $domain_re = qr/ ( [\w-]{1,63} \. \w{1,7} ) \.? /x;
 
 use Net::DNS;
 my $dns = Net::DNS::Resolver->new;
-$dns->defnames(0);  # do not search default domain
+$dns->defnames(0);    # do not search default domain
 
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp( @ARGV = <STDIN> ) unless @ARGV;
 
 my @domains;
 
@@ -31,7 +31,7 @@ for (@ARGV) {
 
   if (/^-([\w]+)$/) {
     my $opts = $1;
-    for ($opts =~ /(.)/g) { $opts{$_} = 1 }
+    for ( $opts =~ /(.)/g ) { $opts{$_} = 1 }
     print_help if exists $opts{h} or exists $opts{'?'};
     next;
   }
@@ -43,7 +43,7 @@ for (@ARGV) {
     next;
   }
 
-  unless ($dns->query($domain, 'SOA')) {
+  unless ( $dns->query( $domain, 'SOA' ) ) {
     warn "warning: domain does not exist: $domain\n";
     next;
   }
@@ -52,7 +52,7 @@ for (@ARGV) {
 }
 
 for my $domain (@domains) {
-  print +(@domains > 1 ? "$domain: " : q{}), join ' ', get_mx $domain;
+  print +( @domains > 1 ? "$domain: " : q{} ), join ' ', get_mx $domain;
 }
 
 sub get_mx {
@@ -60,24 +60,40 @@ sub get_mx {
 
   my @mx;
 
-  my $mx = $dns->query($domain, 'MX');
+  my $mx = $dns->query( $domain, 'MX' );
   if ($mx) {
-    for my $rr ($mx->answer) {
+    for my $rr ( $mx->answer ) {
       push @mx, $rr->exchange if $rr->type eq 'MX';
     }
   } else {
 
     # if no MX use A record for domain (assumes domain exists!)
     warn "notice: no MX records found, using A for $domain\n"
-     unless exists $opts{q};
+      unless exists $opts{q};
     push @mx, $domain;
   }
 
-  if (exists $opts{1}) {
+  if ( exists $opts{r} ) {
+    fisher_yates_shuffle( \@mx );
+  }
+
+  if ( exists $opts{1} ) {
     @mx = $mx[0];
   }
 
   return @mx;
+}
+
+# fisher_yates_shuffle( \@array ) : generate a random permutation
+# of @array in place
+sub fisher_yates_shuffle {
+  my $array = shift;
+  my $i;
+  for ( $i = @$array; --$i; ) {
+    my $j = int rand( $i + 1 );
+    next if $i == $j;
+    @$array[ $i, $j ] = @$array[ $j, $i ];
+  }
 }
 
 sub print_help {
@@ -89,6 +105,7 @@ Returns MX server(s) for domain(s) in question.
 Options:
   -h/-?  Display this message.
 
+  -r     Randomize MX list. (Default: order returned by Net::DNS.)
   -1     Limit output to first MX only.
 
   -q     Produce less warnings.
@@ -152,6 +169,11 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note about the script.
+
+=item B<-r>
+
+Randomize (shuffle) the MX list. Default order is whatever
+Net::DNS returns.
 
 =item B<-1>
 
