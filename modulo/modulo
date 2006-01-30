@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # $Id$
 #
@@ -19,17 +19,17 @@
 #   $ modulo 2 node001
 #   1
 
-MODULUS=$( echo "$1" | tr -dc 0123456789 )
+MODULUS=`echo "$1" | tr -dc 0123456789`
 if [ -z "$MODULUS" -o "$MODULUS" -lt 2 ]; then
   MODULUS=2
 fi
 
-NUMBER=$( echo "$2" | tr -dc 0123456789 )
+NUMBER=`echo "$2" | tr -dc 0123456789`
 if [ -z "$NUMBER" ]; then
   NUMBER=$RANDOM
 fi
 
-RESULT=$(( $NUMBER % $MODULUS ))
+RESULT=`expr $NUMBER % $MODULUS`
 #echo "$NUMBER % $MODULUS = $RESULT"
 
 echo $RESULT
