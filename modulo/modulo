@@ -14,7 +14,7 @@
 #   $ modulo 2 3
 #   1
 #
-# This can also be used for hostnames-containing-numbers:
+# This can also be used for hostnames that contain numbers:
 #
 #   $ modulo 2 node001
 #   1
