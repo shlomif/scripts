@@ -16,15 +16,16 @@ while (<>) {
 
   my $query = $dns->search($host);
   if ($query) {
-    for my $rr ($query->answer) {
-      push @names, $rr->name unless $seen{$rr->name}++;
+    for my $rr ( $query->answer ) {
+      push @names, $rr->name unless $seen{ $rr->name }++;
     }
   }
-  @names = sort @names;
-  @shortnames = sort map { m/^([^.]+)/; $seen{$1}++ ? () : $1 } @names;
+  @names      = sort @names;
+  @shortnames =
+    sort map { m/^(.*?)\.[^.]+\.[^.]+$/; $seen{$1}++ ? () : $1 } @names;
 
   for my $name (@names) {
-    for my $ip (get_ip($name)) {
+    for my $ip ( get_ip($name) ) {
       push @ips, $ip unless $seen{$ip}++;
     }
   }
