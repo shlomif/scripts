@@ -1,11 +1,23 @@
 #!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Parses sudoers. Quick script, does not follow BNF used by sudo, only
+# outputs reformated lines able to parse.
+
 use strict;
 
 LINE: while (<>) {
   chomp;
 
-  next LINE if m/^\s*#/;
-  next LINE if m/^\s*$/;
+  # comments, blank lines
+  if (m/^\s*#/ or s{^\s*$}{}) {
+    print "$_\n";
+    next LINE;
+  }
 
   # extend lines ending with \
   if (s{ \\ \s* $ }{}x) {
@@ -13,20 +25,26 @@ LINE: while (<>) {
     redo LINE unless eof;
   }
 
+  # match usuall "foo bar = etc" entries
   if (m{^ (\S+) \s+ (\S+) \s*=\s* (.*)}x) {
     my ( $first, $second, $rest ) = ( $1, $2, $3 );
 
+    # KLUGE match and sort anything that smells like comma delimited
+    # records (commands or usernames, usually)
     if ( defined $rest
       and $rest =~ m{^ (.*?) ([\w./-]+\s*,\s*[\w\s,./-]+) $}x ) {
       $rest = $1 . join ', ', sort split( /\s*,\s*/, $2 );
     }
 
     $rest ||= '';
+    $rest =~ s/\s*$//;
+
     # just normalize for now...
     #print "WAS: $_\n";
     print "$first $second = $rest\n";
 
   } else {
-    print "??? $_\n";
+    # unparsed lines
+    print "$_\n";
   }
 }
