@@ -39,6 +39,8 @@ LINE: while (<>) {
     $rest ||= '';
     $rest =~ s/\s*$//;
 
+    # TODO output templating to \ long lines would be nice...
+
     # just normalize for now...
     #print "WAS: $_\n";
     print "$first $second = $rest\n";
