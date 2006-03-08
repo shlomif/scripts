@@ -1,0 +1,32 @@
+#!/usr/bin/perl -w
+use strict;
+
+LINE: while (<>) {
+  chomp;
+
+  next LINE if m/^\s*#/;
+  next LINE if m/^\s*$/;
+
+  # extend lines ending with \
+  if (s{ \\ \s* $ }{}x) {
+    $_ .= <>;
+    redo LINE unless eof;
+  }
+
+  if (m{^ (\S+) \s+ (\S+) \s*=\s* (.*)}x) {
+    my ( $first, $second, $rest ) = ( $1, $2, $3 );
+
+    if ( defined $rest
+      and $rest =~ m{^ (.*?) ([\w./-]+\s*,\s*[\w\s,./-]+) $}x ) {
+      $rest = $1 . join ', ', sort split( /\s*,\s*/, $2 );
+    }
+
+    $rest ||= '';
+    # just normalize for now...
+    #print "WAS: $_\n";
+    print "$first $second = $rest\n";
+
+  } else {
+    print "??? $_\n";
+  }
+}
