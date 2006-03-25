@@ -10,7 +10,6 @@
 #
 # Run perldoc(1) on this file for additional documentation.
 
-require 5;
 use strict;
 use warnings;
 
