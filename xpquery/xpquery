@@ -9,6 +9,11 @@
 
 use strict;
 
+use File::Temp                ();
+use LWP::UserAgent            ();
+use XML::LibXML               ();
+use XML::LibXML::XPathContext ();
+
 # KLUGE supposed to mark filehandles, so would have to muck around with
 # converting whatever the XML is in into utf8 or something... (this
 # avoids a 'Wide character in ...' warning)
@@ -32,8 +37,7 @@ my $query = shift || help();
 
 # get document into filehandle
 # TODO URL lookup needs more error checking
-if ($target->scheme) {
-  use File::Temp;
+if ( $target->scheme ) {
   $file = (
     File::Temp::tempfile(
       "xquery.XXXXXX",
@@ -42,15 +46,14 @@ if ($target->scheme) {
     )
   )[1];
 
-  use LWP::UserAgent;
-  my $ua = LWP::UserAgent->new(env_proxy => 1, keep_alive => 0, timeout => 30);
-  $ua->agent($ENV{http_agent}) if exists $ENV{http_agent};
-  my $response = $ua->get($target->canonical, ':content_file' => $file);
+  my $ua =
+    LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
+  $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
+  my $response = $ua->get( $target->canonical, ':content_file' => $file );
 } else {
   $file = $target->canonical;
 }
 
-use XML::LibXML;
 my $parser = XML::LibXML->new;
 
 # try to allow for crummy *ML documents
@@ -68,19 +71,18 @@ eval {
     SGML => 'parse_sgml_file',
   );
 
-  my $method = $parse_method{uc $opts{p}} || 'parse_file';
-  $doc = $parser->$method($file)
+  my $method = $parse_method{ uc $opts{p} } || 'parse_file';
+  $doc = $parser->$method($file);
 };
 if ($@) {
   die "error: could not parse $document: $@\n";
 }
 
 # search resulting tree with XPath
-use XML::LibXML::XPathContext;
 my $xc = XML::LibXML::XPathContext->new($doc);
 
 my $nodelist = $xc->find($query);
-for my $node ($nodelist->get_nodelist) {
+for my $node ( $nodelist->get_nodelist ) {
   print $node->toString, "\n";
 }
 
@@ -88,7 +90,7 @@ sub help {
   print <<"HELP";
 Usage: $0 [opts] document xpath-query
 
-Run XPath expressions against the specified document.
+Apply XPath expressions to the specified XML data.
 
 Options:
   -h/-?  Display this message
@@ -98,3 +100,88 @@ Options:
 HELP
   exit 100;
 }
+
+__DATA__
+
+=head1 NAME
+
+xpquery - apply XPath queries to XML data.
+
+=head1 SYNOPSIS
+
+Show all C<book> tags on the C<sial.org> website:
+
+  $ xpquery 'http://sial.org/?style=xml' //book
+
+Return the C<intro> section of a DocBook XML article:
+
+  $ xpquery operations-manual.xml '/article/section[@id="intro"]'
+
+For more information on XPath, see:
+
+http://www.w3.org/TR/xpath
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+The C<xpquery> script allows quick application of XPath expressions
+to XML data.
+
+=head2 Normal Usage
+
+  $ xpquery [options] file|URL xpath-expression
+
+See L<"OPTIONS"> for details on the command line switches supported.
+
+Quote the XPath expression to prevent unwanted shell interpolation of it.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note about the script.
+
+=item B<-p> I<method>
+
+Parse using the specified method: C<XML> (default), C<HTML>, or C<SGML>. 
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://sial.org/code/perl/
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known issues.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
