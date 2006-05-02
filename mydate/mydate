@@ -45,6 +45,10 @@ if [ "$1" = "dns" ]; then
   date "+%Y%m%d$SERIAL"
   exit
 fi
+if [ "$1" = "rits" ]; then
+  date +%d-%b-%Y
+  exit
+fi
 
 # form up query specification for date(1) command
 if test $DODATE = yes ; then
