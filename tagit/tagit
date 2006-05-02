@@ -7,7 +7,8 @@
 #
 # Prints intials/date in standard format I use when commenting files.
 
-INITIALS=$MY_INITIALS
+# use username, as easier to correlate
+INITIALS=`id -un`
 DATE=`date +%Y-%m-%d`
 
 DOINITIALS=no
