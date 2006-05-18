@@ -19,6 +19,11 @@
 #   $ modulo 2 node001
 #   1
 
+if [ -z "$1" ]; then
+  echo "Usage: `basename $0` what-to-modulo-by value-to-modulo" >&2
+  exit 1
+fi
+
 # read modulus to use
 MODULUS=`echo "$1" | tr -dc 0123456789`
 if [ -z "$MODULUS" -o "$MODULUS" -lt 2 ]; then
