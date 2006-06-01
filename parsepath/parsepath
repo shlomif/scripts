@@ -20,7 +20,7 @@ my $USERNAME_MATCH = qr/\w{1,32}/;
 # limit on symlink recursion
 my $LINK_FOLLOW_MAX = 15;
 
-# unix file type mappings
+# Unix file type mappings
 # TODO use "use Fcntl ':mode';" instead?
 my %filetype = (
   '0010000' => 'p',
@@ -238,7 +238,7 @@ sub determine_role {
 
       if ( !defined $userdata{name} ) {
 
-        # TODO figure out how unix deals with [gu]id that does not exist..
+        # TODO figure out how Unix deals with [gu]id that does not exist..
         # treat in "other" category??
         warn "warning: no data returned: function=$function, $type=$who\n";
         $userdata{name} = $who;
@@ -356,7 +356,7 @@ sub check_access {
           . render_filedata($filedata) . "\n";
       }
 
-      # unix, once gets match on user or group, stops looking at subsequent
+      # Unix, once gets match on user or group, stops looking at subsequent
       return;
     }
   }
@@ -533,7 +533,7 @@ No known issues.
 
 =head1 TODO
 
-Confirm permission checks properly emulate unix.
+Confirm permission checks properly emulate Unix.
 
 Support for other ACL systems (AFS, for example) or permissions on other
 operating systems?
@@ -559,4 +559,4 @@ public domain.
 
 =head1 SCRIPT CATEGORIES
 
-Unix/System_administration
+UNIX/System_administration

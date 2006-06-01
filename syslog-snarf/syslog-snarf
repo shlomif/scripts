@@ -341,7 +341,7 @@ Specify a different format for how messages are printed. Uses a
 custom %{keyword} expansion format; use the B<-l> option to list
 available fields.
 
-To emulate the format used by stock unix syslogd:
+To emulate the format used by stock Unix syslogd:
 
   -t '%b %e %H:%M:%S' -f '%{TIMESTAMP} %{HOSTNAME} %{MSG}\n'
 

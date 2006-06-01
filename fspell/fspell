@@ -140,7 +140,7 @@ The following options are supported by fspell:
 =head1 FILES
 
 /usr/share/dict/words - default dictionary file used; a modestly
-populated file available on every unix, though some hide it under
+populated file available on every Unix, though some hide it under
 /usr/dict/words or elsewhere.
 
 =head1 BUGS

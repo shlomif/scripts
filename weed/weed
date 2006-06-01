@@ -220,7 +220,7 @@ public domain.
 =head1 HISTORY
 
 Renamed from pick to weed due to conflict with pick command of
-unix MH suite.
+Unix MH suite.
 
 Based on pick command examples presented in "The Unix Programming
 Environment" (ISBN 0-13-937681-X).

@@ -128,7 +128,7 @@ for (@ARGV) {
   next if m/^#/ or m/^\s*$/;
 
   # TODO: -a will not work with following, as tricky to get
-  # command line arguments with tabs in them on unix...
+  # command line arguments with tabs in them on Unix...
   my @work = split /\t/;
   my $cmd  = shift @work;
 

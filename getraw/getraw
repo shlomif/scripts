@@ -24,7 +24,7 @@ my $timeout = -1;
 # return value for timeout
 my $timeout_status = 101;
 
-# use unix tty device to avoid polluting regular output
+# use Unix tty device to avoid polluting regular output
 my ($readfrom, $writeto);
 open $writeto, "> /dev/tty"
  or remark('error', "could not open tty for writing: $!")

@@ -324,7 +324,7 @@ standard error.
 
 Use of a caching proxy is recommended, as numerous hits on an URL may be
 required while fine tuning a regular expression. If possible, this
-script will use a proxy specified by the standard unix proxy environment
+script will use a proxy specified by the standard Unix proxy environment
 variables of C<http_proxy> and C<ftp_proxy>.
 
   $ export http_proxy=http://proxy:3128

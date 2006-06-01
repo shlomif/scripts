@@ -316,7 +316,7 @@ public domain.
 Inspired from the B<-h> option present in GNU df, which is sorely
 lacking in commercial varients of the same name.  (On the other hand,
 leaving the job of humanizing to an external script is probably more
-inline with the unix philosphopy of filters.)
+inline with the Unix philosphopy of filters.)
 
 =head1 VERSION
 

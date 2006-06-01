@@ -399,7 +399,7 @@ remote system that does not have or cannot run C<diskusage>:
 
 =head2 Overview
 
-Wrapper for the unix C<du> command to provide selective matching of
+Wrapper for the Unix C<du> command to provide selective matching of
 certain areas on disk and better output control via a template.
 
 =head2 Normal Usage

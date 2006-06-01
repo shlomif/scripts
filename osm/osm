@@ -526,7 +526,7 @@ same filename suffixes.
 
   name uncompress
   suffix Z
-  comment Legacy unix compress support
+  comment Legacy Unix compress support
   exec uncompress %{verbose} %{file}
   verbose -v
 
