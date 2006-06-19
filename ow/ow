@@ -5,7 +5,13 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 #
-# Command line shortcuts and directory to URL mapping.
+# Command line shortcuts and directory to URL mapping. Customize the
+# %open list (commands to handle URL with) and change the default_open
+# or OW_METHOD environment variable to set a default handler. Then
+# create shortcut mappings in ~/.ow/shortcuts, and ~/.ow/dirmap for the
+# wv mode of this script.
+#
+# Run perldoc(1) on this script for additional documentation.
 #
 # TODO messy script, need to cleanup and standardize more.
 
@@ -17,6 +23,14 @@ my $default_open = $ENV{OW_METHOD} || 'lynx';
 # what to launch URLs with (but see sub visit below)
 # TODO some means to pass options to say lwp-request and wget types?
 # TODO load these from prefs file?
+#
+# The pbcopy (Mac OS X cli clipboard command) method requires sgrax
+# (reverse of xargs), a shell script:
+# #!/bin/sh
+# COMMAND=$1
+# shift
+# echo "$@" | $COMMAND
+
 my %open = (
   firefox       => [qw(open -a Firefox)],
   links         => [qw(links)],
