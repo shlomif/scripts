@@ -13,7 +13,8 @@
 
 use strict;
 
-use Text::Autoformat qw(autoformat);
+# whether to mangle comments with autoformat()
+my $DO_AUTOFORMAT = 0;
 
 # how to match comments
 my $COMMENT_MATCH = qr/[#;]/;
@@ -22,6 +23,24 @@ my $COMMENT_MATCH = qr/[#;]/;
 my $INDENT_AMOUNT = q{  };
 
 my $exit_value = 0;
+
+use Getopt::Std;
+my %opts;
+getopts 'h?a', \%opts;
+
+print_help() if $opts{h} or $opts{'?'};
+
+if ( exists $opts{a} ) {
+  $DO_AUTOFORMAT = 1;
+}
+
+eval { require Text::Autoformat; };
+if ( $@ and $DO_AUTOFORMAT ) {
+  warn "warning: Text::Autoformat not found\n";
+  $DO_AUTOFORMAT = 0;
+} else {
+  require Text::Autoformat;
+}
 
 # no args: operate on standard input
 if ( !@ARGV ) {
@@ -151,22 +170,38 @@ sub initidy {
 
     } elsif ( $entry->{type} eq 'comment' ) {
 
-      # no indent pre-section comments
-      if ( $i != $#ini_blocks and $ini_blocks[ $i + 1 ]->{type} eq 'section' )
-      {
+      my $comment_str = $entry->{comment_str} || '# ';
+
+      my $tmp_comments = join "\n", @{ $entry->{lines} };
+
+      # Avoid autoformat if comment contains ini-esque looking data to
+      # avoid reformat of disabled blocks.
+      my $may_contain_code = 0;
+      if ( $tmp_comments =~ m/ \[ [^\]]+ \] /x
+        or $tmp_comments =~ m/ [\w-]+ \s* = /x ) {
+        $may_contain_code = 1;
+      }
+
+      # no indent pre-section comments, or disabled code blocks
+      if (
+        ( $i != $#ini_blocks and $ini_blocks[ $i + 1 ]->{type} eq 'section' )
+        or $may_contain_code ) {
         $indent = q{};
       }
 
-      my $comment_str = $entry->{comment_str} || '# ';
+      if ($may_contain_code) {
+        # KLUGE nick off whitespace if commenting code blocks. May break
+        # things if comment needs whitespace...
+        $comment_str =~ s/\s+$//;
+      }
 
       my $comment = $indent . $comment_str . join "\n$indent$comment_str",
         @{ $entry->{lines} };
 
-      if ( $comment =~ m/ \[ [^\]]+ \] /x or $comment =~ m/ [\w-]+ \s* = /x )
-      {
+      if ( not $DO_AUTOFORMAT or $may_contain_code ) {
         $output .= $comment . "\n";
       } else {
-        $output .= autoformat $comment, { all => 1 }
+        $output .= Text::Autoformat::autoformat( $comment, { all => 1 } );
       }
 
     } elsif ( $entry->{type} eq 'blank' ) {
@@ -191,4 +226,19 @@ sub initidy {
   }
 
   return $output;
+}
+
+sub print_help {
+  print <<"HELP";
+Usage: $0 [options] [file [file2 ..]]
+
+Tidy .ini format data.
+
+Options:
+  -h/-?  Display this message.
+
+  -a     Enable autoformat.
+
+HELP
+  exit 100;
 }
