@@ -17,7 +17,8 @@ my $mode = shift || die "usage: $0 mode [args]\n";
   my $pkgname = __PACKAGE__ . '::';
 
   my %action_map =
-   map { $_ =~ m/^ handle_ (\w{1,32}) /x ? ( $1 => $_ ) : () } keys %$pkgname;
+    map { $_ =~ m/^ handle_ (\w{1,32}) /x ? ( $1 => $_ ) : () }
+    keys %$pkgname;
 
   die "error: no such action: name=$mode\n" unless exists $action_map{$mode};
   $action_map{$mode}->(@ARGV);
@@ -37,7 +38,7 @@ sub handle_append {
 sub handle_class2host {
   use Net::DNS ();
   my $dns = Net::DNS::Resolver->new;
-  $dns->defnames(0);  # do not search default domain
+  $dns->defnames(0);    # do not search default domain
 
   use Getopt::Std qw(getopts);
   my %opts;
@@ -70,7 +71,8 @@ sub handle_class2host {
     }
 
     # match foo = ( bar ) class definitions
-    if ( $action eq 'classes' and m/^\s* (\w+) \s*=\s* \(\s* (\S.+?) \s*\)/x ) {
+    if ( $action eq 'classes' and m/^\s* (\w+) \s*=\s* \(\s* (\S.+?) \s*\)/x )
+    {
       my $class = $1;
       my $tmp   = $2;
 
@@ -91,16 +93,32 @@ sub handle_class2host {
   $domain =~ s/\.$//;
 
   die "error: unknown domain or domain lookup failure: name=$domain\n"
-   unless $dns->query( $domain, 'SOA' );
+    unless $dns->query( $domain, 'SOA' );
 
   for my $host ( sort keys %hosts ) {
     my $hostname = "$host.$domain";
-    my $query = $dns->query( $hostname, 'A' );
+    my $query    = $dns->query( $hostname, 'A' );
 
     # TODO allow templating of output, so can list in format appropriate
     # for other tools easily (SSH host key updating, etc.)
     if ($query) {
       print $hostname, " ", join( ',', @{ $host2class{$host} } ), $/;
+    }
+  }
+}
+
+# generates path to file with ${masterfiles}/... setup
+sub handle_copy {
+  use File::Spec ();
+
+  # TODO config file for this, support multiple
+  my @pathmaps = qw(masterfiles);
+
+  for my $filename ( map { File::Spec->rel2abs($_) } @ARGV ) {
+    if ( $filename =~ m{ $pathmaps[0] (.*) }x ) {
+      print '${', $pathmaps[0], '}', $1, "\n";
+    } else {
+      print "$filename\n";
     }
   }
 }
