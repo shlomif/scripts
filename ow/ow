@@ -427,6 +427,7 @@ These are stored in the C<~/.ow/shortcuts> file by default, and are key
 to value parameters with limited macro expansion on the URL contained in
 the value.
 
+  # example config BEGIN
   # for unknown key, attempt *.com expansion
   *       http://www.%@.com/
 
@@ -436,6 +437,9 @@ the value.
 
   # sample shortcuts. A trailing @ is required for parameters that will
   # have macro expansion done on them.
+  amazon  http://amazon.com/exec/obidos/redirect-home?site=amazon&tag=sialorg-20
+  amazon@ http://amazon.com/exec/obidos/external-search/?mode=blended&keyword=%@&tag=sialorg-20
+
   arin    http://ws.arin.net/
   arin@   http://ws.arin.net/cgi-bin/whois.pl?queryinput=%@
 
@@ -513,6 +517,7 @@ the value.
   wikit@  http://en.wiktionary.org/wiki/Special:Search?search=%@&go=Go
 
   y@      http://search.yahoo.com/search?p=%@&sm=Yahoo%21+Search&fr=FP-tab-web-t&toggle=1&cop=&ei=UTF-8
+  # example config END
 
 =head1 DIRECTORY MAPS
 
