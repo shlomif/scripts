@@ -437,8 +437,8 @@ the value.
 
   # sample shortcuts. A trailing @ is required for parameters that will
   # have macro expansion done on them.
-  amazon  http://amazon.com/exec/obidos/redirect-home?site=amazon&tag=sialorg-20
-  amazon@ http://amazon.com/exec/obidos/external-search/?mode=blended&keyword=%@&tag=sialorg-20
+  amazon  http://amazon.com/
+  amazon@ http://amazon.com/exec/obidos/external-search/?mode=blended&keyword=%@
 
   arin    http://ws.arin.net/
   arin@   http://ws.arin.net/cgi-bin/whois.pl?queryinput=%@
