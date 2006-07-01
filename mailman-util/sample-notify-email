@@ -1,0 +1,53 @@
+From mailman-bounces@gate.airsltd.com  Sat Jul  1 13:17:09 2006
+Return-Path: <mailman-bounces@gate.airsltd.com>
+Received: from go.airsltd.com ([209.189.211.70])
+	by neamh.sial.org (8.12.11/8.12.11) with ESMTP id k61DH4bx019071
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=NO)
+	for <jmates@sial.org>; Sat, 1 Jul 2006 13:17:06 GMT
+Received: from go.airsltd.com (localhost.airsltd.com [127.0.0.1])
+	by go.airsltd.com (8.12.11/8.12.3) with ESMTP id k61C11nK035918
+	for <jmates@sial.org>; Sat, 1 Jul 2006 05:01:01 -0700 (PDT)
+	(envelope-from mailman-bounces@gate.airsltd.com)
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Subject: go.airsltd.com mailing list memberships reminder
+From: mailman-owner@go.airsltd.com
+To: jmates@sial.org
+X-No-Archive: yes
+Message-ID: <mailman.45.1151755211.35775.mailman@gate.airsltd.com>
+Date: Sat, 01 Jul 2006 05:00:11 -0700
+Precedence: bulk
+X-BeenThere: mailman@gate.airsltd.com
+X-Mailman-Version: 2.1.5
+List-Id: mailman.gate.airsltd.com
+X-List-Administrivia: yes
+Sender: mailman-bounces@gate.airsltd.com
+Errors-To: mailman-bounces@gate.airsltd.com
+X-Spam-Status: No, hits=-2.592 required=5 tests=BAYES_00,NO_REAL_NAME
+X-Spam-Checker-Version: SpamAssassin 3.000004
+X-Scanned-By: MIMEDefang 2.45
+
+This is a reminder, sent out once a month, about your go.airsltd.com
+mailing list memberships.  It includes your subscription info and how
+to use it to change it or unsubscribe from a list.
+
+You can visit the URLs to change your membership status or
+configuration, including unsubscribing, setting digest-style delivery
+or disabling delivery altogether (e.g., for a vacation), and so on.
+
+In addition to the URL interfaces, you can also use email to make such
+changes.  For more info, send a message to the '-request' address of
+the list (for example, mailman-request@go.airsltd.com) containing just
+the word 'help' in the message body, and an email message will be sent
+to you with instructions.
+
+If you have questions, problems, comments, etc, send them to
+mailman-owner@go.airsltd.com.  Thanks!
+
+Passwords for jmates@sial.org:
+
+List                                     Password // URL
+----                                     --------  
+members@go.airsltd.com                   zeuvax    
+http://go.airsltd.com/mailman/options/members/jmates%40sial.org
