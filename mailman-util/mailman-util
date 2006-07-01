@@ -1,0 +1,55 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
+#
+# Utility routines to interact with the mailman mailing list manager.
+
+use strict;
+
+my $VERSION;
+( $VERSION = '$Revision$ ' ) =~ s/[^0-9.]//g;
+
+# registered mode handlers
+my %handlers = (
+  nospam => { code => \&handle_nospam, },
+);
+
+use Getopt::Std;
+my %opts;
+getopts( 'h?', \%opts );
+
+print_help() if exists $opts{h} or exists $opts{'?'};
+
+my $mode = shift;
+if ( !exists $handlers{$mode} ) {
+  die "error: no such mode: name=$mode\n";
+}
+
+$handlers{$mode}->{code}->(@ARGV);
+
+exit;
+
+# handlers
+sub handle_nospam {
+  # TODO accept notify message on STDIN (e.g. from procmail), parse for
+  # list URL and user password. Fire up WWW::Mechanize with cookie
+  # support, attempt login, twiddle spam option (argv: yes/no on
+  # setting), submit, report status
+}
+
+# a generic help blarb
+sub print_help {
+  print <<"HELP";
+Usage: $0 [opts] mode [mode args]
+
+Utility routines to interact with the mailman mailing list manager.
+
+Options for version $VERSION:
+  -h/-?  Display this message
+
+HELP
+  exit 100;
+}
