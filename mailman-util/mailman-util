@@ -83,21 +83,44 @@ sub handle_notify {
 
   # KLUGE login
   $mech->get( $user_data{url} );
-  $mech->form_number(1);
-  $mech->field( 'password', $user_data{password} );
-  $mech->click_button( name => 'login' );
+
+  # this is due to folks throwing random new forms into the page, and me
+  # not wanting to search for the right form. XML-RPC interface would be
+  # much nicer, or a certain default disabled to begin with globally!
+  for my $form_number ( 1 .. 99 ) {
+    eval {
+      $mech->form_number($form_number);
+      $mech->field( 'password', $user_data{password} );
+      $mech->click_button( name => 'login' );
+    };
+    if ( $@ and $form_number == 99 ) {
+      die "error: could not find login form, errno=$@\n";
+    } elsif ( not $@ ) {
+      last;
+    }
+  }
 
   # KLUGE set value we want
-  $mech->form_number(2);
-  if ( $mech->value('remind') != $send_reminder ) {
-    $mech->set_fields( remind => $send_reminder );
+  for my $form_number ( 1 .. 99 ) {
+    eval {
+      $mech->form_number($form_number);
+      if ( $mech->value('remind') != $send_reminder ) {
+        $mech->set_fields( remind => $send_reminder );
 
-    print $mech->value('remind'), "\n";
+        print $mech->value('remind'), "\n";
 
-    # KLUGE yes, all of this. Onwards!
-    $mech->click_button( name => 'options-submit' );
-  } else {
-    #print "nothing to do!\n";
+        # KLUGE yes, all of this. Onwards!
+        $mech->click_button( name => 'options-submit' );
+      } else {
+        #print "nothing to do!\n";
+      }
+    };
+    if ( $@ and $form_number == 99 ) {
+      die "error: could not find options form: errno=$@\n";
+    } elsif ( not $@ ) {
+      last;
+    }
+
   }
 }
 
