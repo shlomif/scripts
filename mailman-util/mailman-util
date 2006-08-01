@@ -6,6 +6,8 @@
 # the public domain.
 #
 # Utility routines to interact with the mailman mailing list manager.
+#
+# TODO Mailman 2.0.5 lacks "disable reminder" support? Ugh.
 
 use strict;
 
