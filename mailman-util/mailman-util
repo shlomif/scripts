@@ -54,6 +54,8 @@ sub handle_notify {
     # prefs with.
     if (m/^----/) {
       $remaining_lines = do { local $/; <$input_fh> };
+
+# TODO parse for multiple username/passwords, as could be listed here!
       if ( $remaining_lines =~ m{ \s+ (\S+) \s+ ^(http://.+) $}msx ) {
         ( $user_data{password}, $user_data{raw_url} ) = ( $1, $2 );
 

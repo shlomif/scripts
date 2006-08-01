@@ -1,34 +1,34 @@
-From mailman-bounces@gate.airsltd.com  Sat Jul  1 13:17:09 2006
-Return-Path: <mailman-bounces@gate.airsltd.com>
-Received: from go.airsltd.com ([209.189.211.70])
-	by neamh.sial.org (8.12.11/8.12.11) with ESMTP id k61DH4bx019071
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=NO)
-	for <jmates@sial.org>; Sat, 1 Jul 2006 13:17:06 GMT
-Received: from go.airsltd.com (localhost.airsltd.com [127.0.0.1])
-	by go.airsltd.com (8.12.11/8.12.3) with ESMTP id k61C11nK035918
-	for <jmates@sial.org>; Sat, 1 Jul 2006 05:01:01 -0700 (PDT)
-	(envelope-from mailman-bounces@gate.airsltd.com)
+From mailman-bounces@castle.org  Tue Aug  1 14:18:12 2006
+Return-Path: <mailman-bounces@castle.org>
+Received: from castle.org (castle.org [207.178.4.54])
+	by neamh.sial.org (8.12.11/8.12.11) with ESMTP id k71EIAke023408
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
+	for <jmates@sial.org>; Tue, 1 Aug 2006 14:18:11 GMT
+Received: from castle.org (localhost.castle.org [127.0.0.1])
+	by castle.org (8.13.6/8.13.6) with ESMTP id k71C29jO027682
+	for <jmates@sial.org>; Tue, 1 Aug 2006 05:02:10 -0700 (PDT)
+	(envelope-from mailman-bounces@castle.org)
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Subject: go.airsltd.com mailing list memberships reminder
-From: mailman-owner@go.airsltd.com
+Subject: castle.org mailing list memberships reminder
+From: mailman-owner@castle.org
 To: jmates@sial.org
 X-No-Archive: yes
-Message-ID: <mailman.45.1151755211.35775.mailman@gate.airsltd.com>
-Date: Sat, 01 Jul 2006 05:00:11 -0700
+Message-ID: <mailman.268.1154433606.26529.mailman@castle.org>
+Date: Tue, 01 Aug 2006 05:00:06 -0700
 Precedence: bulk
-X-BeenThere: mailman@gate.airsltd.com
-X-Mailman-Version: 2.1.5
-List-Id: mailman.gate.airsltd.com
+X-BeenThere: mailman@castle.org
+X-Mailman-Version: 2.1.8
+List-Id: <mailman.castle.org>
 X-List-Administrivia: yes
-Sender: mailman-bounces@gate.airsltd.com
-Errors-To: mailman-bounces@gate.airsltd.com
+Sender: mailman-bounces@castle.org
+Errors-To: mailman-bounces@castle.org
 X-Spam-Status: No, hits=-2.592 required=5 tests=BAYES_00,NO_REAL_NAME
 X-Spam-Checker-Version: SpamAssassin 3.000004
 X-Scanned-By: MIMEDefang 2.45
 
-This is a reminder, sent out once a month, about your go.airsltd.com
+This is a reminder, sent out once a month, about your castle.org
 mailing list memberships.  It includes your subscription info and how
 to use it to change it or unsubscribe from a list.
 
@@ -38,16 +38,19 @@ or disabling delivery altogether (e.g., for a vacation), and so on.
 
 In addition to the URL interfaces, you can also use email to make such
 changes.  For more info, send a message to the '-request' address of
-the list (for example, mailman-request@go.airsltd.com) containing just
-the word 'help' in the message body, and an email message will be sent
-to you with instructions.
+the list (for example, mailman-request@castle.org) containing just the
+word 'help' in the message body, and an email message will be sent to
+you with instructions.
 
 If you have questions, problems, comments, etc, send them to
-mailman-owner@go.airsltd.com.  Thanks!
+mailman-owner@castle.org.  Thanks!
 
 Passwords for jmates@sial.org:
 
 List                                     Password // URL
 ----                                     --------  
-members@go.airsltd.com                   zeuvax    
-http://go.airsltd.com/mailman/options/members/jmates%40sial.org
+chriscooks@castle.org                    ipivoc    
+http://www.castle.org/mailman/options/chriscooks/jmates%40sial.org
+
+foodies@castle.org                       pavudu    
+http://www.castle.org/mailman/options/foodies/jmates%40sial.org
