@@ -1,0 +1,92 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Convert multiple RSA and X509 files between different encoding formats
+# such as PEM and DER.
+
+use strict;
+
+use File::Basename qw(basename dirname);
+my $basename = basename($0);
+
+use File::Temp qw(tempfile);
+
+my $command = q(
+/usr/bin/openssl %{method}
+  -inform %{inform} -outform %{outform}
+  -in %{file} -out %{tmp_file}
+);
+
+my %options = ( inform => 'PEM', outform => 'DER' );
+
+# allow 'convert2pem' to reverse 'convert2der' operation
+if ($basename =~ m/pem$/) {
+  %options = ( inform => 'DER', outform => 'PEM' );
+}
+
+my $key_match_re  = qr/\.(prv|key)$/;
+my $cert_match_re = qr/\.(?:crt|cert?)$/;
+
+use Getopt::Long qw(GetOptions);
+GetOptions(
+  'inform=s'  => \$options{inform},
+  'outform=s' => \$options{outform},
+  'help|h|?'  => sub {
+    print "Usage: $basename [--inform=opt] [--outform=opt] file [..fileN]\n";
+    exit 100;
+  },
+);
+
+for my $filename ( grep -f, @ARGV ) {
+  # inherit global options
+  my %file_options = %options;
+
+  # need filename and parent_directory for command and ability to rename
+  # temporary file
+  $file_options{file}       = $filename;
+  $file_options{parent_dir} = dirname($filename);
+
+  # match filename extension to appropriate openssl subcommand for conversion
+  if ( $filename =~ m/$key_match_re/ ) {
+    $file_options{method} = 'rsa';
+
+  } elsif ( $filename =~ m/$cert_match_re/ ) {
+    $file_options{method} = 'x509';
+
+  } else {
+    warn "warning: skipping unknown file extension: file=$filename\n";
+    next;
+  }
+
+  ( my $fh, $file_options{tmp_file} ) =
+    tempfile( CLEANUP => 0, DIR => $file_options{parent_dir} );
+
+  my @command = template_cmd( $command, \%file_options );
+  my $result = system @command;
+  if ( $result != 0 ) {
+    my $exit_value = $? >> 8;
+    warn "error: command failed: file=$filename, exit_value=$exit_value\n";
+    unlink $file_options{tmp_file};
+    next;
+  }
+
+  rename $file_options{tmp_file}, $filename
+    || warn "error: problem renaming file: file=$filename, errno=$!\n";
+}
+
+# converts command template string to something executable as list, e.g.
+# 'echo %{name}' to qw(echo foo).
+sub template_cmd {
+  my $template_str = shift;
+  my $metadata     = shift;
+
+  my @command = split ' ', $template_str;
+  return unless @command;
+
+  for my $str (@command) {
+    $str =~ s/ %{ ([^}]+) } / $metadata->{$1} || '' /egx;
+  }
+
+  return @command;
+}
