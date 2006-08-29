@@ -3,7 +3,10 @@
 # $Id$
 #
 # Convert multiple RSA and X509 files between different encoding formats
-# such as PEM and DER.
+# such as PEM and DER. Usage:
+#
+# convert2der *.prv *.key *.crt
+# convert2der --inform=DER --outform=PEM *.prv *.key *.crt
 
 use strict;
 
@@ -21,7 +24,7 @@ my $command = q(
 my %options = ( inform => 'PEM', outform => 'DER' );
 
 # allow 'convert2pem' to reverse 'convert2der' operation
-if ($basename =~ m/pem$/) {
+if ( $basename =~ m/pem$/ ) {
   %options = ( inform => 'DER', outform => 'PEM' );
 }
 
