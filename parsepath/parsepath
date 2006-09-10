@@ -270,31 +270,38 @@ sub determine_role {
   }
 
   if ( $type eq 'user' ) {
+
     my $id = ( getpwuid $userdata[0]->{id} )[3];
 
-    if ( !exists $seen{"group.$id"} ) {
+    if ( !defined $id ) {
+      warn "warning: user id not found, ignoring: id=", $userdata[0]->{id},
+        "\n";
+    } else {
 
-      my $name = getgrgid $id;
-      push @userdata,
-        {
-        type => 'group',
-        id   => $id,
-        name => $name
-        };
-      $seen{"group.$id"} = 1;
-    }
+      if ( !exists $seen{"group.$id"} ) {
 
-    # TODO iterate groups for which user has membership in...
-    while ( my ( $name, $pw, $gid, $members ) = getgrent ) {
-      if ( grep { $_ eq $userdata[0]->{name} } split ' ', $members ) {
-        if ( !exists $seen{"group.$gid"} ) {
-          push @userdata,
-            {
-            type => 'group',
-            id   => $gid,
-            name => $name
-            };
-          $seen{"group.$gid"} = 1;
+        my $name = getgrgid $id;
+        push @userdata,
+          {
+          type => 'group',
+          id   => $id,
+          name => $name
+          };
+        $seen{"group.$id"} = 1;
+      }
+
+      # TODO iterate groups for which user has membership in...
+      while ( my ( $name, $pw, $gid, $members ) = getgrent ) {
+        if ( grep { $_ eq $userdata[0]->{name} } split ' ', $members ) {
+          if ( !exists $seen{"group.$gid"} ) {
+            push @userdata,
+              {
+              type => 'group',
+              id   => $gid,
+              name => $name
+              };
+            $seen{"group.$gid"} = 1;
+          }
         }
       }
     }
