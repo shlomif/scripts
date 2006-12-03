@@ -3,8 +3,8 @@
 # $Id$
 #
 # To generate S/MIME bundles to test against. If using a self-signed
-# certificate, use 'openssl -verify -noverify' to avoid 'self signed
-# certificate in chain' error.
+# certificate, use 'openssl smime -verify -noverify' to avoid 'self
+# signed certificate in chain' errors.
 
 # sign
 openssl smime \
@@ -28,3 +28,10 @@ openssl smime \
 openssl smime -decrypt -in message.encrypt \
   -out message.decrypt \
   -inkey test.key -recip test.cert
+
+# plus a decrypt+verify pass
+openssl smime -decrypt -in message.sign-encrypt \
+  -inkey test.key -recip test.cert \
+| openssl smime \
+  -verify -noverify -signer test.cert \
+  -out message.decrypt-verify
