@@ -26,7 +26,7 @@ my $exit_value = $actions{$mode}->( $mode, @ARGV );
 exit $exit_value;
 
 sub handle_unpack_smime {
-  my $mode     = shift;
+  my $mode = shift;
   my $filename = shift || '-';
 
   my $exit_value = 0;
@@ -75,7 +75,8 @@ sub handle_unpack_smime {
     for my $i ( 0 .. $parts_count - 1 ) {
       my $part_ref = $entity->parts($i);
 
-      if ( $part_ref->mime_type eq 'application/x-pkcs7-signature' ) {
+      if ( $part_ref->mime_type eq 'application/x-pkcs7-signature'
+        or $part_ref->mime_type eq 'application/pkcs7-signature' ) {
         next;
       }
 
