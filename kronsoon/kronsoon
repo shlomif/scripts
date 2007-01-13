@@ -25,12 +25,12 @@ GetOptions(
   'gmtime|g'    => \$use_gmtime,
 );
 
-if (defined $time_format) {
+if ( defined $time_format ) {
   $CRON_TIME_FORMAT = $time_format;
 }
 
 # Remainder optional command to insert after cron time specification
-my $command = @ARGV ? " @ARGV" : '';
+my $command = @ARGV ? "@ARGV" : '';
 
 my $current_epoch = time;
 
@@ -43,7 +43,8 @@ my @run_time = $use_gmtime ? gmtime($run_epoch) : localtime($run_epoch);
 if ( defined $comment and length $comment > 0 ) {
   print "# $comment\n";
 }
-print strftime( $CRON_TIME_FORMAT, @run_time ) . $command . "\n";
+print strftime( $CRON_TIME_FORMAT, @run_time )
+  . ( defined $command ? " $command" : '' ) . "\n";
 exit 0;
 
 sub print_help {
