@@ -1,0 +1,66 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Generate crontab(5) compatible time specification for a command to run
+# in the near future. The at(1) system would also make sense for "near
+# future" jobs, except where jobs must run from cron to replicate
+# environment and other settings set there.
+
+use strict;
+
+use Getopt::Long qw(GetOptions);
+use POSIX qw(strftime);
+
+# This format will only run the job once on the current day, and again
+# in subsequent years. Should be plenty of time to remove a test run.
+my $CRON_TIME_FORMAT   = '%M %H %d %m %u';
+my $SECONDS_IN_ADVANCE = 120;
+
+my ( $use_gmtime, $comment, $time_format );
+GetOptions(
+  'help|?|h'    => \&print_help,
+  'comment|c=s' => \$comment,
+  'format|f=s'  => \$time_format,
+  'gmtime|g'    => \$use_gmtime,
+);
+
+if (defined $time_format) {
+  $CRON_TIME_FORMAT = $time_format;
+}
+
+# Remainder optional command to insert after cron time specification
+my $command = @ARGV ? " @ARGV" : '';
+
+my $current_epoch = time;
+
+# Add remainder seconds to advance time if "late" in the current minute
+my $run_epoch =
+  $current_epoch + $SECONDS_IN_ADVANCE + ( $current_epoch % 60 );
+
+my @run_time = $use_gmtime ? gmtime($run_epoch) : localtime($run_epoch);
+
+if ( defined $comment and length $comment > 0 ) {
+  print "# $comment\n";
+}
+print strftime( $CRON_TIME_FORMAT, @run_time ) . $command . "\n";
+exit 0;
+
+sub print_help {
+  print <<"END_HELP";
+Usage: $0 [--gmtime|-g] [--comment|-c comment] [cron command]
+
+Generate cron timestamp for single run in the near future.
+
+Options:
+
+  --help, -h, -?   Generate this help message.
+
+  --comment "rem"  Specify a comment to preceede cron command with.
+  --format  "ftm"  Custom strftime(3) format for cron timestamp.
+  --gmtime, -g     Use gmtime() instead of default localtime().
+  
+END_HELP
+
+  exit 100;
+}
