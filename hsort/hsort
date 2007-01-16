@@ -10,6 +10,9 @@
 # insensitive manner. Note that filesystems cannot have duplicate
 # filenames, so this script filters out repeated input lines.
 #
+# This script will fail if the amount of data to sort exceeds the memory
+# available on the system.
+#
 # Pass a list of files to merge and sort, or supply the data to be
 # sorted on standard input:
 #
@@ -17,7 +20,9 @@
 # ls | hsort
 
 my @input = <>;
-keys my %lookup = @input;
+my %lookup;
+# presize hash based on data
+keys %lookup = scalar @input;
 
 @lookup{ map {
   my $new;
