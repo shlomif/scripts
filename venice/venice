@@ -26,9 +26,9 @@ while ( my $arg = shift @ARGV ) {
     $nice_value = shift @ARGV;
 
     print_help()
-     if $nice_value !~ m/^[+-]?\d\d?$/
-     or $nice_value > 20
-     or $nice_value < -20;
+      if $nice_value !~ m/^[+-]?\d\d?$/
+      or $nice_value > 20
+      or $nice_value < -20;
 
     next;
   } elsif ( $arg eq '--' ) {
@@ -47,19 +47,19 @@ if ( $nice_value >= 0 ) {
   warn "error: could not exec command: errno=$!\n";
 }
 
-# for negative priorities, need to fork and sudo
-system qw{sudo -v};
+# For negative priorities, need to fork and sudo. Validate with sudo
+# prior to this, to avoid stalling after forked on a password prompt.
+system(qw{sudo -v}) == 0 or die "error: problem with sudo -v: $?\n";
 
-# TODO need to muck with CHLD signal handling or anything?
 if ( my $child_pid = fork ) {
 
-  # parent
+  # renice child process in parent
   exec qw{sudo renice}, $nice_value, '-p', $child_pid;
   die "error: could not renice: errno=$!\n";
 
 } else {
 
-  # run command in child
+  # replace child with named command
   exec @ARGV;
   warn "error: could not exec command: errno=$!\n";
 }
