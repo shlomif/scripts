@@ -6,7 +6,9 @@
 # public domain.
 #
 # Parses sudoers. Quick script, does not follow BNF used by sudo, only
-# outputs reformated lines able to parse.
+# outputs reformated lines able to parse. Usage:
+#
+# sudo parse-sudoers /etc/sudoers
 
 use strict;
 
@@ -14,7 +16,7 @@ LINE: while (<>) {
   chomp;
 
   # comments, blank lines
-  if (m/^\s*#/ or s{^\s*$}{}) {
+  if ( m/^\s*#/ or s{^\s*$}{} ) {
     print "$_\n";
     next LINE;
   }
@@ -25,7 +27,7 @@ LINE: while (<>) {
     redo LINE unless eof;
   }
 
-  # match usuall "foo bar = etc" entries
+  # match usual "foo bar = etc" entries
   if (m{^ (\S+) \s+ (\S+) \s*=\s* (.*)}x) {
     my ( $first, $second, $rest ) = ( $1, $2, $3 );
 
