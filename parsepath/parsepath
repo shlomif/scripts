@@ -15,7 +15,7 @@ use Cwd qw(realpath);
 use File::Spec ();
 
 # NOTE may need alteration per site policy on usernames
-my $USERNAME_MATCH = qr/\w{1,32}/;
+my $USERNAME_MATCH = qr/[\w-]{1,32}/;
 
 # limit on symlink recursion
 my $LINK_FOLLOW_MAX = 15;
