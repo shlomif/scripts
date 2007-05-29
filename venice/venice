@@ -11,6 +11,8 @@
 # On Mac OS X launches "Descent2 X" and renices it to the default
 # priority.
 
+use strict;
+
 my $default_nice = -10;
 my $nice_value   = $default_nice;
 
