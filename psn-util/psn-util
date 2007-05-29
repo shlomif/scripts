@@ -1,0 +1,162 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Utility to handle Portable Shogi Notation (.psn) data. At present,
+# PSN data is loaded into a PostgreSQL database, assuming appropriate
+# tables exist:
+#
+# psn-util dbconv japan-isf-2005.psn
+#
+# See end of file for PostgreSQL schema.
+
+use strict;
+
+my $DATA_SOURCE='dbi:Pg:dbname=shogi';
+
+use DBIx::Simple  ();
+use SQL::Abstract ();
+
+my %modes = ( 'dbconv' => \&dbconv );
+
+my $mode = shift;
+die "Usage: $0 mode" if not defined $mode or not exists $modes{$mode};
+$modes{$mode}->(@ARGV);
+
+sub dbconv {
+  # metadata about current game being parsed from PSN
+  my %game;
+  my $current_filename;
+  my $file_id;
+
+  my $db = DBIx::Simple->connect( $DATA_SOURCE, '', '',
+    { AutoCommit => 1, RaiseError => 1 } );
+  $db->abstract = SQL::Abstract->new();
+
+  # TODO this is not a robust parser!
+  while (<>) {
+    chomp;
+
+    if ( !defined $current_filename or $ARGV ne $current_filename ) {
+      $current_filename = $ARGV;
+      $db->insert( 'files', { name => $current_filename } );
+
+      $file_id = $db->last_insert_id( undef, undef, 'files', undef );    #DBG
+    }
+
+    if (m/^\[ (\S+) \s " ([^"]+) "\]/x) {
+      $game{ lc $1 } = $2;
+      next;
+    }
+
+    if (m/^(1\..+)$/) {
+      my $raw_moves = $1;
+
+      # () indicate a different branch of play? MacShogi adds it if you
+      # mess with the game, and only a small subset of the games in the
+      # ISF 2005 file have this problem. Suspect these might nest...
+      my $nested_re;
+      $nested_re = qr/ \(( [^()] | (??{ $nested_re }) )* \) /x;
+
+      $raw_moves =~ s/ $nested_re / /gx;
+
+      my @moves = split /\s+\d+\.|\s(?!\d\.)/, $raw_moves;
+
+      $moves[0] =~ s/^1\.//;
+
+      $game{_moves}     = $raw_moves;
+      $game{_move_list} = \@moves;
+
+      next;
+    }
+
+    if (m/^\s*$/ and keys %game) {
+      handle_game( $db, $file_id, \%game );
+      %game = ();
+      next;
+    }
+  }
+
+  if ( keys %game ) {
+    handle_game( $db, $file_id, \%game );
+  }
+}
+
+sub handle_game {
+  my $db       = shift;
+  my $file_id  = shift;
+  my $game_ref = shift;
+
+  warn "info: loading game";
+
+  my @game_fields =
+    qw{sente sentegrade gote gotegrade date event venue round result moves _moves};
+  my $game_id;
+
+  eval {
+    $db->insert( 'games',
+      { ( map { $_, $game_ref->{$_} } @game_fields ), file_id => $file_id } );
+    $game_id = $db->last_insert_id( undef, undef, 'games', undef );
+  };
+  if ($@) {
+    use Data::Dumper;
+    warn Dumper $game_ref;
+    die $@;
+  }
+
+  my $move_number = 1;
+  for my $move_text ( @{ $game_ref->{_move_list} } ) {
+
+    $db->insert(
+      'moves', {
+        move_number => $move_number,
+        move_text   => $move_text,
+        game_id     => $game_id
+      }
+    );
+
+    $move_number++;
+  }
+
+}
+
+__END__
+
+createdb -E UTF8 shogi
+
+
+CREATE TABLE files (
+  file_id SERIAL PRIMARY KEY,
+  name VARCHAR(255),
+  url TEXT
+);
+
+CREATE TABLE games (
+  game_id SERIAL PRIMARY KEY,
+
+  file_id INT,
+  FOREIGN KEY (file_id) REFERENCES files ON UPDATE CASCADE ON DELETE NO ACTION,
+  
+  sente VARCHAR(255),
+  sentegrade VARCHAR(32),
+  gote VARCHAR(255),
+  gotegrade VARCHAR(32),
+  
+  date VARCHAR(255),
+  event VARCHAR(255),
+  venue VARCHAR(255),
+  round VARCHAR(32),
+  result VARCHAR(32),
+  moves INT,
+  _moves TEXT
+);
+
+CREATE TABLE moves (
+  move_id SERIAL PRIMARY KEY,
+  
+  move_number INT,
+  move_text VARCHAR(8),
+  
+  game_id INT,
+  FOREIGN KEY (game_id) REFERENCES games ON UPDATE CASCADE ON DELETE CASCADE
+);
