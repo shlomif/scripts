@@ -171,16 +171,25 @@ CREATE TABLE games (
   sentegrade VARCHAR(32),
   gote VARCHAR(255),
   gotegrade VARCHAR(32),
-  
   date VARCHAR(255),
   event VARCHAR(255),
   venue VARCHAR(255),
   round VARCHAR(32),
   result VARCHAR(32),
+  handicap VARCHAR(255),
+  
   moves INT,
-  _moves TEXT
+  _moves TEXT,
+  
+  -- for conversion of date
+  _date TIMESTAMP,
+  
+  -- for {blah blah...} text prior to the move list starting
+  game_comment TEXT
 );
 
+-- RAV (recursive alternative variations?) not supported (would need branch_id
+-- that otherwise defaults to 1?)
 CREATE TABLE moves (
   move_id SERIAL PRIMARY KEY,
   
@@ -188,5 +197,8 @@ CREATE TABLE moves (
   move_text VARCHAR(8),
   
   game_id INT,
-  FOREIGN KEY (game_id) REFERENCES games ON UPDATE CASCADE ON DELETE CASCADE
+  FOREIGN KEY (game_id) REFERENCES games ON UPDATE CASCADE ON DELETE CASCADE,
+  
+  -- for {blah blah...} text inside moves section
+  move_comment TEXT
 );
