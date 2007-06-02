@@ -78,12 +78,11 @@ END_TMPL
   my @game_fields =
     qw{sente sentegrade gote gotegrade date event venue round result handicap moves _moves};
 
-  my $games =
-    $db->select( 'games', \@game_fields, { game_id => { -in => \@input } },
-    ['game_id'] );
-
   for my $game_id (@input) {
-    my $game_ref = $games->hash;
+    my $game_ref =
+      $db->select( 'games', \@game_fields, { game_id => $game_id },
+      ['game_id'] )->hash;
+
     $template->param(%$game_ref);
     my $psn = $template->output;
     $psn =~ s/\n{2,}/\n/g;
