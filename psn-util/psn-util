@@ -2,17 +2,27 @@
 #
 # $Id$
 #
-# Utility to handle Portable Shogi Notation (.psn) data. At present,
-# PSN data is loaded into a PostgreSQL database, assuming appropriate
-# tables exist:
+# Utility to handle Portable Shogi Notation (.psn) data. For example, to
+# load games into a database with the correct schema:
 #
-# psn-util dbconv japan-isf-2005.psn
+# psn-util psn2db japan-isf-2005.psn
 #
-# See end of file for PostgreSQL schema.
+# See end of file for PostgreSQL schema and sample SQL queries.
+#
+# Or, to export games to study in a different tool, such as MacShogi,
+# select by game_id from the database:
+#
+# psn-util db2psn 1 2 3 > tostudy.psn
+#
+# TODO detect duplicate (or nearly similar?) games, based on total
+# number of moves and whether the last moves are the same? This would
+# prevent the same game from being loaded twice, or allow duplicate
+# games to be pruned from the database.
 
 use strict;
 
 use File::Basename qw(basename);
+use HTML::Template ();
 
 use DBIx::Simple  ();
 use SQL::Abstract ();
@@ -28,13 +38,58 @@ $NESTED_PAREN_RE = qr/ \( ( [^()] | (??{ $NESTED_PAREN_RE }) )* \) /x;
 my $NESTED_CURLY_RE;
 $NESTED_CURLY_RE = qr/ \{ ( [^{}] | (??{ $NESTED_CURLY_RE }) )* \} /x;
 
-my %modes = ( 'dbconv' => \&dbconv );
+my %modes = ( 'psn2db' => \&dbconv, db2psn => \&dbunconv );
 
 my $mode = shift;
-die "Usage: $0 dbconv file1 [.. fileN]\n"
+die "Usage: $0 psn2db file1 [.. fileN]\n"
   if not defined $mode
   or not exists $modes{$mode};
 $modes{$mode}->(@ARGV);
+
+sub dbunconv {
+  my @input = @_;
+  chomp( @input = <STDIN> ) unless @input;
+
+  @input = sort { $a <=> $b } grep { m/^\d+$/ } @input;
+
+  my $db =
+    DBIx::Simple->connect( $DATA_SOURCE, '', '',
+    { AutoCommit => 1, RaiseError => 1 } );
+  $db->abstract = SQL::Abstract->new();
+
+  my $psn_tmpl = <<'END_TMPL';
+<TMPL_IF NAME=sente>[Sente "<TMPL_VAR NAME=sente>"]</TMPL_IF>
+<TMPL_IF NAME=sentegrade>[SenteGrade "<TMPL_VAR NAME=sentegrade>"]</TMPL_IF>
+<TMPL_IF NAME=gote>[Gote "<TMPL_VAR NAME=gote>"]</TMPL_IF>
+<TMPL_IF NAME=gotegrade>[GoteGrade "<TMPL_VAR NAME=gotegrade>"]</TMPL_IF>
+<TMPL_IF NAME=date>[Date "<TMPL_VAR NAME=date>"]</TMPL_IF>
+<TMPL_IF NAME=event>[Event "<TMPL_VAR NAME=event>"]</TMPL_IF>
+<TMPL_IF NAME=venue>[Venue "<TMPL_VAR NAME=venue>"]</TMPL_IF>
+<TMPL_IF NAME=round>[Round "<TMPL_VAR NAME=round>"]</TMPL_IF>
+<TMPL_IF NAME=result>[Result "<TMPL_VAR NAME=result>"]</TMPL_IF>
+<TMPL_IF NAME=handicap>[Handicap "<TMPL_VAR NAME=handicap>"]</TMPL_IF>
+<TMPL_IF NAME=moves>[Moves "<TMPL_VAR NAME=moves>"]</TMPL_IF>
+<TMPL_VAR NAME=_moves>
+END_TMPL
+
+  my $template =
+    HTML::Template->new( scalarref => \$psn_tmpl, die_on_bad_params => 0 );
+
+  my @game_fields =
+    qw{sente sentegrade gote gotegrade date event venue round result handicap moves _moves};
+
+  my $games =
+    $db->select( 'games', \@game_fields, { game_id => { -in => \@input } },
+    ['game_id'] );
+
+  for my $game_id (@input) {
+    my $game_ref = $games->hash;
+    $template->param(%$game_ref);
+    my $psn = $template->output;
+    $psn =~ s/\n{2,}/\n/g;
+    print $psn, "\n";
+  }
+}
 
 sub dbconv {
   my $db =
@@ -216,3 +271,6 @@ select move_text,count(*) from moves where move_number=1 and not move_text='...'
 
 -- Enumerate responses to P2f opening
 select move_text,count(*) from moves where move_number=2 and game_id in (select game_id from moves where move_number=1 and move_text='P2f') group by move_text order by count(*),move_text;
+
+-- Find K9i (a corner castle) where a lancer advance also featured
+select k.game_id from moves k, moves l where k.move_text='K9i' and l.move_text='L9h' and k.game_id = l.game_i;
