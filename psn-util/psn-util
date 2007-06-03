@@ -2,6 +2,9 @@
 #
 # $Id$
 #
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
 # Utility to handle Portable Shogi Notation (.psn) data. For example, to
 # load games into a database with the correct schema:
 #
@@ -207,74 +210,137 @@ sub handle_game {
     $move_number++;
   }
 
+  return;
 }
 
 __END__
 
-createdb -E UTF8 shogi
+=head1 NAME
 
+psn-util - Portable Shogi Notation (PSN) handler
 
-CREATE TABLE files (
-  file_id SERIAL PRIMARY KEY,
-  name VARCHAR(255),
-  url TEXT
-);
+=head1 SYNOPSIS
 
-CREATE TABLE games (
-  game_id SERIAL PRIMARY KEY,
+Portable Shogi Notation (PSN) handler. See http://sial.org/shogi/ for
+more information. Upload data into a suitable database via:
 
-  file_id INT,
-  FOREIGN KEY (file_id) REFERENCES files ON UPDATE CASCADE ON DELETE NO ACTION,
+  $ psn-util psn2db japan-isf-2005.psn
+
+Extract games from the database:
+
+  $ psn-util db2psn "select game_id from games" > allgames.psn
+
+=head1 Database Support
+
+PostgreSQL database creation:
+
+  createdb -E UTF8 shogi
+
+Schema for PostgreSQL:
+
+  -- So can find original file the game loaded from
+  CREATE TABLE files (
+    file_id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    url TEXT
+  );
+
+  CREATE TABLE games (
+    game_id SERIAL PRIMARY KEY,
+
+    file_id INT,
+    FOREIGN KEY (file_id) REFERENCES files ON UPDATE CASCADE ON DELETE NO ACTION,
   
-  sente VARCHAR(255),
-  sentegrade VARCHAR(32),
-  gote VARCHAR(255),
-  gotegrade VARCHAR(32),
-  date VARCHAR(255),
-  event VARCHAR(255),
-  venue VARCHAR(255),
-  round VARCHAR(32),
-  result VARCHAR(32),
-  handicap VARCHAR(255),
+    sente VARCHAR(255),
+    sentegrade VARCHAR(32),
+    gote VARCHAR(255),
+    gotegrade VARCHAR(32),
+    date VARCHAR(255),
+    event VARCHAR(255),
+    venue VARCHAR(255),
+    round VARCHAR(32),
+    result VARCHAR(32),
+    handicap VARCHAR(255),
   
-  moves INT,
-  _moves TEXT,
+    moves INT,
+    _moves TEXT,
   
-  -- for conversion of date
-  _date TIMESTAMP,
+    -- for conversion of date
+    _date TIMESTAMP,
   
-  -- for {blah blah...} text prior to the move list starting
-  game_comment TEXT
-);
+    -- for {blah blah...} text prior to the move list starting
+    game_comment TEXT
+  );
 
--- RAV (recursive alternative variations?) not supported (would need branch_id
--- that otherwise defaults to 1?)
-CREATE TABLE moves (
-  move_id SERIAL PRIMARY KEY,
+  -- RAV (recursive alternative variations?) not supported
+  -- (would need branch_id that otherwise defaults to 1?)
+  CREATE TABLE moves (
+    move_id SERIAL PRIMARY KEY,
   
-  move_number INT,
-  move_text VARCHAR(8),
+    move_number INT,
+    move_text VARCHAR(8),
   
-  game_id INT,
-  FOREIGN KEY (game_id) REFERENCES games ON UPDATE CASCADE ON DELETE CASCADE,
+    game_id INT,
+    FOREIGN KEY (game_id) REFERENCES games ON UPDATE CASCADE ON DELETE CASCADE,
   
-  -- for {blah blah...} text inside moves section
-  move_comment TEXT
-);
+    -- for {blah blah...} text inside moves section
+    move_comment TEXT
+  );
 
--- TODO probably need index on commonly queried moves fields...
+  -- TODO probably need index on commonly queried moves fields...
 
+And some sample queries:
 
--- and some queries:
+  -- Count "Roaming Rook" opening moves where Rook
+  -- wanders to 4th rank.
+  select move_number,count(*) from moves
+   where move_number < 20
+     and move_text='R4b'
+   group by move_number order by move_number;
 
--- Count "Roaming Rook" opening moves where Rook wanders to 4th rank.
-select move_number,count(*) from moves where move_number < 20 and move_text='R4b' group by move_number order by move_number;
+  -- Count non-handicaped openings (these all begin with
+  -- ... as the first move)
+  select move_text,count(*) from moves
+   where move_number=1
+     and not move_text='...'
+   group by move_text order by move_text;
 
--- Count non-handicaped openings (these all begin with ... as first move)
-select move_text,count(*) from moves where move_number=1 and not move_text='...' group by move_text order by move_text;
+  -- Enumerate responses to P2f opening
+  select move_text,count(*) from moves
+   where move_number=2
+     and game_id in (select game_id from moves
+      where move_number=1 and move_text='P2f')
+   group by move_text order by count(*),move_text;
 
--- Enumerate responses to P2f opening
-select move_text,count(*) from moves where move_number=2 and game_id in (select game_id from moves where move_number=1 and move_text='P2f') group by move_text order by count(*),move_text;
+  -- Find K9i (a corner castle) where a lancer advance
+  -- also featured
+  select k.game_id from moves k, moves l
+   where k.move_text='K9i'
+     and l.move_text='L9h'
+     and k.game_id = l.game_i;
 
--- Find K9i (a corner castle) where a lancer advance also featured
-select k.game_id from moves k, moves l where k.move_text='K9i' and l.move_text='L9h' and k.game_id = l.game_i;
+=head1 BUGS
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+See source for TODO and similar comments on ideas for improvements.
+
+=head1 SEE ALSO
+
+perl(1)
+
+=head1 AUTHOR
+
+Jeremy Mates, http://sial.org/contact/
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=head1 VERSION
+
+  $Id$
+
+=cut
