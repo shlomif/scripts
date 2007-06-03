@@ -10,9 +10,10 @@
 # See end of file for PostgreSQL schema and sample SQL queries.
 #
 # Or, to export games to study in a different tool, such as MacShogi,
-# select by game_id from the database:
+# use the db2psn mode and supply a SQL query that returns a list of
+# game_id that should be exported:
 #
-# psn-util db2psn 1 2 3 > tostudy.psn
+# psn-util db2psn "select game_id from games" > allgames.psn
 #
 # TODO detect duplicate (or nearly similar?) games, based on total
 # number of moves and whether the last moves are the same? This would
@@ -47,14 +48,15 @@ die "Usage: $0 psn2db file1 [.. fileN]\n"
 $modes{$mode}->(@ARGV);
 
 sub dbunconv {
-  my @input = @_;
-  chomp( @input = <STDIN> ) unless @input;
-
-  @input = sort { $a <=> $b } grep { m/^\d+$/ } @input;
+  # Accept SQL query that must return 1 or more game_id
+  my $query = shift;
+  if ( !defined $query or $query eq '' ) {
+    $query = do { local $/ = undef; <STDIN> };
+  }
 
   my $db =
     DBIx::Simple->connect( $DATA_SOURCE, '', '',
-    { AutoCommit => 1, RaiseError => 1 } );
+    { AutoCommit => 0, RaiseError => 1 } );
   $db->abstract = SQL::Abstract->new();
 
   my $psn_tmpl = <<'END_TMPL';
@@ -75,12 +77,13 @@ END_TMPL
   my $template =
     HTML::Template->new( scalarref => \$psn_tmpl, die_on_bad_params => 0 );
 
-  my @game_fields =
+  my @game_ids = $db->query($query)->flat;
+  my @display_fields =
     qw{sente sentegrade gote gotegrade date event venue round result handicap moves _moves};
 
-  for my $game_id (@input) {
+  for my $game_id (@game_ids) {
     my $game_ref =
-      $db->select( 'games', \@game_fields, { game_id => $game_id },
+      $db->select( 'games', \@display_fields, { game_id => $game_id },
       ['game_id'] )->hash;
 
     $template->param(%$game_ref);
@@ -88,6 +91,8 @@ END_TMPL
     $psn =~ s/\n{2,}/\n/g;
     print $psn, "\n";
   }
+
+  $db->rollback;
 }
 
 sub dbconv {
