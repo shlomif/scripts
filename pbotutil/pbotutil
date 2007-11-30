@@ -749,7 +749,7 @@ C<~/.perltidyrc>:
 
 An Emacs interface is available:
 
-http://tierra.dyndns.org:81/emacs/pastebot
+http://www.emacswiki.org/cgi-bin/wiki/pbotutil.el
 
 If vi is more your style, one can paste the entire contents of a vi
 buffer use the following:
