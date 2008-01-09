@@ -5,9 +5,9 @@
 # The author disclaims all copyrights and releases this document into
 # the public domain.
 #
-# Utility routines to help access data from Amazon.com. Requires
-# Net::Amazon and an Amazon Web Services account. Run perldoc(1) on
-# this file for additional documentation.
+# A thin wrapper around Net::Amazon with output templating. Requires
+# Net::Amazon and an Amazon Web Services account. Run perldoc(1) on this
+# file for additional documentation.
 
 use strict;
 
