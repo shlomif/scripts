@@ -20,23 +20,34 @@
 use strict;
 use File::Spec ();
 
+my $DEBUG = 0;
+
 my $directory  = shift || '.';
 my $file_regex = shift || qr/^/;
 
 $directory = File::Spec->rel2abs($directory);
+warn "info: checking directory $directory\n" if $DEBUG;
 
 my $latest_mtime;
 my $latest_file;
 
 if ( $directory eq '-' ) {
   while ( my $file = <STDIN> ) {
+    warn "info: considering file $file\n" if $DEBUG;
     handle_file($file);
   }
 } else {
+  # So that unqualified file paths relative to directory supplied, and
+  # not whatever random directory the CWD inherits. Less expensive than
+  # applying File::Spec->catfile() to each filename.
+  chdir($directory) or die "error: cannot chdir $directory: $!\n";
+
   my $dir_handle;
   opendir( $dir_handle, "$directory" )
-   or die "error: cannot open $directory: $!\n";
+    or die "error: cannot open $directory: $!\n";
+
   while ( my $file = readdir($dir_handle) ) {
+    warn "info: considering file $file\n" if $DEBUG;
     handle_file($file);
   }
 }
@@ -55,6 +66,8 @@ sub handle_file {
   return unless -f $file;
 
   my $file_mtime = ( stat($file) )[9];
+
+  warn "info: file $file mtime $file_mtime\n" if $DEBUG;
 
   if ( !defined $latest_mtime or $file_mtime > $latest_mtime ) {
     $latest_mtime = $file_mtime;
