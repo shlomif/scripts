@@ -1,0 +1,63 @@
+#!/usr/bin/perl -w
+#
+# $Id$
+#
+# Get latest file in a directory, optionally with a pattern limitation,
+# or optionally reading the filenames from standard input.
+#
+# Usage:  glf [directory|-] [regex]
+#
+#  glf
+#  glf .
+#  glf . ^                # these are equivalent usages. ^ is the fastest
+#                         # regex to match any filename.
+#
+#  glf /var/log .         # return latest file whose name matches maillog
+#
+#  find /var/log -name "mail*" | glf -    # supply filenames to search on
+#                                         # standard input
+
+use strict;
+use File::Spec ();
+
+my $directory  = shift || '.';
+my $file_regex = shift || qr/^/;
+
+$directory = File::Spec->rel2abs($directory);
+
+my $latest_mtime;
+my $latest_file;
+
+if ( $directory eq '-' ) {
+  while ( my $file = <STDIN> ) {
+    handle_file($file);
+  }
+} else {
+  my $dir_handle;
+  opendir( $dir_handle, "$directory" )
+   or die "error: cannot open $directory: $!\n";
+  while ( my $file = readdir($dir_handle) ) {
+    handle_file($file);
+  }
+}
+
+if ( defined $latest_file ) {
+  print $latest_file, $/;
+  exit 0;
+} else {
+  exit 1;
+}
+
+sub handle_file {
+  my $file = shift;
+  return unless defined $file and length $file > 0;
+  return unless $file =~ m/$file_regex/;
+  return unless -f $file;
+
+  my $file_mtime = ( stat($file) )[9];
+
+  if ( !defined $latest_mtime or $file_mtime > $latest_mtime ) {
+    $latest_mtime = $file_mtime;
+    $latest_file  = $file;
+  }
+}
