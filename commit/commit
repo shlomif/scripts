@@ -50,6 +50,10 @@ for my $file (@ARGV) {
 
     push @{ $tocommit{svn} }, $file unless $file eq '.svn';
 
+  } elsif ( -f File::Spec->catfile( $filepath, qw{.git index} ) ) {
+
+    push @{ $tocommit{git} }, $file unless $file eq '.git';
+
   } else {
     push @unknown, $file;
   }
