@@ -5,63 +5,37 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 #
-# Somewhat smart "diff" utility, does CVS diff if relevant, or attempts
-# regular diff if possible.
+# Somewhat smart "diff" utility, does CVS, Subversion, or git diff if
+# this seems relevant (by various file tests), or attempts regular diff
+# if possible.
 
 # should be 0, if errors will be that of last error to occur
 RETURN=0
 
-diff_cvs () {
-  cvs diff $@
-# JAM 2003-02-25 too many false positives on this, so disabled
-#  STATUS=$?
-#  if [ $STATUS -ne 0 ]; then
-#    if [ -z "$1" ]; then
-#      echo "Bad exit status ($STATUS) from cvs-diff" >&2
-#    else
-#      echo "Bad exit status ($STATUS) from $2 cvs-diff on $1" >&2
-#    fi
-#    RETURN=$STATUS
-#  fi
-}
-
-diff_svn () {
-  svn diff $@
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    if [ -z "$1" ]; then
-      echo "Bad exit status ($STATUS) from svn diff" >&2
-    else
-      echo "Bad exit status ($STATUS) from $2 svn diff on $1" >&2
-    fi
-    RETURN=$STATUS
-  fi
-}
-
 if [ -d CVS -a -f CVS/Root ]; then
-  diff_cvs $@
-  exit $RETURN
+  exec cvs diff $@
 fi
 
 if [ -d .svn ]; then
-  diff_svn $@
-  exit $RETURN
+  exec svn diff $@
+fi
+
+if [ -d .git ]; then
+  exec git diff $@
 fi
 
 if [ $# -eq 0 ]; then
-  echo "usage: `basename $0` file1 [file2 .. fileN]"
+  echo "Usage: `basename $0` file1 [file2 .. fileN]"
   exit 1
 else
-  # TODO improve this to search for "similar" filenames with . or -
-  # extensions, either diff all or list other diff commands to run if
-  # more than one alternative...
+  # *.orig and *.old common conventions I use for quick edits, *.orig
+  # for the orig command (probably should use git for such quick edits
+  # instead?)
   for file in "$@"; do
     if [ -f $file.orig ]; then
-      diff -u $file.orig $file
+      diff $file.orig $file
     elif [ -f $file.old ]; then
-      diff -u $file.old $file
+      diff $file.old $file
     fi
   done
 fi
-
-exit $RETURN
