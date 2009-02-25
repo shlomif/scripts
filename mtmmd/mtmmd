@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# Utility to set FTARGET, which is used by various other scripts
+# I employ.
+#
+# TODO probably better to have a set/store query/retrieve system that
+# does not rely on allsh for this variable... though having an ENV var
+# to tab complete on is handy. Not much easier than a `getmytargetdir`
+# or something... (another pro for a get/set system that does not rely
+# on env vars is that new shells do not inherit work of allsh).
+#
+# Also would be nice to tag the "main dir" with different names, so
+# can "godir tag1" vs. "godir tag2" like markers in vi.
+
+set_ftarget () {
+  exec allsh "export FTARGET=\"`pwd`\""
+}
+
+do_chdir () {
+  (
+    builtin cd "$1" || exit 1
+    set_ftarget
+  )
+}
+
+if [ -z "$1" ]; then
+  set_ftarget
+else
+  if [ -d "$1" ]; then
+    do_chdir "$1"
+  elif [ -f "$1" ]; then
+    do_chdir "`dirname \"$1\"`"
+  else
+    echo "`basename \"$0\"`: not a file nor directory: $1" >&2
+    exit 1
+  fi
+fi
