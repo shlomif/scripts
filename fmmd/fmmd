@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# $Id$
+#
+# Unset FTARGET, which is used by various other scripts I employ.
+exec allsh unset FTARGET
