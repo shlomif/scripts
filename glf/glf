@@ -29,7 +29,7 @@ my $DEBUG = 0;
 my $directory  = shift || '.';
 my $file_regex = shift || qr/^/;
 
-$directory = File::Spec->rel2abs($directory);
+$directory = File::Spec->rel2abs($directory) unless $directory eq '-';
 warn "info: checking directory $directory\n" if $DEBUG;
 
 my $latest_mtime;
@@ -37,6 +37,7 @@ my $latest_file;
 
 if ( $directory eq '-' ) {
   while ( my $file = <STDIN> ) {
+    chomp($file);
     warn "info: considering file $file\n" if $DEBUG;
     handle_file($file);
   }
