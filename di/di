@@ -1,41 +1,49 @@
 #!/bin/sh
 #
-# $Id$
+# Somewhat smart "diff" utility, does CVS, Subversion, or git diff if
+# this seems relevant (by various file tests), or attempts regular diff
+# if possible.
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 #
-# Somewhat smart "diff" utility, does CVS, Subversion, or git diff if
-# this seems relevant (by various file tests), or attempts regular diff
-# if possible.
+# $Id$
 
-# should be 0, if errors will be that of last error to occur
-RETURN=0
+PROG_NAME=`basename $0`
 
-if [ -d CVS -a -f CVS/Root ]; then
-  exec cvs diff $@
+# First, attempt version control diff...
+[ -f CVS/Root ] && exec cvs diff $@
+[ -d .svn ] && exec svn diff $@
+findup -q .git
+STATUS=$?
+if [ $STATUS -eq 0 ]; then
+  git diff --quiet --exit-code
+  STATUS=$?
+  if [ $STATUS -eq 1 ]; then
+    exec git diff $@
+  else
+    exit $STATUS
+  fi
 fi
 
-if [ -d .svn ]; then
-  exec svn diff $@
-fi
-
-if [ -d .git ]; then
-  exec git diff $@
-fi
-
+# Otherwise, hunt for diffs based on various conventions I use
 if [ $# -eq 0 ]; then
-  echo "Usage: `basename $0` file1 [file2 .. fileN]"
+  echo "Usage: `basename $0` [file1 file2 .. fileN]" >&2
   exit 1
 else
-  # *.orig and *.old common conventions I use for quick edits, *.orig
-  # for the orig command (probably should use git for such quick edits
-  # instead?)
-  for file in "$@"; do
-    if [ -f $file.orig ]; then
-      diff $file.orig $file
-    elif [ -f $file.old ]; then
-      diff $file.old $file
+  for input in "$@"; do
+    if [ ! -f "$input" ]; then
+      echo "$PROG_NAME: skipping non-file: $input" >&2
+      continue
     fi
+    # *.orig and *.old common conventions I use for quick edits, *.orig
+    # for the orig command (probably should use git for such quick edits
+    # instead?)
+    for backup_suffix in .orig .old; do
+      if [ -f "$input$backup_suffix" ]; then
+        diff "$input$backup_suffix" "$input"
+        break
+      fi
+    done
   done
 fi
