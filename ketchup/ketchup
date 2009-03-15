@@ -58,12 +58,27 @@ update_svn () {
   fi
 }
 
+# Only status for now, do not know enough about git to know what command
+# I would want to run for an update...
+update_git () {
+  CURRENT_DIR=`pwd`
+  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
+    echo "$PROG_NAME: running git status in $CURRENT_DIR" >&2
+  fi
+
+  git status
+  # TODO no status checking, as 'git status' returns 1 in testing...
+}
+
 # figure out how to handle the directory in question
 check_dir () {
   if [ -f CVS/Root ]; then
     update_cvs
   elif [ -f .svn/entries ]; then
     update_svn
+  # TODO this logic is awkward, find better way...
+  elif [ ! `findup .git >/dev/null` ]; then
+    update_git
   else
     subdir | while read dir; do
       (
