@@ -77,7 +77,7 @@ check_dir () {
   elif [ -f .svn/entries ]; then
     update_svn
   # TODO this logic is awkward, find better way...
-  elif [ ! `findup .git >/dev/null` ]; then
+  elif [ ! `findup -q .git` ]; then
     update_git
   else
     subdir | while read dir; do
