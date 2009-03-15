@@ -10,6 +10,17 @@
 #
 # $Id$
 
+OPT=
+QUIET=0
+while getopts q OPT; do
+  case $OPT in
+    q)
+      QUIET=1
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
 SEARCH_FOR=$1
 if [ -z "$SEARCH_FOR" ]; then
   echo "Usage: `basename $0` filename" >&2
@@ -21,10 +32,10 @@ PREVIOUS_DIR=
 while [ 1 ]; do
   CURRENT_DIR=`pwd`
 
-  # TODO option to supply the test (e.g. -d or -f or etc?)
-  # TODO also want perhaps a quiet option
+  # TODO option to supply the test (e.g. -d or -f or etc?) -- might have
+  # some security or run-random-program concerns...
   if [ -e "$SEARCH_FOR" ]; then
-    echo $CURRENT_DIR
+    [ ! $QUIET ] && echo $CURRENT_DIR
     EXIT_STATUS=0
     break
   fi
