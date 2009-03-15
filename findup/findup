@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# findup - search for a file in the current and any parent
+# directories of the current working directory. Prints the first
+# directory containing the matching filename, or exits with a non-
+# zero exit status.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# $Id$
+
+SEARCH_FOR=$1
+if [ -z "$SEARCH_FOR" ]; then
+  echo "Usage: `basename $0` filename" >&2
+  exit 1
+fi
+
+EXIT_STATUS=1
+PREVIOUS_DIR=
+while [ 1 ]; do
+  CURRENT_DIR=`pwd`
+
+  # TODO option to supply the test (e.g. -d or -f or etc?)
+  # TODO also want perhaps a quiet option
+  if [ -e "$SEARCH_FOR" ]; then
+    echo $CURRENT_DIR
+    EXIT_STATUS=0
+    break
+  fi
+
+  if [ "$CURRENT_DIR" == "$PREVIOUS_DIR" ]; then
+    break
+  fi
+
+  PREVIOUS_DIR=$CURRENT_DIR
+  cd .. || break
+done
+
+exit $EXIT_STATUS
