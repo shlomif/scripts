@@ -1,27 +1,31 @@
 #!/bin/sh
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Wrapper to do CVS "update" or Subversion "status"/"update" on working
 # directories as appropriate. Add -f "force" argument to do cvs up -Ad
 # or svn update.
 #
 # Used to be called 'up' but that conflicts with a tool from OpenAFS.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
+#
+# $Id$
 
-# should be 0, if errors will be that of last error to occur
-RETURN=0
+EXIT_STATUS=0
 
-WHATDIR=`pwd`
+# for reference if recursed into some child directory
+START_DIR=`pwd`
+PROG_NAME=`basename $0`
 
 # update routines for specific packages
 # takes dirctory (already cd'ed into) and type of update
 
-# for CVS
 update_cvs () {
-  [ $WHATDIR != $1 ] && echo "info: cvs update in $1" >&2
+  CURRENT_DIR=`pwd`
+  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
+    echo "$PROG_NAME: running cvs update in $CURRENT_DIR" >&2
+  fi
+
   CVSUPARGS=
   if [ "is$FORCE" = "isyes" ]; then
     CVSUPARGS=-Ad
@@ -29,39 +33,41 @@ update_cvs () {
   cvs up $CVSUPARGS
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
-    echo "warn: bad exit status ($STATUS) from $2 update on $1" >&2
-    RETURN=$STATUS
+    echo "$PROG_NAME: non-zero exit $STATUS from cvs update in $CURRENT_DIR" >&2
+    EXIT_STATUS=$STATUS
   fi
 }
 
-# for subversion
 update_svn () {
-  [ $WHATDIR != $1 ] && echo "info: svn update in $1" >&2
-  if [ "is$FORCE" = "isyes" ]; then
-    svn update
-  else
-    svn status
+  CURRENT_DIR=`pwd`
+  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
+    echo "$PROG_NAME: running svn update in $CURRENT_DIR" >&2
   fi
+
+  COMMAND=
+  if [ "is$FORCE" = "isyes" ]; then
+    COMMAND="svn update"
+  else
+    COMMAND="svn status"
+  fi
+  $COMMAND
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
-    echo "warn: bad exit status ($STATUS) from $2 update on $1" >&2
-    RETURN=$STATUS
+    echo "$PROG_NAME: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR" >&2
+    EXIT_STATUS=$STATUS
   fi
 }
 
 # figure out how to handle the directory in question
 check_dir () {
   if [ -f CVS/Root ]; then
-    update_cvs "$1" "CVS"
+    update_cvs
   elif [ -f .svn/entries ]; then
-    update_svn "$1" "svn"
+    update_svn
   else
-    IFS='
-'
-    for file in `subdir`; do
+    subdir | while read dir; do
       (
-        cd -- "$file"
-        check_dir "$file"
+        cd -- "$dir" && check_dir
       )
     done
   fi
@@ -79,16 +85,15 @@ done
 shift $(($OPTIND - 1))
 
 if [ $# -eq 0 ]; then
-  check_dir "$WHATDIR"
+  check_dir
 else
-  for file in "$@"; do
-    if [ -d "$file" ]; then
+  for input in "$@"; do
+    if [ -d "$input" ]; then
       (
-        cd "$file"
-        check_dir "$file"
+        cd -- "$input" && check_dir
       )
     fi
   done
 fi
 
-exit $RETURN
+exit $EXIT_STATUS
