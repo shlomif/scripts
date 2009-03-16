@@ -12,6 +12,10 @@
 
 use strict;
 
+use Cwd qw(getcwd);
+use File::Basename;
+use File::Spec ();
+
 my %defaults = ( class => 'commit' );
 
 my $prefs_file = $ENV{COMMITCONF} || '~/.commit/prefs';
@@ -33,9 +37,6 @@ if ( exists $opts{m} ) {
 # without args)
 @ARGV = qw(.) unless @ARGV;
 
-use File::Basename;
-use File::Spec ();
-
 # where to store filenames for handling
 my ( %tocommit, @unknown );
 
@@ -50,7 +51,7 @@ for my $file (@ARGV) {
 
     push @{ $tocommit{svn} }, $file unless $file eq '.svn';
 
-  } elsif ( -f File::Spec->catfile( $filepath, qw{.git index} ) ) {
+  } elsif ( defined findup('.git') ) {
 
     push @{ $tocommit{git} }, $file unless $file eq '.git';
 
@@ -77,7 +78,7 @@ for my $commit_type ( sort keys %tocommit ) {
   # around things like a -m commit message
   unshift @command, 'echo' if exists $opts{n};
 
-  unless ( system(@command, @{ $tocommit{$commit_type} }) == 0 ) {
+  unless ( system( @command, @{ $tocommit{$commit_type} } ) == 0 ) {
     my $exit_status = $? >> 8;
     remark(
       'warning',
@@ -92,6 +93,22 @@ if (@unknown) {
   remark( 'warning', 'no method to handle', { files => "@unknown" } );
 }
 
+sub findup {
+  my $filename = shift;
+  my $cur_dir  = getcwd();
+
+  my @dirs = File::Spec->splitdir($cur_dir);
+  do {
+    my $work_dir = File::Spec->catdir(@dirs);
+    if ( -e File::Spec->catfile( $work_dir, $filename ) ) {
+      return $work_dir;
+    }
+    pop @dirs;
+  } until ( !@dirs );
+
+  return undef;
+}
+
 sub remark {
   my $priority   = shift;
   my $message    = shift;
@@ -102,12 +119,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
@@ -131,8 +148,8 @@ sub load_prefs {
   my $file = shift;
 
   open my $fh, "< $file"
-   or remark( 'error', 'could not load preferences', { file => $file } )
-   and exit 101;
+    or remark( 'error', 'could not load preferences', { file => $file } )
+    and exit 101;
 
   my %prefs;
   my %tmp = %defaults;
