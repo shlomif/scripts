@@ -1,10 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Script to work with shell signal trapping to run shell commands in
 # all shells. For example using zsh, set the following in ~/.zshrc:
 #
@@ -12,12 +7,19 @@
 #   [ -f ~/.sh-sourceall ] && . ~/.sh-sourceall
 # }
 #
+# http://sial.org/howto/shell/allsh/
+#
 # Warning! This script has various potential security problems,
 # especially where multiple users are involved with a shared account
 # (root), or where write access to the ~/.sh-sourceall file is possible
 # by untrusted users, e.g. via untrusted code injection into the file
 # in question, especially if ~/.sh-sourceall is on an insecure network
 # file system.
+#
+# $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 # routine to signal a process matching an expression with a
 # specified signal.
@@ -46,7 +48,7 @@ fi
 # before running it everywhere?
 
 # KLUGE just clobber a known file, which will cause problems if multiple
-# 'allsh' are run or if multiple users are involve somehow
+# 'allsh' are run or if multiple users are involve somehow.
 if [ "$1" = '-' ]; then
   cat > ~/.sh-sourceall
 else
