@@ -9,16 +9,11 @@
 # anything a wrapper script can be written for.
 #
 # Run perldoc(1) on this script for additional documentation.
-#
-# TODO evict old expire checks
-# TODO rewrite old actions to feed check-expire
-# TODO fixup docs to use 'general' or some new attribute name
 
 use strict;
 
 use Config::General qw(ParseConfig);
 use Date::Parse qw(str2time);
-use File::Spec qw();
 use File::Temp qw(tempfile);
 
 use File::Basename qw(basename);
@@ -31,7 +26,6 @@ my %program_param = ( name => $basename, argv => "@ARGV", pid => $$ );
 my %actions = (
   certificate  => \&action_certificate,
   openssl_x509 => \&action_openssl_x509,
-  many         => \&action_many,
 );
 my @actions = sort keys %actions;
 
@@ -50,7 +44,7 @@ if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
 }
 
 my %config = ParseConfig( -ConfigFile => $opts{f}, -LowerCaseNames => 1 );
-if ( !defined $config{report} ) {
+if ( !defined $config{class} ) {
   remark(
     'error',
     'no classes defined in configuration',
@@ -71,7 +65,7 @@ if ( !exists $actions{$op_mode} ) {
 
 # where in the prefs to read expire, window handlers from
 my $report_handler = exists $opts{c} ? $opts{c} : 'default';
-my $report_ref     = $config{report}->{$report_handler};
+my $report_ref     = $config{class}->{$report_handler};
 
 if ( !defined $report_ref ) {
   remark(
@@ -82,9 +76,87 @@ if ( !defined $report_ref ) {
   do_exit(103);
 }
 
-# TODO pass exit names, then lookup exit value in a hash?
-my $exit_status = $actions{$op_mode}->(@ARGV);
-do_exit($exit_status);
+# lookup expiration date and other info via mode handler
+my ( %time_param, %extra_param );
+{
+  my ( $time_ref, $extra_ref ) = $actions{$op_mode}->(@ARGV);
+  if ( !defined $time_ref or !defined $time_ref->{expire_epoch} ) {
+    remark( 'error', 'no expire date found' );
+    do_exit(105);
+  }
+  @time_param{ keys %$time_ref }   = values %$time_ref;
+  @extra_param{ keys %$extra_ref } = values %$extra_ref;
+}
+$time_param{cur_epoch} = time;
+
+my %lookup = (
+  time    => \%time_param,
+  extra   => \%extra_param,
+  program => \%program_param
+);
+
+# check whether expired, or if within a window
+if ( $time_param{expire_epoch} <= $time_param{cur_epoch} ) {
+
+  # TODO fill out more parameters (humanized time? strftime, parameters
+  # about the certificate, and etc.? - see what need for reporting)
+  # seconds_ago  => $cur_epoch - $expire_epoch,
+  handle_condition( $report_ref->{expired}, \%lookup );
+
+  die "error: expired handler did not exit script\n";
+}
+
+if ( exists $report_ref->{window} ) {
+  my @windows;
+
+  if ( ref $report_ref->{window} eq 'HASH' ) {
+    my %tmp = %{ $report_ref->{window} };
+    delete $report_ref->{window};
+    $report_ref->{window}->[0] = \%tmp;
+  } elsif ( ref $report_ref->{window} ne 'ARRAY' ) {
+    remark(
+      'error',
+      'unexpected reference type for window',
+      { ref => ref $report_ref->{window}, file => $opts{f} }
+    );
+    do_exit(104);
+  }
+
+  # build Windows to look at (sanity checks, duration conversion)
+  # TODO include window timevalue in time_param hash
+  for my $window_ref ( @{ $report_ref->{window} } ) {
+    if ( !exists $window_ref->{inside} ) {
+      remark( 'error', 'skipping window without date setting' );
+      next;
+    }
+    $window_ref->{inside_sec} = duration2seconds( $window_ref->{inside} );
+    push @windows, $window_ref;
+  }
+
+  for
+    my $window_ref ( sort { $a->{inside_sec} <=> $b->{inside_sec} } @windows )
+  {
+
+    if ( $time_param{expire_epoch} <=
+      ( $time_param{cur_epoch} + $window_ref->{inside_sec} ) ) {
+
+      # TODO seconds_left => $expire_epoch - $cur_epoch,
+      handle_condition( $window_ref, \%lookup );
+
+      die "error: window handler did not exit script\n";
+    }
+  }
+}
+
+if ( exists $report_ref->{default} ) {
+  # TODO seconds_left => $expire_epoch - $cur_epoch,
+  handle_condition( $report_ref->{default}, \%lookup );
+
+  die "error: default handler did not exit script\n";
+} else {
+  # if no default, exit, assuming an implicit default exit
+  do_exit(0);
+}
 
 # Mode to parse for expiration date using 'openssl x509' (certificate)
 sub action_openssl_x509 {
@@ -126,172 +198,6 @@ sub action_openssl_x509 {
   }
 
   return \%time_param, \%cert_param;
-}
-
-sub action_many {
-  my $many_pref_file = shift;
-
-  my %many_config =
-    ParseConfig( -ConfigFile => $many_pref_file, -LowerCaseNames => 1 );
-
-  # TODO need to track how many checks, or exit status, so can track
-  # results from the checks...
-
-  my $things_checked = 0;
-  my $exit_status    = 0;
-
-  for my $check ( keys %{ $many_config{check} } ) {
-    # TODO might need different name to exec, additional arguments
-    my @command = (
-      exists $many_config{execdir}
-      ? File::Spec->catfile( $many_config{execdir}, $check )
-      : $check
-    );
-
-    # TODO needs to handle scalar or array properly
-    my $check_total  = 0;
-    my $check_count  = 0;
-    my @command_args = ();
-
-    if ( ref $many_config{check}->{$check}->{name} eq 'ARRAY' ) {
-      $check_total  = scalar @{ $many_config{check}->{$check}->{name} };
-      @command_args = @{ $many_config{check}->{$check}->{name} };
-    } else {
-      $check_total  = 1;
-      @command_args = ( $many_config{check}->{$check}->{name} );
-    }
-
-    my $results = get_output( @command, @command_args );
-    if ( !defined $results ) {
-      remark( 'error', 'no output returned', { command => "@command" } );
-      $exit_status = 106;
-    }
-
-    my %param;
-    for my $line (@$results) {
-
-      # reset on blank lines
-      if ( $line =~ m/^\s*$/ ) {
-        if ( exists $param{name} ) {
-
-          $param{check_type} = $check;
-          $check_count++;
-
-          my $exit_value =
-            check_expire(
-            { general => \%param, program => \%program_param } );
-          if ( $exit_value != 0 ) {
-            $exit_status = $exit_value;
-          }
-
-          %param = ();
-        }
-      }
-
-      my ( $key, $value ) = $line =~ m/^([a-zA-Z0-9_-]+) \s*=\s* (.*)/x;
-      if ( defined $key ) {
-        $param{$key} = $value;
-      }
-    }
-
-    if ( exists $param{name} ) {
-      $check_count++;
-      $param{check_type} = $check;
-      my $exit_value =
-        check_expire( { general => \%param, program => \%program_param } );
-
-      if ( $exit_value != 0 ) {
-        $exit_status = $exit_value;
-      }
-    }
-
-    if ( $check_count != $check_total ) {
-      remark(
-        'warning',
-        'check count mismatch',
-        { checked => $check_count, needed => $check_total }
-      );
-      $exit_status = 110;
-    } else {
-      $things_checked += $check_count;
-    }
-  }
-
-  if ( $things_checked == 0 ) {
-    remark( 'warning', 'nothing checked', { file => $many_pref_file } );
-    $exit_status = 110;
-  }
-
-  return $exit_status;
-}
-
-sub check_expire {
-  my $lookup_ref = shift;
-  my $param_ref  = $lookup_ref->{general};
-
-  if ( !exists $param_ref->{expire_epoch}
-    or $param_ref->{expire_epoch} !~ m/^\d+$/ ) {
-    remark(
-      'error',
-      'no expiration epoch',
-      { check => $param_ref->{check_type}, name => $param_ref->{name} }
-    );
-    return 104;
-  }
-
-  $param_ref->{cur_epoch} = time;
-  my $exit_value = 0;
-
-  if ( $param_ref->{expire_epoch} <= $param_ref->{cur_epoch} ) {
-    $exit_value = handle_condition( $report_ref->{expired}, $lookup_ref );
-
-  } elsif ( exists $report_ref->{window} ) {
-    my @windows;
-
-    if ( ref $report_ref->{window} eq 'HASH' ) {
-      my %tmp = %{ $report_ref->{window} };
-      delete $report_ref->{window};
-      $report_ref->{window}->[0] = \%tmp;
-
-    } elsif ( ref $report_ref->{window} ne 'ARRAY' ) {
-      remark(
-        'error',
-        'unexpected reference type for window',
-        { ref => ref $report_ref->{window}, file => $opts{f} }
-      );
-      return 123;
-    }
-
-    # build Windows to look at (sanity checks, duration conversion)
-    # TODO include window timevalue in time_param hash
-    for my $window_ref ( @{ $report_ref->{window} } ) {
-      if ( !exists $window_ref->{inside} ) {
-        remark( 'error', 'skipping window without date setting' );
-        next;
-      }
-      $window_ref->{inside_sec} = duration2seconds( $window_ref->{inside} );
-      push @windows, $window_ref;
-    }
-
-    for my $window_ref ( sort { $a->{inside_sec} <=> $b->{inside_sec} }
-      @windows ) {
-
-      if ( $param_ref->{expire_epoch} <=
-        ( $param_ref->{cur_epoch} + $window_ref->{inside_sec} ) ) {
-
-        # TODO seconds_left => $expire_epoch - $cur_epoch,
-        $exit_value = handle_condition( $window_ref, $lookup_ref );
-      }
-    }
-
-  } elsif ( exists $report_ref->{default} ) {
-
-    # TODO seconds_left => $expire_epoch - $cur_epoch,
-    $exit_value = handle_condition( $report_ref->{default}, $lookup_ref );
-
-  }
-
-  return $exit_value;
 }
 
 # runs a command that should return a certificate to stdout that
@@ -403,7 +309,7 @@ sub handle_condition {
     }
   }
 
-  return $handle_ref->{exit_value};
+  do_exit( $handle_ref->{exit_value} );
 }
 
 # converts a string into a list of tokens
@@ -525,35 +431,6 @@ sub do_exit {
   my $exit_value = shift;
 
   exit $exit_value;
-}
-
-sub deltatimefmt {
-  my $difference = int(shift);
-
-  return "0s" if $difference == 0;
-
-  my $seconds = $difference % 60;
-  $difference = ( $difference - $seconds ) / 60;
-  my $minutes = $difference % 60;
-  $difference = ( $difference - $minutes ) / 60;
-
-  #  my $hours = $difference;
-  my $hours = $difference % 24;
-  $difference = ( $difference - $hours ) / 24;
-  my $days  = $difference % 7;
-  my $weeks = ( $difference - $days ) / 7;
-
-  # TODO better way to do this?
-  my $temp = ($weeks) ? "${weeks}w " : '';
-  $temp .= ($days)  ? "${days}d "  : '';
-  $temp .= ($hours) ? "${hours}h " : '';
-
-  # omit minutes and seconds, as certificate expiration should be
-  # handled days in advance (or one would hope)
-  #$temp .= ($minutes) ? "${minutes}m " : '';
-  #$temp .= ($seconds) ? "${seconds}s"  : '';
-
-  return $temp;
 }
 
 sub remark {
@@ -762,8 +639,6 @@ Document usage under Nagios or other interfaces.
 
 Read things to check from preferences file and loop over, instead of
 needing a different command run for each thing to check?
-
-More wrappers or IPC::Open2 to prevent STDERR from polluting the output?
 
 =head1 SEE ALSO
 
