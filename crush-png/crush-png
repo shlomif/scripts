@@ -1,6 +1,11 @@
 #!/bin/sh
 #
+# Better UI wrapper for pngcrush.
+#
 # $Id$
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` png-image [...]" >&2
