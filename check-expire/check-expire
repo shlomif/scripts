@@ -82,81 +82,9 @@ if ( !defined $report_ref ) {
   do_exit(103);
 }
 
-# lookup expiration date and other info via mode handler
-my ( %time_param, %extra_param );
-{
-  my ( $time_ref, $extra_ref ) = $actions{$op_mode}->(@ARGV);
-  if ( !defined $time_ref or !defined $time_ref->{expire_epoch} ) {
-    remark( 'error', 'no expire date found' );
-    do_exit(105);
-  }
-  @time_param{ keys %$time_ref }   = values %$time_ref;
-  @extra_param{ keys %$extra_ref } = values %$extra_ref;
-}
-$time_param{cur_epoch} = time;
-
-my %lookup = (
-  time    => \%time_param,
-  extra   => \%extra_param,
-  program => \%program_param
-);
-
-my $exit_value = 0;
-
-# check whether expired, or if within a window
-if ( $time_param{expire_epoch} <= $time_param{cur_epoch} ) {
-
-  # TODO fill out more parameters (humanized time? strftime, parameters
-  # about the certificate, and etc.? - see what need for reporting)
-  # seconds_ago  => $cur_epoch - $expire_epoch,
-  $exit_value = handle_condition( $report_ref->{expired}, \%lookup );
-
-} elsif ( exists $report_ref->{window} ) {
-  my @windows;
-
-  if ( ref $report_ref->{window} eq 'HASH' ) {
-    my %tmp = %{ $report_ref->{window} };
-    delete $report_ref->{window};
-    $report_ref->{window}->[0] = \%tmp;
-  } elsif ( ref $report_ref->{window} ne 'ARRAY' ) {
-    remark(
-      'error',
-      'unexpected reference type for window',
-      { ref => ref $report_ref->{window}, file => $opts{f} }
-    );
-    do_exit(104);
-  }
-
-  # build Windows to look at (sanity checks, duration conversion)
-  # TODO include window timevalue in time_param hash
-  for my $window_ref ( @{ $report_ref->{window} } ) {
-    if ( !exists $window_ref->{inside} ) {
-      remark( 'error', 'skipping window without date setting' );
-      next;
-    }
-    $window_ref->{inside_sec} = duration2seconds( $window_ref->{inside} );
-    push @windows, $window_ref;
-  }
-
-  for
-    my $window_ref ( sort { $a->{inside_sec} <=> $b->{inside_sec} } @windows )
-  {
-
-    if ( $time_param{expire_epoch} <=
-      ( $time_param{cur_epoch} + $window_ref->{inside_sec} ) ) {
-
-      # TODO seconds_left => $expire_epoch - $cur_epoch,
-      $exit_value = handle_condition( $window_ref, \%lookup );
-    }
-  }
-
-} elsif ( exists $report_ref->{default} ) {
-
-  # TODO seconds_left => $expire_epoch - $cur_epoch,
-  $exit_value = handle_condition( $report_ref->{default}, \%lookup );
-
-}
-do_exit($exit_value);
+# TODO pass exit names, then lookup exit value in a hash?
+my $exit_status = $actions{$op_mode}->(@ARGV);
+do_exit($exit_status);
 
 # Mode to parse for expiration date using 'openssl x509' (certificate)
 sub action_openssl_x509 {
@@ -294,7 +222,7 @@ sub action_many {
     $exit_status = 110;
   }
 
-  do_exit($exit_status);
+  return $exit_status;
 }
 
 sub check_expire {
@@ -597,6 +525,35 @@ sub do_exit {
   my $exit_value = shift;
 
   exit $exit_value;
+}
+
+sub deltatimefmt {
+  my $difference = int(shift);
+
+  return "0s" if $difference == 0;
+
+  my $seconds = $difference % 60;
+  $difference = ( $difference - $seconds ) / 60;
+  my $minutes = $difference % 60;
+  $difference = ( $difference - $minutes ) / 60;
+
+  #  my $hours = $difference;
+  my $hours = $difference % 24;
+  $difference = ( $difference - $hours ) / 24;
+  my $days  = $difference % 7;
+  my $weeks = ( $difference - $days ) / 7;
+
+  # TODO better way to do this?
+  my $temp = ($weeks) ? "${weeks}w " : '';
+  $temp .= ($days)  ? "${days}d "  : '';
+  $temp .= ($hours) ? "${hours}h " : '';
+
+  # omit minutes and seconds, as certificate expiration should be
+  # handled days in advance (or one would hope)
+  #$temp .= ($minutes) ? "${minutes}m " : '';
+  #$temp .= ($seconds) ? "${seconds}s"  : '';
+
+  return $temp;
 }
 
 sub remark {
