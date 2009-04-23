@@ -24,9 +24,15 @@
 #
 # $Id$
 
-die "usage: $0 [ [ip] [ip2 ..] | - ]\n" unless @ARGV;
+die "usage: $0 [-t table] [ [ip] [ip2 ..] | - ]\n" unless @ARGV;
 
-# TODO steal regex from Regexp::Common or something
+use Getopt::Std;
+my %opts;
+getopts 't:', \%opts;
+
+my $table_name = $opts{t} || 'badhosts';
+
+# TODO steal proper regex from Regexp::Common or something
 my $ip_re = qr/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/;
 
 my %badhost;
@@ -39,7 +45,7 @@ for my $entry (@ARGV) {
   next unless $entry =~ m/$ip_re/;
   next if $badhost{$entry}++;
 
-  system qw{/sbin/pfctl -t badhosts -T add}, $entry;
+  system qw{/sbin/pfctl -t}, $table_name, qw{-T add}, $entry;
 }
 
 # parse state list for badhosts, kill of any existing states
