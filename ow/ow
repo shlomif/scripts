@@ -9,7 +9,6 @@
 # Run perldoc(1) on this script for additional documentation.
 #
 # TODO messy script, need to cleanup and standardize more.
-# TODO add github support.
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
@@ -527,6 +526,9 @@ against the full directory name being considered.
 
   # when in checkout of sial.org, map to website
   co/sial.org/htdocs http://sial.org/%1
+
+  # github example...
+  co/scripts http://github.com/thrig/sial.org-scripts/commits/master/%1
 
 =head1 TAB COMPLETION
 
