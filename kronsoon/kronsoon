@@ -17,7 +17,9 @@ use POSIX qw(strftime);
 # in subsequent years. Should be plenty of time to remove a test run.
 # NOTE one of the day-of-month or day-of-week should be *, as otherwise
 # crond treats them as a logical OR (see crontab(5) for details).
-my $CRON_TIME_FORMAT   = '%M %H %d %m *';
+my $CRON_TIME_FORMAT = '%M %H %d %m *';
+
+# Set high, due to interrupt driven nature of my job...
 my $SECONDS_IN_ADVANCE = 99;
 
 my ( $use_gmtime, $comment, $time_format );
@@ -32,10 +34,17 @@ if ( defined $time_format ) {
   $CRON_TIME_FORMAT = $time_format;
 }
 
-# Remainder optional command to insert after cron time specification
-my $command = @ARGV ? "@ARGV" : '';
+# Read optional command to insert after cron time specification either
+# from command line, or if standard input is not a terminal, assume
+# being piped something (e.g. ":.!kronsoon" in vi).
+my $command;
+if (@ARGV) {
+  $command = @ARGV ? "@ARGV" : '';
+} elsif ( !-t ) {
+  $command = do { local $/; <STDIN> };
+}
 
-my $current_epoch = time;
+my $current_epoch = time();
 
 # Add remainder seconds to advance time if "late" in the current minute
 my $run_epoch =
@@ -48,6 +57,7 @@ if ( defined $comment and length $comment > 0 ) {
 }
 print strftime( $CRON_TIME_FORMAT, @run_time )
   . ( defined $command ? " $command" : '' ) . "\n";
+
 exit 0;
 
 sub print_help {
