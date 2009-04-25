@@ -1,13 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Detects and deals with duplicate files with pre-index by size. Run
+# perldoc(1) on this script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Detects and deals with duplicate files with pre-index by size.
-#
-# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 
@@ -277,13 +274,8 @@ Pre-index on size concept adapted from code by Craig Reyenga.
 The author disclaims all copyrights and releases this script into the
 public domain.
 
-=head1 VERSION
-
-  $Id$
-
 =head1 SCRIPT CATEGORIES
 
 Utilities
 
 =cut
-

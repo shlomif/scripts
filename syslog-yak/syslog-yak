@@ -1,30 +1,15 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Makes noise to syslog via logger(1). Run perldoc(1) on this file for
+# additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
-
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-######################################################################
-#
-# VARIABLES
+use Carp;
+use Getopt::Std;
 
 my @facility = qw(
 auth
@@ -61,10 +46,6 @@ info
 debug
 );
 
-######################################################################
-#
-# MAIN
-
 for my $l (@level) {
   for my $f (@facility) {
     system 'logger', @ARGV, '-p', "$f.$l", '--', "yakking to $f.$l";
@@ -72,10 +53,6 @@ for my $l (@level) {
 }
 
 exit;
-
-######################################################################
-#
-# SUBROUTINES
 
 # a generic help blarb
 sub help {
@@ -92,10 +69,6 @@ Run perldoc(1) on this script for additional documentation.
 HELP
   exit;
 }
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
@@ -149,9 +122,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

@@ -1,11 +1,9 @@
 #!/bin/sh
 #
-# $Id$
+# Prints the date in a format to the liking of the author.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Prints the date in a format to the liking of the author.
 
 DODATE=no
 DOTIME=no

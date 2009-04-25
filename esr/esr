@@ -1,10 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
-#
 # Reverses command line arguments, for when the .foo longer name needs
 # to come first, e.g. when doing stuff like:
 #
@@ -17,6 +12,9 @@
 # or:
 #
 # esr annoying* | xargs diff
+#
+# The author disclaims all copyrights and releases this script into
+# the public domain.
 
 for x in $@; do
   out="$x $out"

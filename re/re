@@ -1,14 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Wrapper to screen(1) for easy resuming and management of named screen
+# sessions. Run perldoc(1) on this script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Wrapper to screen(1) for easy resuming and management of named screen
-# sessions.
-#
-# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 
@@ -250,9 +246,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

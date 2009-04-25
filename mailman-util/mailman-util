@@ -1,18 +1,13 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this document into
-# the public domain.
-#
 # Utility routines to interact with the mailman mailing list manager.
 #
 # TODO Mailman 2.0.5 lacks "disable reminder" support? Ugh.
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
 
 use strict;
-
-my $VERSION;
-( $VERSION = '$Revision$ ' ) =~ s/[^0-9.]//g;
 
 # registered mode handlers
 my %handlers = ( notify => { code => \&handle_notify, }, );
@@ -135,7 +130,7 @@ Usage: $0 [opts] mode [mode args]
 
 Utility routines to interact with the mailman mailing list manager.
 
-Options for version $VERSION:
+Options:
   -h/-?  Display this message
 
 HELP

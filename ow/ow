@@ -1,10 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
-#
 # Command line shortcuts and directory to URL mapping. Customize the
 # %open list (commands to handle URL with) and change the default_open
 # or OW_METHOD environment variable to set a default handler. Then
@@ -14,6 +9,10 @@
 # Run perldoc(1) on this script for additional documentation.
 #
 # TODO messy script, need to cleanup and standardize more.
+# TODO add github support.
+#
+# The author disclaims all copyrights and releases this script into
+# the public domain.
 
 use URI;
 
@@ -572,9 +571,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

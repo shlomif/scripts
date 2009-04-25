@@ -1,14 +1,12 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Cleans up XML via the xmllint utility from the libxml2 project.
 # Handles input either from standard input, or named files given as
 # arguments. Named files are currently operated on in-place, while
 # standard input is passed to standard out after the tidy is done.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 
@@ -216,9 +214,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

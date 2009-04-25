@@ -1,14 +1,20 @@
 #!/bin/sh
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Creates new directories. Acts like 'mkdir -p' to create parent
 # directories by default, even on platforms whose mkdir does not support
 # the -p option. Additionally, will perform 'cvs add' on the new
 # directories should CVS be detected or likewise for Subversion.
+#
+# TODO retire this, as now instead using the ZSH function:
+#
+# ndir () {
+#   NDIR=`buildir -p $@ | tail -1` 
+#   [[ $? -ne 0 ]] && exit $?
+#   builtin cd "$NDIR"
+# }
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 VERBOSE=no
 

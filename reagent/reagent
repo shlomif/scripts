@@ -1,13 +1,11 @@
 #!/bin/sh
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Starts and configures the OpenSSH ssh-agent(1) utility. Kills ssh-
 # agent if found running already. Uses my allsh utility to reconfigure
 # any running shells with the new ssh-agent details.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 # timeout keys automatically (not compatible with older versions of OpenSSH)
 KEY_TIMEOUT="-t 10h"

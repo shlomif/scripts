@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-#
 # Show POP3 server certificate. Usage:
 #
 # check-pop3 -connect mail.example.org:995

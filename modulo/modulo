@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-#
 # Return remainder of a given input number, broken down into two or
 # more values.
 #
@@ -18,6 +16,12 @@
 #
 #   $ modulo 2 node001
 #   1
+#
+# For more usage ideas, see:
+# http://sial.org/howto/cfengine/examples/resolver/
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` what-to-modulo-by value-to-modulo" >&2

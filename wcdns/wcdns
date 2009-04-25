@@ -1,14 +1,11 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Checks whether domain(s) listed on command line (or failing that
+# STDIN) are wildcard domains. Run perldoc(1) on this file for more
+# documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Checks whether domain(s) listed on command line (or failing that
-# STDIN) are wildcard domains.
-#
-# Run perldoc(1) on this file for more documentation.
 
 use strict;
 
@@ -160,9 +157,5 @@ http://lists.roaringpenguin.com/pipermail/mimedefang/2003-September/008061.html
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

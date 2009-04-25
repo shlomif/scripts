@@ -21,8 +21,6 @@
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# $Id$
 
 die "usage: $0 [-t table] [ [ip] [ip2 ..] | - ]\n" unless @ARGV;
 
@@ -49,18 +47,21 @@ for my $entry (@ARGV) {
 }
 
 # parse state list for badhosts, kill of any existing states
-open STATELIST, '-|'
+my $state_fh;
+open( $state_fh, '-|' )
   or exec qw{/sbin/pfctl -s state}
   or die "error: pfctl -s state failed: $!\n";
 
-while ( my $line = <STATELIST> ) {
+while ( my $line = <$state_fh> ) {
   chomp $line;
 
-  if ( $line =~ m/^
+  if (
+    $line =~ m/^
     \w+ \s+ \w+ \s+                           # leading 'self tcp' or similar
     ($ip_re):\d+ \s+ (<-|->) \s+ ($ip_re):\d+ # source to dest
     \s+ (.+)                                  # state (established, etc.)
-   /x ) {
+   /x
+    ) {
 
     my ( $one, $direction, $two, $state ) = ( $1, $2, $3, $4 );
 
@@ -81,3 +82,5 @@ while ( my $line = <STATELIST> ) {
     die "error: unparseable pfctl -s state output: line=$line\n";
   }
 }
+
+exit 0;

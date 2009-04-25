@@ -1,7 +1,5 @@
 #!/bin/sh -x
 #
-# $Id$
-#
 # To generate S/MIME bundles to test against. If using a self-signed
 # certificate, use 'openssl smime -verify -noverify' to avoid 'self
 # signed certificate in chain' errors.

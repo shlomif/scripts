@@ -1,11 +1,9 @@
 #!/usr/bin/perl -l
 #
-# $Id$
+# Twiddles case.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Twiddles case.
 
 use Getopt::Std;
 my %opts;

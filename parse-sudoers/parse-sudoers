@@ -1,14 +1,12 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Parses sudoers. Quick script, does not follow BNF used by sudo, only
 # outputs reformated lines able to parse. Usage:
 #
 # sudo parse-sudoers /etc/sudoers
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 

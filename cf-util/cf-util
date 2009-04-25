@@ -1,17 +1,19 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Helper script for cfengine 2.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Helper script for cfengine.
 
 use strict;
 
+use File::Spec ();
+use Getopt::Std qw(getopts);
+use Net::DNS ();
+
 my $mode = shift || die "usage: $0 mode [args]\n";
 
-# pull mode handlers from symbol table
+# Pull mode handlers from the symbol table (probably a bad idea!)
 {
   no strict 'refs';
   my $pkgname = __PACKAGE__ . '::';
@@ -36,11 +38,9 @@ sub handle_append {
 }
 
 sub handle_class2host {
-  use Net::DNS ();
   my $dns = Net::DNS::Resolver->new;
   $dns->defnames(0);    # do not search default domain
 
-  use Getopt::Std qw(getopts);
   my %opts;
   getopts 'd:', \%opts;
 
@@ -97,7 +97,7 @@ sub handle_class2host {
 
   for my $host ( sort keys %hosts ) {
     my $hostname = "$host.$domain";
-    my $query    = $dns->query( $hostname, 'A' );
+    my $query = $dns->query( $hostname, 'A' );
 
     # TODO allow templating of output, so can list in format appropriate
     # for other tools easily (SSH host key updating, etc.)
@@ -109,7 +109,6 @@ sub handle_class2host {
 
 # generates path to file with ${masterfiles}/... setup
 sub handle_copy {
-  use File::Spec ();
 
   # TODO config file for this, support multiple
   my @pathmaps = qw(masterfiles);

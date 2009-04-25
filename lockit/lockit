@@ -1,39 +1,17 @@
 #!/usr/bin/perl
 #
-# $Id$
-#
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
-
 use Carp;
+use Fcntl qw(:DEFAULT :flock);
 use Getopt::Std;
 
-# file locking related modules
-use Fcntl qw(:DEFAULT :flock);
-
-######################################################################
-#
-# VARIABLES
-
 my (%opts, %locks, $duration);
-
-######################################################################
-#
-# MAIN
 
 # parse command-line options
 getopts('h?wd:', \%opts);

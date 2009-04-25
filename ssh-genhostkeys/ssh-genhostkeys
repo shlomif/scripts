@@ -1,11 +1,9 @@
 #!/bin/sh
 #
-# $Id$
+# Generates new host keys for servers running OpenSSH 2.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Generates new host keys for servers running OpenSSH 2.
 
 # should be 0, if errors will be that of last error to occur
 RETVAL=0

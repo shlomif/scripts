@@ -1,14 +1,11 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Converts IPv4 addresses and hostnames (input to Socket::inet_aton) to
+# hex format.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Converts IPv4 addresses and hostnames (input to Socket::inet_aton) to
-# hex format.
 
-require 5;
 use strict;
 
 use Socket qw(inet_aton);

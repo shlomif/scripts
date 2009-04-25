@@ -6,8 +6,6 @@
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
-#
-# $Id$
 
 PROG_NAME=`basename $0`
 

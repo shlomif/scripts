@@ -1,11 +1,11 @@
 #!/bin/sh
 #
-# $Id$
+# Adds ssh known host keys to a specified host keys file. Uses ssh-
+# keyscan and ssh-hkutil, elsewhere in the sial.org scripts tree. May
+# not suit sites with thousands or more systems.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Adds ssh known host keys to a specified host keys file.
 
 BASENAME=`basename $0`
 
@@ -43,10 +43,11 @@ cmp -s $KHF $TMPHOSTS
 STATUS=$?
 
 if [ $STATUS -eq 1 ]; then
-  # use cat to preserve perms that cp or mv might fuddle with
+  # use cat to preserve perms that cp or mv might fuddle with :(
   cat $TMPHOSTS > $KHF
 elif [ $STATUS -gt 1 ]; then
   echo "error: cmp failed: status=$STATUS" >&2
 fi
 
 cleanup
+exit $STATUS

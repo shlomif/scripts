@@ -1,17 +1,11 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Pick or reject items from a list of input data.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Pick or reject items from a list of input data.
 
-require 5;
 use strict;
-
-my $VERSION;
-($VERSION = '$Revision$ ') =~ s/[^0-9.]//g;
 
 # specifications for getraw utility
 my $specs = {
@@ -226,9 +220,5 @@ Based on pick command examples presented in "The Unix Programming
 Environment" (ISBN 0-13-937681-X).
 
 http://cm.bell-labs.com/cm/cs/upe/
-
-=head1 VERSION
-
-  $Id$
 
 =cut

@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
 # Print positions from left to right for Chess960 opening:
 # http://en.wikipedia.org/wiki/Chess960
 

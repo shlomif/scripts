@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
 # Test routines for SMIME operations in mime-util script.
 
 use strict;

@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
 # Runs a command with specified priority, like nice, but handles
 # negative priorities with sudo. Forks to avoid running the named
 # command as superuser; renice done via parent process as root.
@@ -10,6 +8,9 @@
 #
 # On Mac OS X launches "Descent2 X" and renices it to the default
 # priority.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 

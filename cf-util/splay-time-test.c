@@ -1,7 +1,5 @@
 /*
-$Id$
-
-based on code at http://cfwiki.org/cfwiki/index.php/SplayTime_testing
+Based on code at http://cfwiki.org/cfwiki/index.php/SplayTime_testing
 
 Usage: splay-time-test host.example.org [host2 ..]
 

@@ -1,13 +1,11 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Mangle files with perl expressions: rename, copy, or move. Supports
+# preview, to see what the damage will be. Run perldoc(1) on this file
+# for additional documentation.
 #
 # This script is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
-#
-# Mangle files with perl expressions: rename, copy, or move.
-#
-# Run perldoc(1) on this file for additional documentation.
 
 require 5;
 use strict;
@@ -247,9 +245,5 @@ This is a hacked up version of Larry Wall's original rename script
 distributed with perl under the eg directory, improved by Daniel
 V. Klien (copy option, interactive mode), and then polished into this
 form by Jeremy Mates (preview mode, move support, subversion support).
-
-=head1 VERSION
-
-  $Id$
 
 =cut

@@ -1,30 +1,15 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Stop operation of a long running process after a certain time period.
+# Run perldoc(1) on this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
-
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-######################################################################
-#
-# VARIABLES
+use Carp;
+use Getopt::Std;
 
 my (%opts, %features, $t0);
 
@@ -36,10 +21,6 @@ my %factor = (
   'm' => 60,
   's' => 1,
 );
-
-######################################################################
-#
-# MAIN
 
 # optional high resolution timers
 eval { require Time::HiRes; };
@@ -105,10 +86,6 @@ if ($pid) {  # parent
 } else {  # child
   exec @ARGV or die "Error: could not exec: $!\n";
 }
-
-######################################################################
-#
-# SUBROUTINES
 
 # takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
@@ -182,10 +159,6 @@ Run perldoc(1) on this script for additional documentation.
 HELP
   exit;
 }
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
@@ -292,9 +265,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

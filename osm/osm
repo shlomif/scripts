@@ -1,10 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Generic interface to many archive formats.
 #
 # Run perldoc(1) on this script for additional documentation.
@@ -22,6 +17,9 @@
 #
 # TODO directory watching/recursion mode, so can undo .gz, recheck dir,
 # undo any other archive format, and so forth to a limit?
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 use File::Basename;
@@ -585,9 +583,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

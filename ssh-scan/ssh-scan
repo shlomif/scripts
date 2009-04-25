@@ -1,32 +1,15 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Run perldoc(1) on this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
-
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
+use Carp;
+use Getopt::Std;
 use Socket qw(:DEFAULT :crlf);  # low-level connection handling
-
-######################################################################
-#
-# VARIABLES
 
 my $service   = 'ssh';
 my $protoname = 'tcp';
@@ -34,10 +17,6 @@ my $port      = getservbyname($service, $protoname);
 my $proto     = getprotobyname($protoname);
 
 my (%opts);
-
-######################################################################
-#
-# MAIN
 
 # parse command-line options
 getopts('h?', \%opts);
@@ -88,10 +67,6 @@ while (<STDIN>) {
 
 exit;
 
-######################################################################
-#
-# SUBROUTINES
-
 sub do_connect {
   my $ip = shift || return (0);
   my $o = undef;
@@ -123,10 +98,6 @@ Run perldoc(1) on this script for additional documentation.
 HELP
   exit;
 }
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
@@ -209,9 +180,5 @@ Socket code contributed by Michael Hornung, hornung@u.washington.edu.
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-$Id$
 
 =cut

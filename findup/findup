@@ -1,14 +1,13 @@
 #!/bin/sh
 #
-# findup - search for a file in the current and any parent
-# directories of the current working directory. Prints the first
-# directory containing the matching filename, or exits with a non-
-# zero exit status.
+# findup - search for a file in the current and any parent directories
+# of the current working directory. Prints the first directory
+# containing the matching filename, or exits with a non- zero exit
+# status. Might be used in various other scripts in the sial.org scripts
+# repository.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# $Id$
 
 OPT=
 QUIET=0

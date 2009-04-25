@@ -1,13 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Apply XSL files to XML data via XML::ApplyXSLT module. Run perldoc(1)
+# on this script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Apply XSL files to XML data via XML::ApplyXSLT module.
-#
-# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 
@@ -43,12 +40,13 @@ if ( exists $opts{p} ) {
 
 # technically optional, but what's the point without these?
 my $rules_file = tilde_expand( $ENV{AXP_RULES} || '~/.axp/rules' );
-open my $rfh, "< $rules_file"
- or remark(
+my $rfh;
+open( $rfh, '<', $rules_file )
+  or remark(
   'warning',
   'cannot load rules file',
   { file => $rules_file, errno => $! }
- );
+  );
 
 my @new_args;
 push @new_args, 'rules', $rfh if $rfh;
@@ -64,7 +62,7 @@ $xapply->config_libxml( { load_ext_dtd => 0 } );
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
     remark( 'notice', 'skipping as does not exist', { file => $file } )
-     unless exists $defaults{quiet};
+      unless exists $defaults{quiet};
     next FILE;
   }
 
@@ -74,8 +72,7 @@ FILE: for my $file (@ARGV) {
       'warning',
       'could not parse file',
       { file => $file, errno => $xapply->errorstring }
-     )
-     unless exists $defaults{quiet};
+    ) unless exists $defaults{quiet};
     next FILE;
   }
 
@@ -84,16 +81,16 @@ FILE: for my $file (@ARGV) {
   # available from mod_perl
   my ( $filedata, $defaults, $params ) = $xapply->study( $doc, $file );
   $defaults ||= {};
-  $params ||= {};
+  $params   ||= {};
 
   %$defaults = ( %$filedata, %$defaults, %user_default );
 
   # macro expansion as well on XSL params
-  %$params   = ( %$params,   %user_params );
-  $params = $xapply->expand($params, $defaults);
+  %$params = ( %$params, %user_params );
+  $params = $xapply->expand( $params, $defaults );
 
   my ( $docref, $details ) =
-   $xapply->transform( $doc, default => $defaults, param => $params );
+    $xapply->transform( $doc, default => $defaults, param => $params );
   unless ( defined $docref ) {
     remark(
       'error',
@@ -104,33 +101,31 @@ FILE: for my $file (@ARGV) {
   }
 
   # TODO need to chdir or similar for the output files?
-  my $output_file;
+  my ( $output_file, $output_fh );
   if ( exists $opts{o} ) {
     ( $output_file = $opts{o} ) =~
-     s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || q{} /egx;
+      s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || q{} /egx;
 
     # TODO use IO::Atomic or something?
-    open OUTPUT, "> $output_file"
-     or remark(
+    open( $output_fh, '>', $output_file )
+      or remark(
       'error',
       'could not write to file',
       { file => $output_file, errno => $! }
-     )
-     and exit 102;
-    select OUTPUT;
+      ) and exit 102;
+    select $output_fh;
   }
 
   # TODO need autoflush if no newlines on end?
   print $$docref;
 
   if ( exists $opts{o} ) {
-    close OUTPUT
-     or remark(
+    close $output_fh
+      or remark(
       'error',
       'could not close write to file',
       { file => $output_file, errno => $! }
-     )
-     and exit 102;
+      ) and exit 102;
   }
 }
 
@@ -185,12 +180,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
@@ -346,9 +341,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

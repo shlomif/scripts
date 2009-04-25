@@ -1,14 +1,12 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
-#
 # Print input data in random order.
 #
 # TODO FYS algorithm works on in-memory array; way to shuffle while
 # streaming over the input, similar to "print random line from file?"
+#
+# The author disclaims all copyrights and releases this script into
+# the public domain.
 
 # read from file(s) on command line, or stdin via <>.
 my @input = <>;

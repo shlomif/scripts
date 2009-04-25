@@ -1,14 +1,11 @@
 #!/usr/bin/perl
 #
-# $Id$
+# Command line interface to pastebot sites; provides means to post and
+# retrieve arbitrary data. Run perldoc(1) on this file for additional
+# documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Command line interface to pastebot sites; provides means to post and
-# retrieve arbitrary data.
-#
-# Run perldoc(1) on this file for additional documentation.
 
 use strict;
 use warnings;
@@ -803,9 +800,5 @@ irc.freenode.net.
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

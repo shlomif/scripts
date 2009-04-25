@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
 # Generate crontab(5) compatible time specification for a command to run
 # in the near future. The at(1) system would also make sense for "near
 # future" jobs, except where jobs must run from cron to replicate
 # environment and other settings set there.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 
@@ -15,7 +16,7 @@ use POSIX qw(strftime);
 # This format will only run the job once on the current day, and again
 # in subsequent years. Should be plenty of time to remove a test run.
 my $CRON_TIME_FORMAT   = '%M %H %d %m %u';
-my $SECONDS_IN_ADVANCE = 120;
+my $SECONDS_IN_ADVANCE = 99;
 
 my ( $use_gmtime, $comment, $time_format );
 GetOptions(

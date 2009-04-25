@@ -1,14 +1,11 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Replays logs, simulating the time delays present in the source data.
+# Only supports the standard Unix syslogd(8) format at present. Run
+# perldoc(1) on this script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Replays logs, simulating the time delays present in the source
-# data. Only supports the standard Unix syslogd(8) format at present.
-#
-# Run perldoc(1) on this script for additional documentation.
 
 use POSIX qw(strftime);
 use Time::Local qw(timelocal);
@@ -240,9 +237,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

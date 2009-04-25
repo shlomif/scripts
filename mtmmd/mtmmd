@@ -1,12 +1,7 @@
 #!/bin/sh
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Utility to set FTARGET, which is used by various other scripts
-# I employ.
+# I employ. (cd and fmmd, mostly)
 #
 # TODO probably better to have a set/store query/retrieve system that
 # does not rely on allsh for this variable... though having an ENV var
@@ -16,6 +11,9 @@
 #
 # Also would be nice to tag the "main dir" with different names, so
 # can "godir tag1" vs. "godir tag2" like markers in vi.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 set_ftarget () {
   exec allsh "export FTARGET=\"`pwd`\""

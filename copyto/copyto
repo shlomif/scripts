@@ -1,10 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Copies (or moves) the specified files into target directory. Relies on
 # buildir script to create directory trees.
 #
@@ -36,6 +31,10 @@
 # }
 #
 # To set FTARGET in all shells, see: http://sial.org/howto/shell/allsh/
+# along with the related mtmmd script.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 
@@ -390,10 +389,6 @@ public domain.
 Based on 'take', 'take.pl', and the csh alias setting found in Damian
 Conway's "stuff from my home directory" tarball that was posted to the
 Seattle Perl User's Group e-mail list.
-
-=head1 VERSION
-
-  $Id$
 
 =head1 SCRIPT CATEGORIES
 

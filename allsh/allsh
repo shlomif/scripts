@@ -7,6 +7,8 @@
 #   [ -f ~/.sh-sourceall ] && . ~/.sh-sourceall
 # }
 #
+# For more information, see:
+#
 # http://sial.org/howto/shell/allsh/
 #
 # Warning! This script has various potential security problems,
@@ -15,8 +17,6 @@
 # by untrusted users, e.g. via untrusted code injection into the file
 # in question, especially if ~/.sh-sourceall is on an insecure network
 # file system.
-#
-# $Id$
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -59,4 +59,3 @@ fi
 # ps command run... need to add more shells, maybe figure out something
 # more portable?
 signalit '[-/]zsh$' USR2
-#signalit '[-/]bash$' USR2

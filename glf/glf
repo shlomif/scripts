@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
 # Get latest file in a directory by mtime, optionally limiting the files
 # to those that match a particular regular expression, or also
 # optionally reading the filenames from standard input.
@@ -20,6 +18,9 @@
 #
 # perldoc perlre   For more information about the regular
 #                  expression syntax.
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 use File::Spec ();

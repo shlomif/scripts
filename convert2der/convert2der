@@ -1,12 +1,13 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
 # Convert multiple RSA and X509 files between different encoding formats
 # such as PEM and DER. Usage:
 #
 # convert2der *.prv *.key *.crt
 # convert2der --inform=DER --outform=PEM *.prv *.key *.crt
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 

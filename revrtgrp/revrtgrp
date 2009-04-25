@@ -1,38 +1,18 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Recursive Unix default group permissions changer. Run perldoc(1) on
+# this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 
-######################################################################
-#
-# MODULES
-
-use Carp;         # better error reporting
-use Getopt::Std;  # command line option processing
-
-use File::Find;   # recursive directory walking
-
-######################################################################
-#
-# VARIABLES
+use Carp;
+use File::Find;
+use Getopt::Std;
 
 my (%opts, $verbose, %u2g, %n2u, %groups);
-
-######################################################################
-#
-# MAIN
 
 # parse command-line options
 getopts('h?vp:s:g', \%opts);
@@ -153,7 +133,7 @@ Options:
          being skipped if the expression turns out to be "true."
 
   -p xx  Perl expression that will result in the current directory (stored in 
-	 \$_) being pruned out of the tree.
+         \$_) being pruned out of the tree.
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -268,13 +248,8 @@ Jeremy Mates, http://sial.org/contact/
 The author disclaims all copyrights and releases this script into the
 public domain.
 
-=head1 VERSION
-
-  $Id$
-
 =head1 SCRIPT CATEGORIES
 
 UNIX/System_administration
 
 =cut
-

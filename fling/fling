@@ -1,13 +1,13 @@
 #!/bin/sh
 #
-# $Id$
+# Moves files into a predetermined target directory. TODO I think I'm
+# using poorly named ZSH functions for this now (see copyto dcos),
+# probably should retire this script?
+#
+# TODO need copy option somehow.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Moves files into a predetermined target directory.
-#
-# TODO need copy option somehow.
 
 if [ -z $FTARGET ]; then
   echo "error: must specify FTARGET env. variable as target directory" >&2

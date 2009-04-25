@@ -1,13 +1,12 @@
 #!/bin/sh
 #
-# $Id$
+# Lists subdirectories of the current directory, or the specified
+# directories if any given on command line. Returns 0 if subdirectories,
+# 1 otherwise. Use the -q flag to suppress the listing. Used by various
+# other scripts in the sial.org script repository.
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
-#
-# Lists subdirectories of the current directory, or the specified
-# directories if any given on command line.  Returns 0 if
-# subdirectories, 1 otherwise.  Use the -q flag to suppress the listing.
 
 QUIET=0
 RETURN=1

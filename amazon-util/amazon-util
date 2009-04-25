@@ -1,21 +1,16 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this document into
-# the public domain.
-#
 # A thin wrapper around Net::Amazon with output templating. Requires
 # Net::Amazon and an Amazon Web Services account. Run perldoc(1) on this
 # file for additional documentation.
+#
+# The author disclaims all copyrights and releases this document into
+# the public domain.
 
 use strict;
 
 use Net::Amazon ();
 use HTML::Entities qw(encode_entities);
-
-my $VERSION;
-( $VERSION = '$Revision$ ' ) =~ s/[^0-9.]//g;
 
 my $search_mode;
 my $output_template = $ENV{AMAZON_UTIL_TEMPLATE};
@@ -78,7 +73,7 @@ sub print_help {
   print <<"HELP";
 Usage: $0 [options] Net::Amazon search() arguments as list
 
-Options for version $VERSION:
+Options:
   --help, -h, -?  Display this message.
 
   --mode=search-mode  Optional. "books" or "music" or so forth.
@@ -217,9 +212,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this document into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

@@ -1,19 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# 'du' output parser and reporter. Run perldoc(1) on this script for
+# additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# 'du' output parser and reporter.
-#
-# Run perldoc(1) on this script for additional documentation.
-#
-# TODO stat() files so can include other information (whether file or
-# dir) in output?
-#
-# TODO support rsync-style exclude files, so can check totals as rsync
-# would see a directory tree?
 
 use strict;
 
@@ -58,15 +49,15 @@ if ( exists $opts{d} ) {
 my @directories;
 
 if ( exists $opts{c} ) {
-  open PREFS, "< $opts{c}"
+  my $prefs_fh;
+  open( $prefs_fh, '<', $opts{c} )
     or remark(
     'error',
     'could not load prefs',
     { file => $opts{c}, errno => $! }
-    )
-    and exit 104;
+    ) and exit 104;
 
-  push @directories, load_dir_prefs( \*PREFS );
+  push @directories, load_dir_prefs($prefs_fh);
 }
 
 if (@ARGV) {
@@ -166,19 +157,20 @@ sub rundu {
   $targetdir = readlink $parentdir if -l $parentdir;
 
   # KLUGE this is only a warning, as could be reading du output indirectly
-  # from a file via cat
+  # from a file...
   if ( !-d $targetdir ) {
     remark( 'warning', 'target not a directory', { dir => $parentdir } );
   }
 
-  open FROMDU,       '-|'
+  my $du_fh;
+  open( $du_fh, '-|' )
     or exec @du_cmd, $targetdir
     or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
     and exit 102;
 
   my %dudefaults = ( %defaults, parentdir => $parentdir, epoch => time );
 
-  while (<FROMDU>) {
+  while (<$du_fh>) {
     chomp;
 
     # gather output into a hash for easy access of data
@@ -225,7 +217,7 @@ sub rundu {
     }
   }
 
-  close FROMDU
+  close $du_fh
     or remark(
     'warning',
     'problem closing pipe from du',
@@ -320,7 +312,7 @@ sub humanize {
 
     $tmp = sprintf( "%.0f", $num );
 
-    } else {
+  } else {
     $tmp = sprintf( "%.1f", $num );
 
     # optionally hack trailing .0
@@ -528,9 +520,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

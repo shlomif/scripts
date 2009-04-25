@@ -1,11 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Humanize file sizes in input, like the new -h option to various Unix
+# commands. Run perldoc(1) on this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Run perldoc(1) on this file for additional documentation.
 
 use strict;
 
@@ -318,13 +317,8 @@ lacking in commercial varients of the same name.  (On the other hand,
 leaving the job of humanizing to an external script is probably more
 inline with the Unix philosphopy of filters.)
 
-=head1 VERSION
-
-  $Id$
-
 =head1 SCRIPT CATEGORIES
 
 Utilities
 
 =cut
-

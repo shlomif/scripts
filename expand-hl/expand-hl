@@ -1,12 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Expands hostnames: lists variations on name for use in SSH
+# known_hosts data.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Expands hostnames: lists variations on name for use in SSH
-# known_hosts data.
 
 use strict;
 

@@ -1,13 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Syslogd server for debugging or experimenting with syslog. Run
+# perldoc(1) on this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this document into
 # the public domain.
-#
-# Syslogd server for debugging or experimenting with syslog.
-#
-# Run perldoc(1) on this file for additional documentation.
 
 use strict;
 use IO::Socket;
@@ -85,9 +82,6 @@ my %syslog_facilities = (
   22 => 'local6',
   23 => 'local7'
 );
-
-my $VERSION;
-( $VERSION = '$Revision$ ' ) =~ s/[^0-9.]//g;
 
 # parse command-line options
 use Getopt::Std;
@@ -400,9 +394,4 @@ http://www.modperl.com/perl_networking/ (Chapter 18), plus data from
 the Net::Syslog module as well as information in the sys/syslog.h
 header file.
 
-=head1 VERSION
-
-$Id$
-
 =cut
-

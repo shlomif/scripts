@@ -1,18 +1,15 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Converts epoch times to human parsable dates. Accepts list of epoch
 # dates (integers) on command line. Use xargs(1) or similar to take
 # input from a file.
 #
 # epoch2date `perl -le 'print time'`
 # echo 1059673440 | xargs epoch2date
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
-require 5;
 use strict;
 
 use File::Basename qw(basename);

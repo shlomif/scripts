@@ -1,11 +1,9 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Wrapper to sign multiple files with gpg.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Wrapper to sign multiple files with gpg.
 
 use strict;
 

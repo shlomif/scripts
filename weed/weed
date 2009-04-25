@@ -1,13 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Weed out items from a list of input data.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Weed out items from a list of input data.
 
-require 5;
 use strict;
 
 # specifications for getraw utility
@@ -226,9 +223,5 @@ Based on pick command examples presented in "The Unix Programming
 Environment" (ISBN 0-13-937681-X).
 
 http://cm.bell-labs.com/cm/cs/upe/
-
-=head1 VERSION
-
-  $Id$
 
 =cut

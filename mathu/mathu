@@ -1,12 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Performs various mathematical and statistical operations on
+# input data.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Performs various mathematical and statistical operations on
-# input data.
 
 my %ability = (
   sum     => {handle => \&handle_sum,},

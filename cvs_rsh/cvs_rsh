@@ -1,12 +1,10 @@
 #!/bin/sh
 #
-# $Id$
+# CVS_RSH environment variable wrapper script that allows arguments to
+# the target binary.
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
-#
-# CVS_RSH environment variable wrapper script that allows arguments to
-# the target binary.
 
 # Require non-interactive authuentication methods to prevent things from
 # stalling on a password prompt. Also disable agent, X11, other

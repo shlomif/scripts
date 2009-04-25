@@ -1,14 +1,12 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Maintains OpenSSH known_hosts data.
 #
 # TODO in-place edit support (via -i switch like perl -i) on the
 # known_hosts file?
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 
@@ -374,10 +372,6 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut
 

@@ -1,22 +1,20 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Expiration date checker and handler. Supports x509 certificates, and
+# anything a wrapper script can be written for. Run perldoc(1) on this
+# script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Expiration date checker and handler. Supports x509 certificates, and
-# anything a wrapper script can be written for.
-#
-# Run perldoc(1) on this script for additional documentation.
 
 use strict;
 
 use Config::General qw(ParseConfig);
 use Date::Parse qw(str2time);
-use File::Temp qw(tempfile);
-
 use File::Basename qw(basename);
+use File::Temp qw(tempfile);
+use Getopt::Std;
+
 my $basename = basename($0);
 
 my %program_param = ( name => $basename, argv => "@ARGV", pid => $$ );
@@ -29,7 +27,6 @@ my %actions = (
 );
 my @actions = sort keys %actions;
 
-use Getopt::Std;
 my %opts;
 getopts 'h?l:c:f:', \%opts;
 
@@ -277,9 +274,10 @@ sub handle_condition {
         push @command, $part;
       }
 
-      open TO_COMMAND, '|-' or exec @command or return;
-      print TO_COMMAND $stdin;
-      close TO_COMMAND;
+      my $cmd_fh;
+      open $cmd_fh, '|-' or exec @command or return;
+      print $cmd_fh $stdin;
+      close $cmd_fh;
 
       return;
     },
@@ -367,9 +365,10 @@ sub get_output {
 
     alarm $timeout;
 
-    open OUTPUT, '-|' or exec @command or die "exec error\n";
-    @results = <OUTPUT>;
-    close OUTPUT;
+    my $output_fh;
+    open $output_fh, '-|' or exec @command or die "exec error\n";
+    @results = <$output_fh>;
+    close $output_fh;
 
     alarm 0;
   };
@@ -652,9 +651,5 @@ Jeremy Mates, http://sial.org/contact/
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 VERSION
-
-  $Id$
 
 =cut

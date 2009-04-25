@@ -1,13 +1,10 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Returns 0 if resource more up-to-date, 1 or higher otherwise. Run
+# perldoc(1) on this file for more documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Returns 0 if resource more up-to-date, 1 or higher otherwise.
-#
-# Run perldoc(1) on this file for more documentation.
 
 use strict;
 

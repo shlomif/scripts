@@ -1,5 +1,3 @@
-# $Id$
-
 # TODO also need tests to check whether named command works with
 # specification below?  E.g. "is this really gnutar or compatible?"
 name gnutargz

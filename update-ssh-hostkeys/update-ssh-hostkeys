@@ -1,11 +1,10 @@
 #!/bin/sh
 #
-# $Id$
+# Updates host keys found in named SSH known_hosts file. Uses ssh-
+# keyscan and other utilities from the sial.org scripts repository.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Updates host keys found in named SSH known_hosts file.
 
 BASENAME=`basename $0`
 

@@ -1,11 +1,9 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Means of prompting where human interaction required.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Means of prompting where human interaction required.
 
 require 5;
 use strict;
@@ -374,10 +372,6 @@ public domain.
 
 Written based on talk Damian Conway gave about his own ~/bin/getraw
 program.  This version likely is substantially different.
-
-=head1 VERSION
-
-  $Id$
 
 =head1 SCRIPT CATEGORIES
 

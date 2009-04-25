@@ -1,13 +1,10 @@
 #!/usr/bin/perl
 #
-# $Id$
+# Fuzzy spellchecker of words. Run perldoc(1) on this file for
+# additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Fuzzy spellchecker of words.
-#
-# Run perldoc(1) on this file for additional documentation.
 
 use strict;
 
@@ -173,4 +170,3 @@ The author disclaims all copyrights and releases this script into the
 public domain.
 
 =cut
-

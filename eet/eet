@@ -1,36 +1,21 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Utility to tail multiple files. Probably better to use current
+# versions of tail(1), which can follow multiple files. Run perldoc(1)
+# on this file for additional documentation.
 #
-# The author disclaims all copyrights and releases this script into
-# the public domain.
-#
-# Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 
-######################################################################
-#
-# MODULES
+use Carp;
+use File::Tail 0.91;
+use Getopt::Std;
 
-use Carp;           # better error reporting
-use Getopt::Std;    # command line option processing
+my ( %opts, @files, $prefix );
 
-use File::Tail 0.91;    # tail -f on steroids
-
-######################################################################
-#
-# VARIABLES
-
-my (%opts, @files, $prefix);
-
-# various File::Tail object preferences.  listen much faster than default
+# Various File::Tail object preferences. Listen much faster than default
 # to emulate tail(1) at expense of more busy wait.
 my $maxinterval = 2;
 my $interval    = 1;
@@ -38,12 +23,7 @@ my $adjustafter = 1;
 my $tail        = 0;
 my $reset_tail  = 0;
 
-######################################################################
-#
-# MAIN
-
-# parse command-line options
-getopts('h?m:i:a:t:r:f', \%opts);
+getopts( 'h?m:i:a:t:r:f', \%opts );
 
 help() if exists $opts{h} or exists $opts{'?'};
 
@@ -56,20 +36,19 @@ $reset_tail  = $opts{r} if exists $opts{r} and $opts{r} =~ /^-?\d+$/;
 $prefix = 1 if exists $opts{f};
 
 # read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp( @ARGV = <STDIN> ) unless @ARGV;
 
-# and flag the help text if nothing from STDIN
 help() unless @ARGV;
 
 for (@ARGV) {
-    push @files,
-      File::Tail->new(
-        name        => "$_",
-        maxinterval => $maxinterval,
-        interval    => $interval,
-        adjustafter => $adjustafter,
-        tail        => $tail,
-        reset_tail  => $reset_tail,
+  push @files,
+    File::Tail->new(
+    name        => "$_",
+    maxinterval => $maxinterval,
+    interval    => $interval,
+    adjustafter => $adjustafter,
+    tail        => $tail,
+    reset_tail  => $reset_tail,
     );
 }
 
@@ -80,30 +59,25 @@ my $nfound;
 $| = 1;
 
 while (1) {
-    $nfound = File::Tail::select(undef, undef, undef, 60, @files);
-    unless ($nfound) {
-        my @ints;
-        for (@files) {
-            push @ints, $_->interval;
-        }
-    }
+  $nfound = File::Tail::select( undef, undef, undef, 60, @files );
+  unless ($nfound) {
+    my @ints;
     for (@files) {
-        unless ($_->predict) {
-            print $_->{"input"}, ': ' if $prefix;
-            print $_->read;
-        }
+      push @ints, $_->interval;
     }
+  }
+  for (@files) {
+    unless ( $_->predict ) {
+      print $_->{"input"}, ': ' if $prefix;
+      print $_->read;
+    }
+  }
 }
 
 exit;
 
-######################################################################
-#
-# SUBROUTINES
-
-# a generic help blarb
 sub help {
-    print <<"HELP";
+  print <<"HELP";
 Usage: $0 [opts] [file1 file2 .. fileN]
 
 Merges growing files into single stream
@@ -123,12 +97,8 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-    exit;
+  exit;
 }
-
-######################################################################
-#
-# DOCUMENTATION
 
 =head1 NAME
 
@@ -237,10 +207,6 @@ public domain.
 
 Based heavily on the select_demo script from L<File::Tail|File::Tail>
 by Matija Grabnar.
-
-=head1 VERSION
-
-  $Id$
 
 =head1 SCRIPT CATEGORIES
 

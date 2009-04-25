@@ -1,11 +1,9 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Phone number conversion utility.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Phone number conversion utility.
 
 use strict;
 

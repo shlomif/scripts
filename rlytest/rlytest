@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 #
-# $Id$
-#
 # rlytest - test mail host for third-party relay
 # (see POD documentation at end)
 #
@@ -13,7 +11,6 @@
 # to apply patch to allow rlytest to work against arbitrary ports
 # instead of just 25 on 2003-02-23.
 
-require 5.002;
 use strict;
 use Getopt::Std;
 use IO::Socket; # warning - IO::Socket was an optional add-on prior to 5.004
@@ -382,6 +379,8 @@ smtpd(8)
   Unicom Systems Development
   <chip@unicom.com>
 
-  $Id$
   See http://www.unicom.com/sw/#rlytest for latest version.
 
+Jeremy Mates localized rlytest 1.22 into sial.org scripts repository to
+apply patch to allow rlytest to work against arbitrary ports instead of
+just 25 on 2003-02-23.

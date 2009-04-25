@@ -1,11 +1,9 @@
 #!/usr/bin/perl -w
 #
-# $Id$
+# Given a date, will attempt to return the epoch time for that date.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Given a date, will attempt to return the epoch time for that date.
 
 use Date::Manip;
 use File::Basename qw(basename);

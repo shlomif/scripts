@@ -1,10 +1,5 @@
 #!/usr/bin/perl -w
 #
-# $Id$
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
-#
 # Like 'mkdir -p', but does 'cvs add' if under CVS sandboxes, or other
 # extensible actions. Prints directories created when run with -p
 # option, used by other tools, such as a shell function to change the
@@ -15,6 +10,9 @@
 #   [ $? -ne 0 ] && exit $?
 #   builtin cd "$NDIR"
 # }
+#
+# The author disclaims all copyrights and releases this script into the
+# public domain.
 
 use strict;
 
