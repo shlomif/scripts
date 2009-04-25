@@ -15,7 +15,9 @@ use POSIX qw(strftime);
 
 # This format will only run the job once on the current day, and again
 # in subsequent years. Should be plenty of time to remove a test run.
-my $CRON_TIME_FORMAT   = '%M %H %d %m %u';
+# NOTE one of the day-of-month or day-of-week should be *, as otherwise
+# crond treats them as a logical OR (see crontab(5) for details).
+my $CRON_TIME_FORMAT   = '%M %H %d %m *';
 my $SECONDS_IN_ADVANCE = 99;
 
 my ( $use_gmtime, $comment, $time_format );
