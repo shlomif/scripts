@@ -2,7 +2,8 @@
 #
 # Somewhat smart "diff" utility, does CVS, Subversion, or git diff if
 # this seems relevant (by various file tests), or attempts regular diff
-# if possible.
+# if possible. Requires 'findup', which is available elsewhere under the
+# sial.org scripts repository.
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
@@ -12,6 +13,7 @@ PROG_NAME=`basename $0`
 # First, attempt version control diff...
 [ -f CVS/Root ] && exec cvs diff $@
 [ -d .svn ] && exec svn diff $@
+
 findup -q .git
 STATUS=$?
 if [ $STATUS -eq 0 ]; then
