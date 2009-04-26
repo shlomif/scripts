@@ -1,68 +1,78 @@
 #!/usr/bin/perl -w
 #
-# Apply XSL files to XML data via XML::ApplyXSLT module. Run perldoc(1)
-# on this script for additional documentation.
+# Apply XSL files to XML data via the XML::ApplyXSLT module. Run
+# perldoc(1) on this script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
 use strict;
 
-use File::Basename qw(basename fileparse);
+use File::Basename qw(basename dirname);
 use File::Spec ();
-my $basename = basename $0;
+use File::Temp qw(tempfile);
+use Getopt::Std qw(getopts);
+use XML::ApplyXSLT ();
 
-my %defaults = ( quiet => 0 );
+my $basename = basename($0);
 
-use Getopt::Std;
-my %opts;
-getopts 'h?qc:s:P:o:p:', \%opts;
-print_help() if $opts{h} or $opts{'?'} or not @ARGV;
+my %axp_defaults    = ( quiet        => 0 );
+my %libxml_defaults = ( load_ext_dtd => 0 );
 
+# TODO difference between these two hashes??
+my %user_params = ();
 # TODO also need some way to read in arbitrary data to defaults hash
 #
 # TODO might also need a "class.style" so can tab complete against a list?
 my %user_default = ();
+
+my %opts;
+getopts 'h?qc:s:P:o:p:X:', \%opts;
+print_help() if $opts{h} or $opts{'?'} or not @ARGV;
+
+$axp_defaults{quiet} = 1 if $opts{q};
+
 $user_default{class} = $opts{c} if exists $opts{c};
 $user_default{style} = $opts{s} if exists $opts{s};
 $user_default{path}  = $opts{P} if exists $opts{P};
 
-$defaults{quiet} = 1 if $opts{q};
-
-my %user_params = ();
 if ( exists $opts{p} ) {
-  my @pairs = split /(?<!(?<!\\)\\) /, $opts{p};
-  for my $token (@pairs) {
-    my ( $k, $v ) = $token =~ m/^ \s* ([\w.-]+) = (.*) /x;
-    $user_params{$k} = $v if defined $k;
-  }
+  keyvalue_to_hashref( $opts{p}, \%user_params );
 }
 
-# technically optional, but what's the point without these?
+if ( exists $opts{X} ) {
+  keyvalue_to_hashref( $opts{X}, \%libxml_defaults );
+}
+
+# technically optional, but what's the point without rules?
 my $rules_file = tilde_expand( $ENV{AXP_RULES} || '~/.axp/rules' );
 my $rfh;
-open( $rfh, '<', $rules_file )
-  or remark(
-  'warning',
-  'cannot load rules file',
-  { file => $rules_file, errno => $! }
+unless ( open( $rfh, '<', $rules_file ) ) {
+  remark(
+    'warning',
+    'cannot load rules file',
+    { file => $rules_file, errstr => $! }
   );
+}
 
-my @new_args;
-push @new_args, 'rules', $rfh if $rfh;
+my %applyxslt_args;
+$applyxslt_args{rules} = $rfh if defined $rfh;
 
-use XML::ApplyXSLT ();
-my $xapply = XML::ApplyXSLT->new(@new_args);
+my $xapply = XML::ApplyXSLT->new(%applyxslt_args);
+$xapply->config_libxml( \%libxml_defaults );
 
-close $rfh if $rfh;
-
-# TODO way to set these
-$xapply->config_libxml( { load_ext_dtd => 0 } );
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  if ( !exists $opts{o} and !close(STDOUT) ) {
+    remark( 'error', 'problem closing stdout', { errstr => $! } );
+    exit 1;
+  }
+}
 
 FILE: for my $file (@ARGV) {
   unless ( -e $file ) {
     remark( 'notice', 'skipping as does not exist', { file => $file } )
-      unless exists $defaults{quiet};
+      unless exists $axp_defaults{quiet};
     next FILE;
   }
 
@@ -71,8 +81,8 @@ FILE: for my $file (@ARGV) {
     remark(
       'warning',
       'could not parse file',
-      { file => $file, errno => $xapply->errorstring }
-    ) unless exists $defaults{quiet};
+      { file => $file, errstr => $xapply->errorstring }
+    ) unless exists $axp_defaults{quiet};
     next FILE;
   }
 
@@ -95,39 +105,63 @@ FILE: for my $file (@ARGV) {
     remark(
       'error',
       'could not parse document',
-      { file => $file, errno => $xapply->errorstring }
+      { file => $file, errstr => $xapply->errorstring }
     );
-    exit 101;
+    exit 1;
   }
 
-  # TODO need to chdir or similar for the output files?
-  my ( $output_file, $output_fh );
+  my ( $output_file, $tmp_fh, $tmp_filename );
+
   if ( exists $opts{o} ) {
     ( $output_file = $opts{o} ) =~
       s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || q{} /egx;
 
-    # TODO use IO::Atomic or something?
-    open( $output_fh, '>', $output_file )
-      or remark(
-      'error',
-      'could not write to file',
-      { file => $output_file, errno => $! }
-      ) and exit 102;
-    select $output_fh;
+    ( $tmp_fh, $tmp_filename ) = tempfile(
+      "$basename.XXXXXXXX",
+      DIR    => dirname($output_file),
+      UNLINK => 0
+    );
+    unless ( defined $tmp_fh ) {
+      remark( 'error', 'could not open temp filehandle', );
+      exit 1;
+    }
+    select $tmp_fh;
   }
 
-  # TODO need autoflush if no newlines on end?
-  print $$docref;
+  chomp($$docref);
+  unless ( print( $$docref, "\n" ) ) {
+    remark(
+      'error',
+      'problem printing document',
+      { file => $file, errstr => $! }
+    );
+    unlink $tmp_filename if defined $tmp_filename;
+    next FILE;
+  }
 
   if ( exists $opts{o} ) {
-    close $output_fh
-      or remark(
-      'error',
-      'could not close write to file',
-      { file => $output_file, errno => $! }
-      ) and exit 102;
+    # perserve mode from the original file
+    my $source_file_mode = ( stat $file )[2];
+    chmod $source_file_mode & 07777, $tmp_filename;
+
+    unless ( close($tmp_fh) ) {
+      remark( 'warning', 'problem closing temp filehandle',
+        { errstr => $! } );
+    }
+
+    unless ( rename( $tmp_filename, $output_file ) ) {
+      remark(
+        'error',
+        'could not rename file',
+        { from => $tmp_filename, to => $output_file }
+      );
+      unlink $tmp_filename;
+      next FILE;
+    }
   }
 }
+
+exit 0;
 
 # expands ~username syntax to full home directory path
 sub tilde_expand {
@@ -140,23 +174,39 @@ sub tilde_expand {
         || remark('error',
              'could not lookup user or HOME not set',
              { file => $_ })
-        && exit 99;
+        && exit 1;
      }ex;
   }
   return wantarray ? @pathes : "@pathes";
+}
+
+# Accepts string of 'key=value key2=value' elements, and a hash
+# reference. Populates that hash reference with the keys and values.
+sub keyvalue_to_hashref {
+  my $string   = shift;
+  my $hash_ref = shift;
+
+  my @pairs = split /(?<!(?<!\\)\\) /, $string;
+  for my $token (@pairs) {
+    my ( $k, $v ) = $token =~ m/^ \s* ([\w.-]+) = (.*) /x;
+    $hash_ref->{$k} = $v if defined $k;
+  }
+
+  return;
 }
 
 sub print_help {
   print <<"HELP";
 Usage: $basename [options] file [file2 ...]
 
-Apply XSL files to XML data.
+Apply XSL files to XML data via the XML::ApplyXSLT module.
 
 Options:
   -h/-?  Display this message.
   -q     Quiet: emit fewer warnings.
 
   -p pp  Specify XSL parameters as 'key=value key2=value2'
+  -X XX  Parser options for XML::LibXML::Parser as 'key=value key2=value2'
 
   -c cc  Set document 'class' preference.
   -s ss  Set document 'style' preference.
@@ -193,7 +243,7 @@ __END__
 
 =head1 NAME
 
-axp - apply XSL files to XML data
+axp - apply XSL files to XML data via the XML::ApplyXSLT module
 
 =head1 SYNOPSIS
 
@@ -290,6 +340,10 @@ Read XSL parameters to be used in the document transformation.
 Specify as a space seperated list of key=value pairs. Use "\ " if a
 literal space is needed; backslash expansion will also allow the use
 of \n for a newline and similar.
+
+=item B<-X> I<parameters>
+
+Custom XML::LibXML::Parser options for the config_libxml method.
 
 =back
 
