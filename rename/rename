@@ -25,8 +25,9 @@ my %opts;
 getopts( 'h?cmifvp', \%opts );
 print_help if exists $opts{h} or exists $opts{'?'};
 
-my $preview = exists $opts{i} or exists $opts{p} or exists $opts{v} ? 1 : 0;
-my $interactive = exists $opts{i} and !exists $opts{f} ? 1 : 0;
+my $preview =
+  ( exists $opts{i} or exists $opts{p} or exists $opts{v} ) ? 1 : 0;
+my $interactive = ( exists $opts{i} and !exists $opts{f} ) ? 1 : 0;
 
 # choose which function to use depending on argument; default is to
 # use the rename() function, but that can be changed to one of copy()
