@@ -7,7 +7,6 @@
 # This script is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 
-require 5;
 use strict;
 
 sub print_help;
@@ -23,11 +22,11 @@ use File::Copy;
 
 use Getopt::Std;
 my %opts;
-getopts('h?cmifvp', \%opts);
+getopts( 'h?cmifvp', \%opts );
 print_help if exists $opts{h} or exists $opts{'?'};
 
 my $preview = exists $opts{i} or exists $opts{p} or exists $opts{v} ? 1 : 0;
-my $interactive = exists $opts{i} and not exists $opts{f} ? 1 : 0;
+my $interactive = exists $opts{i} and !exists $opts{f} ? 1 : 0;
 
 # choose which function to use depending on argument; default is to
 # use the rename() function, but that can be changed to one of copy()
@@ -41,7 +40,7 @@ $fn = $opts{m} || $0 eq 'move' ? 'move' : $fn;
 my $op = shift || print_help;
 
 # read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp( @ARGV = <STDIN> ) unless @ARGV;
 
 # and flag the help text if nothing from STDIN
 print_help unless @ARGV;
@@ -67,12 +66,12 @@ print_help unless @ARGV;
 
     # TODO use getraw instead?  Enhance getraw to support
     # application-specific prefernces from a config file?
-    if (-e and $interactive) {
+    if ( -e and $interactive ) {
       print "$_ exists.  Overwrite? (y/[n]) ";
       next unless <STDIN> =~ /^[Yy]/;
     }
 
-    unless (eval "$fn(\$was, \$_)") {
+    unless ( eval "$fn(\$was, \$_)" ) {
       warn "warning: could not $fn $was to $_: $!\n";
       next;
     }
