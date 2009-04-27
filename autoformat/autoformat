@@ -19,6 +19,13 @@
 
 use Text::Autoformat;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # these are the default preferences
 $default = { squeeze => 1, all => 0 };
 

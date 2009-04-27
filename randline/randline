@@ -5,5 +5,12 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
-END { print $line }
-rand $. < 1 && ($line = $_) while <>
+END {
+  print $line;
+
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
+rand $. < 1 && ( $line = $_ ) while <>

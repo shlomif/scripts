@@ -7,6 +7,13 @@
 
 use strict;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # specifications for getraw utility
 my $specs = {
   y => 'Yy\ \n:+ Nn:-',

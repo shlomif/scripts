@@ -10,6 +10,13 @@
 
 use strict;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # command to tidy up XML; xmllint from libxml2 accepts the filename on
 # the command line and produces output to standard out
 my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);

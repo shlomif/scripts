@@ -15,6 +15,13 @@ use File::Basename;
 use File::Path;
 use URI;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my $prefs_file = $ENV{PBOTUTILCONF} || '~/.pbotutil/servers';
 
 $prefs_file = tilde_expand($prefs_file);

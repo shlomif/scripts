@@ -33,6 +33,13 @@ $traceroute = '/usr/sbin/traceroute';
 #
 # MAIN
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # parse command-line options
 getopts('h?', \%opts);
 

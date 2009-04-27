@@ -15,6 +15,13 @@ my @du_cmd = split /\s+/, $ENV{DU_CMD} || 'du -k';
 # regex to parse output of du with
 my $du_re = qr/^(\d+) \s+ (\S+)/ox;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 use Getopt::Std;
 my %opts;
 getopts 'h?xc:o:d:', \%opts;

@@ -12,6 +12,13 @@ use Carp;
 use File::Find;
 use Getopt::Std;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my (%opts, $verbose, %u2g, %n2u, %groups);
 
 # parse command-line options

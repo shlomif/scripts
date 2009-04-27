@@ -8,6 +8,13 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # read from file(s) on command line, or stdin via <>.
 my @input = <>;
 

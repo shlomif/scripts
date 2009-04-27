@@ -23,6 +23,13 @@ my $CRON_TIME_FORMAT = '%M %H %d %m *';
 # Set high, due to interrupt driven nature of my job...
 my $SECONDS_IN_ADVANCE = 99;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my ( $use_gmtime, $comment, $time_format, $pad_time );
 GetOptions(
   'help|?|h'    => \&print_help,

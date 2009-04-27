@@ -13,6 +13,13 @@ use strict;
 
 use Data::Dumper;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my ( $data, $cur_filesys, $cur_type );
 
 while (<STDIN>) {

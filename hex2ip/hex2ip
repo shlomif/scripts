@@ -5,6 +5,13 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 chomp(@ARGV = <STDIN>) unless @ARGV;
 
 for my $input (@ARGV) {

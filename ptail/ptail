@@ -13,6 +13,13 @@ use Carp;
 use File::Tail;
 use Getopt::Std;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my ( %opts, $filename, $file );
 
 # various File::Tail object preferences.  listen much faster than default

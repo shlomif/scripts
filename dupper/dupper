@@ -12,6 +12,13 @@ use Digest::SHA1 ();
 use File::Find qw(find);
 use File::Spec ();
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # this is reset for each file to avoid OO overhead on each file
 my $digest = Digest::SHA1->new;
 

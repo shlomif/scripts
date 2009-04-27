@@ -19,6 +19,13 @@ use Time::Local ();
 # TODO replace with DB File or SQL for efficiency?
 use YAML ();
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my $suffix_char = '.';
 my $suffix_re   = qr/(?<!^)\./;
 

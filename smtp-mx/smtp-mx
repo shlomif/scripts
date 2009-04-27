@@ -6,8 +6,14 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
-require 5;
 use strict;
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
 
 sub get_mx;
 sub print_help;

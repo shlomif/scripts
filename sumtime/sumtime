@@ -10,6 +10,13 @@ require 5;
 use strict;
 use warnings;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # how to convert various time units to seconds
 my %factor = (
   y => 31536000,

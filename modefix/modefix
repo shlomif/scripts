@@ -10,6 +10,13 @@ use strict;
 
 use File::Find qw(find);
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my (
   $dirmode,   $filemode, $user, $userid, $group, $groupid,
   %badgroups, %badperms, $skip, $prune,  $parent

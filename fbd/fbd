@@ -13,6 +13,13 @@ use Date::Parse qw(str2time);
 use File::Find qw(find);
 use File::Spec ();
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # what stat() colum to read time from (9 mtime, 8 atime, 10 ctime)
 my $TIME_INDEX = 9;
 

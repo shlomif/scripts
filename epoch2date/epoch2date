@@ -16,6 +16,13 @@ use File::Basename qw(basename);
 my $basename = basename $0;
 use POSIX qw(strftime);
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 use Getopt::Std;
 my %opts;
 getopts( 'f:r:glq', \%opts );

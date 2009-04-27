@@ -22,6 +22,13 @@ my $INDENT_AMOUNT = q{  };
 
 my $exit_value = 0;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 use Getopt::Std;
 my %opts;
 getopts 'h?a', \%opts;

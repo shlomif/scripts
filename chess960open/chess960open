@@ -43,7 +43,14 @@ if ( !-t 0 ) {
 } else {
   # for CLI or text only output
   print join( ' ', @pieces ), "\n";
+
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
 }
+
+exit 0;
 
 sub determine_positions {
   my $pieces_ref = shift;

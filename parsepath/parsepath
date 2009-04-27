@@ -13,6 +13,13 @@ use strict;
 use Cwd qw(realpath);
 use File::Spec ();
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # NOTE may need alteration per site policy on usernames
 my $USERNAME_MATCH = qr/[\w-]{1,32}/;
 

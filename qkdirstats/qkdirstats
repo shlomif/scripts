@@ -29,6 +29,13 @@ my @overview;
 my $OVERVIEW_MAX       = 50;
 my $OVERVIEW_MAX_LINES = 5;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # TODO want to set 'readonly' key if do not have write permission in
 # directory
 

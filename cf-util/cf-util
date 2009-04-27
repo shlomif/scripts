@@ -11,6 +11,13 @@ use File::Spec ();
 use Getopt::Std qw(getopts);
 use Net::DNS ();
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my $mode = shift || die "usage: $0 mode [args]\n";
 
 # Pull mode handlers from the symbol table (probably a bad idea!)

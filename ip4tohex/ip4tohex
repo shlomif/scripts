@@ -14,6 +14,13 @@ use Getopt::Std;
 my %opts;
 getopts('o6q', \%opts);
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 chomp(@ARGV = <STDIN>) unless @ARGV;
 
 for my $input (@ARGV) {

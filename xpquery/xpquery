@@ -12,6 +12,13 @@ use LWP::UserAgent            ();
 use XML::LibXML               ();
 use XML::LibXML::XPathContext ();
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # KLUGE supposed to mark filehandles, so would have to muck around with
 # converting whatever the XML is in into utf8 or something... (this
 # avoids a 'Wide character in ...' warning)

@@ -9,6 +9,13 @@
 
 use strict;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 # how to match Top Level Domains (TLD)
 my $tld_re = qr/( \w+ )/x;
 

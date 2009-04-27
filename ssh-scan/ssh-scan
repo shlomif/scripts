@@ -11,6 +11,13 @@ use Carp;
 use Getopt::Std;
 use Socket qw(:DEFAULT :crlf);  # low-level connection handling
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my $service   = 'ssh';
 my $protoname = 'tcp';
 my $port      = getservbyname($service, $protoname);

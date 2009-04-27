@@ -12,6 +12,13 @@ use strict;
 
 sub print_help;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 use File::Copy;
 
 use Getopt::Std;

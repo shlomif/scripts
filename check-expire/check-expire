@@ -15,6 +15,13 @@ use File::Basename qw(basename);
 use File::Temp qw(tempfile);
 use Getopt::Std;
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 my $basename = basename($0);
 
 my %program_param = ( name => $basename, argv => "@ARGV", pid => $$ );

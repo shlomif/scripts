@@ -11,6 +11,13 @@ use POSIX qw(strftime);
 use Time::Local qw(timelocal);
 use Time::HiRes qw(sleep);
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 use Getopt::Std;
 my %opts;
 getopts 'h?r:f:o:s:', \%opts;

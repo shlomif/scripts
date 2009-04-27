@@ -11,6 +11,13 @@ use strict;
 # default to working on runs of 4 or more digits
 my $regex = '(-?\d{4,})';
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    die "error: problem closing STDOUT: $!\n";
+  }
+}
+
 use Getopt::Std;
 my %opts;
 getopts( 'h?kb:m:rMG', \%opts );
