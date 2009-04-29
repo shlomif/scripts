@@ -8,9 +8,9 @@
 
 use strict;
 
+use File::AtomicWrite ();
 use File::Basename qw(basename dirname);
 use File::Spec ();
-use File::Temp qw(tempfile);
 use Getopt::Std qw(getopts);
 use XML::ApplyXSLT ();
 
@@ -110,54 +110,36 @@ FILE: for my $file (@ARGV) {
     exit 1;
   }
 
-  my ( $output_file, $tmp_fh, $tmp_filename );
+  chomp($$docref);
+  $$docref .= "\n";
 
   if ( exists $opts{o} ) {
+    my $output_file;
     ( $output_file = $opts{o} ) =~
       s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || q{} /egx;
 
-    ( $tmp_fh, $tmp_filename ) = tempfile(
-      "$basename.XXXXXXXX",
-      DIR    => dirname($output_file),
-      UNLINK => 0
-    );
-    unless ( defined $tmp_fh ) {
-      remark( 'error', 'could not open temp filehandle', );
-      exit 1;
-    }
-    select $tmp_fh;
-  }
+    my $source_file_mode = ( stat $file )[2] & 07777;
 
-  chomp($$docref);
-  unless ( print( $$docref, "\n" ) ) {
-    remark(
-      'error',
-      'problem printing document',
-      { file => $file, errstr => $! }
-    );
-    unlink $tmp_filename if defined $tmp_filename;
-    next FILE;
-  }
-
-  if ( exists $opts{o} ) {
-    # perserve mode from the original file
-    my $source_file_mode = ( stat $file )[2];
-    chmod $source_file_mode & 07777, $tmp_filename;
-
-    unless ( close($tmp_fh) ) {
-      remark( 'warning', 'problem closing temp filehandle',
-        { errstr => $! } );
-    }
-
-    unless ( rename( $tmp_filename, $output_file ) ) {
+    eval {
+      File::AtomicWrite->write_file(
+        { file  => $output_file,
+          input => $docref,
+          mode  => $source_file_mode
+        }
+      );
+    };
+    if ($@) {
+      chomp $@;
       remark(
         'error',
-        'could not rename file',
-        { from => $tmp_filename, to => $output_file }
+        'could not write file',
+        { file => $output_file, errstr => $@ }
       );
-      unlink $tmp_filename;
       next FILE;
     }
+
+  } else {
+    print $$docref;
   }
 }
 

@@ -47,7 +47,6 @@ if ( $target->scheme ) {
     File::Temp::tempfile(
       "xquery.XXXXXX",
       DIR    => File::Spec->tmpdir,
-      UNLINK => 1
     )
   )[1];
 

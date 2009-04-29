@@ -64,7 +64,14 @@ for my $filename ( grep -f, @ARGV ) {
   }
 
   ( my $fh, $file_options{tmp_file} ) =
-    tempfile( CLEANUP => 0, DIR => $file_options{parent_dir} );
+    tempfile( UNLINK => 0, DIR => $file_options{parent_dir} );
+
+  # Need custom cleanup if things go awry, as renaming, not unlinking,
+  # the temporary file, if any.
+  local $SIG{TERM} = sub {
+    close $fh if defined $fh;
+    unlink $file_options{tmp_file} if defined $file_options{tmp_file};
+  };
 
   my @command = template_cmd( $command, \%file_options );
   my $result = system @command;
@@ -75,8 +82,8 @@ for my $filename ( grep -f, @ARGV ) {
     next;
   }
 
-  rename $file_options{tmp_file}, $filename
-    || warn "error: problem renaming file: file=$filename, errno=$!\n";
+  rename( $file_options{tmp_file}, $filename )
+    or warn "error: problem renaming file: file=$filename, errno=$!\n";
 }
 
 # converts command template string to something executable as list, e.g.

@@ -11,6 +11,8 @@
 
 use strict;
 
+use File::AtomicWrite ();
+
 # whether to mangle comments with autoformat()
 my $DO_AUTOFORMAT = 0;
 
@@ -21,13 +23,6 @@ my $COMMENT_MATCH = qr/[#;]/;
 my $INDENT_AMOUNT = q{  };
 
 my $exit_value = 0;
-
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
-  }
-}
 
 use Getopt::Std;
 my %opts;
@@ -41,7 +36,7 @@ if ( exists $opts{a} ) {
 
 eval { require Text::Autoformat; };
 if ( $@ and $DO_AUTOFORMAT ) {
-  warn "warning: Text::Autoformat not found\n";
+  warn "warning: Text::Autoformat not found, disabling autoformat\n";
   $DO_AUTOFORMAT = 0;
 } else {
   require Text::Autoformat;
@@ -55,31 +50,27 @@ if ( !@ARGV ) {
 }
 
 # otherwise, tidy files on command line in place
-for my $file (@ARGV) {
+FILE: for my $file (@ARGV) {
   if ( !-f $file ) {
     warn "notice: skipping non-file: file=$file\n";
     $exit_value = 1;
-    next;
+    next FILE;
   }
 
-  if ( !open INPUT, '<', $file ) {
+  my $input_fh;
+  unless ( open $input_fh, '<', $file ) {
     warn "warning: skipping as could not read: errno=$!, file=$file\n";
     $exit_value = 1;
-    next;
+    next FILE;
   }
-  my $output = initidy( input => \*INPUT, filename => $file );
-  close INPUT;
+  my $output = initidy( input => $input_fh, filename => $file );
 
-  # TODO use File::Temp and rename() instead, or inplace edit
-  if ( !open OUTPUT, '>', $file ) {
-    warn "warning: skipping as could not write: errno=$!, file=$file\n";
-    $exit_value = 1;
-    next;
-  }
-  print OUTPUT $output;
-  if ( !close OUTPUT ) {
-    warn "warning: problem closing file: errno=$!, file=$file\n";
-    $exit_value = 1;
+  eval {
+    File::AtomicWrite->write_file( { file => $file, input => \$output } );
+  };
+  if ($@) {
+    chomp $@;
+    warn "error: could not write output: file=$file, errstr=$@\n";
   }
 }
 
@@ -127,7 +118,7 @@ sub initidy {
       my $line = $2 || q{};
       $line =~ s/^\s+//;
 
-      $ini_block{type}   = 'comment';
+      $ini_block{type} = 'comment';
       $ini_block{indent} = $default ? q{} : $INDENT_AMOUNT;
 
       if ( $line =~ m/ \[ [^\]]+ \] /x ) {
@@ -142,7 +133,7 @@ sub initidy {
       }
 
     } elsif ( $line =~ m/=/ ) {
-      $ini_block{type}   = 'statement';
+      $ini_block{type} = 'statement';
       $ini_block{indent} = $default ? q{} : $INDENT_AMOUNT;
 
       my ( $key, $value ) = split /\s*=\s*/, $line, 2;
@@ -167,7 +158,7 @@ sub initidy {
 
   # walk over in-memory representation of configuration and write out tidy
   for my $i ( 0 .. $#ini_blocks ) {
-    my $entry  = $ini_blocks[$i];
+    my $entry = $ini_blocks[$i];
     my $indent = $entry->{indent} || q{};
 
     if ( $entry->{type} eq 'section' ) {
@@ -220,7 +211,8 @@ sub initidy {
 
       for my $statement ( sort { $a->{key} cmp $b->{key} }
         @{ $entry->{lines} } ) {
-        $output .= $indent
+        $output .=
+            $indent
           . $statement->{key}
           . ' ' x ( 1 + $entry->{keylength} - length $statement->{key} )
           . '= '

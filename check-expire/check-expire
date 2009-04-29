@@ -214,7 +214,7 @@ sub action_certificate {
     do_exit(106);
   }
 
-  my ( $tmp_fh, $filename ) = tempfile( UNLINK => 1 );
+  my ( $tmp_fh, $filename ) = tempfile();
   if ( !defined $tmp_fh ) {
     remark( 'error', 'no temporary file created' );
     do_exit(107);

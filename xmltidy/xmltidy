@@ -10,17 +10,11 @@
 
 use strict;
 
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
-  }
-}
-
 # command to tidy up XML; xmllint from libxml2 accepts the filename on
 # the command line and produces output to standard out
 my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);
 
+use File::AtomicWrite ();
 use File::Basename qw(basename dirname);
 use File::Temp qw(tempfile);
 
@@ -34,9 +28,10 @@ print_help() if $opts{h} or $opts{'?'};
 # to preserve any $! from the tidy command out of a function call
 my $error;
 
-# no args, read file from stdin, write to temp file
+# no args, read file from stdin, write to temp file, print results from
+# xmltidy to stdout
 unless (@ARGV) {
-  my ( $fh, $tmpfile ) = tempfile( UNLINK => 1 );
+  my ( $fh, $tmpfile ) = tempfile();
   print $fh $_ while <STDIN>;
 
   my $tfh = xmltidy($tmpfile);
@@ -46,11 +41,16 @@ unless (@ARGV) {
   }
   print while <$tfh>;
 
+  # Report problems when writing to stdout (perldoc perlopentut)
+  # TODO this results in a "Bad file descriptor" error
+  #unless ( close(STDOUT) ) {
+  # die "error: problem closing STDOUT: $!\n";
+  #}
+
 } else {
   for my $file (@ARGV) {
     next unless -f $file;
 
-    # KLUGE transfer permissions from file to temporary file
     my ($filemode) = ( stat _ )[2] & 07777;
 
     my $tfh = xmltidy($file);
@@ -66,30 +66,22 @@ unless (@ARGV) {
       remark( 'error', 'no data from xmllint', { file => $file } );
       exit 102;
     }
+    chomp($string);
+    $string .= "\n";
 
-    my $parentdir = dirname $file;
-    my ( $replacefh, $tmpfile ) =
-     tempfile( ".tmp-$basename.XXXXXXX", DIR => $parentdir, UNLINK => 0 );
-
-    print $replacefh $string;
-
-    close $replacefh
-     or remark(
-      'error',
-      'problem closing filehandle',
-      { errno => $!, file => $tmpfile }
-     )
-     and exit 103;
-
-    # KLUGE fix mode
-    chmod $filemode, $tmpfile;
-
-    rename $tmpfile, $file
-     or remark(
-      'warning',
-      'rename failed',
-      { errno => $!, source => $tmpfile, target => $file }
-     );
+    eval {
+      File::AtomicWrite->write_file(
+        { file => $file, input => \$string, mode => $filemode } );
+    };
+    if ($@) {
+      chomp $@;
+      remark(
+        'error',
+        'problem writing temporary file',
+        { errstr => $@, file => $file }
+      );
+      exit 103;
+    }
   }
 }
 
@@ -99,9 +91,9 @@ sub xmltidy {
 
   undef $error;
 
-  open my $tidyfh,       "-|"
-   or exec @xmltidy_cmd, $tmpfile
-   or $error = $!;
+  open my $tidyfh,        "-|"
+    or exec @xmltidy_cmd, $tmpfile
+    or $error = $!;
 
   return $tidyfh;
 }
@@ -131,12 +123,12 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$basename $priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
@@ -144,11 +136,12 @@ END {
   # catch disk full problems during command line redirection according
   # to perlopentut
   close STDOUT
-   or remark( 'error', 'could not close STDOUT', { errno => $! } )
-   and exit 104;
+    or remark( 'error', 'could not close STDOUT', { errno => $! } )
+    and exit 104;
 }
 
 __END__
+
 =head1 NAME
 
 xmltidy - cleans up XML via the xmllint utility from the libxml2 project
