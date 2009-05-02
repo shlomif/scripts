@@ -69,7 +69,7 @@ if ( !exists $actions{$op_mode} ) {
 
 # where in the prefs to read expire, window handlers from
 my $report_handler = exists $opts{c} ? $opts{c} : 'default';
-my $report_ref     = $config{class}->{$report_handler};
+my $report_ref = $config{class}->{$report_handler};
 
 if ( !defined $report_ref ) {
   remark(
@@ -214,14 +214,24 @@ sub action_certificate {
     do_exit(106);
   }
 
-  my ( $tmp_fh, $filename ) = tempfile();
-  if ( !defined $tmp_fh ) {
-    remark( 'error', 'no temporary file created' );
+  my ( $tmp_fh, $filename );
+  eval { ( $tmp_fh, $filename ) = tempfile(); };
+
+  local $SIG{TERM} = sub { close $tmp_fh; unlink $filename };
+
+  if ( $@ or !defined $tmp_fh ) {
+    remark(
+      'error',
+      'no temporary file created',
+      ( $@ ? do { chomp $@; { errstr => $@ } } : {} )
+    );
     do_exit(107);
   }
+
   for my $line (@$results) {
     print $tmp_fh $line;
   }
+  close $tmp_fh;
 
   return $actions{openssl_x509}->( '-in', $filename );
 }
@@ -383,7 +393,7 @@ sub get_output {
     my $error_str =
         $@ eq "alarm\n"      ? 'command timed out'
       : $@ eq "exec error\n" ? undef
-      : 'unexpected command error';
+      :                        'unexpected command error';
 
     if ( defined $error_str ) {
       chomp $@;

@@ -11,10 +11,11 @@
 
 use strict;
 
-use File::Basename qw(basename dirname);
-my $basename = basename($0);
+use File::AtomicWrite ();
+use File::Basename qw(basename);
+use Getopt::Long qw(GetOptions);
 
-use File::Temp qw(tempfile);
+my $basename = basename($0);
 
 my $command = q(
 /usr/bin/openssl %{method}
@@ -32,7 +33,6 @@ if ( $basename =~ m/pem$/ ) {
 my $key_match_re  = qr/\.(prv|key)$/;
 my $cert_match_re = qr/\.(?:crt|cert?)$/;
 
-use Getopt::Long qw(GetOptions);
 GetOptions(
   'inform=s'  => \$options{inform},
   'outform=s' => \$options{outform},
@@ -45,45 +45,50 @@ GetOptions(
 for my $filename ( grep -f, @ARGV ) {
   # inherit global options
   my %file_options = %options;
-
-  # need filename and parent_directory for command and ability to rename
-  # temporary file
-  $file_options{file}       = $filename;
-  $file_options{parent_dir} = dirname($filename);
+  $file_options{file} = $filename;
 
   # match filename extension to appropriate openssl subcommand for conversion
-  if ( $filename =~ m/$key_match_re/ ) {
+  if ( $file_options{file} =~ m/$key_match_re/ ) {
     $file_options{method} = 'rsa';
 
-  } elsif ( $filename =~ m/$cert_match_re/ ) {
+  } elsif ( $file_options{file} =~ m/$cert_match_re/ ) {
     $file_options{method} = 'x509';
 
   } else {
-    warn "warning: skipping unknown file extension: file=$filename\n";
+    warn
+      "warning: skipping unknown file extension: file=$file_options{file}\n";
     next;
   }
 
-  ( my $fh, $file_options{tmp_file} ) =
-    tempfile( UNLINK => 0, DIR => $file_options{parent_dir} );
-
-  # Need custom cleanup if things go awry, as renaming, not unlinking,
-  # the temporary file, if any.
-  local $SIG{TERM} = sub {
-    close $fh if defined $fh;
-    unlink $file_options{tmp_file} if defined $file_options{tmp_file};
+  my $writer;
+  eval {
+    $writer = File::AtomicWrite->new( { file => $file_options{file} } );
+    $file_options{tmp_file} = $writer->filename;
   };
+  if ($@) {
+    chomp($@);
+    die "error: could not create File::AtomicWrite object: $@\n";
+  }
+  local $SIG{TERM} = sub { undef $writer };
 
+  $file_options{file} = $filename;
   my @command = template_cmd( $command, \%file_options );
+
   my $result = system @command;
   if ( $result != 0 ) {
     my $exit_value = $? >> 8;
-    warn "error: command failed: file=$filename, exit_value=$exit_value\n";
-    unlink $file_options{tmp_file};
+    warn
+      "error: command failed: file=$file_options{file}, exit_value=$exit_value\n";
+
+    undef $writer;
     next;
   }
 
-  rename( $file_options{tmp_file}, $filename )
-    or warn "error: problem renaming file: file=$filename, errno=$!\n";
+  eval { $writer->commit(); };
+  if ($@) {
+    chomp($@);
+    die "error: cannot rename to $file_options{file}: $@\n";
+  }
 }
 
 # converts command template string to something executable as list, e.g.
