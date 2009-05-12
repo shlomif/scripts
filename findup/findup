@@ -2,19 +2,30 @@
 #
 # findup - search for a file in the current and any parent directories
 # of the current working directory. Prints the first directory
-# containing the matching filename, or exits with a non- zero exit
+# containing the matching filename, or exits with a non-zero exit
 # status. Might be used in various other scripts in the sial.org scripts
 # repository.
+#
+# Example usage: findup -H .git
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
-OPT=
+# Whether to make less noise
 QUIET=0
-while getopts q OPT; do
+
+# Abort upward search if reach $HOME, even if the desired file exists
+# in $HOME
+NO_ESCAPE_HOME=0
+
+OPT=
+while getopts qH OPT; do
   case $OPT in
     q)
       QUIET=1
+    ;;
+    H)
+      NO_ESCAPE_HOME=1
     ;;
   esac
 done
@@ -22,7 +33,7 @@ shift $(($OPTIND - 1))
 
 SEARCH_FOR=$1
 if [ -z "$SEARCH_FOR" ]; then
-  echo "Usage: `basename $0` filename" >&2
+  echo "Usage: `basename $0` [-q] [-H] filename" >&2
   exit 1
 fi
 
@@ -31,10 +42,14 @@ PREVIOUS_DIR=
 while [ 1 ]; do
   CURRENT_DIR=`pwd`
 
+  if [ $NO_ESCAPE_HOME -eq 1 -a "z$CURRENT_DIR" = "z$HOME" ]; then
+    break
+  fi
+
   # TODO option to supply the test (e.g. -d or -f or etc?) -- might have
   # some security or run-random-program concerns...
   if [ -e "$SEARCH_FOR" ]; then
-    [ ! $QUIET ] && echo $CURRENT_DIR
+    [ $QUIET -eq 0 ] && echo $CURRENT_DIR
     EXIT_STATUS=0
     break
   fi
