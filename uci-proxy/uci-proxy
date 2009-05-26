@@ -1,0 +1,98 @@
+#!/usr/bin/perl -w
+#
+# uci-proxy - proxy requests between a GUI and an engine via the
+# Universal Chess Interface (UCI).
+#
+# Usage: set the $uci_cmd, below, to the path to a UCI engine.
+# Communication is done via STDOUT and STDIN with the GUI, and open2
+# filehandles with the UCI engine. Logs are written to a logfile under
+# the working directory of this script.
+
+use strict;
+
+use Cwd qw(chdir);
+use File::Basename qw(basename dirname);
+use IO::Select ();
+use IPC::Open2 qw(open2);
+
+my $uci_cmd = "TODO FIXME path to UCI program";
+
+# How much to read off input filehandles, plus a directional buffer in
+# the event data read contains a line fragment (for logging)
+my $READ_BYTES = 1024;
+my %data_buffer;
+
+my $log_fh;
+open( $log_fh, '>>', basename($0) . '.log' )
+  or die "error: cannot write log: $!\n";
+
+# chdir needed for registration of the engine I use
+my $work_dir = dirname($uci_cmd);
+chdir($work_dir) or die "unable to chdir: $!\n";
+
+$SIG{$_} = sub { die "caught $_[0] signal\n" }
+  for qw(CHLD PIPE);
+
+my ( $read_fh, $write_fh );
+my $pid = open2( $read_fh, $write_fh, quotemeta($uci_cmd) );
+if ( !defined $pid or !defined $write_fh ) {
+  die("unable to create child process\n");
+}
+
+# Unbuffer things to help expedite the data around
+for my $fh ( \*STDIN, $log_fh, $read_fh, $write_fh, \*STDOUT ) {
+  select $fh;
+  $| = 1;
+}
+
+# Watch for input from GUI, engine, and pass messages between the two
+my %dispatch = (
+  fileno(STDIN)    => { output_fh => $write_fh, direction => '>>>' },
+  fileno($read_fh) => { output_fh => \*STDOUT,  direction => '<<<' },
+);
+my $ios = IO::Select->new( \*STDIN, $read_fh );
+
+while ( my @ready = $ios->can_read ) {
+  for my $fh (@ready) {
+    my $fh_id = fileno($fh);
+    handle_line( $fh, $log_fh,
+      map { $dispatch{$fh_id}->{$_} } qw(output_fh direction) );
+  }
+}
+
+exit 0;
+
+sub handle_line {
+  my ( $from_fh, $log_fh, $to_fh, $direction ) = @_;
+
+  my $data;
+  my $result = sysread( $from_fh, $data, $READ_BYTES );
+  if ($result) {
+    print $to_fh $data;
+    write_log( $log_fh, $direction, $data );
+  }
+}
+
+sub write_log {
+  my ( $log_fh, $direction, $data ) = @_;
+
+  # Log trickier, as want break it up line by line, and might read
+  # half a line
+  if ( defined $log_fh ) {
+    if ( exists $data_buffer{$direction} ) {
+      $data = $data_buffer{$direction} . $data;
+      delete $data_buffer{$direction};
+    }
+  LOOP: {
+      if ( $data =~ m/\G ([^\n]+) \n /cgx ) {
+        print $log_fh "DBG $direction $1\n";
+        redo LOOP;
+      }
+      if ( $data =~ m/\G ([^\n]+) $ /cgx ) {
+        $data_buffer{$direction} = $1;
+      }
+    }
+  }
+
+  return 1;
+}
