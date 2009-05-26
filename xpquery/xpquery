@@ -12,6 +12,8 @@ use LWP::UserAgent            ();
 use XML::LibXML               ();
 use XML::LibXML::XPathContext ();
 
+# TODO use HTML::TreeBuilder::XPath on HTML that fails? Or by default??
+
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
