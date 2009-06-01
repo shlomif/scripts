@@ -14,6 +14,7 @@ use Cwd qw(chdir);
 use File::Basename qw(basename dirname);
 use IO::Select ();
 use IPC::Open2 qw(open2);
+use POSIX qw(strftime);
 
 my $uci_cmd = "TODO FIXME path to UCI program";
 
@@ -23,7 +24,8 @@ my $READ_BYTES = 1024;
 my %data_buffer;
 
 my $log_fh;
-open( $log_fh, '>>', basename($0) . '.log' )
+open( $log_fh, '>>',
+  basename($0) . '.log.' . strftime( '%Y-%m-%d', localtime ) )
   or die "error: cannot write log: $!\n";
 
 # chdir needed for registration of the engine I use
@@ -85,7 +87,7 @@ sub write_log {
     }
   LOOP: {
       if ( $data =~ m/\G ([^\n]+) \n /cgx ) {
-        print $log_fh "DBG $direction $1\n";
+        print $log_fh "DBG " . scalar(time) . " $direction $1\n";
         redo LOOP;
       }
       if ( $data =~ m/\G ([^\n]+) $ /cgx ) {
