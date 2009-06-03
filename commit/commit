@@ -1,17 +1,21 @@
 #!/usr/bin/perl -w
 #
-# Wrapper to commit changes back to version control programs.
+# Wrapper to commit changes back to version control programs. See
+# __DATA__ for example configuration file for this script. See also the
+# 'di' and 'ketchup' scripts.
 #
 # TODO add status/add checking support, to avoid "commit" grrr! "add"
-# "commit" annoyance.
+# "commit" annoyance. TODO means to order what version control software
+# detected first (in the event have git mixed in with something else).
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
 use strict;
 
-use Cwd qw(getcwd);
+use Cwd qw(getcwd realpath);
 use File::Basename;
+use File::Homedir qw(my_home);
 use File::Spec ();
 
 my %defaults = ( class => 'commit' );
@@ -48,6 +52,10 @@ for my $file (@ARGV) {
   } elsif ( -f File::Spec->catfile( $filepath, qw{.svn entries} ) ) {
 
     push @{ $tocommit{svn} }, $file unless $file eq '.svn';
+
+  } elsif ( defined findup('.p4config') ) {
+
+    push @{ $tocommit{perforce} }, $file unless $file eq '.p4config';
 
   } elsif ( defined findup('.git') ) {
 
@@ -95,16 +103,26 @@ sub findup {
   my $filename = shift;
   my $cur_dir  = getcwd();
 
+  my $homedir = realpath( my_home() );
+
   my @dirs = File::Spec->splitdir($cur_dir);
   do {
     my $work_dir = File::Spec->catdir(@dirs);
+
+    # Abort if hit homedir, as can find global .p4config or whatnot in
+    # this or higher directories.
+    my $real_work_dir =
+      realpath($work_dir) : if ($real_work_dir eq $homedir) {
+      return;
+    }
+
     if ( -e File::Spec->catfile( $work_dir, $filename ) ) {
       return $work_dir;
     }
     pop @dirs;
   } until ( !@dirs );
 
-  return undef;
+  return;
 }
 
 sub remark {
@@ -187,3 +205,27 @@ sub pref_finish {
 
   $prefs->{ $tmp->{class} }->{ $tmp->{name} } = {%$tmp};
 }
+
+__DATA__
+# Example ~/.commit/prefs data
+name cvs
+exec cvs ci %{revisionopt} %{revision} %{msgfileopt} %{msgfile} %{msgopt} %{msg} %{files}
+msgfileopt -F
+msgopt -m
+revisionopt -r
+
+name svn
+exec svn ci %{revisionopt} %{revision} %{msgfileopt} %{msgfile} %{msgopt} %{msg} %{files}
+msgfileopt -F
+msgopt -m
+revisionopt -r
+
+# TODO often use 'git commit -a' how support that mode?
+name git
+exec git commit %{msgopt} %{msg} %{files}
+msgopt -m
+
+name perforce
+exec p4 submit %{revisionopt} %{revision} %{msgopt} %{msg}
+msgopt -d
+revisionopt -c

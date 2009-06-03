@@ -5,6 +5,7 @@
 # or svn update.
 #
 # Used to be called 'up' but that conflicts with a tool from OpenAFS.
+# See also 'di' and 'commit'.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -56,6 +57,23 @@ update_svn () {
   fi
 }
 
+update_perforce () {
+  CURRENT_DIR=`pwd`
+
+  if [ "is$FORCE" = "isyes" ]; then
+    if [ "$START_DIR" != "$CURRENT_DIR" ]; then
+      echo "$PROG_NAME: running p4 sync in $CURRENT_DIR" >&2
+    fi
+    p4 sync
+  fi
+
+  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
+    echo "$PROG_NAME: running p4 opened in $CURRENT_DIR" >&2
+  fi
+
+  p4 opened
+}
+
 # Only status for now, do not know enough about git to know what command
 # I would want to run for an update...
 update_git () {
@@ -69,21 +87,34 @@ update_git () {
 }
 
 # figure out how to handle the directory in question
+# TODO need means to specify the order of these...
 check_dir () {
   if [ -f CVS/Root ]; then
     update_cvs
+    return
   elif [ -f .svn/entries ]; then
     update_svn
-  # TODO this logic is awkward, find better way...
-  elif [ ! `findup -q .git` ]; then
-    update_git
-  else
-    subdir | while read dir; do
-      (
-        cd -- "$dir" && check_dir
-      )
-    done
+    return
   fi
+
+  findup -H -q .p4config
+  STATUS=$?
+  if [ $STATUS -eq 0 ]; then
+    update_perforce
+    return
+  fi
+
+  findup -H -q .git
+  STATUS=$?
+  if [ $STATUS -eq 0 ]; then
+    update_git
+    return
+  fi
+
+  # default is to recurse into subdirs
+  subdir | while read dir; do
+    ( cd -- "$dir" && check_dir )
+  done
 }
 
 OPT=
