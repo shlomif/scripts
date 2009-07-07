@@ -1,21 +1,26 @@
 #!/bin/sh
 #
-# Utility to set FTARGET, which is used by various other scripts
-# I employ. (cd and fmmd, mostly)
+# Utility to set FTARGET, which is used by various other scripts I
+# employ. (cd and fmmd, mostly.) The ZSH sighandle directory related
+# stuff requires:
 #
-# TODO probably better to have a set/store query/retrieve system that
-# does not rely on allsh for this variable... though having an ENV var
-# to tab complete on is handy. Not much easier than a `getmytargetdir`
-# or something... (another pro for a get/set system that does not rely
-# on env vars is that new shells do not inherit work of allsh).
+#   _shared_rc() {
+#     for f in ~/.zsh/sighandle/USR1/*(N); do
+#       . $f
+#     done
+#   }
+#   TRAPUSR1() {
+#     _shared_rc
+#   }
+#   _shared_rc
 #
-# Also would be nice to tag the "main dir" with different names, so
-# can "godir tag1" vs. "godir tag2" like markers in vi.
+# And appropriate use of some form of mkdir.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
 set_ftarget () {
+  echo export FTARGET=`pwd` > $HOME/.zsh/sighandle/USR1/set-ftarget
   exec allsh "export FTARGET=\"`pwd`\""
 }
 
