@@ -22,6 +22,7 @@ my %ability = (
   min     => {handle => \&handle_min,},
   basic   => {handle => \&handle_basic,},
   dist    => {handle => \&handle_distribution,},
+  ratio   => {handle => \&handle_ratio,},
 );
 
 # how to format output numbers with printf
@@ -82,6 +83,10 @@ sub handle_sdev {
 
 sub handle_percent {
   printf "$format%%\n", $ARGV[0] / $ARGV[1] * 100;
+}
+
+sub handle_ratio {
+  printf "$format\n", $ARGV[0] * $ARGV[1] / $ARGV[2];
 }
 
 sub handle_max {
