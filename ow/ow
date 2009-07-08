@@ -206,7 +206,8 @@ sub visit {
   return unless $url;
 
   if ( exists $opts{l} ) {
-    print $url, "\n";
+    print $url;
+    print "\n" if -t STDOUT;
     return;
   }
 
