@@ -30,17 +30,17 @@ my $default_open = $ENV{OW_METHOD} || 'lynx';
 # echo "$@" | $COMMAND
 
 my %open = (
-  firefox       => [qw(open -a Firefox)],
+  firefox       => [qw(open -a Firefox --background)],
   links         => [qw(links)],
   lwp           => [qw(lwp-request)],
   'lwp-noproxy' => [qw(lwp-request -P)],
   lynx          => [qw(lynx)],
   mozilla       => [qw(mozilla)],
-  omniweb       => [qw(open -a OmniWeb)],
+  omniweb       => [qw(open -a OmniWeb --background)],
   'omniweb-bg'  => \&open_omniweb_bg,
-  open          => [qw(open)],
+  open          => [qw(open --background)],
   pbcopy        => [qw(sgrax pbcopy)],
-  safari        => [qw(open -a Safari)],
+  safari        => [qw(open -a Safari --background)],
   wget          => [qw(wget)],
 );
 
