@@ -4,17 +4,25 @@
 # to those that match a particular regular expression, or also
 # optionally reading the filenames from standard input.
 #
-# Usage:  glf [directory|-] [regex]
+# Usage:  glf [regex] [directory|-]
 #
 #  glf
-#  glf .
-#  glf . ^                # these are equivalent usages. ^ is the fastest
+#  glf ^
+#  glf ^ .                # these are equivalent usages. ^ is the fastest
 #                         # regex to match any filename.
 #
-#  glf /var/log maillog   # return latest file whose name matches maillog
+# NOTE that the regex should usually be quoted, as the shell involved
+# may try to interpolate certain characters present the regex.
 #
-#  find /var/log -name "mail*" | glf -    # supply filenames to search on
-#                                         # standard input
+#  glf maillog /var/log   # return latest file whose name matches maillog
+#
+#  find /var/log -name "mail*" | glf    # supply filenames to search on
+#                                       # standard input
+#
+# NOTE that glf operates differently if the directory is not supplied,
+# depending on whether STDIN is connected to a terminal. Therefore, if
+# glf is run from cron, the full arguments should always be supplied, to
+# ensure that glf does not try to read from STDIN.
 #
 # perldoc perlre   For more information about the regular
 #                  expression syntax.
@@ -34,8 +42,24 @@ END {
 
 my $DEBUG = 0;
 
-my $directory  = shift || '.';
-my $file_regex = shift || qr/^/;
+my $file_regex = shift;
+my $directory  = shift;
+
+if (! defined $file_regex) {
+  $file_regex = qr/^/;
+}
+
+# This assumes one wants the current directory if STDIN is connected to
+# a terminal, or assumes the files are being passed in on STDIN
+# otherwise. See NOTE above if glf is run from cron (where STDIN will
+# not be connected to a terminal).
+if (! defined $directory) {
+  if (-t STDIN) {
+    $directory = '.';
+  } else {
+    $directory = '-';
+  }
+}
 
 $directory = File::Spec->rel2abs($directory) unless $directory eq '-';
 warn "info: checking directory $directory\n" if $DEBUG;
@@ -52,7 +76,7 @@ if ( $directory eq '-' ) {
 } else {
   # So that unqualified file paths relative to directory supplied, and
   # not whatever random directory the CWD inherits. Less expensive than
-  # applying File::Spec->catfile() to each filename.
+  # applying File::Spec->catfile() to each filename?
   chdir($directory) or die "error: cannot chdir $directory: $!\n";
 
   my $dir_handle;
