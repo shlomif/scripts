@@ -31,6 +31,7 @@
 # public domain.
 
 use strict;
+use File::Basename qw(basename);
 use File::Spec ();
 
 END {
@@ -100,7 +101,10 @@ if ( defined $latest_file ) {
 sub handle_file {
   my $file = shift;
   return unless defined $file and length $file > 0;
-  return unless $file =~ m/$file_regex/;
+  # STDIN might pass fully qualified paths, though want regex only on
+  # the filename, not any parent directory file names.
+  my $file_basename = basename($file);
+  return unless $file_basename =~ m/$file_regex/;
   return unless -f $file;
 
   my $file_mtime = ( stat($file) )[9];
