@@ -121,12 +121,15 @@ FILE: for my $file (@ARGV) {
     my $source_file_mode = ( stat $file )[2] & 07777;
 
     eval {
-      File::AtomicWrite->write_file(
-        { file  => $output_file,
-          input => $docref,
-          mode  => $source_file_mode
-        }
-      );
+      my $aw = File::AtomicWrite->new(
+        { file => $output_file, mode => $source_file_mode } );
+      for my $signame (qw/TERM INT/) {
+        $SIG{$signame} = sub { undef $aw };
+      }
+      my $output_fh = $aw->fh;
+      binmode $output_fh, ':raw';
+      print $output_fh $$docref;
+      $aw->commit;
     };
     if ($@) {
       chomp $@;
@@ -139,6 +142,7 @@ FILE: for my $file (@ARGV) {
     }
 
   } else {
+    binmode STDOUT, ':raw';
     print $$docref;
   }
 }
@@ -254,6 +258,11 @@ more complex needs can be met through macro expansion of C<class> and
 C<style> options againt the C<path>, and the use of a ruleset file to
 set options based on XML document metadata such as the location on the
 filesystem or the root element name.
+
+Encoding is handled by the charset setting in the input XSL file, due
+to the use of the C<output_as_bytes> method from L<XML::LibXSLT>. The
+C<:raw> encoding is set for output files or standard out to preserve
+the bytes.
 
 =head2 Normal Usage
 
