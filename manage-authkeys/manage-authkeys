@@ -27,6 +27,7 @@ use Sys::Syslog;
 # path to authorized_keys file.  OpenSSH >= 3.0 should merge old
 # authorized_keys2 files into authorized_keys.
 my $auth_key_file = "~/.ssh/authorized_keys";
+my $FILENAME_RE   = qr([A-Za-z0-9._~/-]{1,1024});
 
 # registered commands
 my %command = (
@@ -50,6 +51,12 @@ if ( exists $opts{'h'} or exists $opts{'?'} ) {
 }
 
 $auth_key_file = $opts{'f'} if exists $opts{'f'};
+
+if ( $auth_key_file =~ m/^($FILENAME_RE)$/ ) {
+  $auth_key_file = $1;
+} else {
+  die "error: filename fails untaint check: name=$auth_key_file\n";
+}
 
 # do ~ expansion on filename
 $auth_key_file =~ s{ ^ ~ ( [^/]* ) }
@@ -125,7 +132,7 @@ sub do_write {
 
   remark( 'notice',
         'writing keys: count='
-      . scalar( $ak->get_stored_keys )
+      . scalar( @{ $ak->get_stored_keys } )
       . ", file=$auth_key_file" );
 
   eval {
