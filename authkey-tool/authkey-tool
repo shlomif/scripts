@@ -1,14 +1,13 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/perl -T
 #
-# Manages OpenSSH authorized key files. Run perldoc(1) on this file for
-# additional documentation.
-#
-# TODO how is this different from manage-authkeys??
+# TODO proper one-line description of role of this script. Run
+# perldoc(1) on this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
 use strict;
+use warnings;
 
 # clean up env for taint mode ("perldoc perlsec" for more information)
 sub BEGIN {
@@ -16,234 +15,98 @@ sub BEGIN {
   $ENV{PATH} = '/bin:/usr/bin:/usr/local/bin';
 }
 
-use Digest::MD5 qw(md5);
-
-my ( $data, @targets, $comment, $keyopts );
-
-# parse command-line options
+use Config::OpenSSH::Authkey        ();
+use Config::OpenSSH::Authkey::Entry ();
 use Getopt::Std;
+
+my ( $comment, $keyopts );
+
+######################################################################
+#
+# Main
+
 my %opts;
-getopts( 'h?f:C:o:O:t', \%opts );
-
-# various key-munging options
-$comment = $opts{C} if exists $opts{C};
-
-if ( exists $opts{o} ) {
-  $keyopts->{required} = parse_authkey_options( $opts{o} );
+getopts( 'h?C:o:O:', \%opts );
+if ( exists $opts{'h'} or exists $opts{'?'} or !@ARGV ) {
+  print_help();
+  exit 100;
 }
 
-if ( exists $opts{O} ) {
-  $keyopts->{exclusive} = parse_authkey_options( $opts{O} );
+# Various key property munging options
+$comment = $opts{'C'} if exists $opts{'C'};
+
+if ( exists $opts{'O'} ) {
+  $keyopts->{exclusive} = $opts{'O'};
+} elsif ( exists $opts{'o'} ) {
+  $keyopts->{required} =
+    Config::OpenSSH::Authkey::Entry->split_options( $opts{'o'} );
 }
 
-help() if exists $opts{h} or exists $opts{'?'};
+# Rest of argv should be auth_key files
+for my $ak_file (@ARGV) {
 
-# read target host(s) in
-push @targets, $opts{t} if exists $opts{t};
-if ( exists $opts{f} ) {
-  unless ( $opts{f} eq "-" ) {
-    open STDIN, '<', $opts{f}
-      or remark( 'alert', "could not open $opts{f}: $!" )
-      and die;
-  }
-  while (<STDIN>) {
-    next if m/^#/ or m/^\s*/;
-    chomp;
+  my $ak = Config::OpenSSH::Authkey->new( { tag_dups => 1, } );
+  $ak->file($ak_file);
 
-    s/^\s+//;
-    s/\s+$//;
-
-    push @targets, $_;
-  }
-}
-
-# TODO: validate incoming targets?
-
-# rest of argv keyfiles, load 'em up
-for (@ARGV) {
-
-  my $key_fh;
-  open( $key_fh, '<', $_ )
-    or remark( 'warning', "problem reading $_: $!" )
-    and next;
-
-  while (<$key_fh>) {
-
-    # see sshd(8) for expected format of auth_key_file
-    next if m/^#/ or m/^\s*$/;
-    chomp;
-
-    my $values = parse_authkey($_);
-
-    next unless defined $values;
-
-    if ( exists $data->{ $values->{hash} } ) {
-      remark( 'warning', "skipping duplicate key (hash:",
-        $values->{hash}, ") at $_ line $." );
+  while ( my $entry = $ak->iterate ) {
+    next if !$entry->can('key');
+    if ( $entry->duplicate_of ) {
+      warn( "warning: skipping duplicate key: file=$ak_file, key="
+          . $entry->key
+          . "\n" );
       next;
     }
 
-    # munge keys as called for
-    $values->{comment} = $comment if defined $comment;
+    $entry->comment($comment) if defined $comment;
 
     if ( exists $keyopts->{exclusive} ) {
-      $values->{options} = $keyopts->{exclusive};
-
+      $entry->options( $keyopts->{exclusive} );
     } elsif ( exists $keyopts->{required} ) {
-      %{ $values->{options} } =
-        ( %{ $values->{options} }, %{ $keyopts->{required} } );
+      for my $options_ref ( @{ $keyopts->{required} } ) {
+        $entry->set_option( $options_ref->{name},
+          exists $options_ref->{value} ? $options_ref->{value} : () );
+      }
     }
 
-    $data->{ $values->{hash} } = $values;
+    # Emit to stdout, let something else handle the annoying connect-
+    # and-xfer-data-to-various-hosts bit (well solved elsewhere).
+    print $entry->as_string, "\n";
   }
-
-  close $key_fh;
 }
 
-exit;
+exit 0;
 
-# takes scalar containing key, tries to return hash reference with
-# various bits of info expanded out
-sub parse_authkey {
-  my $authkey = shift;
-
-  my ( %values, @options );
-
-  # TODO: improve parser to get around boundary cases!
-  # e.g.: command="mumble ssh-rsa AAAA.... zot" ssh-rsa AAAA....
-  # or even: ssh-rsa  AAAA...
-
-  # try to pull apart key so we can do a checksum on the
-  # important bits (i.e. not the optional option and comment fields)
-  my @elements = split /\s/, $authkey;
-  for my $i ( 0 .. $#elements ) {
-
-    if (  $elements[$i] =~ m/^ssh-(?:rsa|dss)$/
-      and $elements[ $i + 1 ] =~ m/^AAAA/ ) {
-
-      $values{type} = ( $elements[$i] =~ m/rsa$/ ) ? 'rsa' : 'dsa';
-      $values{goodbit} = join " ", @elements[ $i .. $i + 1 ];
-      $values{comment} = join " ", @elements[ $i + 2 .. $#elements ];
-
-      last;
-
-    } elsif ( $elements[$i] =~ m/^\d+$/
-      and $elements[ $i + 1 ] =~ m/^\d+$/
-      and $elements[ $i + 2 ] =~ m/^\d+$/ ) {
-
-      $values{type}    = 'rsa1';
-      $values{goodbit} = join " ", @elements[ $i .. $i + 2 ];
-      $values{comment} = join " ", @elements[ $i + 3 .. $#elements ];
-
-      last;
-    }
-
-    push @options, $elements[$i];
-  }
-
-  unless ( exists $values{goodbit} ) {
-    remark( 'notice', "could not parse key from: $authkey" );
-    return;
-  }
-
-  $values{options} = parse_authkey_options("@options");
-
-  $values{hash} = sprintf "%08x", unpack "N", md5( $values{goodbit} );
-  $values{key} = $authkey;
-
-  return \%values;
-}
-
-# takes scalar containing auth_key_file options
-# returns hash reference
+######################################################################
 #
-# TODO: fixup to handle 'mumble="asdf, zot",foo' issues
-sub parse_authkey_options {
-  my $options = shift;
-  my $ak_opts;
-
-  for ( split /,/, $options ) {
-    my ( $k, $v ) = split /=/;
-    $ak_opts->{$k} = $v;
-  }
-
-  return $ak_opts;
-}
-
-# takes hash ref, returns scalar format of options
-sub authkey_options2str {
-  return join ",", map { $_[0]->{$_} ? $_ . '=' . $_[0]->{$_} : $_ }
-    sort keys %{ $_[0] };
-}
-
-# generic log handler
-sub remark {
-  my ( $facility, $priority, $message );
-  $facility = 'user';
-
-  if ( @_ > 1 ) {
-    $priority = shift;
-    $message  = "@_";
-  } else {
-    $priority = 'info';
-    $message  = "@_";
-  }
-
-  return 1 if exists $opts{q} and $priority eq 'info';
-
-  if ( exists $opts{l} ) {
-    if ( $opts{l} eq "syslog" ) {
-      openlog( $0, 'cons', $facility );
-      syslog( $priority, $message );
-      closelog();
-
-    } elsif ( $opts{l} eq "logger" ) {
-      system "logger", '-p', $facility . '.' . $priority, '-t', $0, $message;
-
-    } else {
-      die "alert: unknown log handler: ", $opts{l};
-    }
-
-  } else {
-    warn $priority, ": ", $message, "\n";
-  }
-
-  return 1;
-}
+# Subroutines
 
 # a generic help blarb
-sub help {
+sub print_help {
   print <<"HELP";
 Usage: $0 [opts] keyfile1 [keyfile2 .. keyfileN]
 
-Manages OpenSSH authorized key files.
-
 Options:
-  -h/-?  Display this message
+  -h/-?  Display this message.
 
-  -t hh  Target host tt.
-  -f ff  Read target host(s) from file ff; - for STDIN.
-
-  -C cc  Set comment cc on keys.
+  -C cc  Supply a custom comment.
   
-  -o aa  Require options aa to be set.
   -O bb  Force only options bb to be set.
+  -o aa  Require options aa to be set.
 
 Run perldoc(1) on this script for additional documentation.
-
 HELP
-  exit;
+  return 1;
 }
 
 __END__
 
 =head1 NAME
 
-authkey-tool - manages OpenSSH authorized key files
+authkey-tool - TODO
 
 =head1 SYNOPSIS
 
-Quick usage notes here.
+TODO
 
 =head1 DESCRIPTION
 
@@ -268,19 +131,6 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
-=item B<-t> I<host specification>
-
-Specify a target host to manage keys with.
-
-=item B<-f> I<filepath>
-
-Read target host(s) from specified file.  Setting the file to C<->
-will read from STDIN.  Lines beginning with # will be ignored; leading
-and trailing whitespace will be deleted, and empty lines skipped.
-
-Hosts should be hostnames or IP addresses the computer running the
-script can resolve.
-
 =item B<-C> I<comment>
 
 Set the comment field on all keys dealt with to I<comment>.
@@ -295,21 +145,10 @@ have this utility add the usual command key restrictions:
 
 =item B<-O> I<options>
 
-Replace any existing options with those specified.
+Replace any existing options with those specified. Takes preference over
+the B<-o> option.
 
 =back
-
-=head1 EXAMPLES
-
-Additional examples/helpfull hints expanding on SYNOPSIS.
-
-=head1 ENVIRONMENT
-
-Any special environement details or warnings?
-
-=head1 FILES
-
-Any important files this script relies on?
 
 =head1 BUGS
 
@@ -328,7 +167,7 @@ No known bugs.
 
 =head1 SEE ALSO
 
-perl(1)
+L<Config::OpenSSH::Authkey>, ssh-keygen(1), sshd(8)
 
 =head1 AUTHOR
 
