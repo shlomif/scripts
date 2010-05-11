@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Cleans up XML via the xmllint utility from the libxml2 project.
 # Handles input either from standard input, or named files given as
@@ -9,10 +9,13 @@
 # public domain.
 
 use strict;
+use warnings;
+
+use open IO => ':utf8';
 
 # command to tidy up XML; xmllint from libxml2 accepts the filename on
 # the command line and produces output to standard out
-my @xmltidy_cmd = qw(xmllint --nsclean --encode utf8 --format);
+my @xmltidy_cmd = qw(xmllint --nsclean --encode UTF-8 --format);
 
 use File::AtomicWrite ();
 use File::Basename qw(basename dirname);
@@ -32,6 +35,7 @@ my $error;
 # xmltidy to stdout
 unless (@ARGV) {
   my ( $fh, $tmpfile ) = tempfile();
+  binmode($fh, ':utf8');
   print $fh $_ while <STDIN>;
 
   my $tfh = xmltidy($tmpfile);
