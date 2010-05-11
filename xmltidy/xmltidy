@@ -35,7 +35,7 @@ my $error;
 # xmltidy to stdout
 unless (@ARGV) {
   my ( $fh, $tmpfile ) = tempfile();
-  binmode($fh, ':utf8');
+  binmode( $fh, ':utf8' );
   print $fh $_ while <STDIN>;
 
   my $tfh = xmltidy($tmpfile);
@@ -75,7 +75,12 @@ unless (@ARGV) {
 
     eval {
       File::AtomicWrite->write_file(
-        { file => $file, input => \$string, mode => $filemode } );
+        { file          => $file,
+          input         => \$string,
+          mode          => $filemode,
+          binmode_layer => ':utf8'
+        }
+      );
     };
     if ($@) {
       chomp $@;
