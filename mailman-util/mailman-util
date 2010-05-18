@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Utility routines to interact with the mailman mailing list manager.
 #
@@ -8,6 +8,7 @@
 # the public domain.
 
 use strict;
+use warnings;
 
 # registered mode handlers
 my %handlers = ( notify => { code => \&handle_notify, }, );

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Runs a command with specified priority, like nice, but handles
 # negative priorities with sudo. Forks to avoid running the named
@@ -13,6 +13,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 my $default_nice = -10;
 my $nice_value   = $default_nice;

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Checks whether domain(s) listed on command line (or failing that
 # STDIN) are wildcard domains. Run perldoc(1) on this file for more
@@ -8,6 +8,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)

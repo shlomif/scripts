@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Maintains OpenSSH known_hosts data.
 #
@@ -9,6 +9,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Getopt::Std;
 my %opts;

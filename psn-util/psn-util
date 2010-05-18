@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Utility to handle Portable Shogi Notation (.psn) data. For example, to
 # load games into a database with the correct schema:
@@ -22,6 +22,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use File::Basename qw(basename);
 use HTML::Template ();

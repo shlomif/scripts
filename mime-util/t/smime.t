@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Test routines for SMIME operations in mime-util script.
 
 use strict;
+use warnings;
 use Fatal qw(open);
 use Test::More tests => 3;
 

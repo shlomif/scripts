@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Wrapper to screen(1) for easy resuming and management of named screen
 # sessions. Run perldoc(1) on this script for additional documentation.
@@ -7,6 +7,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 my $session_re = qr/[\w.-]{1,32}/;
 

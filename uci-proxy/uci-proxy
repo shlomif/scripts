@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # uci-proxy - proxy requests between a GUI and an engine via the
 # Universal Chess Interface (UCI).
@@ -9,6 +9,7 @@
 # the working directory of this script.
 
 use strict;
+use warnings;
 
 use Cwd qw(chdir);
 use File::Basename qw(basename dirname);

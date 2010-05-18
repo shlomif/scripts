@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Finds files with same (or similar) modification times as specified
 # file or user-supplied date. Run perldoc(1) on this script for
@@ -8,6 +8,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Date::Parse qw(str2time);
 use File::Find qw(find);

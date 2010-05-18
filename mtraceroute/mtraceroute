@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -12,6 +12,7 @@
 require 5;
 
 use strict;
+use warnings;
 
 ######################################################################
 #

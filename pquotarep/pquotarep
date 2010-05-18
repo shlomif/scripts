@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Parses output from repquota(8) into formats suitable for further
 # processing such as SQL upload or insertion into RRDTool files. For
@@ -10,6 +10,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Data::Dumper;
 

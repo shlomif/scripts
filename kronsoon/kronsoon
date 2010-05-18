@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Generate crontab(5) compatible time specification for a command to run
 # in the near future. The at(1) system would also make sense for "near
@@ -10,6 +10,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);

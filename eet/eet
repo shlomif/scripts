@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Utility to tail multiple files. Probably better to use current
 # versions of tail(1), which can follow multiple files. Run perldoc(1)
@@ -8,6 +8,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Carp;
 use File::Tail 0.91;

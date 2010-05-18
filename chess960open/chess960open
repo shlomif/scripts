@@ -1,9 +1,13 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Print positions from left to right for Chess960 opening:
 # http://en.wikipedia.org/wiki/Chess960
 
 use strict;
+use warnings;
+
+use utf8;
+use open IO => ':utf8';
 
 my @pieces = qw(Rook Knight Bishop Queen King Bishop Knight Rook);
 

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Lists maximum length possible of data encrypted with varying RSA key
 # lengths and padding options, along with size of ciphertext (binary

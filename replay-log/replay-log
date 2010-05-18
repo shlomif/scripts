@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Replays logs, simulating the time delays present in the source data.
 # Only supports the standard Unix syslogd(8) format at present. Run

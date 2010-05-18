@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # A thin wrapper around Net::Amazon with output templating. Requires
 # Net::Amazon and an Amazon Web Services account. Run perldoc(1) on this
@@ -8,6 +8,7 @@
 # the public domain.
 
 use strict;
+use warnings;
 
 use Net::Amazon ();
 use HTML::Entities qw(encode_entities);

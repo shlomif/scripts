@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/perl -T
 #
 # Lists new (unseen) files found under the specified directories. Run
 # perldoc(1) on this script for additional documentation.
@@ -7,6 +7,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Digest::SHA1 ();
 my $ctx = Digest::SHA1->new;

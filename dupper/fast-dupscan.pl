@@ -2,6 +2,7 @@
 # Craig Reyenga
 
 use strict;
+use warnings;
 #use Cwd;
 #use BSD::stat;
 use Digest::MD5;

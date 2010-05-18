@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Given a date, will attempt to return the epoch time for that date.
 #

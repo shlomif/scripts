@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Get latest file in a directory by mtime, optionally limiting the files
 # to those that match a particular regular expression, or also
@@ -31,6 +31,7 @@
 # public domain.
 
 use strict;
+use warnings;
 use File::Basename qw(basename);
 use File::Spec ();
 

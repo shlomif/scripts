@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Copies (or moves) the specified files into target directory. Relies on
 # buildir script to create directory trees.
@@ -37,6 +37,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 # command to use to create target directory if does not exist use
 # qw(mkdir -p) if you lack buildir (buildir does (hopefully) Clever

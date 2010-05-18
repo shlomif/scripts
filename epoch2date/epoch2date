@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Converts epoch times to human parsable dates. Accepts list of epoch
 # dates (integers) on command line. Use xargs(1) or similar to take
@@ -11,6 +11,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use File::Basename qw(basename);
 my $basename = basename $0;

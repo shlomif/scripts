@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Wrapper to commit changes back to version control programs. See
 # __DATA__ for example configuration file for this script. See also the
@@ -12,6 +12,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Cwd qw(getcwd realpath);
 use File::Basename;

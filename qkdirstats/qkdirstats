@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Shows quick directory statistics and other summary information. Add as
 # a chpwd function under zsh(1) for an overview on interactive cd:
@@ -11,6 +11,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 my $timeout = 3;
 

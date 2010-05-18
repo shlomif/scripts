@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Command line shortcuts and directory to URL mapping. Customize the
 # %open list (commands to handle URL with) and change the default_open

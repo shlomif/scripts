@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # 'du' output parser and reporter. Run perldoc(1) on this script for
 # additional documentation.
@@ -7,6 +7,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 # KLUGE humanize on file size assumes -k set, split for exec-as-list
 # will break quoted "-o 'foo bar'" options (minimal risk)

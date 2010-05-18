@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -6,6 +6,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Carp;
 use Getopt::Std;

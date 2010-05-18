@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Humanize file sizes in input, like the new -h option to various Unix
 # commands. Run perldoc(1) on this file for additional documentation.
@@ -7,6 +7,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 # default to working on runs of 4 or more digits
 my $regex = '(-?\d{4,})';

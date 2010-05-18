@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Prints information about file paths, or checks for permissions
 # problems. Run perldoc(1) on this script for additional documentation.
@@ -10,6 +10,7 @@
 # public domain.
 
 use strict;
+use warnings;
 use Cwd qw(realpath);
 use File::Spec ();
 

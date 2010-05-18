@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # "Human" sort that should emulate behaviour of Finder (as of Mac OS X
 # 10.2). Sorts numeric values so 10 appears after 2, and compares in case-

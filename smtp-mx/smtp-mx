@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wl
+#!/usr/bin/perl -l
 #
 # Returns MX server for domains in question. Run perldoc(1) on this file
 # for additional documentation.
@@ -7,6 +7,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)

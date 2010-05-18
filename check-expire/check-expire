@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Expiration date checker and handler. Supports x509 certificates, and
 # anything a wrapper script can be written for. Run perldoc(1) on this
@@ -8,6 +8,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use Config::General qw(ParseConfig);
 use Date::Parse qw(str2time);

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Adds the specified IP addresses to the <badhosts> table in a Packet
 # Filter (pf) firewall, then finds and removes state entries involving

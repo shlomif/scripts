@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Wrapper to sign multiple files with gpg.
 #
@@ -6,6 +6,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 my @gpg_sign_cmd =
   qw(gpg --passphrase-fd 0 --quiet --sign --detach-sign --armor);

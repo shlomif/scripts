@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Like 'mkdir -p', but does 'cvs add' if under CVS sandboxes, or other
 # extensible actions. Prints directories created when run with -p
@@ -15,6 +15,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use File::Spec ();
 

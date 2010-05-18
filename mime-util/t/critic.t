@@ -1,8 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Test with Perl::Critic.
 
 use strict;
+use warnings;
 use Cwd qw(getcwd);
 use Test::Perl::Critic qw(all_critic_ok);
 

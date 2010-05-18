@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Apply XSL files to XML data via the XML::ApplyXSLT module. Run
 # perldoc(1) on this script for additional documentation.
@@ -7,6 +7,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use File::AtomicWrite ();
 use File::Basename qw(basename dirname);

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Extracts URL from a HTML document and optionally applies a supplied
 # Perl regular expression to the URL to search for matches. Run
@@ -8,6 +8,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 use File::Basename qw(basename);
 my $basename = basename($0);

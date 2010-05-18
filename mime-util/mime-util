@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Utility to perform various MIME packing and unpacking operations.
 #
@@ -6,6 +6,7 @@
 # public domain.
 
 use strict;
+use warnings;
 use Fatal qw(open);
 use MIME::Parser ();
 

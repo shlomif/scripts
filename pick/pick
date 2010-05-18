@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Pick or reject items from a list of input data.
 #
@@ -6,6 +6,7 @@
 # public domain.
 
 use strict;
+use warnings;
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)

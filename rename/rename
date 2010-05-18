@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 # Mangle files with perl expressions: rename, copy, or move. Supports
 # preview, to see what the damage will be. Run perldoc(1) on this file
@@ -8,6 +8,7 @@
 # under the same terms as Perl itself.
 
 use strict;
+use warnings;
 
 sub print_help;
 
