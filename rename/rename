@@ -19,11 +19,13 @@ END {
   }
 }
 
+use File::Basename qw/dirname/;
 use File::Copy;
+use File::Path qw/mkpath/;
 
 use Getopt::Std;
 my %opts;
-getopts( 'h?cmifvp', \%opts );
+getopts( 'h?cmMifvp', \%opts );
 print_help if exists $opts{h} or exists $opts{'?'};
 
 my $preview =
@@ -66,11 +68,16 @@ print_help unless @ARGV;
 
     next if exists $opts{p};
 
-    # TODO use getraw instead?  Enhance getraw to support
-    # application-specific prefernces from a config file?
     if ( -e and $interactive ) {
       print "$_ exists.  Overwrite? (y/[n]) ";
       next unless <STDIN> =~ /^[Yy]/;
+    }
+
+    if ( exists $opts{M} and $_ =~ m{/} ) {
+      my $output_dir = dirname($_);
+      if ( !-d $output_dir ) {
+        mkpath($output_dir);
+      }
     }
 
     unless ( eval "$fn(\$was, \$_)" ) {
@@ -83,7 +90,7 @@ print_help unless @ARGV;
 # a generic help blarb
 sub print_help {
   print <<"HELP";
-Usage: $0 [opts] expression [file1 ...]
+Usage: $0 [opts] perl-expression [file1 ..]
 
 Mangle filenames using perl expressions.
 
@@ -98,6 +105,8 @@ Options:
 
   -i     interactive, prompt if necessary
   -f     force (do not prompt to replace existing files)
+
+  -M     Make directories if necessary
 
 Run perldoc(1) on this script for additional documentation.
 
@@ -125,17 +134,17 @@ be changed:
 =head1 DESCRIPTION
 
 A file renamer that uses user-supplied Perl expressions to rename files.
-Optionally, the copy() or move() routines from File::Copy may be used
-instead of the builtin rename() function.
+Optionally, the C<copy> or C<move> routines from L<File::Copy> may be
+used instead of the built-in C<rename> function.
 
 A preview mode is also available, to allow testing of expressions
 before any changes are allowed to go to the filesystem.
 
 Note that rename is primarily aimed at dealing with the files in the
-current working directory, given that the default rename function does
-not work across different filesystems, and renaming parent directories
-before dealing with any files deeper in the filesystem tree will not
-work by default (see L<"EXAMPLES"> for solutions).
+current working directory, given that the rename function does not work
+across different filesystems. Renaming parent directories before dealing
+with any files deeper in the filesystem tree will not work by default
+(see L<"EXAMPLES"> for solutions).
 
 =head1 USAGE
 
@@ -180,6 +189,12 @@ Since rename() cannot be used across filesystem boundaries, and may
 not be available on all systems, move() may be a better option in some
 circumstances.
 
+=item B<-M>
+
+Attempts to create a target file path, if necessary. May require B<-c>
+or B<-m>, as the default C<rename> does not work across filesystem
+boundaries.
+
 =item B<-i>
 
 Interactive mode: prompts for confirmation.
@@ -213,8 +228,8 @@ varient being used.
 
 =head1 SECURITY
 
-This script should not be allowed to be run under elevated privileges,
-as it accepts and runs arbitrary user-supplied Perl code fragments.
+This script must not be allowed to be run under elevated privileges, as
+it accepts and runs arbitrary user-supplied Perl code fragments.
 
 =head1 BUGS
 
@@ -252,6 +267,6 @@ under the same terms as Perl itself.
 This is a hacked up version of Larry Wall's original rename script
 distributed with perl under the eg directory, improved by Daniel
 V. Klien (copy option, interactive mode), and then polished into this
-form by Jeremy Mates (preview mode, move support, subversion support).
+form by Jeremy Mates (preview mode, move support, mkdir support).
 
 =cut
