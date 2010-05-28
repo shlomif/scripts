@@ -28,8 +28,8 @@ $prefs_file = tilde_expand($prefs_file);
 init($prefs_file) unless -e $prefs_file;
 my $servers = server_load( { filename => $prefs_file } );
 my @server_list =
- sort { $servers->{$a}->{count} <=> $servers->{$b}->{count} }
- keys %$servers;
+  sort { $servers->{$a}->{count} <=> $servers->{$b}->{count} }
+  keys %$servers;
 my $aliases = parse_aliases($servers);
 
 # parse pre-verb command-line options
@@ -41,7 +41,7 @@ my %actions;
 @actions{qw(get put list-servers)} = ();
 
 # figure out what to do, with default to uploading files
-my $verb = defined $ARGV[0] ? shift: 'put';
+my $verb = defined $ARGV[0] ? shift : 'put';
 if ( not exists $actions{$verb} ) {
   unshift @ARGV, $verb;
   $verb = 'put';
@@ -71,8 +71,8 @@ getopts( 's:c:m:u:', \%postopts );
 my %postargs;
 @postargs{qw(name nick channel summary)} = @postopts{qw(s u c m)};
 
-while ( my ( $k, $v ) = each %postargs ) {
-  $args{$k} = $v if defined $v;
+for my $k ( keys %postargs ) {
+  $args{$k} = $postargs{$k} if defined $postargs{$k};
 }
 $args{name} = 'default' unless $args{name};
 
@@ -85,12 +85,12 @@ if ( $verb eq 'get' ) {
     exists $aliases->{ $args{name} }
     ? $aliases->{ $args{name} }->[0]
     : $args{name}
-   }
-   if defined $args{name};
+    }
+    if defined $args{name};
 
   # merge command-line prefs over server entry
-  while ( my ( $k, $v ) = each %args ) {
-    $prefs->{$k} = $v if defined $v;
+  for my $k ( keys %args ) {
+    $prefs->{$k} = $args{$k} if defined $args{$k};
   }
 
   pb_get( $prefs, @ARGV );
@@ -102,9 +102,9 @@ if ( $verb eq 'get' ) {
     my @non = grep { not -f } @ARGV;
     if (@non) {
       remark( 'error',
-           'cannot upload non-existent file'
-         . ( @non == 1 ? q{} : 's' )
-         . ": @non" );
+            'cannot upload non-existent file'
+          . ( @non == 1 ? q{} : 's' )
+          . ": @non" );
       exit 101;
     }
   }
@@ -139,9 +139,9 @@ if ( $verb eq 'get' ) {
   # network and channel same mean multiple pastebots for channel
   if ( $primary->{network} ne q{} ) {
     push @potentials, grep {
-           $servers->{$_}->{name} ne $primary->{name}
-       and $servers->{$_}->{network} eq $primary->{network}
-       and $servers->{$_}->{channel} eq $primary->{channel}
+            $servers->{$_}->{name} ne $primary->{name}
+        and $servers->{$_}->{network} eq $primary->{network}
+        and $servers->{$_}->{channel} eq $primary->{channel}
     } @server_list;
   }
 
@@ -161,8 +161,8 @@ if ( $verb eq 'get' ) {
   for my $prefs ( map { $servers->{$_} } @potentials ) {
 
     # merge command-line prefs over server entry
-    while ( my ( $k, $v ) = each %args ) {
-      $prefs->{$k} = $v if defined $v;
+    for my $k ( keys %args ) {
+      $prefs->{$k} = $args{$k} if defined $args{$k};
     }
 
     last if pb_put( $prefs, \$paste );
@@ -184,10 +184,10 @@ sub pb_get {
   } else {
 
     $url =
-     URI->new( $prefs->{url}
-       . ( ( $prefs->{url} !~ m,/$, ) ? '/' : q{} )
-       . $id
-       . '?tx=on' )->canonical;
+      URI->new( $prefs->{url}
+        . ( ( $prefs->{url} !~ m,/$, ) ? '/' : q{} )
+        . $id
+        . '?tx=on' )->canonical;
 
     unless ( defined $url ) {
       remark( 'error', "could not determine url for: $id" );
@@ -215,10 +215,9 @@ sub pb_put {
   my $prefs = shift;
   my $paste = shift;
 
-  my $url =
-   URI->new(
+  my $url = URI->new(
     $prefs->{url} . ( ( $prefs->{url} !~ m,/$, ) ? '/' : q{} ) . 'paste' )
-   ->canonical;
+    ->canonical;
 
   unless ( defined $url ) {
     remark( 'error', "could not determine url from $prefs->{url}" );
@@ -227,8 +226,8 @@ sub pb_put {
 
   # ensure non-null channel prefixed with #
   $prefs->{channel} =~ s/^/#/
-   if $prefs->{channel} ne q{}
-   and $prefs->{channel} !~ /^#/;
+    if $prefs->{channel} ne q{}
+      and $prefs->{channel} !~ /^#/;
 
   eval { require LWP::UserAgent; };
   if ($@) {
@@ -236,12 +235,12 @@ sub pb_put {
     exit 102;
   } else {
     my $ua =
-     LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 17 );
+      LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 17 );
 
     my %postargs = map {
-         ( defined $prefs->{$_} and $prefs->{$_} ne q{} )
-       ? ( $_ => $prefs->{$_} )
-       : ()
+          ( defined $prefs->{$_} and $prefs->{$_} ne q{} )
+        ? ( $_ => $prefs->{$_} )
+        : ()
     } qw(channel nick summary);
 
     $postargs{paste} = $$paste;
@@ -289,7 +288,7 @@ sub get_url {
     exit 102;
   } else {
     my $ua =
-     LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 17 );
+      LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 17 );
     my $response = $ua->get( $data->{url} );
 
     unless ( $response->is_success ) {
@@ -315,8 +314,8 @@ sub server_load {
   push @tmp, {};
 
   open FILE, "< $data->{filename}"
-   or remark( 'error', "could not open $data->{filename} for reading: $!" )
-   and exit 100;
+    or remark( 'error', "could not open $data->{filename} for reading: $!" )
+    and exit 100;
 
   while (<FILE>) {
     chomp;
@@ -374,8 +373,8 @@ sub server_load {
     # empty strings for optional stuff to avoid uninitialized value warnings
     for my $key (qw(channel nick network)) {
       $server->{$key} = q{}
-       unless exists $server->{$key}
-       and defined $server->{$key};
+        unless exists $server->{$key}
+          and defined $server->{$key};
     }
     $server->{count} = $count;
 
@@ -433,16 +432,16 @@ sub init {
   # warnings on modules may need
   eval { require LWP::UserAgent; };
   remark( 'notice', "LWP::UserAgent may be needed, but failed to load: $@" )
-   if $@;
+    if $@;
   eval { require HTML::TokeParser; };
   remark( 'notice', "HTML::TokeParser may be needed, but failed to load: $@" )
-   if $@;
+    if $@;
 
   remark( 'notice', "creating default preference file: $file" );
   mkpath( dirname($file) );
   open FILE, "> $file"
-   or remark( 'error', "could not create preference file $file: $!" )
-   and exit 100;
+    or remark( 'error', "could not create preference file $file: $!" )
+    and exit 100;
 
   print FILE <<"HEADER";
 # documentation on this file and the associated script can be found by
@@ -454,7 +453,7 @@ HEADER
   my $boundary = qr/^\s+# example config/;
   while (<DATA>) {
     if ( /$boundary/ .. /$boundary END/ ) {
-      next     if /$boundary/;
+      next if /$boundary/;
       s/^\s+// if /\S/;
       print FILE $_;
     }

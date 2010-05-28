@@ -153,7 +153,7 @@ commify($total_messages), humanize($total_size)
 .
   write;
 
-  if (keys %tag_counts) {
+  if ( keys %tag_counts ) {
     format_name STDOUT "TAGS";
     format_top_name STDOUT "TAGS_TOP";
     format_lines_left STDOUT 0;
@@ -166,7 +166,7 @@ commify($total_messages), humanize($total_size)
 $tag_counts{$_}, $_
 .
 
-    for (sort keys %tag_counts) {
+    for ( sort keys %tag_counts ) {
       write;
     }
     print "\n" unless $summary;
@@ -288,7 +288,7 @@ sub print_machine {
 
 # parse procmail's logfile w/ locking using global variables
 sub parse_logfile {
-  my $count = -1;  # track where we are in array of anon hashes
+  my $count = -1;    # track where we are in array of anon hashes
 
   # open & aquire write lock on the logfile
   open( FD, "+< $logfile" ) or die "Error opening $logfile: $!\n";
@@ -329,7 +329,7 @@ $months_of_year \s+
 \d{1,2} \s
 \d\d:\d\d:\d\d \s
 \d\d\d\d)/ox
-     ) {
+      ) {
 
       # new From line matched, increment our position in @data array
       $count++;
@@ -360,8 +360,8 @@ $months_of_year \s+
       $total_size += $size;
     }
 
-    if (keys %tags) {
-      for my $name (keys %tags) {
+    if ( keys %tags ) {
+      for my $name ( keys %tags ) {
         $tag_counts{$name}++ if m/$tags{$name}/;
       }
     }
@@ -434,11 +434,8 @@ sub humanize {
   unless ( keys %prefs ) {
     %prefs = %global_prefs;
   } else {
-
-    # benchmarking w/ 5.6.0 on Linux PPC & i386 showed this next
-    # faster than direct merge method (p. 145 Perl Cookbook)
-    while ( my ( $k, $v ) = each(%global_prefs) ) {
-      $prefs{$k} = $v unless exists $prefs{$k};
+    for my $k ( keys %global_prefs ) {
+      $prefs{$k} = $global_prefs{$k} unless exists $prefs{$k};
     }
   }
 
@@ -474,7 +471,7 @@ sub humanize {
 
     $tmp = sprintf( "%.0f", $num );
 
-    } else {
+  } else {
     $tmp = sprintf( "%.1f", $num );
 
     # optionally hack trailing .0 as is not needed

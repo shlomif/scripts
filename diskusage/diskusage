@@ -279,9 +279,9 @@ sub humanize {
   );
 
   # merge passed options with defaults
-  while ( my ( $k, $v ) = each %$prefs ) {
-    if ( exists $defaults{$k} and $v ) {
-      $defaults{$k} = $v;
+  for my $k ( keys %$prefs ) {
+    if ( exists $defaults{$k} and defined $prefs->{$k} ) {
+      $defaults{$k} = $prefs->{$k};
     }
   }
 

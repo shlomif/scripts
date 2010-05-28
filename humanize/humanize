@@ -105,9 +105,9 @@ sub humanize {
   );
 
   # merge passed options with defaults
-  while ( my ( $k, $v ) = each %$prefs ) {
-    if ( exists $defaults{$k} and $v ) {
-      $defaults{$k} = $v;
+  for my $k ( keys %$prefs ) {
+    if ( exists $defaults{$k} and defined $prefs->{$k} ) {
+      $defaults{$k} = $prefs->{$k};
     }
   }
 
@@ -146,7 +146,7 @@ sub humanize {
 
     $tmp = sprintf( "%.0f", $num );
 
-    } else {
+  } else {
     $tmp = sprintf( "%.1f", $num );
 
     # optionally hack trailing .0
