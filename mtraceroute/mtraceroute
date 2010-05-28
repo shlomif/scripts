@@ -4,26 +4,12 @@
 # public domain.
 #
 # Run perldoc(1) on this file for additional documentation.
-#
-######################################################################
-#
-# REQUIREMENTS
-
-require 5;
 
 use strict;
 use warnings;
 
-######################################################################
-#
-# MODULES
-
 use Carp;         # better error reporting
 use Getopt::Std;  # command line option processing
-
-######################################################################
-#
-# VARIABLES
 
 my (%opts, %data, %stats, $traceroute);
 
@@ -132,7 +118,7 @@ for (@ARGV) {
   print "\n";
 
   # and let's look at some specific stuff
-  #    foreach my $info (@{$data{$_}}) {
+  #    for my $info (@{$data{$_}}) {
   #     print $info->{mean}, "\t", $info->{stddev}, "\n";
   #    }
 }
@@ -157,7 +143,7 @@ sub standard_deviation_data {
 sub mean {
   my ($arrayref) = shift;
   my $result;
-  foreach (@$arrayref) { $result += $_ }
+  for (@$arrayref) { $result += $_ }
   return $result / @$arrayref;
 }
 

@@ -53,7 +53,7 @@ if ($Root_check && $> == 0) {
 You should not be running this as root!
 Recommend you abort and run as a nonprivileged user.
 Pausing 10 seconds.];
-        foreach $_ (1 .. 10) {
+        for $_ (1 .. 10) {
                 print STDERR ".";
                 sleep 1;
         }
@@ -238,7 +238,7 @@ sub calculate_fqdn
         return $Dflt_hostname
                 if ($Dflt_hostname);
 
-        foreach $cmd (@trycmds) {
+        for $cmd (@trycmds) {
                 chop($hostname = `$cmd`);
                 return $hostname
                         if ($hostname =~ /\./);

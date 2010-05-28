@@ -30,11 +30,11 @@ find(
 	}
     },$dir);
 
-foreach my $size (sort { $a <=> $b } keys %sizes) {
+for my $size (sort { $a <=> $b } keys %sizes) {
     my @aos=@{$sizes{$size}};
     if ($size == 0) {
 	print "##The following are empty:\n";
-	foreach my $i (@aos) {
+	for my $i (@aos) {
 	    print "#$i\n";
 	}
 	next;
@@ -42,7 +42,7 @@ foreach my $size (sort { $a <=> $b } keys %sizes) {
     my $hm=@aos;
     if ($hm >= 2) {
 	my %pot;
-        foreach my $i (@aos) {
+        for my $i (@aos) {
             unless (open FILE, $i) {
 	        print STDERR "##Can't open $i: $!\n";
 	        next;
@@ -57,7 +57,7 @@ foreach my $size (sort { $a <=> $b } keys %sizes) {
 		$pot{$g}=[$i];
 	    }
         }
-	foreach my $p (sort keys %pot) {
+	for my $p (sort keys %pot) {
 	    my @aop=@{$pot{$p}};
 	    my $hmp=@aop;
 	    if ($hmp >= 2) { 
@@ -79,6 +79,6 @@ __END__
  } else {
   $sums{$g} = $f;
  }
-} ## end foreach
+} ## end for
 
 
