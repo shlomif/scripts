@@ -111,10 +111,10 @@ check_dir () {
     return
   fi
 
-  # default is to recurse into subdirs
-  subdir | while read dir; do
-    ( cd -- "$dir" && check_dir )
-  done
+  # default is to recurse into subdirs - not so nice in $HOME...
+  #subdir | while read dir; do
+  #  ( cd -- "$dir" && check_dir )
+  #done
 }
 
 OPT=
