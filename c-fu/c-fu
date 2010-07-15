@@ -1,0 +1,79 @@
+#!/usr/bin/perl
+#
+# Compile and run random C snippets specified on command line:
+#
+# c-fu 'printf("Hello World\n")'
+#
+# Each argument (or line of standard input if the only argument is '-')
+# is treated as a C statement (and a semi-colon appended if not
+# present), excepting the ultimate argument, which is instead enclosed
+# in a return((int)...) function call.
+#
+# Various compiler options are set to various defaults, or can be
+# customized via the CC or CFLAGS environment variables. If in doubt,
+# read the source.
+
+use strict;
+use warnings;
+
+use File::Basename qw/basename/;
+use File::Spec ();
+use File::Temp qw/tempfile/;
+use IO::Handle;
+
+my $BASENAME = basename($0);
+my $CC       = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
+my @CFLAGS   = split ' ',
+  exists $ENV{'CFLAGS'} ? $ENV{'CFLAGS'} : '-O2 -x c -Wall';
+
+########################################################################
+#
+# MAIN
+
+die "Usage: $BASENAME [c-statement-1 c-stmt-2 ..|-]\n" unless @ARGV;
+
+my ( $code_fh, $code_fname ) = tempfile(
+  "$BASENAME.src-$$.XXXXXXX",
+  DIR    => File::Spec->tmpdir,
+  UNLINK => 0
+);
+my ( undef, $bin_fname ) = tempfile(
+  "$BASENAME.obj-$$.XXXXXXX",
+  DIR    => File::Spec->tmpdir,
+  UNLINK => 0
+);
+
+if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
+  chomp( @ARGV = <STDIN> );
+}
+
+my $ultimate_statement = pop @ARGV;
+$ultimate_statement =~ s/\s*;\s*$//;
+
+for my $statement (@ARGV) {
+  $statement .= ';' unless $statement =~ m/;\s*$/;
+}
+
+my $c_template = <<"END_TMPL";
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
+int main(int argc, const char *argv[]) {
+  @ARGV
+  return((int) $ultimate_statement );
+}
+END_TMPL
+
+$code_fh->autoflush(1);
+print $code_fh $c_template;
+
+system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname ) == 0
+  or die "error: compile failed: $?\n";
+system($bin_fname);
+my $exit_status = $? >> 8;
+
+unlink $code_fname, $bin_fname;
+
+exit $exit_status;
