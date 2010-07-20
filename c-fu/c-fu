@@ -7,7 +7,9 @@
 # Each argument (or line of standard input if the only argument is '-')
 # is treated as a C statement (and a semi-colon appended if not
 # present), excepting the ultimate argument, which is instead enclosed
-# in a return((int)...) function call.
+# in a return((int)...) function call. This ultimate statement handling
+# will cause problems if the statement is, for example, a while() loop
+# or somesuch. Append '0' or do something else in that case.
 #
 # Various compiler options are set to various defaults, or can be
 # customized via the CC or CFLAGS environment variables. If in doubt,
@@ -19,6 +21,7 @@ use warnings;
 use File::Basename qw/basename/;
 use File::Spec ();
 use File::Temp qw/tempfile/;
+use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
 my $BASENAME = basename($0);
@@ -26,11 +29,16 @@ my $CC       = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
 my @CFLAGS   = split ' ',
   exists $ENV{'CFLAGS'} ? $ENV{'CFLAGS'} : '-O2 -x c -Wall';
 
+my $echo_code = 0;
+my $dry_run   = 0;
+
 ########################################################################
 #
 # MAIN
 
 die "Usage: $BASENAME [c-statement-1 c-stmt-2 ..|-]\n" unless @ARGV;
+
+GetOptions( 'show-code|l' => \$echo_code, 'dry-run|n' => \$dry_run );
 
 my ( $code_fh, $code_fname ) = tempfile(
   "$BASENAME.src-$$.XXXXXXX",
@@ -51,7 +59,7 @@ my $ultimate_statement = pop @ARGV;
 $ultimate_statement =~ s/\s*;\s*$//;
 
 for my $statement (@ARGV) {
-  $statement .= ';' unless $statement =~ m/;\s*$/;
+  $statement .= ";\n" unless $statement =~ m/;\s*$/;
 }
 
 my $c_template = <<"END_TMPL";
@@ -61,18 +69,23 @@ my $c_template = <<"END_TMPL";
 #include <string.h>
 
 int main(int argc, const char *argv[]) {
-  @ARGV
+@ARGV
   return((int) $ultimate_statement );
 }
 END_TMPL
 
 $code_fh->autoflush(1);
 print $code_fh $c_template;
+print STDOUT $c_template if $echo_code;
 
-system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname ) == 0
-  or die "error: compile failed: $?\n";
-system($bin_fname);
-my $exit_status = $? >> 8;
+my $exit_status = 0;
+
+if ( !$dry_run ) {
+  system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname ) == 0
+    or die "error: compile failed: $?\n";
+  system($bin_fname);
+  $exit_status = $? >> 8;
+}
 
 unlink $code_fname, $bin_fname;
 
