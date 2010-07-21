@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+#
+# Compile and run random LilyPond snippets specified on command line:
+#
+# ly-fu c des ees c des bes c aes
+
+use strict;
+use warnings;
+
+use File::Basename qw/basename/;
+use File::Spec ();
+use File::Temp qw/tempfile/;
+use Getopt::Long qw/GetOptions/;
+use IO::Handle;
+
+my $BASENAME    = basename($0);
+my @LILYPOND    = ('lilypond');
+# TODO need a better MIDI player...
+my @MIDI_PLAYER = (qw/open -a/, 'Finale 2009');
+my $MIDI_SUFFIX = '.midi';
+
+########################################################################
+#
+# MAIN
+
+die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
+
+my ( $src_fh, $src_fname ) = tempfile(
+  "$BASENAME.XXXXXXX",
+  DIR    => File::Spec->tmpdir,
+  UNLINK => 0
+);
+my $midi_fname = $src_fname . $MIDI_SUFFIX;
+
+if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
+  chomp( @ARGV = <STDIN> );
+}
+
+my $ly_template = <<"END_TMPL";
+\\version "2.12.3"
+\\score {
+  \\new Staff << \\relative c' {
+    @ARGV
+  } >>
+  \\midi { }
+}
+END_TMPL
+
+$src_fh->autoflush(1);
+print $src_fh $ly_template;
+
+my $exit_status = 0;
+
+# NOTE Lilypond will add suffix to output, hopefully the same suffix
+# used by this script (glob for it if it can be dynamic).
+system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
+  or die "error: lilypond compile failed: $?\n";
+system( @MIDI_PLAYER, $midi_fname );
+$exit_status = $? >> 8;
+
+# KLUGE wait for Finale to spin up, parse file
+sleep 30;
+
+unlink $src_fname, $midi_fname;
+exit $exit_status;
