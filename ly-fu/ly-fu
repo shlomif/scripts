@@ -13,11 +13,11 @@ use File::Temp qw/tempfile/;
 use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
-my $BASENAME    = basename($0);
-my @LILYPOND    = ('lilypond');
-# TODO need a better MIDI player...
-my @MIDI_PLAYER = (qw/open -a/, 'Finale 2009');
-my $MIDI_SUFFIX = '.midi';
+my $BASENAME        = basename($0);
+my @LILYPOND        = ('lilypond');
+my @MIDI_PLAYER     = ( qw/open -a/, 'Mighty MIDI' );
+my $MIDI_SUFFIX     = '.midi';
+my $APP_LAUNCH_WAIT = 3;                                # secs
 
 ########################################################################
 #
@@ -58,8 +58,7 @@ system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
 system( @MIDI_PLAYER, $midi_fname );
 $exit_status = $? >> 8;
 
-# KLUGE wait for Finale to spin up, parse file
-sleep 30;
+sleep $APP_LAUNCH_WAIT;
 
 unlink $src_fname, $midi_fname;
 exit $exit_status;
