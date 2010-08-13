@@ -13,11 +13,10 @@ use File::Temp qw/tempfile/;
 use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
-my $BASENAME        = basename($0);
-my @LILYPOND        = ('lilypond');
-my @MIDI_PLAYER     = ( qw/open -a/, 'Mighty MIDI' );
-my $MIDI_SUFFIX     = '.midi';
-my $APP_LAUNCH_WAIT = 3;                                # secs
+my $BASENAME    = basename($0);
+my @LILYPOND    = qw/lilypond/;
+my @MIDI_PLAYER = qw/timidity/;
+my $MIDI_SUFFIX = '.midi';
 
 ########################################################################
 #
@@ -40,6 +39,7 @@ my $ly_template = <<"END_TMPL";
 \\version "2.12.3"
 \\score {
   \\new Staff << \\relative c' {
+    \\tempo 4=130
     @ARGV
   } >>
   \\midi { }
@@ -57,8 +57,6 @@ system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
   or die "error: lilypond compile failed: $?\n";
 system( @MIDI_PLAYER, $midi_fname );
 $exit_status = $? >> 8;
-
-sleep $APP_LAUNCH_WAIT;
 
 unlink $src_fname, $midi_fname;
 exit $exit_status;
