@@ -13,10 +13,11 @@ use File::Temp qw/tempfile/;
 use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
-my $BASENAME    = basename($0);
-my @LILYPOND    = qw/lilypond/;
-my @MIDI_PLAYER = qw/timidity/;
-my $MIDI_SUFFIX = '.midi';
+my $BASENAME         = basename($0);
+my @LILYPOND         = qw/lilypond/;
+my $LILYPOND_VERSION = '2.13.30';
+my @MIDI_PLAYER      = qw/timidity/;
+my $MIDI_SUFFIX      = '.midi';
 
 ########################################################################
 #
@@ -36,7 +37,7 @@ if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
 }
 
 my $ly_template = <<"END_TMPL";
-\\version "2.12.3"
+\\version "$LILYPOND_VERSION"
 \\score {
   \\new Staff << \\relative c' {
     \\tempo 4=130
