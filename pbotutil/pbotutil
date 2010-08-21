@@ -675,35 +675,15 @@ are preferred.
   # example config BEGIN
   # freenode.net, #perl
   name perl
-  alias pp
-  url http://sial.org/pbot/
+  url http://scsys.co.uk:8002/
   channel #perl
   network freenode
-
-  # another irc.freenode.net, #perl
-  name perlalt
-  url http://dragon.cbi.tamucc.edu:8080/
-  channel #perl
-  network freenode
-
-  # SpamAssassin channel on irc.freenode.net
-  name spamassassin
-  alias sa
-  url http://sial.org/pbot/
-  channel #spamassassin
 
   # for non-announced pastes or testing
-  name sial
+  name scsys
   alias nochan test
-  url http://sial.org/pbot/
+  url http://scsys.co.uk:8002/
 
-  name dragon
-  alias nochan
-  url http://dragon.cbi.tamucc.edu:8080/
-
-  name snit
-  alias nochan
-  url http://nopaste.snit.ch:8001/
   # example config END
 
 The C<channel> and C<nick> keys provide defaults to use, though will be
