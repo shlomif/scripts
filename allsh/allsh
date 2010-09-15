@@ -58,4 +58,4 @@ fi
 # KLUGE this signal is dependent on how the shell shows itself via the
 # ps command run... need to add more shells, maybe figure out something
 # more portable?
-signalit '[-/]zsh$' USR2
+signalit '(bin/|-)zsh' USR2
