@@ -31,8 +31,10 @@ signalit () {
   PATTERN=$1
   SIGNAL=$2
 
-  # TODO this ps not portable to things like Solaris...
-  ps xwwo pid,command | while read pid command; do
+  # TODO this ps not portable to things like Solaris... but I don't use
+  # that. grep -v login to exclude login ... zsh on Mac OS X which must
+  # not be signalled. Ugh.
+  ps xwwo pid,command | grep -v login | while read pid command; do
     if echo $command | egrep -- "$PATTERN" >/dev/null; then
       kill -$SIGNAL $pid
     fi
