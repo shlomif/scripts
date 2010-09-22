@@ -13,8 +13,6 @@ use LWP::UserAgent            ();
 use XML::LibXML               ();
 use XML::LibXML::XPathContext ();
 
-# TODO use HTML::TreeBuilder::XPath on HTML that fails? Or by default??
-
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
@@ -29,7 +27,7 @@ no warnings 'utf8';
 
 use Getopt::Std;
 my %opts;
-getopts 'h?p:', \%opts;
+getopts 'h?p:n:', \%opts;
 help() if exists $opts{h} or exists $opts{'?'};
 
 $opts{p} = 'XML' unless exists $opts{p};
@@ -46,12 +44,9 @@ my $query = shift || help();
 # get document into filehandle
 # TODO URL lookup needs more error checking
 if ( $target->scheme ) {
-  $file = (
-    File::Temp::tempfile(
-      "xquery.XXXXXX",
-      DIR    => File::Spec->tmpdir,
-    )
-  )[1];
+  $file =
+    ( File::Temp::tempfile( "xquery.XXXXXX", DIR => File::Spec->tmpdir, ) )
+    [1];
 
   my $ua =
     LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
@@ -69,6 +64,7 @@ $parser->recover(1);
 $parser->load_ext_dtd(0);
 $parser->expand_entities(0);
 $parser->complete_attributes(0);
+#$parser->pedantic_parser(0);
 
 my $doc;
 eval {
@@ -87,6 +83,11 @@ if ($@) {
 
 # search resulting tree with XPath
 my $xc = XML::LibXML::XPathContext->new($doc);
+if ( exists $opts{'n'} ) {
+  for my $spec ( split ' ', $opts{'n'} ) {
+    $xc->registerNs( split ':', $spec, 2 );
+  }
+}
 
 my $nodelist = $xc->find($query);
 for my $node ( $nodelist->get_nodelist ) {
@@ -103,6 +104,7 @@ Options:
   -h/-?  Display this message
 
   -p xx  Parse using method xx (XML, HTML, SGML). Default is XML.
+  -n xx  Custom namespace to register "prefix:uri p2:u2 ..."
 
 HELP
   exit 100;
@@ -156,6 +158,17 @@ Prints a brief usage note about the script.
 =item B<-p> I<method>
 
 Parse using the specified method: C<XML> (default), C<HTML>, or C<SGML>. 
+
+=item B<-n> I<namespace prefix and uri>
+
+Provide custom namespace to prefix mapping. Accepts a list of space
+separated prefix:uri pairs, for example:
+
+  -n 'a:http://example.org/foo b:http://example.org/bar'
+
+Which can then be referenced in the XPath expression:
+
+  xpquery -n 'a:http://example.org/foo' foo.xml '//a:fooelement'
 
 =back
 
