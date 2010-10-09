@@ -28,7 +28,6 @@ my %opts;
 getopts 'h?xc:o:d:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'};
-print_help() if not exists $opts{c} and not @ARGV;
 
 # KLUGE pass through on -x "one filesystem" option to du
 if ( exists $opts{x} ) {
@@ -66,6 +65,8 @@ if ( exists $opts{c} ) {
     ) and exit 104;
 
   push @directories, load_dir_prefs($prefs_fh);
+} else {
+  push @ARGV, '.' unless @ARGV;
 }
 
 if (@ARGV) {
@@ -400,7 +401,9 @@ remote system that does not have or cannot run C<diskusage>:
 =head2 Overview
 
 Wrapper for the Unix C<du> command to provide selective matching of
-certain areas on disk and better output control via a template.
+certain areas on disk and better output control via a template. Defaults
+to the current directory, and printing output suitable for numeric
+sorting, the human readable size, and the path in question.
 
 =head2 Normal Usage
 
