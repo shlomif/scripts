@@ -19,11 +19,16 @@ my $LILYPOND_VERSION = '2.13.30';
 my @MIDI_PLAYER      = qw/timidity/;
 my $MIDI_SUFFIX      = '.midi';
 
+my $tempo      = 130;
+my $instrument = "Piano";
+
 ########################################################################
 #
 # MAIN
 
 die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
+
+GetOptions( "tempo|t=s" => \$tempo, "instrument|i=s" => \$instrument );
 
 my ( $src_fh, $src_fname ) = tempfile(
   "$BASENAME.XXXXXXX",
@@ -40,7 +45,8 @@ my $ly_template = <<"END_TMPL";
 \\version "$LILYPOND_VERSION"
 \\score {
   \\new Staff << \\relative c' {
-    \\tempo 4=130
+    \\set Staff.midiInstrument = #"$instrument"
+    \\tempo 4=$tempo
     @ARGV
   } >>
   \\midi { }
