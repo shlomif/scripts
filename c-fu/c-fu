@@ -89,11 +89,14 @@ END_TMPL
 
 $code_fh->autoflush(1);
 print $code_fh $c_template;
-print STDOUT $c_template if $echo_code;
+print $c_template if $echo_code;
 
 if ( !$dry_run ) {
-  system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname ) == 0
-    or die "error: compile failed: $?\n";
+  my $s = system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname );
+  if ( $s != 0 ) {
+    print $c_template;
+    die "error: compile failed: $?\n";
+  }
   system($bin_fname);
   $exit_status = $? >> 8;
 }
