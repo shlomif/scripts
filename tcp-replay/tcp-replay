@@ -3,15 +3,15 @@
 # Simplistic TCP traffic replay: replays TCP sessions recorded by
 # tcpdump by sending the previous client request data payloads to the
 # destination via a new TCP connection. Does not reproduce sequence
-# numbers, handle anything coming back from the server, nor emulate the
-# timing of the previous TCP stream.
+# numbers, nor handle anything coming back from the server.
 #
 # Handy if one (hypothetically) has a LDAP server that only crashes when
 # exposed to production traffic, but never to test traffic, nor the same
 # requests logged in production replayed via ldapsearch or Net::LDAP.
 #
 # Script will be memory intensive to the tune of the number of
-# connections in the tcpdump file.
+# connections in the tcpdump file. The script may need to be manually
+# tuned to suit the exact test condition.
 #
 # Collect the input data via something like:
 #   tcpdump -vv -c 100000 -s 0 -w traffic-tcpdump port 389
@@ -28,7 +28,12 @@
 use strict;
 use warnings;
 
-my ( $SRC_IP, $DST_IP, $PORT );
+my ( $SRC_IP,       $DST_IP, $PORT );
+my ( $tcpdump_file, $oDump,  %seen );
+
+# Maximum seconds to wait between sending packets when replicating
+# timing from production traffic.
+my $MAX_DELAY = 10;
 
 use Getopt::Long qw(GetOptions);
 GetOptions(
@@ -42,14 +47,15 @@ if ( !defined $PORT and $DST_IP =~ m/^(.*?):(\d+)$/ ) {
   $PORT   = $2;
 }
 
-my $file = shift;
-if ( !defined $file
+$tcpdump_file = shift;
+if ( !defined $tcpdump_file
   or !defined $SRC_IP
   or !defined $DST_IP
   or !defined $PORT ) {
   die "Usage: $0 -s src-ip -d dst-ip -p port traffic-tcpdump\n";
 }
 
+use List::Util qw/shuffle/;
 use IO::Socket::INET;
 use Net::Frame::Dump::Offline;
 use Net::Frame::Simple;
@@ -62,14 +68,12 @@ use Time::HiRes qw(sleep);
 # COLLECTION
 #
 # Build stash of previous full TCP connections. Sessions started prior
-# to the tcpdump starting will be ignored.
+# to the tcpdump starting will be ignored. Consider stashing the parsed
+# streams via Storable or some other format for faster future replays.
 
-my %seen;
-
-my $oDump = Net::Frame::Dump::Offline->new( file => $file );
+$oDump = Net::Frame::Dump::Offline->new( file => $tcpdump_file );
 $oDump->start;
 
-my $count = 0;
 DGRAM: while ( my $h = $oDump->next ) {
   my $f = Net::Frame::Simple->new(
     raw        => $h->{raw},
@@ -87,49 +91,73 @@ DGRAM: while ( my $h = $oDump->next ) {
     } elsif ( ref $l eq 'Net::Frame::Layer::TCP' ) {
       if ( $l->flags & NF_TCP_FLAGS_SYN ) {
         push @{ $seen{ $orig_ipv4->src . $l->src } },
-          { ip => $orig_ipv4, tcp => $l };
+          { ip => $orig_ipv4, tcp => $l, ts => $h->{timestamp} };
       } else {
         if ( exists $seen{ $orig_ipv4->src . $l->src } ) {
           push @{ $seen{ $orig_ipv4->src . $l->src } },
-            { ip => $orig_ipv4, tcp => $l };
+            { ip => $orig_ipv4, tcp => $l, ts => $h->{timestamp} };
         }
       }
     }
   }
 }
 $oDump->stop;
+warn "info: parsed ", scalar keys %seen, " full TCP connections\n";
 
 ########################################################################
 #
 # REPLAY
 #
-# Simplistic replay from %seen stash: sends previous payloads over a new
-# TCP connection. Disregards server responses, random delay before
-# sending next datagram.
+# Simplistic replay: sends previous payloads over a new TCP connection.
+# Disregards server responses!
 
-for my $conn ( values %seen ) {
-  my $io =
-    IO::Socket::INET->new( PeerAddr => "$DST_IP:$PORT", Proto => "tcp" );
+$SIG{ALRM} = sub { die "timeout\n" };
 
-  for my $frame (@$conn) {
-    if ( defined $frame->{tcp}->payload
-      and length $frame->{tcp}->payload > 0 ) {
+for my $conn ( shuffle values %seen ) {
+  my $max_wait = scalar(@$conn) * $MAX_DELAY;
 
-      my $epoch = time();
-      print "$epoch ", $frame->{ip}->src, ":", $frame->{tcp}->src,
-        " ipv4-id ",
-        $frame->{ip}->id, " tcp-seq ", $frame->{tcp}->seq, "\n";
+  eval {
+    alarm $max_wait;
 
-      $io->send( $frame->{tcp}->payload );
-      # TODO could replicate the timestamps somehow, but that's more work...
-      sleep 0.1 + rand;
+    my $io =
+      IO::Socket::INET->new( PeerAddr => "$DST_IP:$PORT", Proto => "tcp" )
+      || die "could not connect to $DST_IP:$PORT: $!\n";
+    my $prior_epoch = 0;
+
+    for my $frame (@$conn) {
+      my $cur_epoch = $frame->{ts} || 0;
+      if ( defined $frame->{tcp}->payload
+        and length $frame->{tcp}->payload > 0 ) {
+
+        print time(), " ", $frame->{ip}->src, ":",
+          $frame->{tcp}->src,
+          " ipv4-id ",
+          $frame->{ip}->id, " tcp-seq ", $frame->{tcp}->seq, "\n";
+        $io->send( $frame->{tcp}->payload );
+
+        my $delay = $cur_epoch - $prior_epoch;
+        if ( $delay < 0 or $delay > $MAX_DELAY ) {
+          $delay = 0.1 + rand();
+        }
+        sleep $delay;
+      }
+      $prior_epoch = $cur_epoch;
     }
+
+    alarm 0;
+
+    # Be a good network citizen (otherwise may see RST related logs on
+    # the server)
+    sleep 0.1 + rand();
+    $io->shutdown(2);
+    $io->close();
+  };
+  if ($@) {
+    # could instead just warn here, keep hammering server...
+    die $@;
   }
-
-  # Be a good network citizen (otherwise may see RST related logs on
-  # the server)
-  $io->shutdown(2);
-  $io->close();
-
-  #sleep 3; # spacer to try to isolate if there is a specific Packet Of Death
 }
+
+# could instead here loop again over the connections...
+
+exit 0;
