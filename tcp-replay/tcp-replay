@@ -8,6 +8,12 @@
 # Handy if one (hypothetically) has a LDAP server that only crashes when
 # exposed to production traffic, but never to test traffic, nor the same
 # requests logged in production replayed via ldapsearch or Net::LDAP.
+# Replayed Kerberos or other time-sensitive protocols will fail with
+# this method, but might still provide a test whether the server
+# properly handles invalid traffic:
+#
+# https://bugzilla.redhat.com/show_bug.cgi?id=668619
+# https://www.redhat.com/security/data/cve/CVE-2011-1067.html
 #
 # Script will be memory intensive to the tune of the number of
 # connections in the tcpdump file. The script may need to be manually
