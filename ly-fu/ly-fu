@@ -23,6 +23,7 @@ my $tempo      = 130;
 my $instrument = "Piano";
 my $relative   = q{c'};
 my $repeats;
+my $partial;
 
 ########################################################################
 #
@@ -35,6 +36,7 @@ GetOptions(
   "instrument|i=s" => \$instrument,
   "repeats|r=s"    => \$repeats,
   "relative|b=s"   => \$relative,
+  "partial|p=s"    => \$partial,
 );
 
 my ( $src_fh, $src_fname ) = tempfile(
@@ -58,6 +60,7 @@ my $ly_template = <<"END_TMPL";
   \\new Staff << \\relative $relative {
     \\set Staff.midiInstrument = #"$instrument"
     \\tempo 4=$tempo
+    $partial
     @ARGV
   } >>
   \\midi { }
