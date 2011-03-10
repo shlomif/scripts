@@ -21,6 +21,7 @@ my $MIDI_SUFFIX      = '.midi';
 
 my $tempo      = 130;
 my $instrument = "Piano";
+my $repeats;
 
 ########################################################################
 #
@@ -28,7 +29,11 @@ my $instrument = "Piano";
 
 die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
 
-GetOptions( "tempo|t=s" => \$tempo, "instrument|i=s" => \$instrument );
+GetOptions(
+  "tempo|t=s"      => \$tempo,
+  "instrument|i=s" => \$instrument,
+  "repeats|r=s"    => \$repeats
+);
 
 my ( $src_fh, $src_fname ) = tempfile(
   "$BASENAME.XXXXXXX",
@@ -39,6 +44,10 @@ my $midi_fname = $src_fname . $MIDI_SUFFIX;
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
   chomp( @ARGV = <STDIN> );
+}
+
+if ( defined $repeats ) {
+  @ARGV = (@ARGV) x $repeats;
 }
 
 my $ly_template = <<"END_TMPL";
