@@ -22,8 +22,8 @@ my $MIDI_SUFFIX      = '.midi';
 my $tempo      = 130;
 my $instrument = "Piano";
 my $relative   = q{c'};
+my $partial    = q{};
 my $repeats;
-my $partial;
 
 ########################################################################
 #
