@@ -30,7 +30,7 @@ use Getopt::Std;
 my %opts;
 getopts 'h?tTb:o:m:', \%opts;
 
-print_help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
+print_help() if exists $opts{h} or exists $opts{'?'} or @ARGV < 2;
 
 # only include <a href="... tags by default for matching
 # TODO configuration file for this specification?
@@ -73,11 +73,8 @@ $output_tmpl .= "\n" unless $output_tmpl =~ m/ \s$ /x;
 
 my $base_uri = $opts{b} if exists $opts{b};
 
-# URL or file must be first argument
+my $pattern  = shift;
 my $document = shift;
-
-# regular expression, or match everything by default
-my $pattern = shift || qr/^/;
 
 print_urls( parse_document( get_document($document), $base_uri ) );
 
@@ -108,8 +105,8 @@ sub get_document {
     if ( $response->is_success ) {
       $source->{base_uri} = $target->canonical->as_string;
       delete $source->{base_uri}
-       unless defined $source->{base_uri}
-       and length $source->{base_uri} >= 1;
+        unless defined $source->{base_uri}
+          and length $source->{base_uri} >= 1;
       $source->{source} = \$response->content;
     } else {
       remark(
@@ -176,7 +173,8 @@ sub parse_document {
       next if exists $seenurl{"$token->[0].$attr.$url"};
       $seenurl{"$token->[0].$attr.$url"} = 1;
 
-      my $result = { element => $token->[0], attribute => $attr, url => $url };
+      my $result =
+        { element => $token->[0], attribute => $attr, url => $url };
 
       # save text inside <a> with URL for reference, or any tag that has
       # a URL with the -T option
@@ -187,8 +185,8 @@ sub parse_document {
         $result->{text} = $p->get_trimmed_text($closing_tag);
       }
       delete $result->{text}
-       unless defined $result->{text}
-       and length $result->{text} >= 1;
+        unless defined $result->{text}
+          and length $result->{text} >= 1;
 
       push @found, $result;
     }
@@ -230,9 +228,9 @@ sub get_url_from_token {
   my $token = shift;
   my $attr = shift || 'href';
   return
-   unless exists $token->[1]{$attr}
-   and defined $token->[1]{$attr}
-   and length $token->[1]{$attr} >= 1;
+    unless exists $token->[1]{$attr}
+      and defined $token->[1]{$attr}
+      and length $token->[1]{$attr} >= 1;
   return $token->[1]{$attr};
 }
 
@@ -248,7 +246,8 @@ sub print_urls {
     next unless $result->{url} =~ m/$pattern/o;
 
     my $str_out = $output_tmpl;
-    $str_out =~ s/ %{ (\w+) } / defined $result->{$1} ? $result->{$1} : q{} /egx;
+    $str_out =~
+      s/ %{ (\w+) } / defined $result->{$1} ? $result->{$1} : q{} /egx;
     print $str_out;
   }
 }
@@ -263,17 +262,17 @@ sub remark {
   my $attr_str;
   if ($attributes) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
   return 1;
 }
 
 sub print_help {
-  warn "usage: $basename [opts] URL|file|- [regular-expression]\n";
+  warn "usage: $basename [opts] regex URL|file|-\n";
   warn "\nRun perldoc(1) on this script for additional documentation.\n\n";
   exit 100;
 }
@@ -289,18 +288,18 @@ urlgrep - extract URL from HTML given as input
 Match any C<*.patch> files on the OpenBSD errata page and download the
 matches by piping them to C<wget> via C<xargs>.
 
-  $ urlgrep http://openbsd.org/errata.html '.patch$' | \
+  $ urlgrep '.patch$' http://openbsd.org/errata.html | \
     xargs wget
 
 List both regular links and image sources.
 
-  $ urlgrep -m 'a href,img src' http://www.apple.com/
+  $ urlgrep -m 'a href,img src' '^' http://www.apple.com/
 
 Look for most any link attributes in the file C<example.html> and use
 custom output template.
 
   $ urlgrep -o '%{element} %{attribute} %{url}' \
-    -m '* href src' example.html
+    -m '* href src' '^' example.html
 
 =head1 DESCRIPTION
 
@@ -317,13 +316,13 @@ the results.
 
 =head2 Normal Usage
 
-  $ urlgrep [options] URL|file|- [regular-expression]
+  $ urlgrep [options] regex URL|file|-
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-The script will determine whether a URL, a file, or standard input (via
-a filname of C<->) should be parsed as HTML for links. An optional Perl
-regular expression can be specified to limit matches. Any matched URL
+The script will determine whether a URL, a file, or standard input
+(via a filname of C<->) should be parsed as HTML for links. A Perl
+regular expression must be specified to limit matches. Any matched URL
 will be printed to standard output, and any errors or warnings to
 standard error.
 
@@ -333,7 +332,7 @@ script will use a proxy specified by the standard Unix proxy environment
 variables of C<http_proxy> and C<ftp_proxy>.
 
   $ export http_proxy=http://proxy:3128
-  $ urlgrep ... | xargs wget --continue --proxy=on --passive-ftp
+  $ urlgrep ...
 
 =head1 OPTIONS
 
@@ -428,7 +427,7 @@ following shell script wrapper.
 
   #!/bin/sh
   if [ -z "$1" ]; then
-    echo "usage: `basename $0` URL [regular-expression]"
+    echo "usage: `basename $0` regular-expression URL"
     exit 100
   fi
   urlgrep -o '%{url} "%{text}"' $1 $2
@@ -437,7 +436,7 @@ This allows quick matches of links to forward to others, for example via
 the C<pbcopy> utility on Mac OS X to move the link and text to the
 clipboard, in this case a random C<http> link from C<memepool.com>.
 
-  $ quoteurl http://www.memepool.com/ ^http:// | randline | pbcopy
+  $ quoteurl '^http://' http://www.memepool.com | randline | pbcopy
 
 =item B<MySQL download problems>
 
@@ -448,7 +447,7 @@ site. From this page, a slew of hard to click links must be followed,
 which becomes tedious when attempting to download all the C<i386.rpm>
 files, but none of the many other files listed.
 
-  $ urlgrep $SOME_MYSQL_MIRROR '.(i386|src).rpm$' | \
+  $ urlgrep '.(i386|src).rpm$' $SOME_MYSQL_MIRROR | \
     xargs wget
 
 =back
