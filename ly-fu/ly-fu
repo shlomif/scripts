@@ -21,6 +21,7 @@ my $MIDI_SUFFIX      = '.midi';
 
 my $tempo      = 130;
 my $instrument = "Piano";
+my $relative   = q{c'};
 my $repeats;
 
 ########################################################################
@@ -32,7 +33,8 @@ die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
 GetOptions(
   "tempo|t=s"      => \$tempo,
   "instrument|i=s" => \$instrument,
-  "repeats|r=s"    => \$repeats
+  "repeats|r=s"    => \$repeats,
+  "relative|b=s"   => \$relative,
 );
 
 my ( $src_fh, $src_fname ) = tempfile(
@@ -53,7 +55,7 @@ if ( defined $repeats ) {
 my $ly_template = <<"END_TMPL";
 \\version "$LILYPOND_VERSION"
 \\score {
-  \\new Staff << \\relative c' {
+  \\new Staff << \\relative $relative {
     \\set Staff.midiInstrument = #"$instrument"
     \\tempo 4=$tempo
     @ARGV
