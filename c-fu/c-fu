@@ -75,7 +75,14 @@ for my $statement (@ARGV) {
 );
 
 $c_template = <<"END_TMPL";
+#ifdef __linux__
+#include <linux/limits.h>
+#else
+#include <sys/syslimits.h>
+#endif
+
 #include <ctype.h>
+#include <libgen.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
