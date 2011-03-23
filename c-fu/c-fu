@@ -25,9 +25,8 @@ use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
 my $BASENAME = basename($0);
-my $CC       = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
-my @CFLAGS   = split ' ',
-  exists $ENV{'CFLAGS'} ? $ENV{'CFLAGS'} : '-O2 -x c -Wall';
+my $CC = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
+my @CFLAGS = split ' ', exists $ENV{'CFLAGS'} ? $ENV{'CFLAGS'} : '-O2 -Wall';
 
 my $echo_code   = 0;
 my $dry_run     = 0;
@@ -50,6 +49,10 @@ GetOptions(
 
 for my $define (@defines) {
   $define .= "\n" unless $define =~ m/\n$/;
+}
+
+if ( !grep { $_ eq '-x' } @CFLAGS ) {
+  push @CFLAGS, qw/-x c/;
 }
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
