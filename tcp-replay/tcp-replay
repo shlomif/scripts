@@ -119,6 +119,7 @@ warn "info: parsed ", scalar keys %seen, " full TCP connections\n";
 
 $SIG{ALRM} = sub { die "timeout\n" };
 
+#while (1) {
 for my $conn ( shuffle values %seen ) {
   my $max_wait = scalar(@$conn) * $MAX_DELAY;
 
@@ -142,7 +143,7 @@ for my $conn ( shuffle values %seen ) {
         $io->send( $frame->{tcp}->payload );
 
         my $delay = $cur_epoch - $prior_epoch;
-        if ( $delay < 0 or $delay > $MAX_DELAY ) {
+        if ( $delay <= 0 or $delay > $MAX_DELAY ) {
           $delay = 0.1 + rand();
         }
         sleep $delay;
@@ -159,11 +160,13 @@ for my $conn ( shuffle values %seen ) {
     $io->close();
   };
   if ($@) {
-    # could instead just warn here, keep hammering server...
+    # Could instead just warn here and keep hammering server. If so,
+    # consider a sleep to avoid frequent quick failures from running up
+    # the CPU. (Or similar if the script is being run in a loop from the
+    # command line.)
     die $@;
   }
 }
-
-# could instead here loop again over the connections...
+#}
 
 exit 0;
