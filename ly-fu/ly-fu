@@ -15,14 +15,16 @@ use IO::Handle;
 
 my $BASENAME         = basename($0);
 my @LILYPOND         = qw/lilypond/;
-my $LILYPOND_VERSION = '2.13.30';
+my $LILYPOND_VERSION = '2.12.3';
 my @MIDI_PLAYER      = qw/timidity/;
 my $MIDI_SUFFIX      = '.midi';
+my @CLEANUP_SUFFIX   = qw/ps pdf/;
 
-my $tempo      = 130;
-my $instrument = "Piano";
-my $relative   = q{c'};
-my $partial    = q{};
+my $tempo       = 130;
+my $instrument  = "Piano";
+my $relative    = q{c'};
+my $partial     = q{};
+my $save_layout = 0;
 my $repeats;
 
 ########################################################################
@@ -37,7 +39,10 @@ GetOptions(
   "repeats|r=s"    => \$repeats,
   "relative|b=s"   => \$relative,
   "partial|p=s"    => \$partial,
+  "layout|l"       => \$save_layout,
 );
+
+push @LILYPOND, '--pdf' if $save_layout;
 
 my ( $src_fh, $src_fname ) = tempfile(
   "$BASENAME.XXXXXXX",
@@ -64,6 +69,7 @@ my $ly_template = <<"END_TMPL";
     @ARGV
   } >>
   \\midi { }
+  \\layout { }
 }
 END_TMPL
 
@@ -79,5 +85,9 @@ system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
 system( @MIDI_PLAYER, $midi_fname );
 $exit_status = $? >> 8;
 
-unlink $src_fname, $midi_fname;
+unlink $midi_fname;
+if ( !$save_layout ) {
+  unlink $src_fname;
+  unlink "$src_fname.$_" for @CLEANUP_SUFFIX;
+}
 exit $exit_status;
