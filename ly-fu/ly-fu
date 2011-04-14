@@ -25,6 +25,7 @@ my $instrument  = "Piano";
 my $relative    = q{c'};
 my $partial     = q{};
 my $save_layout = 0;
+my $skip_midi   = 0;
 my $repeats;
 
 ########################################################################
@@ -40,6 +41,7 @@ GetOptions(
   "relative|b=s"   => \$relative,
   "partial|p=s"    => \$partial,
   "layout|l"       => \$save_layout,
+  "silent|s"       => \$skip_midi,
 );
 
 push @LILYPOND, '--pdf' if $save_layout;
@@ -82,8 +84,10 @@ my $exit_status = 0;
 # used by this script (glob for it if it can be dynamic).
 system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
   or die "error: lilypond compile failed: $?\n";
-system( @MIDI_PLAYER, $midi_fname );
-$exit_status = $? >> 8;
+if ( !$skip_midi ) {
+  system( @MIDI_PLAYER, $midi_fname );
+  $exit_status = $? >> 8;
+}
 
 unlink $midi_fname;
 if ( !$save_layout ) {
