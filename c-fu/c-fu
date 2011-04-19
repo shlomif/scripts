@@ -6,14 +6,16 @@
 #
 # Each argument (or line of standard input if the only argument is '-')
 # is treated as a C statement (and a semi-colon appended if not
-# present), excepting the ultimate argument, which is instead enclosed
-# in a return((int)...) function call. This ultimate statement handling
-# will cause problems if the statement is, for example, a while() loop
-# or somesuch. Append '0' or do something else in that case.
+# present).
 #
 # Various compiler options are set to various defaults, or can be
 # customized via the CC or CFLAGS environment variables. If in doubt,
 # read the source.
+#
+# The directory used to hold temporary sources and the executable can be
+# set by altering the TMPDIR environment variable:
+#
+# TMPDIR=/var/tmp c-fu ...
 
 use strict;
 use warnings;
@@ -32,8 +34,8 @@ my $echo_code   = 0;
 my $dry_run     = 0;
 my $exit_status = 0;
 
-my ( $code_fh, $code_fname,         $bin_fname );
-my ( @defines, $ultimate_statement, $c_template );
+my ( $code_fh, $code_fname, $bin_fname );
+my ( @defines, $c_template );
 
 ########################################################################
 #
@@ -59,9 +61,6 @@ if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
   chomp( @ARGV = <STDIN> );
 }
 
-$ultimate_statement = pop @ARGV;
-$ultimate_statement =~ s/\s*;\s*$//;
-
 for my $statement (@ARGV) {
   $statement .= ";\n" unless $statement =~ m/;\s*$/;
 }
@@ -84,16 +83,20 @@ $c_template = <<"END_TMPL";
 #include <sys/syslimits.h>
 #endif
 
+#include <sys/time.h>
+
+#include <err.h>
 #include <ctype.h>
 #include <libgen.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 @defines
 int main(int argc, const char *argv[]) {
 @ARGV
-  return((int) $ultimate_statement );
+  return 0;
 }
 END_TMPL
 
