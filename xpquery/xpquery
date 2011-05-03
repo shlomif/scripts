@@ -118,10 +118,6 @@ xpquery - apply XPath queries to XML data.
 
 =head1 SYNOPSIS
 
-Show all C<book> tags on the C<sial.org> website:
-
-  $ xpquery 'http://sial.org/?style=xml' //book
-
 Return the C<intro> section of a DocBook XML article:
 
   $ xpquery operations-manual.xml '/article/section[@id="intro"]'

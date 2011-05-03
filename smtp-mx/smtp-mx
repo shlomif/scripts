@@ -137,7 +137,7 @@ List MX servers for several domains.
 
 Connect to first MX of a domain for SMTP debugging.
 
-  $ telnet `smtp-mx -1 sial.org` 25
+  $ telnet `smtp-mx -1 gmail.com` 25
 
 =head1 DESCRIPTION
 

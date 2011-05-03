@@ -14,11 +14,6 @@
 # Warning: either ensure that blocked hosts are remove automatically
 # after some period of time, or that good hosts cannot be blocked.
 #
-# More information on how to use this script in conjunction with log
-# scanning:
-#
-# http://sial.org/howto/logging/sec.pl/
-#
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 

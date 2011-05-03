@@ -7,10 +7,6 @@
 #   [ -f ~/.sh-sourceall ] && . ~/.sh-sourceall
 # }
 #
-# For more information, see:
-#
-# http://sial.org/howto/shell/allsh/
-#
 # Warning! This script has various potential security problems,
 # especially where multiple users are involved with a shared account
 # (root), or where write access to the ~/.sh-sourceall file is possible

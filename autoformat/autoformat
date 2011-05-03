@@ -12,8 +12,6 @@
 # And then Text::Autoformat options added there after if needed, such as
 # 'right=>72' or similar.
 #
-# http://sial.org/howto/perl/reformat/
-#
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 

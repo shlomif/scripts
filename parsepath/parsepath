@@ -2,9 +2,6 @@
 #
 # Prints information about file paths, or checks for permissions
 # problems. Run perldoc(1) on this script for additional documentation.
-# See also:
-#
-# http://sial.org/howto/debug/unix/
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.

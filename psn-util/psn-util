@@ -220,8 +220,8 @@ psn-util - Portable Shogi Notation (PSN) handler
 
 =head1 SYNOPSIS
 
-Portable Shogi Notation (PSN) handler. See http://sial.org/shogi/ for
-more information. Upload data into a suitable database via:
+Portable Shogi Notation (PSN) handler. Upload data into a suitable
+database via:
 
   $ psn-util psn2db japan-isf-2005.psn
 

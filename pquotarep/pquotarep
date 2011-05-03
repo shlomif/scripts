@@ -1,10 +1,7 @@
 #!/usr/bin/perl
 #
 # Parses output from repquota(8) into formats suitable for further
-# processing such as SQL upload or insertion into RRDTool files. For
-# more information, try:
-#
-# http://sial.org/howto/osx/quota/
+# processing such as SQL upload or insertion into RRDTool files.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.

@@ -30,8 +30,7 @@
 #   copyto -q -m -d "$FTARGET" $@
 # }
 #
-# To set FTARGET in all shells, see: http://sial.org/howto/shell/allsh/
-# along with the related mtmmd script.
+# To set FTARGET in all shells, see 'allsh'.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.

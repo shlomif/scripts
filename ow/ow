@@ -525,8 +525,8 @@ value parameters with limited macro expansion on the URL contained in
 the value. The key is a directory fragment used in a substring match
 against the full directory name being considered.
 
-  # when in checkout of sial.org, map to website
-  co/sial.org/htdocs http://sial.org/%1
+  # when in directory for a website...
+  dir/example.org/htdocs http://devo.example.org/%1
 
   # github example...
   co/scripts http://github.com/thrig/sial.org-scripts/commits/master/%1
