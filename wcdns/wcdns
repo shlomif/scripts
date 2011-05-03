@@ -154,7 +154,7 @@ perl(1), Net::DNS
 
 =head1 AUTHOR
 
-Jeremy Mates, http://sial.org/contact/
+Jeremy Mates
 
 Based heavily on code posted by John Rowan Littell to the MIMEDefang
 mailing list.

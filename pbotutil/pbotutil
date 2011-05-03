@@ -777,7 +777,7 @@ perl(1), LWP::UserAgent, HTML::TokeParser
 
 =head1 AUTHOR
 
-Jeremy Mates, http://sial.org/contact/
+Jeremy Mates
 
 Patches, examples from evilgwynie and Paladin of #perl on
 irc.freenode.net.
