@@ -1,0 +1,83 @@
+.Dd $Mdocdate: April 29 2011 $
+.Dt EPOCHAL 1
+.Os
+.Sh NAME
+.Nm epochal
+.Nd strptime(3) conversion of timestamps
+.Sh SYNOPSIS
+.Nm epochal
+.Bk -words
+.Op Fl gsy
+.Op Fl Y Ar year
+.Op Fl o Ar output-format
+.Fl f Ar input-format
+.Ek
+.Sh DESCRIPTION
+The
+.Nm
+utility converts timestamps in standard input via the
+.Xr strptime 3
+function to an output format (epoch by default, or customized via the
+.Fl o
+option) and emits the data to standard out.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl f Ar input-format
+Mandatory, specifies input format timestamps will be detected with. The
+.Xr strftime 3
+manual details the format specification.
+.It Fl g
+Multiple timestamps will be searched for and replaced on a line, instead of just the first.
+.It Fl o Ar output-format
+Output format (default is epoch time via the
+.Qq Dv %s
+conversion specification).
+.It Fl s
+Non-timestamp data will be omitted from the output.
+.It Fl y
+Fill in current year if the parsed
+.Qq Dv tm_year
+field is zero. The current year is only set when the program is launched.
+.It Fl Y Ar year
+Fill in the specified year if the parsed
+.Qq Dv tm_year
+field is zero.
+.El
+.Sh RETURN CODES
+.Bl -tag -width Ds
+.It 0
+Success.
+.It 1
+Usage error, probably due to the mandatory
+.Fl o
+option not being supplied. Usage information will be emitted to standard error.
+.It 2
+System error. Indicates a line was too long, or there were errors calling various system functions. Diagnostic messages should be emitted to standard error.
+.Sh EXAMPLES
+Parse 
+.Xr syslogd(8)
+logs assuming that the missing year is the current one, or a custom year:
+.Pp
+.Dl $ epochal -f '%b %d %H:%M:%S' -y      < /path/to/syslog
+.Dl $ epochal -f '%b %d %H:%M:%S' -Y 1999 < /path/to/syslog
+.Pp
+Convert timestamps used by Apache access logs (or also 389-ds).
+.Pp
+.Dl $ epochal -f '[%d/%b/%Y:%H:%M:%S%n%z]' < /path/to/access
+.Pp
+Note that some systems may not handle the
+.Qq Dv %z
+timezone option, or may not support various conversion specifications:
+.Pp
+.Dl $ epochal -f '[%d/%b/%Y:%H:%M:%S' < /path/to/access
+.Pp
+.Sh SEE ALSO
+.Xr strptime 3 ,
+.Xr strftime 3
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+The various 
+.Xr strftime 3
+conversion specifications may not be portable, especially to more eldritch flavors of Unix. Non-UTC timezones have not been tested. Daylight Saving Time has not been tested for, but should be detected. There may be other unknown gotchas, depending on the implementation of the system functions involved. Different locales have not been tested for. These may influence various conversion specifications.

@@ -1,0 +1,25 @@
+.TH FINDIN 1 
+.SH NAME
+findin -- find files in PATH or other lists of directories
+.SH SYNOPSIS
+Find ls in PATH, find a glob(3) expression under MANPATH directories, or search directories passed via standard input:
+
+.B $ findin ls
+
+.B $ findin -q 'man*' MANPATH
+
+.B $ (echo /bin; echo /sbin) | findin 'l*' -
+.SH "DESCRIPTION"
+Returns zero if files found; otherwise some non-zero value on error or if no files are matched. Files found will be printed to standard output. Errors or usage information will be printed to standard error.
+
+The -? or -h options will show usage information. The -q option will mask what usually are just false alarms from glob(3).
+.SH ERRORS
+Diagnostics or usage notes are printed to standard error. Exit codes: 1 on invalid usage of the program, 2 if no files are found (and no other error occurred), 3 if input data exceeds an operating system limit, 4 due to unexpected returns from snprintf(3), 5 due to a glob failure (most likely permission denied or the like).
+.SH ENVIRONMENT
+PATH is used by default; any arbitrary colon-delimited environment variable can be used if specified as the second argument to the program. Directories passed via standard input must be specified one per line.
+.SH "SEE ALSO"
+find(1), findup(1), glob(3)
+.SH BUGS
+No known issues.
+.SH AUTHOR
+Jeremy Mates
