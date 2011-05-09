@@ -26,7 +26,8 @@ my $relative    = q{c'};
 my $partial     = q{};
 my $save_layout = 0;
 my $skip_midi   = 0;
-my $repeats;
+my ( $is_absolute, $repeats );
+my $prestaff = q{};
 
 ########################################################################
 #
@@ -35,6 +36,7 @@ my $repeats;
 die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
 
 GetOptions(
+  "absolute|abs|a" => \$is_absolute,
   "instrument|i=s" => \$instrument,
   "layout|l"       => \$save_layout,
   "partial|p=s"    => \$partial,
@@ -61,10 +63,12 @@ if ( defined $repeats ) {
   @ARGV = (@ARGV) x $repeats;
 }
 
+$prestaff = "\\relative $relative" unless $is_absolute;
+
 my $ly_template = <<"END_TMPL";
 \\version "$LILYPOND_VERSION"
 \\score {
-  \\new Staff << \\relative $relative {
+  \\new Staff << $prestaff {
     \\set Staff.midiInstrument = #"$instrument"
     \\tempo 4=$tempo
     $partial
