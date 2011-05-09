@@ -35,13 +35,13 @@ my $repeats;
 die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
 
 GetOptions(
-  "tempo|t=s"      => \$tempo,
   "instrument|i=s" => \$instrument,
-  "repeats|r=s"    => \$repeats,
-  "relative|b=s"   => \$relative,
-  "partial|p=s"    => \$partial,
   "layout|l"       => \$save_layout,
+  "partial|p=s"    => \$partial,
+  "relative|b=s"   => \$relative,
+  "repeats|r=s"    => \$repeats,
   "silent|s"       => \$skip_midi,
+  "tempo|t=s"      => \$tempo,
 );
 
 push @LILYPOND, '--pdf' if $save_layout;
