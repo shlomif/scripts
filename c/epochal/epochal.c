@@ -10,6 +10,7 @@
 #include <sys/types.h>
 
 #include <err.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -40,6 +41,8 @@ int main(int argc, char *argv[])
     char input_buf[LINE_MAX];
     unsigned int ib_len;
     unsigned long linenum;
+
+    setlocale(LC_ALL, "");
 
     while ((ch = getopt(argc, argv, "f:go:syY:")) != -1) {
         switch (ch) {
