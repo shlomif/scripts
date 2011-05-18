@@ -1,0 +1,66 @@
+#!/usr/bin/perl
+#
+# Search 389-ds access logs for a search term or if possible conn=(\d+)
+# entries that then will also be searched on. (See also the logconv.pl
+# that ships with 389-ds.)
+
+use strict;
+use warnings;
+use Getopt::Long qw/GetOptions/;
+
+# TODO steal more similar options from grep(1) as needed
+GetOptions(
+  "all-files|a"          => \my $all_files,
+  "files-with-matches|l" => \my $only_filename,
+  "instance|I=s"         => \my $instance_glob,
+  "no-filename|h"        => \my $no_filename,
+  "subsearch|s=s"        => \my $SUBSEARCH,
+  "with-filename|H"      => \my $show_filename,
+);
+my $SEARCH = shift || die "Usage: $0 search-regex\n";
+
+$instance_glob = 'slapd-*' unless defined $instance_glob;
+
+if ( !@ARGV and $all_files ) {
+  @ARGV =
+    map  { $_->[0] }
+    sort { $a->[1] <=> $b->[1] }
+    map  { [ $_, ( stat($_) )[9] ] }
+    grep { $_ !~ m/access.rotationinfo/ }
+    glob("/var/log/dirsrv/$instance_glob/access*");
+} else {
+  @ARGV = glob("/var/log/dirsrv/$instance_glob/access");
+}
+$show_filename = 1 if @ARGV > 1;
+$show_filename = 0 if $no_filename;
+
+my ( %conns, $this_conn, $is_match, %printed_filenames );
+while (<>) {
+  chomp;
+
+  $is_match = 0;
+  ($this_conn) = $_ =~ m/\s+conn=(\d+)/;
+
+  if (m/$SEARCH/) {
+    $is_match = 1;
+    $conns{$this_conn} = 1;
+  } elsif ( defined $this_conn and exists $conns{$this_conn} ) {
+    $is_match = 1;
+  }
+
+  if (m/\s+UNBIND\s*$/) {
+    delete $conns{$this_conn};
+  }
+
+  if ( defined $SUBSEARCH ) {
+    $is_match = 0 unless /$SUBSEARCH/;
+  }
+
+  if ($is_match) {
+    if ($only_filename) {
+      print "$ARGV\n" unless $printed_filenames{$ARGV}++;
+    } else {
+      print( ( $show_filename ? "$ARGV:" : "" ), $_, "\n" );
+    }
+  }
+}
