@@ -42,7 +42,8 @@ int main(int argc, char *argv[])
     unsigned int ib_len;
     unsigned long linenum;
 
-    setlocale(LC_ALL, "");
+    if (setlocale(LC_ALL, "") == NULL)
+        errx(R_USAGE, "setlocale(3) failed: check the locale settings");
 
     while ((ch = getopt(argc, argv, "f:go:syY:")) != -1) {
         switch (ch) {
