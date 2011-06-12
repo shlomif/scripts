@@ -1,0 +1,81 @@
+#!/usr/bin/perl
+#
+# Converts a *.wav to *.mp3 using IDv3 tags gleaned from a lilypond
+# input file. (To avoid double specifying the tags in both a *.ly and
+# the Makefile.)
+
+use strict;
+use warnings;
+
+my $LILYPOND_SUFFIX = '.ly';
+my $LY_ENCODING     = ':utf8';
+my @LAME_CMD        = qw/lame -h -V2/;
+
+use POSIX qw/strftime/;
+
+my $ly_file = get_ly_file(@ARGV);
+if ( !defined $ly_file or !-f $ly_file ) {
+  die "could not find lilypond file\n";
+}
+my $lametags    = parse_ly($ly_file);
+my $ly_basename = get_basename($ly_file);
+
+my @command = @LAME_CMD;
+for my $k ( keys %$lametags ) {
+  push @command, $k, $lametags->{$k};
+}
+push @command, $ly_basename . '.wav', $ly_basename . '.mp3';
+
+exec @command;
+
+########################################################################
+#
+# SUBROUTINES
+
+sub get_basename {
+  my ($filename) = @_;
+  ( my $basename = $filename ) =~ s/\.[^.]+\z//;
+  return $basename;
+}
+
+# Look for foo.ly or try for that if "foo" or "foo.somethingelse" passed
+# as input. Return foo.ly or undefined value.
+sub get_ly_file {
+  my ($input) = @_;
+  my $filename;
+
+  if ( !-f $input ) {
+    my @results = glob "$input*$LILYPOND_SUFFIX";
+    warn "warning: more than one *.ly file found: @results\n" if @results > 1;
+    $filename = $results[0];
+  } elsif ( $input !~ /$LILYPOND_SUFFIX\z/ ) {
+    $filename = get_basename($input) . $LILYPOND_SUFFIX;
+  }
+
+  return $filename;
+}
+
+# Look for the \header section, create a hash of what will become IDv3
+# tags from things in there and the current date, return reference to
+# said hash.
+sub parse_ly {
+  my ($ly_file) = @_;
+  my $lametags;
+
+  $lametags->{'--ty'} = strftime( "%Y", localtime( ( stat $ly_file )[9] ) );
+
+  open my $fh, '<', $ly_file or die "error: cannot open $ly_file: $!\n";
+  binmode $fh, $LY_ENCODING;
+  while (<$fh>) {
+    if ( /^\s*\\header\s*{/ .. /^\s*}/ ) {
+      if (/(?<!\w)title\s*=\s*"([^"]+)/) {
+        $lametags->{'--tt'} = $1;
+      }
+      if (/composer\s*=\s*"([^"]+)/) {
+        $lametags->{'--ta'} = $1;
+      }
+    }
+  }
+
+  return $lametags;
+}
