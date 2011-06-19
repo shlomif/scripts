@@ -9,7 +9,7 @@ use warnings;
 
 my $LILYPOND_SUFFIX = '.ly';
 my $LY_ENCODING     = ':utf8';
-my @LAME_CMD        = qw/lame -h -V2/;
+my @LAME_CMD        = qw/lame -V2 -c/;
 
 use POSIX qw/strftime/;
 
