@@ -8,7 +8,7 @@
 # TODO retire this, as now instead using the ZSH function:
 #
 # ndir () {
-#   NDIR=`buildir -p $@ | tail -1` 
+#   NDIR=`buildir -p "$@" | tail -1` 
 #   [[ $? -ne 0 ]] && exit $?
 #   builtin cd "$NDIR"
 # }

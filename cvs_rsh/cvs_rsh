@@ -11,4 +11,4 @@
 # forwards.
 exec /usr/bin/ssh -a -x \
   -o ClearAllForwardings=yes \
-  -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic $@
+  -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic "$@"
