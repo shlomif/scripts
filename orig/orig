@@ -6,7 +6,7 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 
-for f in $@; do
+for f in "$@"; do
   if [ ! -e $f ]; then
     echo "warning: no such file: $f" >&2
   elif [ -f $f ]; then

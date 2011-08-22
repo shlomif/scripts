@@ -11,4 +11,4 @@ if [ -z "$1" ]; then
   exit 100
 fi
 
-exec xmllint --noout $@
+exec xmllint --noout "$@"

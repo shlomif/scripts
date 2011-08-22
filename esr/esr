@@ -16,7 +16,7 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 
-for x in $@; do
+for x in "$@"; do
   out="$x $out"
 done
 

@@ -11,13 +11,13 @@
 PROG_NAME=`basename $0`
 
 # First, attempt version control diff...
-[ -f CVS/Root ] && exec cvs diff $@
-[ -d .svn ] && exec svn diff $@
+[ -f CVS/Root ] && exec cvs diff "$@"
+[ -d .svn ] && exec svn diff "$@"
 
 findup -H -q .p4config
 STATUS=$?
 if [ $STATUS -eq 0 ]; then
-  exec p4 diff -du $@
+  exec p4 diff -du "$@"
 fi
 
 findup -H -q .git
@@ -26,7 +26,7 @@ if [ $STATUS -eq 0 ]; then
   git diff --quiet --exit-code
   STATUS=$?
   if [ $STATUS -eq 1 ]; then
-    exec git diff $@
+    exec git diff "$@"
   else
     exit $STATUS
   fi
