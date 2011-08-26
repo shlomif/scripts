@@ -13,13 +13,13 @@
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
 
 #define LINE_MAX 8192
 
-enum returns { R_OKAY, R_USAGE, R_SYS_ERR };
-int exit_status = R_OKAY;
+int exit_status = EXIT_SUCCESS;
 
 /* Command Line Options */
 char *fflag;                    /* Input format (for strptime) */
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     unsigned long linenum;
 
     if (!setlocale(LC_ALL, ""))
-        errx(R_USAGE, "setlocale(3) failed: check the locale settings");
+        errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
 
     while ((ch = getopt(argc, argv, "f:go:syY:")) != -1) {
         switch (ch) {
@@ -62,13 +62,13 @@ int main(int argc, char *argv[])
         case 'y':
             yflag = 1;
             if ((int) time(&now) == -1)
-                errx(R_SYS_ERR, "time(3) could not obtain current time");
+                errx(EX_OSERR, "time(3) could not obtain current time");
             localtime_r(&now, &filler);
             break;
         case 'Y':
             Yflag = optarg;
             if (!strptime(Yflag, "%Y", &filler))
-                errx(R_USAGE,
+                errx(EX_USAGE,
                      "strptime(3) could not parse year from -Y argument");
             break;
         default:
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     while ((c = getchar()) != EOF) {
         input_buf[ib_len++] = c;
         if (ib_len > LINE_MAX)
-            errx(R_SYS_ERR, "line too long (>%d) at line %ld",
+            errx(EX_SOFTWARE, "line too long (>%d) at line %ld",
                  LINE_MAX, linenum);
 
         if (c == '\n') {
@@ -130,7 +130,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
                        (gflag && sflag) ? " "
                        : gflag ? "" : sflag ? "\n" : past_date_p);
             } else {
-                exit_status = R_SYS_ERR;
+                exit_status = EX_OSERR;
                 warnx("unexpected return from strftime(3) at line %ld",
                       linenum);
             }
@@ -157,5 +157,5 @@ void usage(void)
     fprintf(stderr,
             "Usage: epochal [-sg] [-y|-Y yyyy] -f input-format [-o output-fmt]\n"
             "  Pass data in via standard input. See strftime(3) for formats.\n");
-    exit(R_USAGE);
+    exit(EX_USAGE);
 }
