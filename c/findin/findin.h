@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <sysexits.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -14,7 +16,6 @@ void iterate(char *file_expr, char *env, int record_delim,
 
 void check_dir(char *directory, char *file_expr);
 
-enum returns { R_OKAY, R_ERR_USAGE, R_NO_HITS, R_ERR_LIMIT,
-  R_ERR_BWUH, R_GLOB_ERR
-};
+/* If possible, instead use sysexits.h values */
+enum returns { R_NO_HITS = 1 };
 int exit_status;
