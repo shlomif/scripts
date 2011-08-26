@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     unsigned int ib_len;
     unsigned long linenum;
 
-    if (setlocale(LC_ALL, "") == NULL)
+    if (!setlocale(LC_ALL, ""))
         errx(R_USAGE, "setlocale(3) failed: check the locale settings");
 
     while ((ch = getopt(argc, argv, "f:go:syY:")) != -1) {
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
             break;
         case 'Y':
             Yflag = optarg;
-            if (strptime(Yflag, "%Y", &filler) == NULL)
+            if (!strptime(Yflag, "%Y", &filler))
                 errx(R_USAGE,
                      "strptime(3) could not parse year from -Y argument");
             break;
@@ -118,7 +118,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
     for (j = 0; j < ib_len; j++) {
         past_date_p = strptime(ibp, fflag, &when);
 
-        if (past_date_p != NULL) {
+        if (past_date_p) {
             if (when.tm_year == 0 && (yflag || Yflag != NULL)) {
                 when.tm_year = filler.tm_year;
             }

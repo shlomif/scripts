@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     iterate(argv[0], argv[1], ENV_PATH_DELIMITER,
             (int (*)(void *)) get_next_env);
   } else {
-    iterate(argv[0], NULL, STDIN_PATH_DELIMITER,
+    iterate(argv[0], (char *)NULL, STDIN_PATH_DELIMITER,
             (int (*)(void *)) get_next_stdin);
   }
 
