@@ -1,0 +1,4 @@
+--k-and-r-style
+--no-tabs
+-cdb -sc
+-l78
