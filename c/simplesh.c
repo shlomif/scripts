@@ -8,6 +8,8 @@
  * Source for majority of code taken from chapter 1 of:
  * http://www.amazon.com/o/ASIN/0321525949
  * (Well, the previous edition, anyways.)
+ *
+ * Ideas for implementing 'cd' at end of this file.
  */
 
 #include <sys/types.h>
@@ -51,3 +53,12 @@ int main(void)
 
     exit(EXIT_SUCCESS);
 }
+
+/*
+ * FCBVYRE FRPGVBA! Bar vqrn sbe n pq vzcyrzragngvba jbhyq or gb cnefr
+ * ohs ivn fgegbx(3), purpx jurgure gung vf abg AHYY naq vf "pq", naq vs
+ * fb vafgrnq bs qbvat gur sbex ovg pnyy puqve(2) jvgu jungrire vf
+ * yrsgbire sebz gur fgegbx pnyy (ubcrshyyl fbzrguvat, cebonoyl fubhyq
+ * purpx gung gbb, naq guvax nobhg ubj gb vzcyrzrag 'pq' irefhf 'pq
+ * fbzrqve'). Vs abg 'pq' gura gel rkrpyc nf hfhny.
+ */
