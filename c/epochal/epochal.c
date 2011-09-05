@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     ib_len = 0;
     linenum = 1;
     while ((c = getchar()) != EOF) {
-        input_buf[ib_len++] = c;
+        input_buf[ib_len++] = (char) c;
         if (ib_len > LINE_MAX)
             errx(EX_SOFTWARE, "line too long (>%d) at line %ld",
                  LINE_MAX, linenum);
@@ -124,7 +124,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
             }
             when.tm_isdst = -1; /* Try to auto-handle DST */
 
-            sret = (long) strftime(out_buf, LINE_MAX, oflag, &when);
+            sret = (unsigned long) strftime(out_buf, LINE_MAX, oflag, &when);
             if (sret > 0) {
                 printf("%s%s", out_buf,
                        (gflag && sflag) ? " "
@@ -135,7 +135,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
                       linenum);
             }
             if (gflag) {
-                j = (int) (past_date_p - input_buf - 1);
+                j = (unsigned int) (past_date_p - input_buf - 1);
                 ibp = past_date_p;
             } else {
                 break;
@@ -143,7 +143,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
         } else {
             ibp++;
             if (!sflag)
-                putchar(input_buf[j]);
+                putchar((unsigned char) input_buf[j]);
         }
     }
     if (gflag)
