@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Prints information about file paths, or checks for permissions
+# Prints information about file paths, or checks for Unix permissions
 # problems. Run perldoc(1) on this script for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
@@ -371,6 +371,7 @@ sub check_access {
       }
 
       # Unix, once gets match on user or group, stops looking at subsequent
+      # (Stevens, APUE, ch 4, section 6).
       return;
     }
   }
