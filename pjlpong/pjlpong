@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+#
+# Generate pong game on HP printer console. (Consider
+# Printer::HP::Display for other tasks.)
+
+use strict;
+use warnings;
+
+# TODO need game logic, | for paddels, * for ball, means to hold state
+# of game, then how to render that onto 2x16 field.
+
+sub gen_msg {
+  my $ready_msg = shift;
+  my $msg_max = shift || 32;
+
+  $ready_msg = substr $ready_msg, 0, $msg_max;
+
+  # TODO is the \@PJL JOB bit necessary?
+  my $data = <<"EOJ";
+\e%-12345X\@PJL JOB
+\@PJL RDYMSG DISPLAY="$ready_msg"
+\@PJL EOJ
+\e%-12345X
+EOJ
+
+  return $data;
+}
