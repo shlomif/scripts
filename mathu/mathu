@@ -16,16 +16,17 @@ END {
 my $PHI = 1.6180339887498948482;
 
 my %ability = (
-  sum     => { handle => \&handle_sum, },
-  mean    => { handle => \&handle_mean, },
-  sdev    => { handle => \&handle_sdev, },
-  percent => { handle => \&handle_percent, },
-  max     => { handle => \&handle_max, },
-  min     => { handle => \&handle_min, },
-  basic   => { handle => \&handle_basic, },
-  dist    => { handle => \&handle_distribution, },
-  ratio   => { handle => \&handle_ratio, },
-  golden  => { handle => \&handle_golden, },
+  sum         => { handle => \&handle_sum, },
+  mean        => { handle => \&handle_mean, },
+  sdev        => { handle => \&handle_sdev, },
+  percent     => { handle => \&handle_percent, },
+  max         => { handle => \&handle_max, },
+  min         => { handle => \&handle_min, },
+  basic       => { handle => \&handle_basic, },
+  dist        => { handle => \&handle_distribution, },
+  ratio       => { handle => \&handle_ratio, },
+  golden      => { handle => \&handle_golden, },
+  divisibleby => { handle => \&handle_divisibleby, },
 );
 
 # how to format output numbers with printf
@@ -228,6 +229,23 @@ sub handle_golden {
 
   printf( "if $value is b:   a=$format, a+b=$format\n",
     $segment_long, $line_length );
+}
+
+sub handle_divisibleby {
+  my $num = $ARGV[0];
+
+  my $max_test = int( $num / 2 );
+  $max_test = 2 if $max_test < 2;
+
+  my %seen;
+
+  for my $i ( 1 .. $max_test ) {
+    if ( $num % $i == 0 ) {
+      my $other = $num / $i;
+      print "$num\t$i * $other\n" unless exists $seen{$other};
+      $seen{$i} = ();
+    }
+  }
 }
 
 sub do_dist {
