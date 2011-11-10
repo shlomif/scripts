@@ -58,8 +58,9 @@ if ( $target->scheme ) {
 
 my $parser = XML::LibXML->new;
 
-# try to allow for crummy *ML documents
-# TODO make these command line arguments?
+# try to allow for crummy *ML documents TODO make these command line
+# arguments? Set ->recover(2) if the document is crummy and the warnings
+# need be disabled.
 $parser->recover(1);
 $parser->load_ext_dtd(0);
 $parser->expand_entities(0);
