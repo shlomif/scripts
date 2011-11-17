@@ -1,0 +1,26 @@
+#!/usr/bin/perl -l
+#
+# Periodic ping, without output annoyances of default ping(1) on Unix, etc.
+
+use strict;
+use warnings;
+
+use Getopt::Long qw/GetOptions/;
+use Net::Ping ();
+use POSIX qw/strftime/;
+
+my $die_if_down = 0;
+my $dfmt        = '%s %Y-%m-%d %H:%M:%S';
+my $host        = shift || die "Usage: $0 [--die-if-down] [--sleep=m] host\n";
+my $p           = Net::Ping->new();
+my $sleep       = 300;
+
+GetOptions( 'die-if-down' => \$die_if_down, 'sleep=s' => \$sleep );
+
+while (1) {
+  my $is_okay = $p->ping($host);
+  print strftime( $dfmt, localtime ), " ", $host, " ",
+    ( $is_okay ? "up" : "down" );
+  die "could not reach $host\n" if $die_if_down and !$is_okay;
+  sleep $sleep;
+}
