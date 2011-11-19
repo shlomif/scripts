@@ -11,11 +11,11 @@ use POSIX qw/strftime/;
 
 my $die_if_down = 0;
 my $dfmt        = '%s %Y-%m-%d %H:%M:%S';
-my $host        = shift || die "Usage: $0 [--die-if-down] [--sleep=m] host\n";
 my $p           = Net::Ping->new();
 my $sleep       = 300;
 
-GetOptions( 'die-if-down' => \$die_if_down, 'sleep=s' => \$sleep );
+GetOptions( 'dieifdown' => \$die_if_down, 'sleep=s' => \$sleep );
+my $host = shift || die "Usage: $0 [--dieifdown] [--sleep=m] host\n";
 
 while (1) {
   my $is_okay = $p->ping($host);
