@@ -39,7 +39,7 @@ GetOptions(
   'outform=s' => \$options{outform},
   'help|h|?'  => sub {
     print "Usage: $basename [--inform=opt] [--outform=opt] file [..fileN]\n";
-    exit 100;
+    exit 64;
   },
 );
 
@@ -68,7 +68,8 @@ for my $filename ( grep -f, @ARGV ) {
   };
   if ($@) {
     chomp($@);
-    die "error: could not create File::AtomicWrite object: $@\n";
+    warn "error: could not create File::AtomicWrite object: $@\n";
+    exit 74;
   }
   local $SIG{TERM} = sub { undef $writer };
 
@@ -88,7 +89,8 @@ for my $filename ( grep -f, @ARGV ) {
   eval { $writer->commit(); };
   if ($@) {
     chomp($@);
-    die "error: cannot rename to $file_options{file}: $@\n";
+    warn "error: cannot rename to $file_options{file}: $@\n";
+    exit 73;
   }
 }
 

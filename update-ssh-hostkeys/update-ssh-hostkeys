@@ -9,8 +9,8 @@
 BASENAME=`basename $0`
 
 if [ -z $1 ]; then
-  echo "usage: $BASENAME known_hosts-file" >&2
-  exit 100
+  echo "Usage: $BASENAME known_hosts-file" >&2
+  exit 64
 fi
 
 KHF=$1

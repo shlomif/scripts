@@ -155,7 +155,7 @@ sub tilde_expand {
         || remark('error',
              'could not lookup user or HOME not set',
              { file => $_ })
-        && exit 99;
+        && exit 74;
      }ex;
   }
   return wantarray ? @_ : "@_";
@@ -166,7 +166,7 @@ sub load_prefs {
 
   open my $fh, "< $file"
     or remark( 'error', 'could not load preferences', { file => $file } )
-    and exit 101;
+    and exit 78;
 
   my %prefs;
   my %tmp = %defaults;

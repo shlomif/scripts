@@ -9,7 +9,8 @@ END {
   print $line;
 
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 

@@ -72,7 +72,7 @@ exit;
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] files
 
 Options:
@@ -85,7 +85,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 ######################################################################

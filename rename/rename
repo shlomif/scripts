@@ -15,7 +15,8 @@ sub print_help;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -89,7 +90,7 @@ print_help unless @ARGV;
 
 # a generic help blarb
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] perl-expression [file1 ..]
 
 Mangle filenames using perl expressions.
@@ -111,7 +112,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 __END__

@@ -20,7 +20,8 @@ my $pages           = 1;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -91,7 +92,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 =head1 NAME

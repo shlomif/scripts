@@ -15,7 +15,8 @@ use Getopt::Std;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -74,7 +75,7 @@ sub unsuid {
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] [file1 .. fileN]
 
 Converts rwx-style permission listings into octal format.
@@ -87,7 +88,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 ######################################################################

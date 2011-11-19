@@ -57,7 +57,7 @@ exit;
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0
 
 Tests what levels/facilities are handled by syslog.
@@ -68,7 +68,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 =head1 NAME

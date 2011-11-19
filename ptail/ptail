@@ -16,7 +16,8 @@ use Getopt::Std;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -89,7 +90,7 @@ exit;
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] [file|-] [expression]
 
 Tails a file and applies perl expression to each line.
@@ -109,7 +110,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 __END__

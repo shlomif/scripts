@@ -237,14 +237,14 @@ sub tilde_expand {
         || remark('error',
 	     'could not lookup user or HOME not set',
 	     { file => $_ })
-	&& exit 99;
+	&& exit 67;
      }ex;
   }
   return wantarray ? @_ : "@_";
 }
 
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] file [file2 ...]
 
 Generic interface to many archive formats.
@@ -264,7 +264,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 sub remark {

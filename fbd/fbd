@@ -17,7 +17,8 @@ use File::Spec ();
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -30,17 +31,17 @@ getopts( 'h?f:d:a:b:p:s:q', \%opts );
 
 if ( exists $opts{h} or exists $opts{'?'} or !@ARGV ) {
   print_help();
-  exit 100;
+  exit 64;
 }
 
 if ( exists $opts{d} and exists $opts{f} ) {
   print_help();
-  exit 101;
+  exit 64;
 }
 
 if ( !exists $opts{d} and !exists $opts{f} ) {
   print_help();
-  exit 101;
+  exit 64;
 }
 
 # epoch value to compare searched files against

@@ -7,8 +7,8 @@
 # public domain.
 
 if [ -z "$1" ]; then
-  echo "usage: `basename $0` xmlfile" >&2
-  exit 100
+  echo "Usage: `basename $0` xmlfile" >&2
+  exit 64
 fi
 
 exec xmllint --noout "$@"

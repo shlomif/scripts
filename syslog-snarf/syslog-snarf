@@ -217,7 +217,7 @@ END {
 
 # a generic help blarb
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts]
 
 Syslogd server for debugging or experimenting with syslog.
@@ -237,7 +237,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 =head1 NAME

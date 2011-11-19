@@ -56,7 +56,7 @@ getopts( 'h?dlo:T:', \%opts );
 
 if ( exists $opts{h} or $opts{'?'} ) {
   print_help();
-  exit 100;
+  exit 64;
 }
 
 for ( keys %pfiles ) {
@@ -275,7 +275,7 @@ sub tilde_expand {
         || remark('error',
              'could not lookup user or HOME not set',
              { file => $_ })
-        && exit 99;
+        && exit 67;
      }ex;
   }
   return wantarray ? @pathes : "@pathes";
@@ -321,7 +321,7 @@ sub remark {
 }
 
 sub print_help {
-  print <<"END_USAGE";
+  warn <<"END_USAGE";
 Usage: $0 [options] file [file2 ...]
 
 Command line shortcuts and file to URL mapping.

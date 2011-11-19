@@ -15,7 +15,8 @@ use Socket qw(:DEFAULT :crlf);  # low-level connection handling
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -93,7 +94,7 @@ sub do_connect {
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 < nmap-scan-output
 
 nmap(1) output should be in -oG or -oM format.
@@ -104,7 +105,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 =head1 NAME

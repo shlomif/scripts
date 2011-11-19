@@ -14,7 +14,8 @@ use Time::HiRes qw(sleep);
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -121,7 +122,7 @@ sub syslog_to_epoch {
 }
 
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [-o output-file] [-f factor] [-r random-seed] < input-file
 
 Replays logs, simulating the time delays present in the source data.
@@ -138,7 +139,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 __DATA__

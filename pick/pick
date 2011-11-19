@@ -11,7 +11,8 @@ use warnings;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -84,7 +85,7 @@ exit 0;
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts]
 
 Pick or reject items from a list of input data.
@@ -104,7 +105,7 @@ Options for version $VERSION:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 =head1 NAME

@@ -33,7 +33,10 @@ my $prestaff = q{};
 #
 # MAIN
 
-die "Usage: $BASENAME [note1 note2 ..|-]\n" unless @ARGV;
+unless (@ARGV) {
+  warn "Usage: $BASENAME [note1 note2 ..|-]\n";
+  exit 64;
+}
 
 GetOptions(
   "absolute|abs|a" => \$is_absolute,

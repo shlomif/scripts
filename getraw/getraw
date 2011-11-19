@@ -138,12 +138,12 @@ sub parse_spec {
   # sanity check on specification to prevent key-read stalls
   unless ($spec) {
     remark('error', "unable to parse specification '$string'");
-    exit 103;
+    exit 78;
   } else {
     unless (grep { defined and /^\d$/ } $spec->{default},
       values %{$spec->{keys}}) {
       remark('error', "no valid exit codes in specification '$string'");
-      exit 103;
+      exit 78;
     }
   }
 
@@ -211,7 +211,7 @@ sub remark {
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] [prompt message]
 
 Means to prompt for human interaction.
@@ -229,7 +229,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 =head1 NAME

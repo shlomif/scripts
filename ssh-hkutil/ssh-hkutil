@@ -218,7 +218,7 @@ sub clean_hosts {
 }
 
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] known-hosts-file [new-hosts-file|-]
 
 Maintains OpenSSH known_hosts data.
@@ -236,7 +236,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 =head1 NAME

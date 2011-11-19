@@ -16,7 +16,8 @@ use File::Spec ();
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -44,11 +45,11 @@ $defaults{verbose} = 1        if exists $opts{v};
 
 unless ( $defaults{action} =~ m/^ [a-z][A-Za-z0-9_-]{0,31} $/x ) {
   remark( 'error', 'invalid action name' );
-  exit 101;
+  exit 78;
 }
 unless ( exists $actions{ $defaults{action} } ) {
   remark( 'error', 'no such action', { action => $defaults{action} } );
-  exit 101;
+  exit 78;
 }
 
 # read from STDIN if no args left
@@ -167,7 +168,7 @@ sub remark {
 
 # a generic help blarb
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] [file-or-directory ..]
 
 Detects and deals with duplicate files with pre-index by size.
@@ -188,7 +189,7 @@ Actions: @actions
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 =head1 NAME

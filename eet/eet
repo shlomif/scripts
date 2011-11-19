@@ -17,7 +17,8 @@ use Getopt::Std;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -85,7 +86,7 @@ while (1) {
 exit;
 
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] [file1 file2 .. fileN]
 
 Merges growing files into single stream
@@ -105,7 +106,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 =head1 NAME

@@ -69,8 +69,8 @@ if ( my $child_pid = fork ) {
 }
 
 sub print_help {
-  warn "\nusage: $command [-n increment] utility [argument ...]\n\n";
+  warn "\nUsage: $command [-n increment] utility [argument ...]\n\n";
   warn "  increment: -20 to 20, negative is higher priority\n";
   warn "  utility:   Command to run with optional arguments\n\n";
-  exit 100;
+  exit 64;
 }

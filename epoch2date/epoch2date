@@ -20,7 +20,8 @@ use POSIX qw(strftime);
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -29,8 +30,9 @@ my %opts;
 getopts( 'f:r:glq', \%opts );
 
 if ( not @ARGV or ( exists $opts{g} and exists $opts{l} ) ) {
-  die
+  warn
    "usage: $basename [-q] [-f fmt] [-r regex] [-g|-l] [epoch [epoch ...]|-]\n";
+  exit 64;
 }
 
 my $format = $opts{f} || "%Y-%m-%d %H:%M:%S";

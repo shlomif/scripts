@@ -16,7 +16,8 @@ use XML::LibXML::XPathContext ();
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -96,7 +97,7 @@ for my $node ( $nodelist->get_nodelist ) {
 }
 
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] document xpath-query
 
 Apply XPath expressions to the specified XML data.
@@ -108,7 +109,7 @@ Options:
   -n xx  Custom namespace to register "prefix:uri p2:u2 ..."
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 __DATA__

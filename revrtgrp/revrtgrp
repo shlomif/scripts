@@ -16,7 +16,8 @@ use Getopt::Std;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -125,7 +126,7 @@ sub do_stuff {
 }
 
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] dir1 dir2 .. dirN
 
 Recursive group ownership fixing utility.
@@ -146,7 +147,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 ######################################################################

@@ -144,7 +144,7 @@ sub seconds2duration {
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 duration program [program args]
 
 Stops operation of long running programs.  Duration is either seconds,
@@ -158,7 +158,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 =head1 NAME

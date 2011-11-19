@@ -51,7 +51,7 @@ my %handle = (
   ftp  => {handle => \&handle_url},
 );
 
-remark('error', 'no resource listed to check') && exit 101 unless @ARGV;
+remark('error', 'no resource listed to check') && exit 64 unless @ARGV;
 
 my $return_value = 1;  # 0 is for "something changed"
 

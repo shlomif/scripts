@@ -22,7 +22,7 @@
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` what-to-modulo-by value-to-modulo" >&2
-  exit 1
+  exit 64
 fi
 
 # read modulus to use

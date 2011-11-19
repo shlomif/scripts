@@ -62,7 +62,7 @@ if ( exists $opts{c} ) {
     'error',
     'could not load prefs',
     { file => $opts{c}, errno => $! }
-    ) and exit 104;
+    ) and exit 74;
 
   push @directories, load_dir_prefs($prefs_fh);
 } else {
@@ -351,7 +351,7 @@ sub remark {
 }
 
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] [directory ..] [-]
 
 'du' output parser and reporter
@@ -370,7 +370,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 1;

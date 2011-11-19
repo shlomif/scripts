@@ -18,7 +18,7 @@ getopts 'h?t', \%opts;
 
 if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
   print_help();
-  exit 101;
+  exit 64;
 }
 
 for my $domain (@ARGV) {
@@ -59,7 +59,7 @@ for my $domain (@ARGV) {
 }
 
 sub print_help {
-  print <<"END_USAGE";
+  warn <<"END_USAGE";
 Usage: $0 [-t] example.com [example.org ..]
 
 Parse whois for expiration dates.

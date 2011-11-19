@@ -66,7 +66,7 @@ END {
   # Report problems when writing to stdout (perldoc perlopentut)
   if ( !exists $opts{o} and !close(STDOUT) ) {
     remark( 'error', 'problem closing stdout', { errstr => $! } );
-    exit 1;
+    exit 74;
   }
 }
 
@@ -108,7 +108,7 @@ FILE: for my $file (@ARGV) {
       'could not parse document',
       { file => $file, errstr => $xapply->errorstring }
     );
-    exit 1;
+    exit 65;
   }
 
   chomp($$docref);
@@ -161,7 +161,7 @@ sub tilde_expand {
         || remark('error',
              'could not lookup user or HOME not set',
              { file => $_ })
-        && exit 1;
+        && exit 67;
      }ex;
   }
   return wantarray ? @pathes : "@pathes";
@@ -204,7 +204,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 sub remark {

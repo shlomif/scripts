@@ -22,7 +22,8 @@ use URI              ();
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -272,9 +273,9 @@ sub remark {
 }
 
 sub print_help {
-  warn "usage: $basename [opts] regex URL|file|-\n";
+  warn "Usage: $basename [opts] regex URL|file|-\n";
   warn "\nRun perldoc(1) on this script for additional documentation.\n\n";
-  exit 100;
+  exit 64;
 }
 
 __DATA__

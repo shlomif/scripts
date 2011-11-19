@@ -108,7 +108,7 @@ sub xmltidy {
 }
 
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $basename [file [file ...]]
 
 Cleans up XML via the xmllint utility from the libxml2 project.
@@ -119,7 +119,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 sub remark {

@@ -27,7 +27,8 @@ my $SECONDS_IN_ADVANCE = 99;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -108,7 +109,7 @@ sub duration2seconds {
 }
 
 sub print_help {
-  print <<"END_HELP";
+  warn <<"END_HELP";
 Usage: $0 [options] [cron command]
 
 Generate cron timestamp for single run in the near future.
@@ -124,7 +125,7 @@ Options:
   
 END_HELP
 
-  exit 100;
+  exit 64;
 }
 
 =head1 NAME

@@ -126,7 +126,7 @@ sub handle_notify {
 
 # a generic help blarb
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] mode [mode args]
 
 Utility routines to interact with the mailman mailing list manager.
@@ -135,5 +135,5 @@ Options:
   -h/-?  Display this message
 
 HELP
-  exit 100;
+  exit 64;
 }

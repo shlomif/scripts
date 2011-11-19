@@ -58,7 +58,8 @@ if ( !defined $tcpdump_file
   or !defined $SRC_IP
   or !defined $DST_IP
   or !defined $PORT ) {
-  die "Usage: $0 -s src-ip -d dst-ip -p port traffic-tcpdump\n";
+  warn "Usage: $0 -s src-ip -d dst-ip -p port traffic-tcpdump\n";
+  exit 64;
 }
 
 use List::Util qw/shuffle/;

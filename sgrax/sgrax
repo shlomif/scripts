@@ -16,8 +16,8 @@
 # public domain.
 
 if [ -z "$1" ]; then
-  echo "usage: `basename $0` command standard input ..."
-  exit 1
+  echo "Usage: `basename $0` command standard input ..."
+  exit 64
 fi
 
 COMMAND=$1

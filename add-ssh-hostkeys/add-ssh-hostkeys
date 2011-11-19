@@ -11,7 +11,7 @@ BASENAME=`basename $0`
 
 if [ -z $1 ]; then
   echo "usage: $BASENAME known_hosts-file" >&2
-  exit 100
+  exit 64
 fi
 
 KHF=$1
@@ -36,7 +36,7 @@ ssh-hkutil -v $KHF - < $TMPKEYS > $TMPHOSTS || exit 1
 
 if [ ! -s $TMPHOSTS ]; then
   echo "error: no keys in temporary file" >&2
-  exit 1
+  exit 65
 fi
 
 cmp -s $KHF $TMPHOSTS

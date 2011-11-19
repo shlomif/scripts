@@ -5,10 +5,7 @@
 # of actual lilypond format, as that would require a lexer or writing up
 # something against a Parser::* or whatnot module.
 
-use strict;
-use warnings;
-
-my $group_size = shift || 4;
+$group_size = shift || 4;
 
 while (<>) {
   s/^\s+//;

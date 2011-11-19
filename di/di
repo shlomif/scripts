@@ -35,7 +35,7 @@ fi
 # Otherwise, hunt for diffs based on various conventions I use
 if [ $# -eq 0 ]; then
   echo "Usage: `basename $0` [file1 file2 .. fileN]" >&2
-  exit 1
+  exit 64
 else
   for input in "$@"; do
     if [ ! -f "$input" ]; then

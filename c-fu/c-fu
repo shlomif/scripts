@@ -41,7 +41,10 @@ my ( @defines, $c_template );
 #
 # MAIN
 
-die "Usage: $BASENAME [c-statement-1 c-stmt-2 ..|-]\n" unless @ARGV;
+unless (@ARGV) {
+  warn "Usage: $BASENAME [c-statement-1 c-stmt-2 ..|-]\n";
+  exit 64;
+}
 
 GetOptions(
   'show-code|l' => \$echo_code,

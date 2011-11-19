@@ -19,7 +19,8 @@ use Getopt::Std;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -45,7 +46,7 @@ if ( exists $opts{l} ) {
 
 if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
   print_help();
-  do_exit(100);
+  do_exit(64);
 }
 
 my %config = ParseConfig( -ConfigFile => $opts{f}, -LowerCaseNames => 1 );
@@ -55,7 +56,7 @@ if ( !defined $config{class} ) {
     'no classes defined in configuration',
     { file => $opts{f} }
   );
-  do_exit(103);
+  do_exit(78);
 }
 
 my $op_mode = shift || q{};
@@ -65,7 +66,7 @@ if ( !exists $actions{$op_mode} ) {
   remark( 'error', 'unknown mode',
     { allowed => join( q{,}, @actions ), mode => $op_mode } );
   print_help();
-  do_exit(101);
+  do_exit(78);
 }
 
 # where in the prefs to read expire, window handlers from
@@ -78,7 +79,7 @@ if ( !defined $report_ref ) {
     'class preferences not found',
     { class => $report_handler, file => $opts{f} }
   );
-  do_exit(103);
+  do_exit(78);
 }
 
 # lookup expiration date and other info via mode handler
@@ -87,7 +88,7 @@ my ( %time_param, %extra_param );
   my ( $time_ref, $extra_ref ) = $actions{$op_mode}->(@ARGV);
   if ( !defined $time_ref or !defined $time_ref->{expire_epoch} ) {
     remark( 'error', 'no expire date found' );
-    do_exit(105);
+    do_exit(78);
   }
   @time_param{ keys %$time_ref }   = values %$time_ref;
   @extra_param{ keys %$extra_ref } = values %$extra_ref;
@@ -124,7 +125,7 @@ if ( exists $report_ref->{window} ) {
       'unexpected reference type for window',
       { ref => ref $report_ref->{window}, file => $opts{f} }
     );
-    do_exit(104);
+    do_exit(78);
   }
 
   # build Windows to look at (sanity checks, duration conversion)
@@ -173,7 +174,7 @@ sub action_openssl_x509 {
   my $results = get_output(@command);
   if ( !defined $results ) {
     remark( 'error', 'no output returned', { command => "@command" } );
-    do_exit(106);
+    do_exit(70);
   }
 
   my ( %time_param, %cert_param );
@@ -212,7 +213,7 @@ sub action_certificate {
   my $results = get_output(@command);
   if ( !defined $results ) {
     remark( 'error', 'no output returned', { command => "@command" } );
-    do_exit(106);
+    do_exit(70);
   }
 
   my ( $tmp_fh, $filename );
@@ -226,7 +227,7 @@ sub action_certificate {
       'no temporary file created',
       ( $@ ? do { chomp $@; { errstr => $@ } } : {} )
     );
-    do_exit(107);
+    do_exit(73);
   }
 
   for my $line (@$results) {
@@ -347,7 +348,7 @@ UBLE: {
     last UBLE if $string =~ / \G $ /gcx;
 
     remark( 'error', 'unparseable token in string', { data => $string } );
-    do_exit(108);
+    do_exit(78);
   }
 
   return @tokens;
@@ -431,12 +432,12 @@ sub duration2seconds {
     }
   } else {
     remark( 'error', 'unknown characters in duration', { data => $tmpdur } );
-    do_exit(109);
+    do_exit(78);
   }
 
   unless ( defined $seconds and $seconds =~ m/^\d+$/ ) {
     remark( 'error', 'unable to parse duration', { data => $tmpdur } );
-    do_exit(109);
+    do_exit(78);
   }
 
   return $seconds;

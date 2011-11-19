@@ -12,7 +12,8 @@ my @gpg_sign_cmd =
   qw(gpg --passphrase-fd 0 --quiet --sign --detach-sign --armor);
 
 if ( !@ARGV ) {
-  die "Usage: $0 file [file2 ..]\n";
+  warn "Usage: $0 file [file2 ..]\n";
+  exit 64;
 }
 
 print "Passphrase: ";

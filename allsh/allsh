@@ -39,7 +39,7 @@ signalit () {
 
 if [ -z "$1" ]; then
   echo "usage: `basename $0` [shell statements|-]"
-  exit 1
+  exit 64
 fi
 
 # TODO test new expression first in a subshell to ensure it will work

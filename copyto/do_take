@@ -96,7 +96,7 @@ print $target_dir, "\n";
 
 sub print_usage {
   warn "usage: $0 file [file2 ...] dir\n";
-  exit 100;
+  exit 64;
 }
 
 sub remark {

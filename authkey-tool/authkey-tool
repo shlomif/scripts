@@ -29,7 +29,7 @@ my %opts;
 getopts( 'h?C:o:O:', \%opts );
 if ( exists $opts{'h'} or exists $opts{'?'} or !@ARGV ) {
   print_help();
-  exit 100;
+  exit 64;
 }
 
 # Various key property munging options
@@ -82,7 +82,7 @@ exit 0;
 
 # a generic help blarb
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts] keyfile1 [keyfile2 .. keyfileN]
 
 Options:
@@ -95,7 +95,6 @@ Options:
 
 Run perldoc(1) on this script for additional documentation.
 HELP
-  return 1;
 }
 
 __END__

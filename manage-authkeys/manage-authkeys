@@ -47,7 +47,7 @@ my %opts;
 getopts( 'h?f:l:aiq', \%opts );
 if ( exists $opts{'h'} or exists $opts{'?'} ) {
   print_help();
-  exit 100;
+  exit 64;
 }
 
 $auth_key_file = $opts{'f'} if exists $opts{'f'};
@@ -84,7 +84,7 @@ if ( exists $opts{'i'} ) {
 
 unless (@ARGV) {
   print_help();
-  exit 100;
+  exit 64;
 }
 
 # look for commands and deal with them
@@ -205,7 +205,7 @@ sub remark {
 
 # a generic help blarb
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [opts]
 
 Command interface to OpenSSH authorized_keys file.

@@ -12,7 +12,8 @@ use warnings;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -101,7 +102,7 @@ sub fisher_yates_shuffle {
 }
 
 sub print_help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] domain [domain2 ...]
 
 Returns MX server(s) for domain(s) in question.
@@ -117,7 +118,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 100;
+  exit 64;
 }
 
 __END__

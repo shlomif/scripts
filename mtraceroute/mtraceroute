@@ -23,7 +23,8 @@ $traceroute = '/usr/sbin/traceroute';
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
@@ -149,7 +150,7 @@ sub mean {
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 [options] [host1 host2 .. hostN]
 
 A mass tracerouter that summarizes the results.
@@ -160,7 +161,7 @@ Options:
 Run perldoc(1) on this script for more documentation.
 
 HELP
-  exit;
+  exit 64;
 }
 
 __END__

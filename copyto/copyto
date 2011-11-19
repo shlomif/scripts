@@ -69,7 +69,7 @@ getopts 'h?fmqd:', \%opts;
 
 if ( exists $opts{h} or exists $opts{'?'} or !@ARGV ) {
   print_help();
-  exit 100;
+  exit 64;
 }
 
 $opts{m} = 1 if $basename eq 'moveto';
@@ -152,7 +152,7 @@ my %files;
 
   if (@replacing) {
     remark( 'error', 'cannot replace', { files => join q{,}, @replacing } );
-    exit 104;
+    exit 73;
   }
 }
 
@@ -222,14 +222,14 @@ sub get_subversion_url {
   }
   if ( !defined $svn_url ) {
     remark( 'error', 'could not determine svn URL', { file => $file } );
-    exit 106;
+    exit 78;
   }
 
   return $svn_url;
 }
 
 sub print_help {
-  print <<"END_USAGE";
+  warn <<"END_USAGE";
 Usage: $basename [opts] file [file2 ...] dir
 
 Takes files into specified dir.

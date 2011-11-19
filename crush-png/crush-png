@@ -7,7 +7,7 @@
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` png-image [...]" >&2
-  exit 1
+  exit 64
 fi
 
 for file in "$@"; do

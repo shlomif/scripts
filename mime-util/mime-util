@@ -118,11 +118,11 @@ sub print_help {
     $usage = $param{usage};
   }
 
-  print <<"HELP";
+  warn <<"HELP";
 Usage: $0 $usage
 
 Utility to perform various MIME packing and unpacking operations.
 
 HELP
-  exit 100;
+  exit 64;
 }
