@@ -15,7 +15,7 @@ use IO::Handle;
 
 my $BASENAME         = basename($0);
 my @LILYPOND         = qw/lilypond/;
-my $LILYPOND_VERSION = '2.12.3';
+my $LILYPOND_VERSION = '2.12.0';
 my @MIDI_PLAYER      = qw/timidity/;
 my $MIDI_SUFFIX      = '.midi';
 my @CLEANUP_SUFFIX   = qw/ps pdf/;
