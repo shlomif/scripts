@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# dko like 'doko' in a certain language except easier to type. Handy to
+# see where are, use the resulting string for scp/rsync needs.
+
+echo `id -un`@`hostname`:`pwd`/
