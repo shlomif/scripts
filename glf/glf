@@ -4,28 +4,19 @@
 # to those that match a particular regular expression, or also
 # optionally reading the filenames from standard input.
 #
+# Run perldoc(1) on this script for additional documentation.
+#
 # Usage:  glf [regex] [directory|-]
 #
 #  glf
-#  glf ^
-#  glf ^ .                # these are equivalent usages. ^ is the fastest
-#                         # regex to match any filename.
-#
-# NOTE that the regex should usually be quoted, as the shell involved
-# may try to interpolate certain characters present the regex.
-#
-#  glf maillog /var/log   # return latest file whose name matches maillog
-#
-#  find /var/log -name "mail*" | glf    # supply filenames to search on
-#                                       # standard input
+#  glf '^'
+#  glf '^' .                # these are equivalent usages. ^ is the fastest
+#                           # regex to match any filename.
 #
 # NOTE that glf operates differently if the directory is not supplied,
 # depending on whether STDIN is connected to a terminal. Therefore, if
 # glf is run from cron, the full arguments should always be supplied, to
 # ensure that glf does not try to read from STDIN.
-#
-# perldoc perlre   For more information about the regular
-#                  expression syntax.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -118,3 +109,87 @@ sub handle_file {
     $latest_file  = $file;
   }
 }
+
+__END__
+
+=head1 NAME
+
+glf - get latest file
+
+=head1 SYNOPSIS
+
+Get the most recently modified file in the current working directory:
+
+  $ glf
+
+Or limit by regex:
+
+  $ glf '\.midi$'
+
+Or use some other directory besides the current one (searching for any
+file via the always-matches C<^> regex):
+
+  $ glf '^' /etc/
+
+Or pass the filenames in via standard input:
+
+  $ find /var/log -name "mail*" | glf
+
+=head1 DESCRIPTION
+
+Finds the most recently modified file, either in the current directory,
+optionally limited by a Perl regular expression, or from some other
+directory, or from a list of files supplied via standard input.
+
+  $ glf [regex] [directory|-]
+
+Equivalent invocations to list the most recently modified file in the
+current working directory:
+
+  $ glf
+  $ glf '^'
+  $ glf '^' .
+
+NOTE that glf operates differently if the directory is not supplied,
+depending on whether STDIN is connected to a terminal. Therefore, if
+glf is run from cron, the full arguments should always be supplied, to
+ensure that glf does not try to read from STDIN.
+
+=head1 EXAMPLES
+
+Adjust timidity(1) to play the most recent MIDI file if given no
+arguments (via a Z-Shell function):
+
+  function timidity {
+    if [[ -n "$1" ]]; then
+      command timidity "$@"
+    else
+      command timidity $(glf '\.midi' .)
+    fi
+  }
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+None.
+
+=head1 SEE ALSO
+
+prelretut(1), perlre(1)
+
+=head1 AUTHOR
+
+Jeremy Mates
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=cut
