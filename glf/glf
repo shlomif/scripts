@@ -168,6 +168,11 @@ arguments (via a Z-Shell function):
     fi
   }
 
+This, coupled with a Makefile to generate the music, allows
+invocations such as:
+
+  $ make && timitidy
+
 =head1 BUGS
 
 =head2 Reporting Bugs
