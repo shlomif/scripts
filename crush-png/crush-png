@@ -13,6 +13,7 @@ fi
 for file in "$@"; do
   TMPFILE=`mktemp .crush-png-tmp.XXXXXXXX` || exit 1
   pngcrush -brute -fix -reduce "$file" "$TMPFILE" 1>/dev/null || exit 1
+  chmod a+r "$TMPFILE"
   mv "$TMPFILE" "$file"
   
   # Undo name breakage Omnigraffle applies to PNG
