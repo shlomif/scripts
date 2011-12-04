@@ -14,11 +14,18 @@ Returns zero if files found; otherwise some non-zero value on error or if no fil
 
 The -? or -h options will show usage information. The -q option will mask what usually are just false alarms from glob(3).
 .SH ERRORS
-Diagnostics or usage notes are printed to standard error. Exit codes: 1 on invalid usage of the program, 2 if no files are found (and no other error occurred), 3 if input data exceeds an operating system limit, 4 due to unexpected returns from snprintf(3), 5 due to a glob failure (most likely permission denied or the like).
+Diagnostics or usage notes are printed to standard error. sysexits(3) exit codes are used where possible, though a 1 will be returned if nothing is found.
 .SH ENVIRONMENT
-PATH is used by default; any arbitrary colon-delimited environment variable can be used if specified as the second argument to the program. Directories passed via standard input must be specified one per line.
+PATH is used by default; any arbitrary colon-delimited environment variable can be used if specified as the second argument to the program. Note that certain environment variables are not exported to child processes. For example, the Z-Shell does not export FPATH, as that is internal to the ZSH completion system.
+
+.B $ export FPATH; findin _mplayer FPATH
+
+Directories passed via standard input must be specified one per line. Returning to the Z-Shell $fpath example, another solution would be:
+
+.B $ echo $fpath | tr ' ' '\\\\n' | findin _mplayer -
+
 .SH "SEE ALSO"
-find(1), findup(1), glob(3)
+find(1), findup(1), glob(3), sysexits(3)
 .SH BUGS
 No known issues.
 .SH AUTHOR
