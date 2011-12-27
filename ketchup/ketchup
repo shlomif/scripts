@@ -80,15 +80,15 @@ update_git () {
     echo "$PROG_NAME: running git status in $CURRENT_DIR" >&2
   fi
 
+  COMMAND=
   # third-party is standard area all non-my-project things get dumped into
-  GITCMD=
   if echo $CURRENT_DIR | grep third-party >/dev/null; then
-    GITCMD=pull
+    COMMAND="git pull"
   else
-    GITCMD=status
+    COMMAND="git status"
   fi
 
-  git $GITCMD
+  $COMMAND
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
     echo "$PROG_NAME: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR" >&2
