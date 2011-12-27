@@ -74,16 +74,26 @@ update_perforce () {
   p4 opened
 }
 
-# Only status for now, do not know enough about git to know what command
-# I would want to run for an update...
 update_git () {
   CURRENT_DIR=`pwd`
   if [ "$START_DIR" != "$CURRENT_DIR" ]; then
     echo "$PROG_NAME: running git status in $CURRENT_DIR" >&2
   fi
 
-  git status
-  # TODO no status checking, as 'git status' returns 1 in testing...
+  # third-party is standard area all non-my-project things get dumped into
+  GITCMD=
+  if echo $CURRENT_DIR | grep third-party >/dev/null; then
+    GITCMD=pull
+  else
+    GITCMD=status
+  fi
+
+  git $GITCMD
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo "$PROG_NAME: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR" >&2
+    EXIT_STATUS=$STATUS
+  fi
 }
 
 # figure out how to handle the directory in question
