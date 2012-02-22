@@ -96,8 +96,8 @@ if ( !$skip_midi ) {
   $exit_status = $? >> 8;
 }
 
-unlink $midi_fname;
 if ( !$save_layout ) {
+  unlink $midi_fname;
   unlink $src_fname;
   unlink "$src_fname.$_" for @CLEANUP_SUFFIX;
 }
