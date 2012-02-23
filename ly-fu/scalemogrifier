@@ -4,15 +4,33 @@
 # specified direction and so forth from other options. Default is The
 # Major Scale, but that's boring, so try things such as:
 #
-#   scalemogrifier --intervals='c cis dis e g' --length=12 f
+#   $ scalemogrifier --intervals='c d ees f g aes bes' --flats fis
+#   ges aes a b des d e ges
+#
+# For a Minor Scale. But that's also pretty boring compared to:
+#
+#   $ scalemogrifier --intervals='c cis dis e g' --length=12 f
+#   f fis gis a c cis dis e g gis ais b
 #
 # Or backwards:
 #
-#   scalemogrifier --dir=-1 --intervals='c cis dis e g' --length=12 f
+#   $ scalemogrifier --dir=-1 --intervals='c cis dis e g' --length=12 f
+#   f e d cis ais a g fis dis d c b
 #
 # Or backwards with the interval order reversed:
 #
-#   scalemogrifier --rev --dir=-1 --intervals='c cis dis e g' --length=12 f
+#   $ scalemogrifier --rev --dir=-1 --intervals='c cis dis e g' --length=12 f
+#   f d cis b ais g fis e dis c b a
+#
+# Or just plain made up with raw pitch numbers:
+#
+#   $ scalemogrifier --intervals=1,2,3,4 --raw --len=24
+#   0 1 3 6 10 11 13 16 20 21 23 26 30 31 33 36 40 41 43 46 50 51 53 56
+#
+# Or output probably not really a scale at all:
+#
+#   $ scalemogrifier --intervals=1,2,3,5 --dir=5 --no-leaps --len=12
+#   c f dis fis g c ais cis d g f gis
 #
 # Practical application of the results to music theory or composition
 # left as an exercise to the user. The output could be fed to `ly-fu`
@@ -22,13 +40,24 @@ use strict;
 use warnings;
 
 use Getopt::Long qw/GetOptions/;
+use Text::Wrap qw/wrap/;
 
-# For input/output
-my %note2num =
-  qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11);
-my %num2note;
-@num2note{ values %note2num } = keys %note2num;
-my @startnotes = sort { $note2num{$a} <=> $note2num{$b} } keys %note2num;
+# Accepted note names to pitch number for user input
+my %note2num = qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11
+  ces 11 des 1 ees 3 fes 4 ges 6 aes 8 bes 10 eis 5 bis 0);
+
+# Note names for program output
+my %num2note = (
+  'ly-sharp' =>
+    {qw/0 c 1 cis 2 d 3 dis 4 e 5 f 6 fis 7 g 8 gis 9 a 10 ais 11 b/},
+  'ly-flat' =>
+    {qw/0 c 1 des 2 d 3 ees 4 e 5 f 6 ges 7 g 8 aes 9 a 10 bes 11 b/},
+);
+my $num2note_flavor = 'ly-';
+
+# For lilypond relative notation mode direction preservation so that
+# leaps >4th don't cause a direction change in the output, unless the
+# --no-leaps option is used.
 my $segment_len = 7;
 
 # Not The Scale, but to map back to That Other Scale.
@@ -38,19 +67,23 @@ my @scale_intervals = qw(2 2 1 2 2 2 1);
 my $length          = 8;
 my $direction       = 1;
 my $in_reverse      = 0;
+my $leaps           = 1;
 
 GetOptions(
   'direction=i' => \$direction,
+  'flats'       => \my $use_flats,
   'help|h|?'    => \&print_help,
   'intervals=s' => \my $intervals,
+  'leaps!'      => \$leaps,
   'length=i'    => \$length,
+  'raw'         => \my $raw_output,
   'reverse'     => \$in_reverse,
 );
 
-my $start_note = shift || 'c';
+my $start_note = lc(shift) || 'c';
 if ( !exists $note2num{$start_note} ) {
-  warn "error: unknown start note: '$start_note' (try: @startnotes)\n";
-  die "Usage: $0 [options] startnote\n";
+  warn "error: unknown start note: '$start_note'\n";
+  print_help();
 }
 
 $direction = int($direction);
@@ -58,8 +91,10 @@ die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
 $length = int($length);
 die "error: length must be at least one\n" if $length < 1;
 
-@scale_intervals = names2intervalset( split /[\s,]+/, $intervals )
+@scale_intervals = names2intervalset( map lc, split /[\s,]+/, $intervals )
   if defined $intervals;
+
+$num2note_flavor .= $use_flats ? 'flat' : 'sharp';
 
 ########################################################################
 #
@@ -67,15 +102,19 @@ die "error: length must be at least one\n" if $length < 1;
 
 @scale_intervals = reverse @scale_intervals if $in_reverse;
 
-my $pitch = $note2num{$start_note};
+my $pitch      = $note2num{$start_note};
 my $prev_pitch = $pitch;
 for my $i ( 0 .. $length - 1 ) {
-  my $ly_leap = "";
-  if ($i > 0) {
-    my $delta = int( abs( $pitch - $prev_pitch ) / $segment_len );
-    $ly_leap = ($direction > 0 ? q{'} : q{,}) x $delta;
+  if ($raw_output) {
+    print $pitch;
+  } else {
+    my $ly_leap = "";
+    if ( $leaps and $i > 0 ) {
+      my $delta = int( abs( $pitch - $prev_pitch ) / $segment_len );
+      $ly_leap = ( $direction > 0 ? q{'} : q{,} ) x $delta;
+    }
+    print $num2note{$num2note_flavor}->{ $pitch % $DEG_IN_SCALE } . $ly_leap;
   }
-  print $num2note{ $pitch % $DEG_IN_SCALE } . $ly_leap;
   print " " if $i < $length - 1;
 
   $prev_pitch = $pitch;
@@ -101,7 +140,8 @@ sub names2intervalset {
   for my $i ( 0 .. $#input ) {
     if ( $input[$i] !~ m/^\d+$/ ) {
       if ( !exists $note2num{ $input[$i] } ) {
-        die "error: unknown note: '$input[$i]' (try: @startnotes)\n";
+        warn "error: unknown note: '$input[$i]'\n";
+        print_help();
       }
       $is_conversion = 1;
       push @iset, $note2num{ $input[$i] } - $prev_pitch if $i > 0;
@@ -114,12 +154,16 @@ sub names2intervalset {
 }
 
 sub print_help {
+  my @startnotes = sort { $note2num{$a} <=> $note2num{$b} } keys %note2num;
+  my $sc = wrap( '  ', '', @startnotes );
+
   warn <<"END_HELP";
 Usage: $0 [options] startnote
 
-Possible starting notes: @startnotes
+Possible starting notes:
+$sc
 
-Options:
+Options affecting input:
   --direction       Positive, scale goes up, negative, down. Magnitudes
                     greater than one multiply the interval, though this
                     behavior may be subject to change in the future.
@@ -127,7 +171,10 @@ Options:
   --length          How many notes to generate in output.
   --reverse         Reverses order of intervals.
 
-  --help|h|?        Print this message.
+Options affecting output:
+  --flats           Use flats in output, instead of default sharps.
+  --(no-)leaps      Do (not) support leaps in lilypond output.
+  --raw             Emit pitch numbers instead of note names.
 
 END_HELP
   exit 64;
