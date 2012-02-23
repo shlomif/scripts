@@ -27,7 +27,8 @@ my $partial     = q{};
 my $save_layout = 0;
 my $skip_midi   = 0;
 my ( $is_absolute, $repeats );
-my $prestaff = q{};
+my $prestaff    = q{};
+my $sleep_kluge = 0;
 
 ########################################################################
 #
@@ -38,6 +39,11 @@ unless (@ARGV) {
   exit 64;
 }
 
+if ( exists $ENV{'MIDI_EDITOR'} ) {
+  @MIDI_PLAYER = map { s{(?<!\\)\\}{}g; $_ } split /(?<!\\)\s+/,
+    $ENV{'MIDI_EDITOR'};
+}
+
 GetOptions(
   "absolute|abs|a" => \$is_absolute,
   "instrument|i=s" => \$instrument,
@@ -46,6 +52,7 @@ GetOptions(
   "relative|b=s"   => \$relative,
   "repeats|r=s"    => \$repeats,
   "silent|s"       => \$skip_midi,
+  "sleep|S=s"      => \$sleep_kluge,
   "tempo|t=s"      => \$tempo,
 );
 
@@ -92,11 +99,17 @@ my $exit_status = 0;
 system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
   or die "error: lilypond compile failed: $?\n";
 if ( !$skip_midi ) {
-  system( @MIDI_PLAYER, $midi_fname );
-  $exit_status = $? >> 8;
+  unless ( system( @MIDI_PLAYER, $midi_fname ) ) {
+    warn "warning: '@MIDI_PLAYER $midi_fname' failed: $?\n";
+    $exit_status = 70;
+  }
 }
 
 if ( !$save_layout ) {
+  # Finale.app can blow up if file unlinked from underneath it? So need
+  # this delay, or save the layout option set.
+  sleep int $sleep_kluge if !$save_layout and $sleep_kluge > 0;
+
   unlink $midi_fname;
   unlink $src_fname;
   unlink "$src_fname.$_" for @CLEANUP_SUFFIX;
