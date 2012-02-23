@@ -1,0 +1,142 @@
+#!/usr/bin/perl
+#
+# Generate notes of a scale from a specified starting note in a
+# specified direction and so forth from other options. Default is The
+# Major Scale, but that's boring, so try things such as:
+#
+#   scalemogrifier --intervals='c cis dis e g' --length=12 f
+#
+# Or backwards:
+#
+#   scalemogrifier --dir=-1 --intervals='c cis dis e g' --length=12 f
+#
+# Or backwards with the interval order reversed:
+#
+#   scalemogrifier --rev --dir=-1 --intervals='c cis dis e g' --length=12 f
+#
+# Practical application of the results to music theory or composition
+# left as an exercise to the user. The output could be fed to `ly-fu`
+# for playback or incorporation into a lilypond document.
+
+use strict;
+use warnings;
+
+use Getopt::Long qw/GetOptions/;
+
+# For input/output
+my %note2num =
+  qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11);
+my %num2note;
+@num2note{ values %note2num } = keys %note2num;
+my @startnotes = sort { $note2num{$a} <=> $note2num{$b} } keys %note2num;
+my $segment_len = 7;
+
+# Not The Scale, but to map back to That Other Scale.
+my $DEG_IN_SCALE = 12;
+
+my @scale_intervals = qw(2 2 1 2 2 2 1);
+my $length          = 8;
+my $direction       = 1;
+my $in_reverse      = 0;
+
+GetOptions(
+  'direction=i' => \$direction,
+  'help|h|?'    => \&print_help,
+  'intervals=s' => \my $intervals,
+  'length=i'    => \$length,
+  'reverse'     => \$in_reverse,
+);
+
+my $start_note = shift || 'c';
+if ( !exists $note2num{$start_note} ) {
+  warn "error: unknown start note: '$start_note' (try: @startnotes)\n";
+  die "Usage: $0 [options] startnote\n";
+}
+
+$direction = int($direction);
+die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
+$length = int($length);
+die "error: length must be at least one\n" if $length < 1;
+
+@scale_intervals = names2intervalset( split /[\s,]+/, $intervals )
+  if defined $intervals;
+
+########################################################################
+#
+# MAIN
+
+@scale_intervals = reverse @scale_intervals if $in_reverse;
+
+my $pitch = $note2num{$start_note};
+my $prev_pitch = $pitch;
+for my $i ( 0 .. $length - 1 ) {
+  my $ly_leap = "";
+  if ($i > 0) {
+    my $delta = int( abs( $pitch - $prev_pitch ) / $segment_len );
+    $ly_leap = ($direction > 0 ? q{'} : q{,}) x $delta;
+  }
+  print $num2note{ $pitch % $DEG_IN_SCALE } . $ly_leap;
+  print " " if $i < $length - 1;
+
+  $prev_pitch = $pitch;
+  $pitch += $scale_intervals[ $i % @scale_intervals ] * $direction;
+}
+print "\n";
+
+exit 0;
+
+########################################################################
+#
+# SUBROUTINES
+
+# Convert between intput of 'c cis dis e g' to numeric interval set, so
+# user can input arbitrary scales using note names. (Mixing note names
+# and interval numbers is not supported.)
+sub names2intervalset {
+  my @input = @_;
+  my @iset;
+  my $is_conversion = 0;
+
+  my $prev_pitch;
+  for my $i ( 0 .. $#input ) {
+    if ( $input[$i] !~ m/^\d+$/ ) {
+      if ( !exists $note2num{ $input[$i] } ) {
+        die "error: unknown note: '$input[$i]' (try: @startnotes)\n";
+      }
+      $is_conversion = 1;
+      push @iset, $note2num{ $input[$i] } - $prev_pitch if $i > 0;
+      $prev_pitch = $note2num{ $input[$i] };
+    }
+  }
+
+  @iset = @input unless $is_conversion;
+  return @iset;
+}
+
+sub print_help {
+  warn <<"END_HELP";
+Usage: $0 [options] startnote
+
+Possible starting notes: @startnotes
+
+Options:
+  --direction       Positive, scale goes up, negative, down. Magnitudes
+                    greater than one multiply the interval, though this
+                    behavior may be subject to change in the future.
+  --intervals       List of intervals or notes of the scale.
+  --length          How many notes to generate in output.
+  --reverse         Reverses order of intervals.
+
+  --help|h|?        Print this message.
+
+END_HELP
+  exit 64;
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
+}
