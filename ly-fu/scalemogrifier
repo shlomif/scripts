@@ -25,7 +25,7 @@
 #
 # Or output probably not really a scale at all:
 #
-#   $ scalemogrifier --intervals=1,2,3,5 --dir=5 --relative --len=12
+#   $ scalemogrifier --intervals=1,2,3,5 --dir=5 --relative --len=16
 #
 # Practical application of the results to music theory or composition
 # left as an exercise to the user. The output could be fed to `ly-fu --abs`
