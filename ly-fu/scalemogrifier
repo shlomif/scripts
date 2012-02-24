@@ -108,6 +108,11 @@ for my $i ( 0 .. $length - 1 ) {
   if ($raw_output) {
     print $pitch;
   } else {
+# okay lilypond isn't going to make it so easy :(
+# c g   - needs ' - d.7
+# c fis - plain   - d.6
+# fis c - needs ' - d.6
+# fis bis - plain - d.6
     my $ly_leap = "";
     if ( $leaps and $i > 0 ) {
       my $delta = int( abs( $pitch - $prev_pitch ) / $segment_len );
