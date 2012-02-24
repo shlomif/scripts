@@ -164,8 +164,8 @@ Options affecting input:
 
 Options affecting output:
   --flats           Use flats in output, instead of default sharps.
-  --(no-)leaps      Do (not) support leaps in lilypond output.
   --raw             Emit pitch numbers instead of note names.
+  --relative        Use relative lilypond output (default: absolute).
 
 END_HELP
   exit 64;
