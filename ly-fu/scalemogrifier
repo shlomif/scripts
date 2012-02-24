@@ -1,39 +1,34 @@
 #!/usr/bin/perl
 #
-# Generate notes of a scale from a specified starting note in a
-# specified direction and so forth from other options. Default is The
-# Major Scale, but that's boring, so try things such as:
+# Generate notes of a scale (a subset of the Western 12-tone chromatic
+# system) from a specified starting note in a specified direction and so
+# forth from other options. Default is The Major Scale, but that's
+# boring, so try things such as:
 #
 #   $ scalemogrifier --intervals='c d ees f g aes bes' --flats fis
-#   ges aes a b des d e ges
 #
 # For a Minor Scale. But that's also pretty boring compared to:
 #
 #   $ scalemogrifier --intervals='c cis dis e g' --length=12 f
-#   f fis gis a c cis dis e g gis ais b
 #
 # Or backwards:
 #
 #   $ scalemogrifier --dir=-1 --intervals='c cis dis e g' --length=12 f
-#   f e d cis ais a g fis dis d c b
 #
 # Or backwards with the interval order reversed:
 #
 #   $ scalemogrifier --rev --dir=-1 --intervals='c cis dis e g' --length=12 f
-#   f d cis b ais g fis e dis c b a
 #
 # Or just plain made up with raw pitch numbers:
 #
 #   $ scalemogrifier --intervals=1,2,3,4 --raw --len=24
-#   0 1 3 6 10 11 13 16 20 21 23 26 30 31 33 36 40 41 43 46 50 51 53 56
 #
 # Or output probably not really a scale at all:
 #
-#   $ scalemogrifier --intervals=1,2,3,5 --dir=5 --no-leaps --len=12
-#   c f dis fis g c ais cis d g f gis
+#   $ scalemogrifier --intervals=1,2,3,5 --dir=5 --relative --len=12
 #
 # Practical application of the results to music theory or composition
-# left as an exercise to the user. The output could be fed to `ly-fu`
+# left as an exercise to the user. The output could be fed to `ly-fu --abs`
 # for playback or incorporation into a lilypond document.
 
 use strict;
@@ -55,11 +50,6 @@ my %num2note = (
 );
 my $num2note_flavor = 'ly-';
 
-# For lilypond relative notation mode direction preservation so that
-# leaps >4th don't cause a direction change in the output, unless the
-# --no-leaps option is used.
-my $segment_len = 7;
-
 # Not The Scale, but to map back to That Other Scale.
 my $DEG_IN_SCALE = 12;
 
@@ -67,14 +57,14 @@ my @scale_intervals = qw(2 2 1 2 2 2 1);
 my $length          = 8;
 my $direction       = 1;
 my $in_reverse      = 0;
-my $leaps           = 1;
+my $relative        = 0;
 
 GetOptions(
   'direction=i' => \$direction,
   'flats'       => \my $use_flats,
   'help|h|?'    => \&print_help,
   'intervals=s' => \my $intervals,
-  'leaps!'      => \$leaps,
+  'relative'    => \$relative,
   'length=i'    => \$length,
   'raw'         => \my $raw_output,
   'reverse'     => \$in_reverse,
@@ -108,17 +98,13 @@ for my $i ( 0 .. $length - 1 ) {
   if ($raw_output) {
     print $pitch;
   } else {
-# okay lilypond isn't going to make it so easy :(
-# c g   - needs ' - d.7
-# c fis - plain   - d.6
-# fis c - needs ' - d.6
-# fis bis - plain - d.6
-    my $ly_leap = "";
-    if ( $leaps and $i > 0 ) {
-      my $delta = int( abs( $pitch - $prev_pitch ) / $segment_len );
-      $ly_leap = ( $direction > 0 ? q{'} : q{,} ) x $delta;
+    my $ly_reg = "";
+    if ( !$relative and $i > 0 ) {
+      my $delta = $pitch / $DEG_IN_SCALE;
+      $ly_reg = ( $direction > 0 ? q{'} : q{,} ) x $delta;
     }
-    print $num2note{$num2note_flavor}->{ $pitch % $DEG_IN_SCALE } . $ly_leap;
+
+    print $num2note{$num2note_flavor}->{ $pitch % $DEG_IN_SCALE } . $ly_reg;
   }
   print " " if $i < $length - 1;
 
