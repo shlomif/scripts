@@ -434,88 +434,38 @@ the value.
   # http://foo.example.org/bar
   example http://%1.example.org/%2
 
+  af      http://www.acronymfinder.com/
+  af@     http://www.acronymfinder.com/af-query.asp?String=exact&Acronym=%1&Find=Find
+
   # sample shortcuts. A trailing @ is required for parameters that will
   # have macro expansion done on them.
   amazon  http://amazon.com/
-  amazon@ http://amazon.com/exec/obidos/external-search/?mode=blended&keyword=%@
+  amazon@ http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=%@
+  asin@   http://www.amazon.com/o/ASIN/%1
+  isbn@   http://www.amazon.com/o/ASIN/%1
 
-  arin    http://ws.arin.net/
-  arin@   http://ws.arin.net/cgi-bin/whois.pl?queryinput=%@
+  cpan    http://search.metacpan.org/
+  cpan@   https://metacpan.org/search?q=%@
 
-  cpan    http://search.cpan.org/
-  cpan@   http://search.cpan.org/search?query=%@&mode=all
+  ddg@    https://duckduckgo.com/html?q=%@
 
-  d@      http://dictionary.reference.com/search?db=*&q=%@
+  # But only on Mac OS X...
+  d@      dict://%1
 
-  dp@     http://www.dogpile.com/info.dogpl/search/web/%@
-
-  dnsr    http://www.DNSreport.com/
-  dnsr@   http://www.DNSreport.com/tools/dnsreport.ch?domain=%@
-
-  fm@     http://freshmeat.net/search/?q=%@
-
-  fr      http://froogle.google.com/
-  fr@     http://froogle.google.com/froogle?q=%@
-  g       http://google.com/
-  g@      http://google.com/search?num=30&lr=lang_en&q=%@
-  gg      http://groups.google.com/advanced_group_search
-  gi      http://images.google.com/
-  gi@     http://images.google.com/images?q=%@
-  gja     http://www.google.co.jp/
-  gja@    http://www.google.co.jp/search?num=100&lr=lang_en&q=%@
-  gn      http://news.google.com/
-  gn@     http://news.google.com/news?q=%@
-
-  mac     http://www.coffer.com/mac_find/
-  mac@    http://www.coffer.com/mac_find/?string=%@
+  imdb    http://www.imdb.com/
+  imdb@   http://www.imdb.com/find?s=all&q=%@
 
   man     http://www.FreeBSD.org/cgi/man.cgi
   man@    http://www.FreeBSD.org/cgi/man.cgi?query=%1
 
-  mapq@   http://www.mapquest.com/
-  mapq@   http://www.mapquest.com/maps/map.adp?fakeTab.x=0&fakeTab.y=0&country=US&countryid=250&addtohistory=&searchtab=address&searchtype=address&address=%1&city=%2&state=%3&zipcode=%4
+  oeis    https://oeis.org/
+  oeis@   https://oeis.org/search?q=%@
 
-  metro   http://transit.metrokc.gov/
-  metro@  http://transit.metrokc.gov/cftemplates/show_schedule.cfm?BUS_ROUTE=%1
-  metroplan       http://tripplanner.metrokc.gov/cgi-bin/itin_page.pl?resptype=U
-
-  msn@    http://search.msn.com/results.aspx?q=%@&FORM=MSNH&srch_type=0
-
-  news    http://news.google.com/
-
-  nut     http://www.nal.usda.gov/fnic/cgi-bin/nut_search.pl
-  nut@    http://www.nal.usda.gov/fnic/cgi-bin/nut_search.pl?%@
-
-  ordb@   http://www.ordb.org/lookup/?host=%1
-
-  perldoc@        http://search.cpan.org/perldoc/%1
+  perldoc@        http://perldoc.perl.org/%1.html
   perlfunc@       http://perldoc.perl.org/functions/%1.html
-  pm      http://www.perlmonks.org/
-  pm@     http://www.perlmonks.org/index.pl?node=%@&go_button=Search
+  perldist@       https://metacpan.org/release/%1
+  rfc@    http://www.faqs.org/rfcs/rfc%1.html
 
-  ripe    http://www.ripe.net/ripencc/pub-services/db/whois/whois.html
-  ripe@   http://www.ripe.net/perl/whois?form_type=simple&full_query_string=&searchtext=%@&do_search=Search
-
-  sbl     http://www.spamhaus.org/SBL
-  sbl@    http://www.spamhaus.org/query/bl?ip=%1
-
-  t@      http://www.thesaurus.com/cgi-bin/search?config=roget&words=%@
-
-  v       http://validator.w3.org/
-  v@      http://validator.w3.org/check?uri=%@
-
-  vt      http://www.versiontracker.com/macosx/
-  vt@     http://www.versiontracker.com/php/search.php?mode=basic&action=search&str=%@&plt%5B%5D=macosx&x=0&y=0
-
-  w3      http://www.w3.org/
-  wikiq   http://en.wikiquote.org/
-  wikiq@  http://en.wikiquote.org/wiki/Special:Search?search=%@&go=Go
-  wp      http://en.wikipedia.org/
-  wp@     http://en.wikipedia.org/wiki/Special:Search?search=%@&go=Go
-  wikit   http://en.wiktionary.org/
-  wikit@  http://en.wiktionary.org/wiki/Special:Search?search=%@&go=Go
-
-  y@      http://search.yahoo.com/search?p=%@&sm=Yahoo%21+Search&fr=FP-tab-web-t&toggle=1&cop=&ei=UTF-8
   # example config END
 
 =head1 DIRECTORY MAPS
