@@ -111,7 +111,8 @@ for my $i ( 0 .. $length - 1 ) {
     my $ly_reg = "";
     if ( !$relative and $i > 0 ) {
       if ( $pitch < 0 ) {
-        $ly_reg = q{,} x ( ( abs($pitch) + $DEG_IN_SCALE ) / $DEG_IN_SCALE );
+        $ly_reg =
+          q{,} x ( ( abs($pitch) + $DEG_IN_SCALE - 1 ) / $DEG_IN_SCALE );
       } elsif ( $pitch >= $DEG_IN_SCALE ) {
         $ly_reg = q{'} x ( $pitch / $DEG_IN_SCALE );
       }
