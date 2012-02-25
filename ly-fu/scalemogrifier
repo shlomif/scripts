@@ -34,6 +34,8 @@
 # Practical application of the results to music theory or composition
 # left as an exercise to the user. The output could be fed to `ly-fu --abs`
 # for playback or incorporation into a lilypond document.
+#
+# Consider http://oeis.org/ to lookup or find interesting interval sets.
 
 use strict;
 use warnings;
