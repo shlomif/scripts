@@ -35,7 +35,11 @@
 # left as an exercise to the user. The output could be fed to `ly-fu --abs`
 # for playback or incorporation into a lilypond document.
 #
-# Consider http://oeis.org/ to lookup or find interesting interval sets.
+# Consider http://oeis.org/ to lookup or find interesting interval sets;
+# for example, search for the major interval sequence for numeric
+# sequences that contain it:
+#
+# http://oeis.org/search?q=2,2,1,2,2,2,1
 
 use strict;
 use warnings;
