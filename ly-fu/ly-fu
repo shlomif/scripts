@@ -26,7 +26,7 @@ my $SCORE_SUFFIX = '.pdf';
 my @CLEANUP_SUFFIX = qw/ps pdf/;
 
 my $tempo       = 130;
-my $instrument  = "Piano";
+my $instrument  = "acoustic grand";
 my $do_open     = 0;
 my $relative    = q{c'};
 my $partial     = q{};
