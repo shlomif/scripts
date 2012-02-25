@@ -2,12 +2,12 @@
 #
 # Generate notes of a scale (a subset of the Western 12-tone chromatic
 # system) from a specified starting note in a specified direction and so
-# forth from other options. Default is The Major Scale, but that's
-# boring, so try things such as:
+# forth from other options. Default is The Major Scale, but that's easy
+# to adjust:
 #
 #   $ scalemogrifier --intervals='c d ees f g aes bes' --flats fis
 #
-# For a Minor Scale. But that's also pretty boring compared to:
+# Or to more exotic territory:
 #
 #   $ scalemogrifier --intervals='c cis dis e g' --length=12 f
 #
@@ -23,9 +23,13 @@
 #
 #   $ scalemogrifier --intervals=1,2,3,4 --raw --len=24
 #
-# Or output probably not really a scale at all:
+# Or output not really a scale at all:
 #
-#   $ scalemogrifier --intervals=1,2,3,5 --dir=5 --relative --len=16
+#   $ scalemogrifier --intervals=1,2,3,5,7 --dir=53 --relative --len=24
+#
+# Or even sequences, such as down a 4th and up a 5th:
+#
+#   $ scalemogrifier --intervals=-5,7 --len=24 c
 #
 # Practical application of the results to music theory or composition
 # left as an exercise to the user. The output could be fed to `ly-fu --abs`
@@ -100,8 +104,11 @@ for my $i ( 0 .. $length - 1 ) {
   } else {
     my $ly_reg = "";
     if ( !$relative and $i > 0 ) {
-      my $delta = $pitch / $DEG_IN_SCALE;
-      $ly_reg = ( $direction > 0 ? q{'} : q{,} ) x $delta;
+      if ( $pitch < 0 ) {
+        $ly_reg = q{,} x ( ( abs($pitch) + $DEG_IN_SCALE ) / $DEG_IN_SCALE );
+      } elsif ( $pitch >= $DEG_IN_SCALE ) {
+        $ly_reg = q{'} x ( $pitch / $DEG_IN_SCALE );
+      }
     }
 
     print $num2note{$num2note_flavor}->{ $pitch % $DEG_IN_SCALE } . $ly_reg;
@@ -129,7 +136,7 @@ sub names2intervalset {
 
   my $prev_pitch;
   for my $i ( 0 .. $#input ) {
-    if ( $input[$i] !~ m/^\d+$/ ) {
+    if ( $input[$i] !~ m/^-?\d+$/ ) {
       if ( !exists $note2num{ $input[$i] } ) {
         warn "error: unknown note: '$input[$i]'\n";
         print_help();
