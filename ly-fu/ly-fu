@@ -84,6 +84,9 @@ $prestaff = "\\relative $relative" unless $is_absolute;
 
 my $ly_template = <<"END_TMPL";
 \\version "$LILYPOND_VERSION"
+\\header {
+  title = "ly-fu generated output"
+}
 \\score {
   \\new Staff << $prestaff {
     \\set Staff.midiInstrument = #"$instrument"
