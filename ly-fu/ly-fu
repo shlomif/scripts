@@ -13,15 +13,21 @@ use File::Temp qw/tempfile/;
 use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
-my $BASENAME         = basename($0);
+my $BASENAME = basename($0);
+
 my @LILYPOND         = qw/lilypond/;
 my $LILYPOND_VERSION = '2.12.0';
-my @MIDI_PLAYER      = qw/timidity/;
-my $MIDI_SUFFIX      = '.midi';
-my @CLEANUP_SUFFIX   = qw/ps pdf/;
+
+my @MIDI_PLAYER  = qw/timidity/;
+my $MIDI_SUFFIX  = '.midi';
+my @SCORE_READER = qw/open -a Preview.app/;
+my $SCORE_SUFFIX = '.pdf';
+
+my @CLEANUP_SUFFIX = qw/ps pdf/;
 
 my $tempo       = 130;
 my $instrument  = "Piano";
+my $do_open     = 0;
 my $relative    = q{c'};
 my $partial     = q{};
 my $save_layout = 0;
@@ -34,10 +40,7 @@ my $sleep_kluge = 0;
 #
 # MAIN
 
-unless (@ARGV) {
-  warn "Usage: $BASENAME [note1 note2 ..|-]\n";
-  exit 64;
-}
+print_help() unless @ARGV;
 
 if ( exists $ENV{'MIDI_EDITOR'} ) {
   @MIDI_PLAYER = map { s{(?<!\\)\\}{}g; $_ } split /(?<!\\)\s+/,
@@ -46,8 +49,10 @@ if ( exists $ENV{'MIDI_EDITOR'} ) {
 
 GetOptions(
   "absolute|abs|a" => \$is_absolute,
+  'help|h|?'       => \&print_help,
   "instrument|i=s" => \$instrument,
   "layout|l"       => \$save_layout,
+  "open"           => \$do_open,
   "partial|p=s"    => \$partial,
   "relative|b=s"   => \$relative,
   "repeats|r=s"    => \$repeats,
@@ -56,6 +61,7 @@ GetOptions(
   "tempo|t=s"      => \$tempo,
 );
 
+$save_layout = 1 if $do_open;
 push @LILYPOND, '--pdf' if $save_layout;
 
 my ( $src_fh, $src_fname ) = tempfile(
@@ -63,7 +69,8 @@ my ( $src_fh, $src_fname ) = tempfile(
   DIR    => File::Spec->tmpdir,
   UNLINK => 0
 );
-my $midi_fname = $src_fname . $MIDI_SUFFIX;
+my $midi_fname  = $src_fname . $MIDI_SUFFIX;
+my $score_fname = $src_fname . $SCORE_SUFFIX;
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
   chomp( @ARGV = <STDIN> );
@@ -105,6 +112,8 @@ if ( !$skip_midi ) {
   }
 }
 
+system( @SCORE_READER, $score_fname ) if $do_open;
+
 if ( !$save_layout ) {
   # Finale.app can blow up if file unlinked from underneath it? So need
   # this delay, or save the layout option set.
@@ -114,4 +123,32 @@ if ( !$save_layout ) {
   unlink $src_fname;
   unlink "$src_fname.$_" for @CLEANUP_SUFFIX;
 }
+
 exit $exit_status;
+
+########################################################################
+#
+# SUBROUTINES
+
+sub print_help {
+  warn <<"END_HELP";
+Usage: $0 [options] "lilypond input" "more input" ...
+
+The lilypond input will likely need to be quoted as lilypond input may
+clash with various shell metacharacters.
+
+  --absolute      Notation assumed to be absolute.
+  --instrument    Set MIDI instrument (see lilypond docs).
+  --partial|p     Lilypond fragment played once at beginning.
+  --relative|b    Specify what not input is relative to.
+  --repeats|r     How many times to repeat the lilypond input.
+  --tempo|t       Set a tempo for the music.
+
+  --layout|l      Save the MIDI and other various files.
+  --open          Show the score in some sort of viewer.
+  --silent|s      Skip generating MIDI.
+  --sleep|S       Sleep before unlink of various tmp files.
+
+END_HELP
+  exit 64;
+}
