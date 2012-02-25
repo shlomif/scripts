@@ -108,14 +108,16 @@ my $exit_status = 0;
 # used by this script (glob for it if it can be dynamic).
 system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
   or die "error: lilypond compile failed: $?\n";
-if ( !$skip_midi ) {
-  unless ( system( @MIDI_PLAYER, $midi_fname ) ) {
-    warn "warning: '@MIDI_PLAYER $midi_fname' failed: $?\n";
-    $exit_status = 70;
-  }
-}
 
 system( @SCORE_READER, $score_fname ) if $do_open;
+
+if ( !$skip_midi ) {
+  unless ( system( @MIDI_PLAYER, $midi_fname ) ) {
+# False positives from timidity :/
+#   warn "warning: '@MIDI_PLAYER $midi_fname' failed: $?\n";
+#   $exit_status = 70;
+  }
+}
 
 if ( !$save_layout ) {
   # Finale.app can blow up if file unlinked from underneath it? So need
