@@ -41,10 +41,13 @@
 #
 # http://oeis.org/search?q=2,2,1,2,2,2,1
 
+# TODO --ois plus custom startnote is buggy
+
 use strict;
 use warnings;
 
 use Getopt::Long qw/GetOptions/;
+use List::Util qw/sum/;
 use Text::Wrap qw/wrap/;
 
 # Accepted note names to pitch number for user input
@@ -69,16 +72,25 @@ my $direction       = 1;
 my $in_reverse      = 0;
 my $relative        = 0;
 
+my $output_delimiter = " ";
+my ( @output_intervals, $output_sum );
+
+########################################################################
+#
+# MAIN
+
 GetOptions(
-  'direction=i' => \$direction,
-  'flats'       => \my $use_flats,
-  'help|h|?'    => \&print_help,
-  'intervals=s' => \my $intervals,
-  'relative'    => \$relative,
-  'length=i'    => \$length,
-  'raw'         => \my $raw_output,
-  'reverse'     => \$in_reverse,
-);
+  'direction=i'            => \$direction,
+  'flats'                  => \my $use_flats,
+  'help|h|?'               => \&print_help,
+  'intervals=s'            => \my $intervals,
+  'ors=s'                  => \$output_delimiter,
+  'output_intervals|ois=s' => \my $output_intervals,
+  'relative'               => \$relative,
+  'length=i'               => \$length,
+  'raw'                    => \my $raw_output,
+  'reverse'                => \$in_reverse,
+) || die "error: could not parse options\n";
 
 my $start_note = lc(shift) || 'c';
 if ( !exists $note2num{$start_note} ) {
@@ -94,33 +106,49 @@ die "error: length must be at least one\n" if $length < 1;
 @scale_intervals = names2intervalset( map lc, split /[\s,]+/, $intervals )
   if defined $intervals;
 
-$num2note_flavor .= $use_flats ? 'flat' : 'sharp';
+if ( defined $output_intervals ) {
+  my @output_args = map lc, split /[\s,]+/, $output_intervals;
+  @output_intervals = names2intervalset(@output_args);
+  $output_sum       = sum @output_intervals;
+}
+$output_delimiter =~ s/(\\.)/qq!"$1"!/eeg;
 
-########################################################################
-#
-# MAIN
+$num2note_flavor .= $use_flats ? 'flat' : 'sharp';
 
 @scale_intervals = reverse @scale_intervals if $in_reverse;
 
 my $pitch      = $note2num{$start_note};
 my $prev_pitch = $pitch;
+
 for my $i ( 0 .. $length - 1 ) {
-  if ($raw_output) {
-    print $pitch;
-  } else {
-    my $ly_reg = "";
+  if ( !$raw_output ) {
+    my $output_pitch     = $pitch;
+    my $normalized_pitch = $output_pitch % $DEG_IN_SCALE;
+    my $ly_reg           = "";
+
+    if (@output_intervals) {
+      my $pitch_reg = int( $output_pitch / @output_intervals );    # XXX buggy
+      my $pitch_mod = $output_pitch % @output_intervals - 1;
+
+      $output_pitch = $pitch_reg * $output_sum +
+        ( $pitch_mod >= 0 ? sum( @output_intervals[ 0 .. $pitch_mod ] ) : 0 );
+      $normalized_pitch = $output_pitch % $DEG_IN_SCALE;
+    }
+
     if ( !$relative and $i > 0 ) {
-      if ( $pitch < 0 ) {
-        $ly_reg =
-          q{,} x ( ( abs($pitch) + $DEG_IN_SCALE - 1 ) / $DEG_IN_SCALE );
-      } elsif ( $pitch >= $DEG_IN_SCALE ) {
-        $ly_reg = q{'} x ( $pitch / $DEG_IN_SCALE );
+      if ( $output_pitch < 0 ) {
+        $ly_reg = q{,} x
+          ( ( abs($output_pitch) + $DEG_IN_SCALE - 1 ) / $DEG_IN_SCALE );
+      } elsif ( $output_pitch >= $DEG_IN_SCALE ) {
+        $ly_reg = q{'} x ( $output_pitch / $DEG_IN_SCALE );
       }
     }
 
-    print $num2note{$num2note_flavor}->{ $pitch % $DEG_IN_SCALE } . $ly_reg;
+    print $num2note{$num2note_flavor}->{$normalized_pitch}, $ly_reg;
+  } else {
+    print $pitch;
   }
-  print " " if $i < $length - 1;
+  print $output_delimiter if $i < $length - 1;
 
   $prev_pitch = $pitch;
   $pitch += $scale_intervals[ $i % @scale_intervals ] * $direction;
@@ -142,14 +170,22 @@ sub names2intervalset {
   my $is_conversion = 0;
 
   my $prev_pitch;
-  for my $i ( 0 .. $#input ) {
+  # NOTE , 0 addition to loop is to complete the scale back to the
+  # starting note
+  for my $i ( 0 .. $#input, 0 ) {
     if ( $input[$i] !~ m/^-?\d+$/ ) {
       if ( !exists $note2num{ $input[$i] } ) {
         warn "error: unknown note: '$input[$i]'\n";
         print_help();
       }
       $is_conversion = 1;
-      push @iset, $note2num{ $input[$i] } - $prev_pitch if $i > 0;
+      if ( defined $prev_pitch ) {
+        my $delta = $note2num{ $input[$i] } - $prev_pitch;
+        if ( abs($delta) > $DEG_IN_SCALE / 2 ) {
+          $delta = ( $DEG_IN_SCALE - abs($delta) ) * ( $delta > 0 ? -1 : 1 );
+        }
+        push @iset, $delta;
+      }
       $prev_pitch = $note2num{ $input[$i] };
     }
   }
@@ -178,8 +214,11 @@ Options affecting input:
 
 Options affecting output:
   --flats           Use flats in output, instead of default sharps.
+  --ois             Custom scale or interval set output will be mapped into.
+  --ors             What will be printed between output elements.
+                    Defaults to the space character.
   --raw             Emit pitch numbers instead of note names.
-  --relative        Use relative lilypond output (default: absolute).
+  --relative        Generate relative lilypond output (default: absolute).
 
 END_HELP
   exit 64;
