@@ -33,6 +33,11 @@
 #
 #   $ scalemogrifier --intervals=-5,7 --len=24 c
 #
+# Or the scale generated can be fed back into a different output scale:
+#
+#   $ scalemogrifier --intervals='c cis dis e g' --ois='aes bes ces ees fes l' \
+#       --len=48 --flats --rel
+#
 # Practical application of the results to music theory or composition
 # left as an exercise to the user. The output could be fed to `ly-fu --abs`
 # for playback or incorporation into a lilypond document.
