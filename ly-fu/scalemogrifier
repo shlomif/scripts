@@ -5,13 +5,15 @@
 # forth from other options. Default is The Major Scale, but that's easy
 # to adjust:
 #
-#   $ scalemogrifier --intervals='c d ees f g aes bes' --flats fis
+#   $ scalemogrifier --intervals='c d ees f g aes bes l' --flats fis
 #
-# Or to more exotic territory:
+# The special 'l' is necessary to make the scale loop back to itself (to
+# the next higher c in this case). This is because scales might not loop
+# back to the starting note within one iteration:
 #
 #   $ scalemogrifier --intervals='c cis dis e g' --length=12 f
 #
-# Or backwards:
+# Scales can also be rendered backwards:
 #
 #   $ scalemogrifier --dir=-1 --intervals='c cis dis e g' --length=12 f
 #
@@ -167,12 +169,18 @@ exit 0;
 sub names2intervalset {
   my @input = @_;
   my @iset;
-  my $is_conversion = 0;
+  my $is_conversion      = 0;
+  my $is_complete_octave = 0;
+
+  if ( $input[-1] =~ m/l/ ) {
+    $is_complete_octave = 1;
+    pop @input;
+  }
+  my @indexes = 0 .. $#input;
+  push @indexes, 0 if $is_complete_octave;
 
   my $prev_pitch;
-  # NOTE , 0 addition to loop is to complete the scale back to the
-  # starting note
-  for my $i ( 0 .. $#input, 0 ) {
+  for my $i (@indexes) {
     if ( $input[$i] !~ m/^-?\d+$/ ) {
       if ( !exists $note2num{ $input[$i] } ) {
         warn "error: unknown note: '$input[$i]'\n";
