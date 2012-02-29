@@ -1,54 +1,55 @@
 #!/usr/bin/perl
 #
-# Generate notes of a scale (a subset of the Western 12-tone chromatic
-# system) from a specified starting note in a specified direction and so
-# forth from other options. Default is The Major Scale, but that's easy
-# to adjust:
+# Generate notes of arbitrary scales (subsets of the Western 12-tone
+# chromatic system) from a specified starting note in a specified
+# direction and so forth from other options. This file uses "scale" and
+# "subset" and "interval set" and "interval vector" interchangeably.
 #
-#   $ scalemogrifier --intervals='c d ees f g aes bes l' --flats fis
+# The output is in lilypond absolute format. The default scale is The
+# Major Scale, but that's easy to adjust to say B Minor:
+#
+#   $ scalemogrifier --intervals='c d ees f g aes bes l' --flats --trans=-1
 #
 # The special 'l' is necessary to make the scale loop back to itself (to
-# the next higher c in this case). This is because scales might not loop
-# back to the starting note within one iteration:
+# the next higher c in this case). This is because an interval vector
+# may not loop back to the starting note within one iteration:
 #
-#   $ scalemogrifier --intervals='c cis dis e g' --length=12 f
+#   $ scalemogrifier --intervals='c cis dis e g' --length=15
+#   c cis dis e g gis ais b d' dis' f' fis' a' ais' c''
 #
 # Scales can also be rendered backwards:
 #
-#   $ scalemogrifier --dir=-1 --intervals='c cis dis e g' --length=12 f
+#   $ scalemogrifier --dir=-1
 #
-# Or backwards with the interval order reversed:
+# Or with the interval order reversed:
 #
-#   $ scalemogrifier --rev --dir=-1 --intervals='c cis dis e g' --length=12 f
+#   $ scalemogrifier --rev
 #
-# Or just plain made up with raw pitch numbers:
+# Or just plain made up:
 #
-#   $ scalemogrifier --intervals=1,2,3,4 --raw --len=24
-#
-# Or output not really a scale at all:
-#
+#   $ scalemogrifier --intervals=1,2,3,4 --raw
 #   $ scalemogrifier --intervals=1,2,3,5,7 --dir=53 --relative --len=24
+#   $ scalemogrifier --intervals=-5,7 --len=24
 #
-# Or even sequences, such as down a 4th and up a 5th:
-#
-#   $ scalemogrifier --intervals=-5,7 --len=24 c
-#
-# Or the scale generated can be fed back into a different output scale:
+# The scale generated can be fed back into a different output scale (the
+# direction and reverse options only apply to the --intervals option
+# scale, not the --ois scale):
 #
 #   $ scalemogrifier --intervals='c cis dis e g' --ois='aes bes ces ees fes l' \
 #       --len=48 --flats --rel
 #
 # Practical application of the results to music theory or composition
-# left as an exercise to the user. The output could be fed to `ly-fu --abs`
-# for playback or incorporation into a lilypond document.
+# left as an exercise to the user. The output can be fed to `ly-fu` for
+# playback and display, for example:
+#
+#   $ ly-fu --abs -l --open $(scalemogrifier ...)
+#   $ ly-fu       -l --open $(scalemogrifier --relative ...)
 #
 # Consider http://oeis.org/ to lookup or find interesting interval sets;
 # for example, search for the major interval sequence for numeric
 # sequences that contain it:
 #
 # http://oeis.org/search?q=2,2,1,2,2,2,1
-
-# TODO --ois plus custom startnote is buggy
 
 use strict;
 use warnings;
@@ -73,11 +74,12 @@ my $num2note_flavor = 'ly-';
 # Not The Scale, but to map back to That Other Scale.
 my $DEG_IN_SCALE = 12;
 
-my @scale_intervals = qw(2 2 1 2 2 2 1);
+my @interval_vector = qw(2 2 1 2 2 2 1);
 my $length          = 8;
 my $direction       = 1;
 my $in_reverse      = 0;
 my $relative        = 0;
+my $transpose       = 0;
 
 my $output_delimiter = " ";
 my ( @output_intervals, $output_sum );
@@ -97,20 +99,18 @@ GetOptions(
   'length=i'               => \$length,
   'raw'                    => \my $raw_output,
   'reverse'                => \$in_reverse,
+  'transpose|t=i'          => \$transpose,
 ) || die "error: could not parse options\n";
 
-my $start_note = lc(shift) || 'c';
-if ( !exists $note2num{$start_note} ) {
-  warn "error: unknown start note: '$start_note'\n";
-  print_help();
-}
+print_help() if @ARGV;
 
 $direction = int($direction);
 die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
 $length = int($length);
 die "error: length must be at least one\n" if $length < 1;
+$transpose = int($transpose);
 
-@scale_intervals = names2intervalset( map lc, split /[\s,]+/, $intervals )
+@interval_vector = names2intervalset( map lc, split /[\s,]+/, $intervals )
   if defined $intervals;
 
 if ( defined $output_intervals ) {
@@ -122,16 +122,14 @@ $output_delimiter =~ s/(\\.)/qq!"$1"!/eeg;
 
 $num2note_flavor .= $use_flats ? 'flat' : 'sharp';
 
-@scale_intervals = reverse @scale_intervals if $in_reverse;
+@interval_vector = reverse @interval_vector if $in_reverse;
 
-my $pitch      = $note2num{$start_note};
+my $pitch      = 0;
 my $prev_pitch = $pitch;
 
 for my $i ( 0 .. $length - 1 ) {
   if ( !$raw_output ) {
-    my $output_pitch     = $pitch;
-    my $normalized_pitch = $output_pitch % $DEG_IN_SCALE;
-    my $ly_reg           = "";
+    my $output_pitch = $pitch;
 
     if (@output_intervals) {
       my $pitch_reg = int( $output_pitch / @output_intervals );    # XXX buggy
@@ -139,9 +137,9 @@ for my $i ( 0 .. $length - 1 ) {
 
       $output_pitch = $pitch_reg * $output_sum +
         ( $pitch_mod >= 0 ? sum( @output_intervals[ 0 .. $pitch_mod ] ) : 0 );
-      $normalized_pitch = $output_pitch % $DEG_IN_SCALE;
     }
 
+    my $ly_reg = "";
     if ( !$relative and $i > 0 ) {
       if ( $output_pitch < 0 ) {
         $ly_reg = q{,} x
@@ -151,14 +149,15 @@ for my $i ( 0 .. $length - 1 ) {
       }
     }
 
-    print $num2note{$num2note_flavor}->{$normalized_pitch}, $ly_reg;
+    print $num2note{$num2note_flavor}
+      ->{ ( $output_pitch + $transpose ) % $DEG_IN_SCALE }, $ly_reg;
   } else {
-    print $pitch;
+    print $pitch + $transpose;
   }
   print $output_delimiter if $i < $length - 1;
 
   $prev_pitch = $pitch;
-  $pitch += $scale_intervals[ $i % @scale_intervals ] * $direction;
+  $pitch += $interval_vector[ $i % @interval_vector ] * $direction;
 }
 print "\n";
 
@@ -168,16 +167,16 @@ exit 0;
 #
 # SUBROUTINES
 
-# Convert between intput of 'c cis dis e g' to numeric interval set, so
-# user can input arbitrary scales using note names. (Mixing note names
-# and interval numbers is not supported.)
+# Convert between intput of 'c cis dis e g' to an interval set, so user
+# can input arbitrary scales using note names. Mixing note names with
+# interval numbers is not supported in this implementation.
 sub names2intervalset {
   my @input = @_;
   my @iset;
   my $is_conversion      = 0;
   my $is_complete_octave = 0;
 
-  if ( $input[-1] =~ m/l/ ) {
+  if ( $input[-1] =~ m/^l+$/ ) {
     $is_complete_octave = 1;
     pop @input;
   }
@@ -212,15 +211,11 @@ sub print_help {
   my $sc = wrap( '  ', '', @startnotes );
 
   warn <<"END_HELP";
-Usage: $0 [options] startnote
-
-Possible starting notes:
-$sc
+Usage: $0 [options]
 
 Options affecting input:
   --direction       Positive, scale goes up, negative, down. Magnitudes
-                    greater than one multiply the interval, though this
-                    behavior may be subject to change in the future.
+                    greater than one multiply the interval.
   --intervals       List of intervals or notes of the scale.
   --length          How many notes to generate in output.
   --reverse         Reverses order of intervals.
@@ -232,6 +227,11 @@ Options affecting output:
                     Defaults to the space character.
   --raw             Emit pitch numbers instead of note names.
   --relative        Generate relative lilypond output (default: absolute).
+  --transpose       Number to transpose the output by.
+
+Allowed notes for the --intervals or --ois options (or instead specify
+just interval numbers):
+$sc
 
 END_HELP
   exit 64;
