@@ -28,6 +28,7 @@ my %ability = (
   ratio       => { handle => \&handle_ratio, },
   golden      => { handle => \&handle_golden, },
   divisibleby => { handle => \&handle_divisibleby, },
+  empirical   => { handle => \&handle_empirical, },
 );
 
 # how to format output numbers with printf
@@ -246,6 +247,16 @@ sub handle_divisibleby {
       print "$num\t$i * $other\n" unless exists $seen{$other};
       $seen{$i} = ();
     }
+  }
+}
+
+sub handle_empirical {
+  my ( $mean, $sdev ) = @ARGV;
+
+  print "\n\t\t-1..1 is 68%; -2..2 is 95%; -3..3 is 99.7%\n\n";
+
+  for ( -3 .. 3 ) {
+    print $_, "\t", $mean + $_ * $sdev, "\n";
   }
 }
 
