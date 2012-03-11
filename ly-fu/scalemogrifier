@@ -104,6 +104,7 @@ GetOptions(
   'flats'                  => \my $use_flats,
   'help|h|?'               => \&print_help,
   'intervals=s'            => \my $intervals,
+  'minor'                  => \my $use_minor,
   'ors=s'                  => \$output_delimiter,
   'output_intervals|ois=s' => \my $output_intervals,
   'relative'               => \$relative,
@@ -120,6 +121,12 @@ die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
 $length = int($length);
 die "error: length must be at least one\n" if $length < 1;
 $transpose = int($transpose);
+
+# But what we really need is a hash or something with various aliases
+# and the corresponding interval sets.
+if ($use_minor) {
+  $intervals = 'a b c d e f g';
+}
 
 @interval_vector = names2intervalset( map lc, split /[\s,]+/, $intervals )
   if defined $intervals;
