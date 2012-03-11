@@ -3,15 +3,15 @@
 # Generate notes of arbitrary scales (subsets of the Western 12-tone
 # chromatic system) from a specified starting note in a specified
 # direction and so forth from other options. This file uses "scale" and
-# "subset" and "interval set" and "interval vector" interchangeably.
+# "subset" and "interval series" and "interval vector" interchangeably.
 #
 # The output is in lilypond absolute format. The default scale is The
 # Major Scale, but that's easy to adjust to say C Minor:
 #
-#   $ scalemogrifier --intervals='a b c d e f g' --flats
+#   $ scalemogrifier --minor --flats
 #
 # By default, scales loop back to the starting note. If this is not the
-# case, suffix 'nl' to the interval set:
+# case, suffix 'nl' to a custom interval series:
 #
 #   $ scalemogrifier --intervals=c,cis,dis,e,g,nl --length=15
 #   c cis dis e g gis ais b d' dis' f' fis' a' ais' c''
@@ -19,10 +19,10 @@
 # The output is based on the assumption that 'c' equals 0. The output
 # can be transposed via:
 #
-#   $ scalemogrifier --transpose=-5
+#   $ scalemogrifier --mode=mixolydian --transpose=-5
 #
-# Integer interval numbers can be used instead of note names, for
-# example the Major Scale:
+# Integer interval numbers can be used instead of note names or the
+# --mode option, for example the Major Scale:
 #
 #   $ scalemogrifier --intervals='2 2 1 2 2 2 1' --raw
 #
@@ -56,7 +56,7 @@
 #   $ ly-fu --abs -l --open $(scalemogrifier ...)
 #   $ ly-fu       -l --open $(scalemogrifier --relative ...)
 #
-# Consider http://oeis.org/ to lookup or find interesting interval sets;
+# Consider http://oeis.org/ to lookup or find interesting interval series;
 # for example, search for the major interval sequence for numeric
 # sequences that contain it:
 #
@@ -70,11 +70,18 @@ use List::Util qw/sum/;
 use Text::Wrap qw/wrap/;
 
 my %modes = (
-  major => [qw(2 2 1 2 2 2 1)],
-  minor => [qw(2 1 2 2 1 2 2)],
+  ionian     => [qw(2 2 1 2 2 2 1)],
+  lydian     => [qw(2 2 2 1 2 2 1)],
+  mixolydian => [qw(2 2 1 2 2 1 2)],
+  dorian     => [qw(2 1 2 2 2 1 2)],
+  aeolian    => [qw(2 1 2 2 1 2 2)],
+  hminor     => [qw(2 1 2 2 1 3 1)],
+  mminor     => [qw(2 1 2 2 2 2 1)],
+  phrygian   => [qw(1 2 2 2 1 2 2)],
+  locrian    => [qw(1 2 2 1 2 2 2)],
 );
-$modes{'ionian'}  = $modes{'major'};
-$modes{'aeolian'} = $modes{'minor'};
+$modes{'major'} = $modes{'ionian'};
+$modes{'minor'} = $modes{'aeolian'};
 
 # Accepted note names to pitch number for user input
 my %note2num = qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11
@@ -130,20 +137,18 @@ $length = int($length);
 die "error: length must be at least one\n" if $length < 1;
 $transpose = int($transpose);
 
-# But what we really need is a hash or something with various aliases
-# and the corresponding interval sets.
 $mode = 'minor' if $use_minor;
 if ( defined $mode ) {
   die "error: no such mode '$mode'" unless exists $modes{$mode};
   @interval_vector = @{ $modes{$mode} };
-} else {
-  @interval_vector = names2intervalset( map lc, split /[\s,]+/, $intervals )
-    if defined $intervals;
+} elsif ( defined $intervals ) {
+  @interval_vector =
+    names2intervalseries( map lc, split /[\s,]+/, $intervals );
 }
 
 if ( defined $output_intervals ) {
   my @output_args = map lc, split /[\s,]+/, $output_intervals;
-  @output_intervals = names2intervalset(@output_args);
+  @output_intervals = names2intervalseries(@output_args);
   $output_sum       = sum @output_intervals;
 }
 $output_delimiter =~ s/(\\.)/qq!"$1"!/eeg;
@@ -195,12 +200,12 @@ exit 0;
 #
 # SUBROUTINES
 
-# Convert between intput of 'c cis dis e g' to an interval set, so user
-# can input arbitrary scales using note names. Mixing note names with
-# interval numbers is not supported in this implementation.
-sub names2intervalset {
+# Convert between intput of 'c cis dis e g' to an interval series, so
+# user can input arbitrary scales using note names. Mixing note names
+# with interval numbers is not supported in this implementation.
+sub names2intervalseries {
   my @input = @_;
-  my @iset;
+  my @iseries;
   my $is_conversion      = 0;
   my $is_complete_octave = 1;
 
@@ -224,20 +229,20 @@ sub names2intervalset {
         if ( abs($delta) > $DEG_IN_SCALE / 2 ) {
           $delta = ( $DEG_IN_SCALE - abs($delta) ) * ( $delta > 0 ? -1 : 1 );
         }
-        push @iset, $delta;
+        push @iseries, $delta;
       }
       $prev_pitch = $note2num{ $input[$i] };
     }
   }
 
-  @iset = @input unless $is_conversion;
-  return @iset;
+  @iseries = @input unless $is_conversion;
+  return @iseries;
 }
 
 sub print_help {
   my @startnotes = sort { $note2num{$a} <=> $note2num{$b} } keys %note2num;
-  $Text::Wrap::columns = 60;
-  my $sc = wrap( '  ', '  ', @startnotes, '(nl)' );
+  $Text::Wrap::columns = 78;
+  my $sc = wrap( '  ', '  ', @startnotes, '  nl' );
   my $modes = wrap( '  ', '  ', sort keys %modes );
 
   warn <<"END_HELP";
@@ -248,7 +253,7 @@ Options affecting input:
                     greater than one multiply the interval.
   --intervals       List of intervals or notes of the scale.
   --length          How many notes to generate in output.
-  --mode            Specify named interval set instead of --intervals.
+  --mode            Specify named interval series instead of --intervals.
   --minor           Use minor mode instead of --intervals (default: major).
   --reverse         Reverses order of intervals.
 
@@ -261,12 +266,12 @@ Options affecting output:
   --relative        Generate relative lilypond output (default: absolute).
   --transpose       Number to transpose the output by.
 
-Allowed note names for the --intervals or --ois options (or instead
+Possible note names for the --intervals or --ois options (or instead
 specify just interval numbers):
 
 $sc
 
-Allowed modes for --modes option:
+Available modes for --modes option:
 
 $modes
 END_HELP
