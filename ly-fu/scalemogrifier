@@ -69,6 +69,13 @@ use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
 use Text::Wrap qw/wrap/;
 
+my %modes = (
+  major => [qw(2 2 1 2 2 2 1)],
+  minor => [qw(2 1 2 2 1 2 2)],
+);
+$modes{'ionian'}  = $modes{'major'};
+$modes{'aeolian'} = $modes{'minor'};
+
 # Accepted note names to pitch number for user input
 my %note2num = qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11
   ces 11 des 1 ees 3 fes 4 ges 6 aes 8 bes 10 eis 5 bis 0);
@@ -85,7 +92,7 @@ my $num2note_flavor = 'ly-';
 # Not The Scale, but to map back to That Other Scale.
 my $DEG_IN_SCALE = 12;
 
-my @interval_vector = qw(2 2 1 2 2 2 1);
+my @interval_vector = @{ $modes{'major'} };
 my $length          = 8;
 my $direction       = 1;
 my $in_reverse      = 0;
@@ -105,6 +112,7 @@ GetOptions(
   'help|h|?'               => \&print_help,
   'intervals=s'            => \my $intervals,
   'minor'                  => \my $use_minor,
+  'mode=s'                 => \my $mode,
   'ors=s'                  => \$output_delimiter,
   'output_intervals|ois=s' => \my $output_intervals,
   'relative'               => \$relative,
@@ -124,12 +132,14 @@ $transpose = int($transpose);
 
 # But what we really need is a hash or something with various aliases
 # and the corresponding interval sets.
-if ($use_minor) {
-  $intervals = 'a b c d e f g';
+$mode = 'minor' if $use_minor;
+if ( defined $mode ) {
+  die "error: no such mode '$mode'" unless exists $modes{$mode};
+  @interval_vector = @{ $modes{$mode} };
+} else {
+  @interval_vector = names2intervalset( map lc, split /[\s,]+/, $intervals )
+    if defined $intervals;
 }
-
-@interval_vector = names2intervalset( map lc, split /[\s,]+/, $intervals )
-  if defined $intervals;
 
 if ( defined $output_intervals ) {
   my @output_args = map lc, split /[\s,]+/, $output_intervals;
@@ -228,6 +238,7 @@ sub print_help {
   my @startnotes = sort { $note2num{$a} <=> $note2num{$b} } keys %note2num;
   $Text::Wrap::columns = 60;
   my $sc = wrap( '  ', '  ', @startnotes, '(nl)' );
+  my $modes = wrap( '  ', '  ', sort keys %modes );
 
   warn <<"END_HELP";
 Usage: $0 [options]
@@ -237,6 +248,8 @@ Options affecting input:
                     greater than one multiply the interval.
   --intervals       List of intervals or notes of the scale.
   --length          How many notes to generate in output.
+  --mode            Specify named interval set instead of --intervals.
+  --minor           Use minor mode instead of --intervals (default: major).
   --reverse         Reverses order of intervals.
 
 Options affecting output:
@@ -252,6 +265,10 @@ Allowed note names for the --intervals or --ois options (or instead
 specify just interval numbers):
 
 $sc
+
+Allowed modes for --modes option:
+
+$modes
 END_HELP
   exit 64;
 }
