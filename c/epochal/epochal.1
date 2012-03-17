@@ -62,7 +62,7 @@ logs assuming that the missing year is the current one, or a custom year:
 .Dl $ epochal -f '%b %d %H:%M:%S' -y      < /path/to/syslog
 .Dl $ epochal -f '%b %d %H:%M:%S' -Y 1999 < /path/to/syslog
 .Pp
-Convert timestamps used by Apache access logs (or also 389-ds).
+Convert timestamps used by Apache access logs (and other programs):
 .Pp
 .Dl $ epochal -f '[%d/%b/%Y:%H:%M:%S%n%z]' < /path/to/access
 .Pp
@@ -72,6 +72,8 @@ timezone option, or may not support various conversion specifications:
 .Pp
 .Dl $ epochal -f '[%d/%b/%Y:%H:%M:%S' < /path/to/access
 .Pp
+Though usually converting enough of the timestamp to epoch suffices for
+subsequent awk/perl munging of the data.
 .Sh SEE ALSO
 .Xr strptime 3 ,
 .Xr strftime 3
