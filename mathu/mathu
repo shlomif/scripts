@@ -1,18 +1,12 @@
 #!/usr/bin/perl
 #
-# Performs various mathematical and statistical operations on
-# input data.
+# Performs various mathematical and statistical operations on input
+# data. (Also known as me being too lazy to use R, or for when I want
+# something quick to mess about with on the CLI, since I am terrible at
+# doing math in my head.)
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
 
 my $PHI = 1.6180339887498948482;
 
@@ -324,4 +318,12 @@ sub standard_deviation {
   my $mean     = shift;
 
   return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ] ) );
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
 }
