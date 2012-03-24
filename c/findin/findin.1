@@ -26,6 +26,13 @@ Directories passed via standard input must be specified one per line. Returning 
 
 .SH "SEE ALSO"
 find(1), findup(1), glob(3), sysexits(3)
+
+Using the Z-Shell (zsh), this utility can be replaced with expressions such as:
+
+.B % print -l ${^fpath}/_mplayer
+
+.B % print -l ${^path}/*cpu*(N)
+
 .SH BUGS
 No known issues.
 .SH AUTHOR
