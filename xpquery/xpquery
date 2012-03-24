@@ -1,6 +1,6 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
-# Apply XPath queries to XML local or remote data.
+# Applies XPath expressions to XML documents.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -8,99 +8,90 @@
 use strict;
 use warnings;
 
-use File::Temp                ();
-use LWP::UserAgent            ();
+use File::Temp ();
+use Getopt::Std;
+use LWP::UserAgent ();
+use URI;
 use XML::LibXML               ();
 use XML::LibXML::XPathContext ();
 
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
-
-# KLUGE supposed to mark filehandles, so would have to muck around with
-# converting whatever the XML is in into utf8 or something... (this
-# avoids a 'Wide character in ...' warning)
-no warnings 'utf8';
-
-use Getopt::Std;
 my %opts;
 getopts 'h?p:n:', \%opts;
 help() if exists $opts{h} or exists $opts{'?'};
 
 $opts{p} = 'XML' unless exists $opts{p};
 
-# figure out where document lives
-my $document = shift || help();
-use URI;
-my $target = URI->new($document);
-my $file;
-
-# XPath query to search document for
 my $query = shift || help();
+help() unless @ARGV;
 
-# get document into filehandle
-# TODO URL lookup needs more error checking
-if ( $target->scheme ) {
-  $file =
-    ( File::Temp::tempfile( "xquery.XXXXXX", DIR => File::Spec->tmpdir, ) )
-    [1];
+for my $document (@ARGV) {
+  my $target = URI->new($document);
+  my $file;
 
-  my $ua =
-    LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
-  $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
-  my $response = $ua->get( $target->canonical, ':content_file' => $file );
-} else {
-  $file = $target->canonical;
-}
+  # get document into filehandle
+  # TODO URL lookup needs more error checking
+  if ( $target->scheme ) {
+    $file =
+      ( File::Temp::tempfile( "xquery.XXXXXX", DIR => File::Spec->tmpdir, ) )
+      [1];
 
-my $parser = XML::LibXML->new;
+    my $ua =
+      LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
+    $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
+    my $response = $ua->get( $target->canonical, ':content_file' => $file );
+  } else {
+    $file = $target->canonical;
+  }
 
-# try to allow for crummy *ML documents TODO make these command line
-# arguments? Set ->recover(2) if the document is crummy and the warnings
-# need be disabled.
-$parser->recover(1);
-$parser->load_ext_dtd(0);
-$parser->expand_entities(0);
-$parser->complete_attributes(0);
-#$parser->pedantic_parser(0);
+  my $parser = XML::LibXML->new;
 
-my $doc;
-eval {
-  my %parse_method = (
-    XML  => 'parse_file',
-    HTML => 'parse_html_file',
-    SGML => 'parse_sgml_file',
-  );
+  # try to allow for crummy *ML documents TODO make these command line
+  # arguments? Set ->recover(2) if the document is crummy and the warnings
+  # need be disabled.
+  $parser->recover(1);
+  $parser->load_ext_dtd(0);
+  $parser->expand_entities(0);
+  $parser->complete_attributes(0);
+  #$parser->pedantic_parser(0);
 
-  my $method = $parse_method{ uc $opts{p} } || 'parse_file';
-  $doc = $parser->$method($file);
-};
-if ($@) {
-  die "error: could not parse $document: $@\n";
-}
+  my $doc;
+  eval {
+    my %parse_method = (
+      XML  => 'parse_file',
+      HTML => 'parse_html_file',
+      SGML => 'parse_sgml_file',
+    );
 
-# search resulting tree with XPath
-my $xc = XML::LibXML::XPathContext->new($doc);
-if ( exists $opts{'n'} ) {
-  for my $spec ( split ' ', $opts{'n'} ) {
-    $xc->registerNs( split ':', $spec, 2 );
+    my $method = $parse_method{ uc $opts{p} } || 'parse_file';
+    $doc = $parser->$method($file);
+  };
+  if ($@) {
+    die "error: could not parse $document: $@\n";
+  }
+
+  # search resulting tree with XPath
+  my $xc = XML::LibXML::XPathContext->new($doc);
+  if ( exists $opts{'n'} ) {
+    for my $spec ( split ' ', $opts{'n'} ) {
+      $xc->registerNs( split ':', $spec, 2 );
+    }
+  }
+
+  my $nodelist = $xc->find($query);
+  for my $node ( $nodelist->get_nodelist ) {
+    print $node->toString, "\n";
   }
 }
 
-my $nodelist = $xc->find($query);
-for my $node ( $nodelist->get_nodelist ) {
-  print $node->toString, "\n";
-}
+########################################################################
+#
+# SUBROUTINES
 
 sub help {
   warn <<"HELP";
-Usage: $0 [opts] document xpath-query
+Usage: $0 [opts] xpath-query document1 [doc2 ..]
 
-Apply XPath expressions to the specified XML data.
+Apply XPath expressions to the specified XML files or URLs specified.
 
 Options:
   -h/-?  Display this message
@@ -110,6 +101,14 @@ Options:
 
 HELP
   exit 64;
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
 }
 
 __DATA__
@@ -122,7 +121,7 @@ xpquery - apply XPath queries to XML data.
 
 Return the C<intro> section of a DocBook XML article:
 
-  $ xpquery operations-manual.xml '/article/section[@id="intro"]'
+  $ xpquery '/article/section[@id="intro"]' operations-manual.xml
 
 For more information on XPath, see:
 
@@ -137,7 +136,7 @@ to XML data.
 
 =head2 Normal Usage
 
-  $ xpquery [options] file|URL xpath-expression
+  $ xpquery [options] xpath-expression files|URLs...
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
@@ -166,7 +165,7 @@ separated prefix:uri pairs, for example:
 
 Which can then be referenced in the XPath expression:
 
-  xpquery -n 'a:http://example.org/foo' foo.xml '//a:fooelement'
+  xpquery -n a:http://example.org/foo //a:fooelement foo.xml
 
 =back
 
