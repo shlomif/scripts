@@ -464,7 +464,10 @@ the value.
   perldoc@        http://perldoc.perl.org/%1.html
   perlfunc@       http://perldoc.perl.org/functions/%1.html
   perldist@       https://metacpan.org/release/%1
+
   rfc@    http://www.faqs.org/rfcs/rfc%1.html
+  rhyme@  http://www.rhymezone.com/r/rhyme.cgi?Word=%1&typeofrhyme=perfect
+  rhyme   http://www.rhymezone.com/
 
   # example config END
 
