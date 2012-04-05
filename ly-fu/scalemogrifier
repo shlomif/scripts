@@ -76,6 +76,7 @@ my %modes = (
   dorian     => [qw(2 1 2 2 2 1 2)],
   aeolian    => [qw(2 1 2 2 1 2 2)],
   hminor     => [qw(2 1 2 2 1 3 1)],
+  hunminor   => [qw(2 1 3 2 1 3 1)],
   mminor     => [qw(2 1 2 2 2 2 1)],
   phrygian   => [qw(1 2 2 2 1 2 2)],
   locrian    => [qw(1 2 2 1 2 2 2)],
