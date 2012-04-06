@@ -348,7 +348,7 @@ ow - command line shortcuts and directory to URL mapping
 
 =head1 SYNOPSIS
 
-Do a Google search for C<foo>. Assumes appropriate shortcut has
+Do a "Google" search for C<foo>. Assumes appropriate shortcut has
 been created.
 
   $ ow g foo
@@ -434,11 +434,16 @@ the value.
   # http://foo.example.org/bar
   example http://%1.example.org/%2
 
+  # sample shortcuts. A trailing @ is required for parameters that will
+  # have macro expansion done on them.
+  ddg@    https://duckduckgo.com/html?q=%@
+  g@      https://duckduckgo.com/html?q=%@
+  gi@     http://images.google.com/images?q=%@&pws=0
+  google@ http://www.google.com/search?num=100&lr=lang_en&q=%@&pws=0
+
   af      http://www.acronymfinder.com/
   af@     http://www.acronymfinder.com/af-query.asp?String=exact&Acronym=%1&Find=Find
 
-  # sample shortcuts. A trailing @ is required for parameters that will
-  # have macro expansion done on them.
   amazon  http://amazon.com/
   amazon@ http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=%@
   asin@   http://www.amazon.com/o/ASIN/%1
@@ -446,8 +451,6 @@ the value.
 
   cpan    http://search.metacpan.org/
   cpan@   https://metacpan.org/search?q=%@
-
-  ddg@    https://duckduckgo.com/html?q=%@
 
   # But only on Mac OS X...
   d@      dict://%1
