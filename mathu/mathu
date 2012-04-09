@@ -8,6 +8,9 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
+use Getopt::Std;
+use Scalar::Util qw(looks_like_number);
+
 my $PHI = 1.6180339887498948482;
 
 my %ability = (
@@ -29,7 +32,6 @@ my %ability = (
 my $format = '%.2f';
 
 # parse command-line options
-use Getopt::Std;
 my %opts;
 getopts( 'lf:', \%opts );
 
@@ -120,7 +122,8 @@ sub handle_basic {
 
   while (<STDIN>) {
     chomp;
-    next if $_ eq q{};
+    next if $_ eq q{} or !looks_like_number($_);
+
     $results{sum} += $_;
 
     $results{min} = $_ unless exists $results{min};
@@ -130,9 +133,11 @@ sub handle_basic {
 
     push @array, $_;
   }
-  $results{count} = $.;
-  $results{mean}  = mean( \@array, $results{sum} );
-  $results{sdev}  = standard_deviation( \@array, $results{mean} );
+  return unless @array;
+
+  $results{mean} = mean( \@array, $results{sum} );
+  $results{sdev} = standard_deviation( \@array, $results{mean} );
+  $results{count} = @array;
 
   print map {
         $_ . " "
