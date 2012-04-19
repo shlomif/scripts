@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+#
+# Markov model of dog days. Consider instead: http://hailo.org/
+
+use strict;
+use warnings;
+use feature qw(say);
+use List::Util qw(sum);
+
+my %Dog_Days = (
+  kennel => { door  => 0.5, gate1 => 0.5 },
+  door   => { tree  => 1 },
+  gate1  => { tree  => 1 },
+  gate2  => { loops => 1 },
+  tree   => { tree  => 0.9, loops => 0.1 },
+  loops  => { loops => 0.83, gate2 => 0.16, kennel => 0.1 }
+);
+cummulate( values %Dog_Days );
+
+my $current_state = 'kennel';
+do {
+  say $current_state;
+  $current_state = pick( $Dog_Days{$current_state} );
+} until $current_state eq 'kennel';
+
+say $current_state;
+exit 0;
+
+# Fixup odds into cummulative odds in-place on a list of passed hash
+# references.
+sub cummulate {
+  for my $ref (@_) {
+    my $sum           = sum values %$ref;
+    my $factor        = ( $sum != 1 ) ? 1 / $sum : 1;
+    my $running_total = 0;
+    for my $prob ( values %$ref ) {
+      $prob          = $running_total + $prob * $factor;
+      $running_total = $prob;
+    }
+  }
+}
+
+# Pick a random value from a hash reference (poor results if hash
+# reference has not been normalized first via cummulate()).
+sub pick {
+  my ($opts) = @_;
+  my $rand = rand;
+  my $choice;
+
+  for my $maybe ( sort { $opts->{$b} <=> $opts->{$a} } keys %$opts ) {
+    $choice = $maybe if $opts->{$maybe} >= $rand;
+  }
+  return $choice;
+}
