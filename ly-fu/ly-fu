@@ -16,7 +16,7 @@ use IO::Handle;
 my $BASENAME = basename($0);
 
 my @LILYPOND         = qw/lilypond/;
-my $LILYPOND_VERSION = '2.12.0';
+my $LILYPOND_VERSION = '2.14.0';
 
 my @MIDI_PLAYER  = qw/timidity/;
 my $MIDI_SUFFIX  = '.midi';
@@ -49,6 +49,7 @@ if ( exists $ENV{'MIDI_EDITOR'} ) {
 
 GetOptions(
   "absolute|abs|a" => \$is_absolute,
+  'articulate'     => \my $do_articulate,
   'help|h|?'       => \&print_help,
   "instrument|i=s" => \$instrument,
   "layout|l"       => \$save_layout,
@@ -74,17 +75,23 @@ my $score_fname = $src_fname . $SCORE_SUFFIX;
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
   chomp( @ARGV = <STDIN> );
-  s/\s+%\s.+$// for @ARGV; # strip lilypond comments
+  s/\s+%\s.+$// for @ARGV;    # strip lilypond comments
 }
 
 if ( defined $repeats ) {
   @ARGV = (@ARGV) x $repeats;
 }
 
+if ($do_articulate) {
+  $partial = '\articulate { ' . $partial;
+  push @ARGV, '}';
+}
+
 $prestaff = "\\relative $relative" unless $is_absolute;
 
 my $ly_template = <<"END_TMPL";
 \\version "$LILYPOND_VERSION"
+\\include "articulate.ly"
 \\header {
   title = "ly-fu generated output"
 }
@@ -114,9 +121,9 @@ system( @SCORE_READER, $score_fname ) if $do_open;
 
 if ( !$skip_midi ) {
   unless ( system( @MIDI_PLAYER, $midi_fname ) ) {
-# False positives from timidity :/
-#   warn "warning: '@MIDI_PLAYER $midi_fname' failed: $?\n";
-#   $exit_status = 70;
+    # False positives from timidity :/
+    #   warn "warning: '@MIDI_PLAYER $midi_fname' failed: $?\n";
+    #   $exit_status = 70;
   }
 }
 
