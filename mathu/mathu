@@ -27,6 +27,7 @@ my %ability = (
   divisibleby => { handle => \&handle_divisibleby, },
   empirical   => { handle => \&handle_empirical, },
   zscore      => { handle => \&handle_zscore, },
+  polyfactor  => { handle => \&handle_polyfactor, },
 );
 
 # how to format output numbers with printf
@@ -263,6 +264,22 @@ sub handle_empirical {
 sub handle_zscore {
   my ( $mean, $sdev, $score ) = @ARGV;
   printf "%.03f\n", ( $score - $mean ) / $sdev;
+}
+
+sub handle_polyfactor {
+  my ( $A, $B, $C ) = @ARGV;
+  my %seen;
+
+  my $Babs = abs($B);
+  if ( abs($C) > $Babs ) {
+    $Babs = abs($C);
+  }
+
+  for my $f1 ( -$Babs .. $Babs ) {
+    my $f2 = $B - $f1;
+    next if $seen{ join "", sort { $a <=> $b } $f1, $f2 }++;
+    print "$f1 $f2\n" if $f1 + $f2 == $B and $f1 * $f2 == $A * $C;
+  }
 }
 
 sub do_dist {
