@@ -16,6 +16,8 @@ use warnings;
 use File::Basename ();
 use File::Spec     ();
 
+die "Usage: $0 midifile\n" if @ARGV != 1;
+
 my ( $name, $path, $suffix ) =
   File::Basename::fileparse( $ARGV[-1], qr/\.midi/ );
 my $ly_file = File::Spec->catfile( $path, $name . ".ly" );
