@@ -13,6 +13,7 @@
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
@@ -37,9 +38,8 @@ void usage(void);
 
 int main(int argc, char *argv[])
 {
-    int ch, c;
+    int ch;
     char input_buf[LINE_MAX];
-    unsigned int ib_len;
     unsigned long linenum;
 
     if (!setlocale(LC_ALL, ""))
@@ -83,24 +83,17 @@ int main(int argc, char *argv[])
     if (oflag == NULL)
         oflag = "%s";           /* Default to epoch for output */
 
-    ib_len = 0;
     linenum = 1;
-    while ((c = getchar()) != EOF) {
-        input_buf[ib_len++] = (char) c;
-        if (ib_len > LINE_MAX)
-            errx(EX_SOFTWARE, "line too long (>%d) at line %ld",
-                 LINE_MAX, linenum);
-
-        if (c == '\n') {
-            input_buf[ib_len] = '\0';
-            parseline(input_buf, ib_len, linenum);
-
-            ib_len = 0;
+    while (1) {
+        if (fgets(input_buf, LINE_MAX, stdin) == NULL) {
+            if (!feof(stdin))
+                err(EX_IOERR, "could not read line %ld", linenum);
+            break;
+        } else {
+            parseline(input_buf, strlen(input_buf), linenum);
             linenum++;
         }
     }
-    if (ib_len > 0)
-        parseline(input_buf, ib_len, linenum);
 
     exit(exit_status);
 }
@@ -116,6 +109,11 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
     ibp = input_buf;
 
     for (j = 0; j < ib_len; j++) {
+        if (input_buf[j] == '\n') {
+            putchar('\n');
+            break;
+        }
+
         past_date_p = strptime(ibp, fflag, &when);
 
         if (past_date_p) {
@@ -146,8 +144,6 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
                 putchar((unsigned char) input_buf[j]);
         }
     }
-    if (gflag)
-        putchar('\n');
 
     return;
 }
