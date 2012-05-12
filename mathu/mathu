@@ -263,6 +263,7 @@ sub handle_empirical {
 
 sub handle_zscore {
   my ( $mean, $sdev, $score ) = @ARGV;
+  die "mean sdev score\n" unless @ARGV == 3;
   printf "%.03f\n", ( $score - $mean ) / $sdev;
 }
 
