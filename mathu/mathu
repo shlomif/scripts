@@ -139,6 +139,7 @@ sub handle_basic {
 
   $results{mean} = mean( \@array, $results{sum} );
   $results{sdev} = standard_deviation( \@array, $results{mean} );
+  $results{ssdev} = sample_standard_deviation( \@array, $results{mean} );
   $results{count} = @array;
 
   print map {
@@ -332,12 +333,15 @@ sub numbertidy {
 
 # $mean = mean(\@array) computes the mean of an array of numbers.
 sub mean {
-  my $arrayref = shift;
-  my $sum      = shift;
+  my $arrayref  = shift;
+  my $sum       = shift;
+  my $is_sample = shift // 0;
+  my $n         = @$arrayref;
+  $n-- if $is_sample;
   unless ($sum) {
     for (@$arrayref) { $sum += $_ }
   }
-  return $sum / @$arrayref;
+  return $sum / $n;
 }
 
 # $sd = standard_deviation_data(\@array) computes the standard
@@ -347,6 +351,13 @@ sub standard_deviation {
   my $mean     = shift;
 
   return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ] ) );
+}
+
+sub sample_standard_deviation {
+  my $arrayref = shift;
+  my $mean     = shift;
+
+  return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ], undef, 1 ) );
 }
 
 END {
