@@ -1,2 +1,3 @@
-Sial.org scripts: various Perl and Shell Scripts for various tasks
-written by Jeremy Mates.
+Various Perl and Shell Scripts for various tasks written by Jeremy
+Mates. See also https://github.com/thrig/zsh-compdef which may have ZSH
+completions for some.
