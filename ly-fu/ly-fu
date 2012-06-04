@@ -3,6 +3,8 @@
 # Compile and run random LilyPond snippets specified on command line:
 #
 # ly-fu c des ees c des bes c aes
+#
+# ZSH completion available at: https://github.com/thrig/zsh-compdef
 
 use strict;
 use warnings;

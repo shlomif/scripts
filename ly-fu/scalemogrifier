@@ -61,6 +61,8 @@
 # sequences that contain it:
 #
 # http://oeis.org/search?q=2,2,1,2,2,2,1
+#
+# ZSH completion available at: https://github.com/thrig/zsh-compdef
 
 use strict;
 use warnings;
