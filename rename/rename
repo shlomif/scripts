@@ -12,25 +12,21 @@ use warnings;
 
 sub print_help;
 
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
-
 use File::Basename qw/dirname/;
 use File::Copy;
 use File::Path qw/mkpath/;
 
 use Getopt::Std;
 my %opts;
-getopts( 'h?cmMifvp', \%opts );
-print_help if exists $opts{h} or exists $opts{'?'};
+my $opts_ok = getopts( 'h?cmMifvpn', \%opts );
+print_help if exists $opts{h} or exists $opts{'?'} or !$opts_ok;
 
-my $preview =
-  ( exists $opts{i} or exists $opts{p} or exists $opts{v} ) ? 1 : 0;
+my $preview = (
+       exists $opts{i}
+    or exists $opts{p}
+    or exists $opts{n}
+    or exists $opts{v}
+) ? 1 : 0;
 my $interactive = ( exists $opts{i} and !exists $opts{f} ) ? 1 : 0;
 
 # choose which function to use depending on argument; default is to
@@ -67,7 +63,7 @@ print_help unless @ARGV;
 
     print $fn, ' ', $was, ' ', $_, "\n" if $preview;
 
-    next if exists $opts{p};
+    next if exists $opts{p} or exists $opts{n};
 
     if ( -e and $interactive ) {
       print "$_ exists.  Overwrite? (y/[n]) ";
@@ -88,6 +84,14 @@ print_help unless @ARGV;
   }
 }
 
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
+}
+
 # a generic help blarb
 sub print_help {
   warn <<"HELP";
@@ -98,7 +102,7 @@ Mangle filenames using perl expressions.
 Options:
   -h/-?  Display this message
 
-  -p     preview mode (show changes only)
+  -n     dry run (show changes only, also available as -p)
   -v     be verbose
 
   -c     copy instead of rename
@@ -169,9 +173,9 @@ This script currently supports the following command line switches:
 
 Prints a brief usage note about the script.
 
-=item B<-p>
+=item B<-n>
 
-Enable preview mode, no changes will be made to disk.
+Dry run, no changes will be made to disk. Also available as B<-p>.
 
 =item B<-v>
 
