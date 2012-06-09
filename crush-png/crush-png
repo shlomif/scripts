@@ -16,7 +16,7 @@ for file in "$@"; do
   chmod a+r "$TMPFILE"
   mv "$TMPFILE" "$file"
   
-  # Undo name breakage Omnigraffle applies to PNG
+  # Undo name breakage Omnigraffle (v.4 and earlier) applies to PNG
   if echo "$file" | grep '\.gnp$' >/dev/null; then
     FILE_PREFIX=`basename "$file" .gnp`
     mv "$file" "$FILE_PREFIX.png"
