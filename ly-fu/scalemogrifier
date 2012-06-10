@@ -71,15 +71,24 @@ use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
 use Text::Wrap qw/wrap/;
 
+# XXX but these have no concept of direction, which for some scales
+# changes the notes, in particular:
+#
+# * mminor - melodic minor, should only be used ascending here.
+#
+# * amdorian - anti-melodic dorian, mixin from locrian, like melodic
+#   minor, except for downwards trending notes? Conventional voice
+#   leading tricky due to the diminished chords.
 my %modes = (
   ionian     => [qw(2 2 1 2 2 2 1)],
   lydian     => [qw(2 2 2 1 2 2 1)],
   mixolydian => [qw(2 2 1 2 2 1 2)],
   dorian     => [qw(2 1 2 2 2 1 2)],
+  amdorian   => [qw(2 1 2 1 2 2 2)],
   aeolian    => [qw(2 1 2 2 1 2 2)],
+  mminor     => [qw(2 1 2 2 2 2 1)],
   hminor     => [qw(2 1 2 2 1 3 1)],
   hunminor   => [qw(2 1 3 2 1 3 1)],
-  mminor     => [qw(2 1 2 2 2 2 1)],
   phrygian   => [qw(1 2 2 2 1 2 2)],
   locrian    => [qw(1 2 2 1 2 2 2)],
 );
