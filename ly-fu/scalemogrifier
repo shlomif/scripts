@@ -130,6 +130,7 @@ GetOptions(
   'flats'                  => \my $use_flats,
   'help|h|?'               => \&print_help,
   'intervals=s'            => \my $intervals,
+  'listmodes'              => \my $list_modes,
   'minor'                  => \my $use_minor,
   'mode=s'                 => \my $mode,
   'ors=s'                  => \$output_delimiter,
@@ -142,6 +143,11 @@ GetOptions(
 ) || die "error: could not parse options\n";
 
 print_help() if @ARGV;
+
+if ($list_modes) {
+  print "$_\n" for sort keys %modes;
+  exit 0;
+}
 
 $direction = int($direction);
 die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
@@ -259,6 +265,7 @@ sub print_help {
 
   warn <<"END_HELP";
 Usage: $0 [options]
+  --listmodes       Shows list of available modes.
 
 Options affecting input:
   --direction       Positive, scale goes up, negative, down. Magnitudes
