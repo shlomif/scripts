@@ -137,6 +137,11 @@ if ( !$save_layout ) {
   unlink $midi_fname;
   unlink $src_fname;
   unlink "$src_fname.$_" for @CLEANUP_SUFFIX;
+} else {
+  # Might want to share the files, so avoid whoops-perm-denied-chmod-
+  # a+r phase of that process.
+  chmod 0644, $midi_fname, $src_fname,
+    map { "$src_fname.$_" } @CLEANUP_SUFFIX;
 }
 
 exit $exit_status;
