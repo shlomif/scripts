@@ -2,7 +2,8 @@
 #
 # Musical V/V utility, for arbitrary "chord X relative to Y as tonic in
 # key Z" type calculations (V/V are called "applied dominants" though
-# other scale degrees could be used, e.g. a phrase I IV/IV V/IV IV V I).
+# other scale degrees can be used, e.g. the phrase with a subphrase
+# relative to IV "I IV/IV V/IV IV V I").
 #
 # Input format based somewhat upon
 # https://en.wikipedia.org/wiki/Roman_numeral_analysis and other musical
@@ -11,6 +12,7 @@
 use strict;
 use warnings;
 use Carp;
+use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
 use Text::Roman qw/roman2int/;
 
@@ -39,24 +41,59 @@ my $DEFAULT_CHORD_FACTOR = 5;    # a 5th
 
 my $DEG_IN_SCALE = 12;
 
+my $Mode = 'major';
+my %Modes = (
+  ionian     => [qw(2 2 1 2 2 2 1)],
+  lydian     => [qw(2 2 2 1 2 2 1)],
+  mixolydian => [qw(2 2 1 2 2 1 2)],
+  dorian     => [qw(2 1 2 2 2 1 2)],
+  amdorian   => [qw(2 1 2 1 2 2 2)],
+  aeolian    => [qw(2 1 2 2 1 2 2)],
+  mminor     => [qw(2 1 2 2 2 2 1)],
+  hminor     => [qw(2 1 2 2 1 3 1)],
+  hunminor   => [qw(2 1 3 2 1 3 1)],
+  phrygian   => [qw(1 2 2 2 1 2 2)],
+  locrian    => [qw(1 2 2 1 2 2 2)],
+);
+$Modes{'major'} = $Modes{'ionian'};
+$Modes{'minor'} = $Modes{'aeolian'};
+
+my $Transpose       = 0;
+
+GetOptions(
+  'minor'                  => \my $use_minor,
+  'mode=s'                 => \$Mode,
+  'transpose|t=i'          => \$Transpose,
+) || die "error: could not parse options\n";
+
+$Mode = 'minor' if $use_minor;
+die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
+
 for my $vov_spec (@ARGV) {
   my @vovs = reverse split '/', $vov_spec;
 
   my ( $root_sd, $factor, $alterations ) = parse_roman_numeral( shift @vovs );
   my $sds = build_triad_degrees( $root_sd, $factor );
-  use Data::Dumper;
-  # warn Dumper $root_sd, $factor, $alterations, $sds;
-  my $pset = sd2ps( $sds, $alterations, [qw(2 2 1 2 2 2 1)] );    # major
+  my $pset = sd2ps( $sds, $alterations, $Modes{$Mode}, 0 );
+  use Data::Dumper; warn Dumper $pset;
+
+  for my $vov ( @vovs ) {
+    my ( $sub_root_sd, $subfactor, $sub_alt) = parse_roman_numeral( $vov );
+    my $subsds = build_triad_degrees( $sub_root_sd, $subfactor );
+    my $subpset = sd2ps( $subsds, $sub_alt, $Modes{$Mode}, $pset->[0] );
+    use Data::Dumper; warn Dumper $subpset;
+  }
 }
+
+exit 0;
 
 ########################################################################
 #
 # SUBROUTINES
 
-# Given root scale degree, a chord factor, returns an array reference of
-# scale degress of the chord elements up to the chord factor.
-#
-# XXX fix name to something more to my liking?
+# Given root scale degree plus a chord factor, returns an array
+# reference of scale degress of the chord elements up to the
+# chord factor.
 sub build_triad_degrees {
   my ( $root_sd, $factor ) = @_;
   if ( defined $factor ) {
@@ -140,20 +177,21 @@ sub parse_roman_numeral {
 }
 
 sub sd2ps {
-  my ( $sdset, $alterations, $scale_intervals ) = @_;
+  my ( $sdset, $alterations, $scale_intervals, $transpose ) = @_;
   $alterations //= {};
+  $transpose ||= 0;
 
   my @pset;
   for my $sd (@$sdset) {
     push @pset, $sd != 0 ? sum( @{$scale_intervals}[ 0 .. $sd - 1 ] ) : 0;
   }
-  for my $i ( keys %$alterations ) {
+  for my $i ( sort { $a <=> $b } keys %$alterations ) {
     croak "invalid alteration index '$i'" if $i < 0 or $i > $#pset;
     if ( $i > 0 ) {
-      # KLUGE skip alteration if already implied by the scale in
-      # question (e.g. don't flatten 3rd of "i" in c-minor as due to
-      # scale will already be minor). Better implementation might just
-      # deal with major vs. minor 3rds, and stack those up?
+      # KLUGE skip alteration if already applied by the scale in
+      # question (e.g. don't flatten 3rd of "i" in c-minor as will
+      # already be a minor 3rd). Better implementation might just deal
+      # with major vs. minor 3rds, and stack those up?
       next if $alterations->{$i} == -1 and $pset[$i] - $pset[ $i - 1 ] == 3;
       next if $alterations->{$i} == 1  and $pset[$i] - $pset[ $i - 1 ] == 4;
     }
@@ -161,7 +199,16 @@ sub sd2ps {
   }
 
   for my $p (@pset) {
+    $p += $transpose;
     $p %= $DEG_IN_SCALE;
   }
   return \@pset;
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
 }
