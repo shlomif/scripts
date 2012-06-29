@@ -41,7 +41,7 @@ my $DEFAULT_CHORD_FACTOR = 5;    # a 5th
 
 my $DEG_IN_SCALE = 12;
 
-my $Mode = 'major';
+my $Mode  = 'major';
 my %Modes = (
   ionian     => [qw(2 2 1 2 2 2 1)],
   lydian     => [qw(2 2 2 1 2 2 1)],
@@ -58,12 +58,12 @@ my %Modes = (
 $Modes{'major'} = $Modes{'ionian'};
 $Modes{'minor'} = $Modes{'aeolian'};
 
-my $Transpose       = 0;
+my $Transpose = 0;
 
 GetOptions(
-  'minor'                  => \my $use_minor,
-  'mode=s'                 => \$Mode,
-  'transpose|t=i'          => \$Transpose,
+  'minor'         => \my $use_minor,
+  'mode=s'        => \$Mode,
+  'transpose|t=i' => \$Transpose,
 ) || die "error: could not parse options\n";
 
 $Mode = 'minor' if $use_minor;
@@ -75,13 +75,14 @@ for my $vov_spec (@ARGV) {
   my ( $root_sd, $factor, $alterations ) = parse_roman_numeral( shift @vovs );
   my $sds = build_triad_degrees( $root_sd, $factor );
   my $pset = sd2ps( $sds, $alterations, $Modes{$Mode}, 0 );
-  use Data::Dumper; warn Dumper $pset;
+  use Data::Dumper;
+  warn Dumper $pset;
 
-  for my $vov ( @vovs ) {
-    my ( $sub_root_sd, $subfactor, $sub_alt) = parse_roman_numeral( $vov );
+  for my $vov (@vovs) {
+    my ( $sub_root_sd, $subfactor, $sub_alt ) = parse_roman_numeral($vov);
     my $subsds = build_triad_degrees( $sub_root_sd, $subfactor );
     my $subpset = sd2ps( $subsds, $sub_alt, $Modes{$Mode}, $pset->[0] );
-    use Data::Dumper; warn Dumper $subpset;
+    #   use Data::Dumper; warn Dumper $subpset;
   }
 }
 
@@ -185,6 +186,12 @@ sub sd2ps {
   for my $sd (@$sdset) {
     push @pset, $sd != 0 ? sum( @{$scale_intervals}[ 0 .. $sd - 1 ] ) : 0;
   }
+
+  # DBG
+  warn "\n";
+  use Data::Dumper;
+  warn Dumper $sdset, $alterations, \@pset, $transpose;
+
   for my $i ( sort { $a <=> $b } keys %$alterations ) {
     croak "invalid alteration index '$i'" if $i < 0 or $i > $#pset;
     if ( $i > 0 ) {
@@ -192,16 +199,23 @@ sub sd2ps {
       # question (e.g. don't flatten 3rd of "i" in c-minor as will
       # already be a minor 3rd). Better implementation might just deal
       # with major vs. minor 3rds, and stack those up?
-      next if $alterations->{$i} == -1 and $pset[$i] - $pset[ $i - 1 ] == 3;
-      next if $alterations->{$i} == 1  and $pset[$i] - $pset[ $i - 1 ] == 4;
+      next
+        if $alterations->{$i} == -1
+          and ( $pset[$i] - $pset[ $i - 1 ] ) % $DEG_IN_SCALE == 3;
+      next
+        if $alterations->{$i} == 1
+          and ( $pset[$i] - $pset[ $i - 1 ] ) % $DEG_IN_SCALE == 4;
     }
     $pset[$i] += $alterations->{$i};
   }
-
+  use Data::Dumper;
+  warn Dumper \@pset;
   for my $p (@pset) {
     $p += $transpose;
     $p %= $DEG_IN_SCALE;
   }
+  use Data::Dumper;
+  warn Dumper \@pset;
   return \@pset;
 }
 
