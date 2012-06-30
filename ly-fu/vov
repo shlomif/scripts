@@ -72,11 +72,17 @@ my $Transpose = 0;
 
 GetOptions(
   'flats'         => \my $use_flats,
+  'listmodes'     => \my $list_modes,
   'minor'         => \my $use_minor,
   'mode=s'        => \$Mode,
   'raw'           => \my $raw_output,
   'transpose|t=i' => \$Transpose,
 ) || die "error: could not parse options\n";
+
+if ($list_modes) {
+  print "$_\n" for sort keys %Modes;
+  exit 0;
+}
 
 $Mode = 'minor' if $use_minor;
 die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
