@@ -72,12 +72,13 @@ my $Transpose = 0;
 
 GetOptions(
   'flats'         => \my $use_flats,
+  'help'          => \&print_help,
   'listmodes'     => \my $list_modes,
   'minor'         => \my $use_minor,
   'mode=s'        => \$Mode,
   'raw'           => \my $raw_output,
   'transpose|t=i' => \$Transpose,
-) || die "error: could not parse options\n";
+) || print_help();
 
 if ($list_modes) {
   print "$_\n" for sort keys %Modes;
@@ -113,6 +114,7 @@ for my $vov_spec (@ARGV) {
   if ($Transpose) {
     for my $p (@$pset) {
       $p += $Transpose;
+      $p %= $DEG_IN_SCALE;
     }
   }
 
@@ -212,6 +214,33 @@ sub parse_roman_numeral {
   }
 
   return $scale_degree, $factor, \%alterations;
+}
+
+sub print_help {
+  warn <<"END_HELP";
+Usage: $0 [options] x/x [x/x ...]
+
+Where x are roman numerals (I..VII and i..vii), possibly prefixed with
+# or b to sharpen or flatten the root pitch, possibly suffixed with +
+to augment or * to diminish or ** to double diminish, possibly
+suffixed with an odd integer specifying the chord factor (7 for
+seventh, etc). Options:
+
+  --flats           Use flats in output, instead of default sharps
+  --help            Displays help and exits
+  --listmodes       Shows list of available modes and exits
+  --minor           Use minor mode
+  --mode=s          Specify named mode
+  --raw             Emit pitch numbers instead of note names
+  --transpose       Number of semitones to transpose the output by
+
+Example:
+
+  \$ vov V7/V
+  d fis a c
+
+END_HELP
+  exit 64;
 }
 
 sub sd2ps {
