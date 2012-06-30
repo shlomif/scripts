@@ -14,6 +14,7 @@ use warnings;
 use Carp;
 use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
+use Music::AtonalUtil;
 use Text::Roman qw/roman2int/;
 
 # Leading sharp/flats adjust the tonic up or down (might also support
@@ -58,31 +59,61 @@ my %Modes = (
 $Modes{'major'} = $Modes{'ionian'};
 $Modes{'minor'} = $Modes{'aeolian'};
 
+# Note names for program output
+my %num2note = (
+  'ly-sharp' =>
+    {qw/0 c 1 cis 2 d 3 dis 4 e 5 f 6 fis 7 g 8 gis 9 a 10 ais 11 b/},
+  'ly-flat' =>
+    {qw/0 c 1 des 2 d 3 ees 4 e 5 f 6 ges 7 g 8 aes 9 a 10 bes 11 b/},
+);
+my $num2note_flavor = 'ly-';
+
 my $Transpose = 0;
 
 GetOptions(
+  'flats'         => \my $use_flats,
   'minor'         => \my $use_minor,
   'mode=s'        => \$Mode,
+  'raw'           => \my $raw_output,
   'transpose|t=i' => \$Transpose,
 ) || die "error: could not parse options\n";
 
 $Mode = 'minor' if $use_minor;
 die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
 
+$num2note_flavor .= $use_flats ? 'flat' : 'sharp';
+
+my $atu = Music::AtonalUtil->new;
+
 for my $vov_spec (@ARGV) {
-  my @vovs = reverse split '/', $vov_spec;
+  my @vovs         = reverse split '/', $vov_spec;
+  my $mode         = $Modes{$Mode};
+  my $sd_transpose = 0;
 
-  my ( $root_sd, $factor, $alterations ) = parse_roman_numeral( shift @vovs );
-  my $sds = build_triad_degrees( $root_sd, $factor );
-  my $pset = sd2ps( $sds, $alterations, $Modes{$Mode}, 0 );
-  use Data::Dumper;
-  warn Dumper $pset;
-
+  my ( $prev_root_pitch, $prev_root_sd, $pset );
   for my $vov (@vovs) {
-    my ( $sub_root_sd, $subfactor, $sub_alt ) = parse_roman_numeral($vov);
-    my $subsds = build_triad_degrees( $sub_root_sd, $subfactor );
-    my $subpset = sd2ps( $subsds, $sub_alt, $Modes{$Mode}, $pset->[0] );
-    #   use Data::Dumper; warn Dumper $subpset;
+    my ( $root_sd, $factor, $alterations ) = parse_roman_numeral($vov);
+    my $sds = build_triad_degrees( $root_sd, $factor );
+    if ( defined $prev_root_sd ) {
+      $sd_transpose = $prev_root_pitch;
+      $mode = $atu->rotate( $Modes{$Mode}, -1 * $prev_root_sd );
+    }
+    $pset = sd2ps( $sds, $alterations, $mode, $sd_transpose );
+
+    $prev_root_pitch = $pset->[0];
+    $prev_root_sd    = $root_sd;
+  }
+
+  if ($Transpose) {
+    for my $p (@$pset) {
+      $p += $Transpose;
+    }
+  }
+
+  if ($raw_output) {
+    print join( " ", @$pset ), "\n";
+  } else {
+    print join( " ", map $num2note{$num2note_flavor}->{$_}, @$pset ), "\n";
   }
 }
 
@@ -187,11 +218,6 @@ sub sd2ps {
     push @pset, $sd != 0 ? sum( @{$scale_intervals}[ 0 .. $sd - 1 ] ) : 0;
   }
 
-  # DBG
-  warn "\n";
-  use Data::Dumper;
-  warn Dumper $sdset, $alterations, \@pset, $transpose;
-
   for my $i ( sort { $a <=> $b } keys %$alterations ) {
     croak "invalid alteration index '$i'" if $i < 0 or $i > $#pset;
     if ( $i > 0 ) {
@@ -208,14 +234,10 @@ sub sd2ps {
     }
     $pset[$i] += $alterations->{$i};
   }
-  use Data::Dumper;
-  warn Dumper \@pset;
   for my $p (@pset) {
     $p += $transpose;
     $p %= $DEG_IN_SCALE;
   }
-  use Data::Dumper;
-  warn Dumper \@pset;
   return \@pset;
 }
 
