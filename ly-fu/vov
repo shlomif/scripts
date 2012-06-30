@@ -227,12 +227,14 @@ suffixed with an odd integer specifying the chord factor (7 for
 seventh, etc). Options:
 
   --flats           Use flats in output, instead of default sharps
-  --help            Displays help and exits
-  --listmodes       Shows list of available modes and exits
-  --minor           Use minor mode
-  --mode=s          Specify named mode
+  --help            Displays help and exits program
+  --listmodes       Shows list of available modes and exits program
+  --minor           Use minor mode for the base key
+  --mode=s          Specify named mode for the base key
   --raw             Emit pitch numbers instead of note names
-  --transpose       Number of semitones to transpose the output by
+  --transpose       Number of semitones to transpose the output by; the
+                    base key is C. To move the output to A-something,
+                    transpose by -3 or 9.
 
 Example:
 
