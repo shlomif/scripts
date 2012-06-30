@@ -14,21 +14,25 @@ use warnings;
 use Carp;
 use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
+# So as it turns out atonal functions can be handy for various
+# tonal needs.
 use Music::AtonalUtil;
 use Text::Roman qw/roman2int/;
 
 # Leading sharp/flats adjust the tonic up or down (might also support
 # doublesharp or doubleflat, but those get tricky depending on the
-# underlying note).
+# underlying note, and are not used in output (e.g. 'a' will be shown
+# instead of a 'beses' for a double-diminished 7th).
 my $FLAT_CHARS      = 'b\x{266D}';
 my $SHARP_CHARS     = '#\x{266F}';
 my $ROMAN_PREFIX_RE = qr/[$FLAT_CHARS$SHARP_CHARS]/;
+
 # Upper vs. lower case indicates major vs. minor quality of the 3rd
 my $ROMAN_NUMERAL_RE = qr/III|iii|VII|vii|II|ii|IV|iv|VI|vi|I|i|V|v/;
-# Whether to aug or dim chord, and then the chord factor (probably will
-# ignore inversion numbers e.g. 2 6 64 and so forth for now, as those
-# come from verticals of figured bass). (KLUGE ** is for "double dim")
-my $ROMAN_SUFFIX_RE = qr/[+*]?[*]?\d*/;
+
+# Whether to aug or dim or double dim the chord (+ * **), the chord
+# factor or inversion data, or inversion by letter form.
+my $ROMAN_SUFFIX_RE = qr/[+*]?[*]?\d*[a-g]?/;
 
 # Standard tonal limits on scale degrees and non-repetition of triad
 # pitches; adjust these if using some other scale system.
@@ -97,19 +101,26 @@ for my $vov_spec (@ARGV) {
   my $mode         = $Modes{$Mode};
   my $sd_transpose = 0;
 
-  my ( $prev_root_pitch, $prev_root_sd, $pset );
+  my ( $prev_root_pitch, $prev_root_sd, $pset, $invert_by );
   for my $vov (@vovs) {
-    my ( $root_sd, $factor, $alterations ) = parse_roman_numeral($vov);
+    my ( $root_sd, $factor, $alterations, $inv ) = parse_roman_numeral($vov);
     my $sds = build_triad_degrees( $root_sd, $factor );
     if ( defined $prev_root_sd ) {
       $sd_transpose = $prev_root_pitch;
+      # This rotation trick constrains the pitches of the new relative
+      # pitch to those of the overlying mode, as otherwise III/ii
+      # assuming major will use pitches not present in the underlying
+      # major scale.
       $mode = $atu->rotate( $Modes{$Mode}, -1 * $prev_root_sd );
     }
     $pset = sd2ps( $sds, $alterations, $mode, $sd_transpose );
 
     $prev_root_pitch = $pset->[0];
     $prev_root_sd    = $root_sd;
+    $invert_by = $inv;
   }
+
+  $pset = $atu->rotate($pset, -1 * $invert_by) if $invert_by;
 
   if ($Transpose) {
     for my $p (@$pset) {
@@ -162,6 +173,8 @@ sub build_triad_degrees {
   return \@sds;
 }
 
+# XXX 7ths could use more work? no way to specify MM7 vs. Mm7 (that
+# these are notated the same using Roman Numerals does not help).
 sub parse_roman_numeral {
   my ($numeral) = @_;
   my ( $pre, $roman, $suf ) =
@@ -171,6 +184,39 @@ sub parse_roman_numeral {
 
   my %alterations;
   my $factor = $DEFAULT_CHORD_FACTOR;
+  my $inversion;
+
+  # Inversions by trailing letter format: Ia no inversion, Ib first,
+  # etc. 'g' is to support the maximum inversion of a 13th chord.
+  if ( $suf =~ m/([a-g])/ ) {
+    $inversion = ord($1) - ord('a');
+  }
+
+  # Optional factor or perhaps inversion (7 for seventh, 64 for 5th in
+  # 2nd inversion, and so forth).
+  if ( $suf =~ m/(\d+)/ ) {
+    my $digits = $1;
+    if ( $digits <= $MAX_CHORD_FACTOR and $digits % 2 == 1 ) {
+      $factor = $1;
+    } else {
+      croak "cannot mix letter and numeric form of inversions"
+        if defined $inversion;
+      if ( $digits == 6 ) {
+        $inversion = 1;
+      } elsif ( $digits == 64 ) {
+        $inversion = 2;
+      } elsif ( $digits == 65 ) {
+        $inversion = 1;
+        $factor    = 7;
+      } elsif ( $digits == 43 ) {
+        $inversion = 2;
+        $factor    = 7;
+      } elsif ( $digits == 2 ) {
+        $inversion = 3;
+        $factor    = 7;
+      }
+    }
+  }
 
   my $scale_degree = roman2int($roman) if $roman;
   if ( !$scale_degree ) {
@@ -180,40 +226,35 @@ sub parse_roman_numeral {
 
     if ( lc $roman eq $roman ) {
       $alterations{1} = -1;
+      $alterations{3} = -1;    # so that i7 converts to mm7
     } else {
       $alterations{1} = 1;
     }
   }
-  # sharpen or flatten the root (e.g. for bII or #IV chromatic alterations)
+
+  # Sharpen or flatten the root (e.g. for bII or #IV chromatic alterations).
   if ( $pre =~ m/[$FLAT_CHARS]/ ) {
     $alterations{0} = -1;
   } elsif ( $pre =~ m/[$SHARP_CHARS]/ ) {
     $alterations{0} = 1;
   }
-  # augment or diminish the 5th (or 7th with **)
+
+  # Augment or diminish the 5th (or 7th with **).
   if ( $suf =~ m/[+]/ ) {
     $alterations{2} = 1;
   } elsif ( $suf =~ m/\*\*/ ) {
-    $alterations{1} = -1;    # assumption of minor 3rd for double dim.
+    # dd7
+    $alterations{1} = -1;
     $alterations{2} = -1;
-    $alterations{3} = -1;
+    $alterations{3} = -2;
   } elsif ( $suf =~ m/\*/ ) {
-    $alterations{1} = -1;    # assumption of minor 3rd for dim.
+    # dm7
+    $alterations{1} = -1;
     $alterations{2} = -1;
-  }
-  # figure out factor of chord from optional trailing digits
-  if ( $suf =~ m/(\d+)/ ) {
-    my $digits = $1;
-    if ( $digits <= $MAX_CHORD_FACTOR and $digits % 2 == 1 ) {
-      $factor = $1;
-    }
-    # XXX support 6, 64 5th inversions, 65 43 2 (implied factor 7)
-    # inversions here? - could also use letter form, e.g. V7b for
-    # dominant 7th, first inversion (65)a. This would tweak the order of
-    # pitches in an eventual pitch set created...
   }
 
-  return $scale_degree, $factor, \%alterations;
+  $inversion //= 0;
+  return $scale_degree, $factor, \%alterations, $inversion;
 }
 
 sub print_help {
@@ -256,7 +297,7 @@ sub sd2ps {
   }
 
   for my $i ( sort { $a <=> $b } keys %$alterations ) {
-    croak "invalid alteration index '$i'" if $i < 0 or $i > $#pset;
+    next if $i < 0 or $i > $#pset;
     if ( $i > 0 ) {
       # KLUGE skip alteration if already applied by the scale in
       # question (e.g. don't flatten 3rd of "i" in c-minor as will
