@@ -80,6 +80,7 @@ GetOptions(
   'listmodes'     => \my $list_modes,
   'minor'         => \my $use_minor,
   'mode=s'        => \$Mode,
+  'natural'       => \my $use_naturals,
   'raw'           => \my $raw_output,
   'transpose|t=i' => \$Transpose,
 ) || print_help();
@@ -253,6 +254,12 @@ sub parse_roman_numeral {
     $alterations{2} = -1;
   }
 
+  if ($use_naturals) {
+    my $zero = $alterations{0};
+    %alterations = ();
+    $alterations{0} = $zero if defined $zero;
+  }
+
   $inversion //= 0;
   return $scale_degree, $factor, \%alterations, $inversion;
 }
@@ -272,6 +279,7 @@ seventh, etc). Options:
   --listmodes       Shows list of available modes and exits program
   --minor           Use minor mode for the base key
   --mode=s          Specify named mode for the base key
+  --natural         Ignore V vs. v and use intervals implied by the mode
   --raw             Emit pitch numbers instead of note names
   --transpose       Number of semitones to transpose the output by; the
                     base key is C. To move the output to A-something,
