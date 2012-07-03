@@ -72,6 +72,8 @@ my %num2note = (
 );
 my $num2note_flavor = 'ly-';
 
+my $output_tmpl = '%{chord}' . "\n";
+
 my $Transpose = 0;
 
 GetOptions(
@@ -81,6 +83,7 @@ GetOptions(
   'minor'         => \my $use_minor,
   'mode=s'        => \$Mode,
   'natural'       => \my $use_naturals,
+  'outputtmpl=s'  => \$output_tmpl,
   'raw'           => \my $raw_output,
   'transpose|t=i' => \$Transpose,
 ) || print_help();
@@ -89,11 +92,14 @@ if ($list_modes) {
   print "$_\n" for sort keys %Modes;
   exit 0;
 }
+print_help() unless @ARGV;
 
 $Mode = 'minor' if $use_minor;
 die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
 
 $num2note_flavor .= $use_flats ? 'flat' : 'sharp';
+$output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
+$output_tmpl .= "\n" unless $output_tmpl =~ m/\s$/;
 
 my $atu = Music::AtonalUtil->new;
 
@@ -118,10 +124,10 @@ for my $vov_spec (@ARGV) {
 
     $prev_root_pitch = $pset->[0];
     $prev_root_sd    = $root_sd;
-    $invert_by = $inv;
+    $invert_by       = $inv;
   }
 
-  $pset = $atu->rotate($pset, -1 * $invert_by) if $invert_by;
+  $pset = $atu->rotate( $pset, -1 * $invert_by ) if $invert_by;
 
   if ($Transpose) {
     for my $p (@$pset) {
@@ -130,11 +136,16 @@ for my $vov_spec (@ARGV) {
     }
   }
 
+  my %out_attr = ( vov => $vov_spec );
   if ($raw_output) {
-    print join( " ", @$pset ), "\n";
+    $out_attr{chord} = join " ", @$pset;
   } else {
-    print join( " ", map $num2note{$num2note_flavor}->{$_}, @$pset ), "\n";
+    $out_attr{chord} = join " ", map $num2note{$num2note_flavor}->{$_},
+      @$pset;
   }
+  my $str = $output_tmpl;
+  $str =~ s/ %{ (\w+) } / defined $out_attr{$1} ? $out_attr{$1} : q{} /egx;
+  print $str;
 }
 
 exit 0;
@@ -280,15 +291,18 @@ seventh, etc). Options:
   --minor           Use minor mode for the base key
   --mode=s          Specify named mode for the base key
   --natural         Ignore V vs. v and use intervals implied by the mode
+  --outputtmpl=s    Specify a custom output template
   --raw             Emit pitch numbers instead of note names
   --transpose       Number of semitones to transpose the output by; the
                     base key is C. To move the output to A-something,
                     transpose by -3 or 9.
 
-Example:
+Examples:
 
   \$ vov V7/V
   d fis a c
+  \$ vov --outputtmpl='<%{chord}> % %{vov}' I
+  <c e g> % I
 
 END_HELP
   exit 64;
