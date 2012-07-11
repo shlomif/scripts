@@ -116,7 +116,7 @@ my $length          = 8;
 my $direction       = 1;
 my $in_reverse      = 0;
 my $relative        = 0;
-my $transpose       = 0;
+my $transpose;
 
 my $output_delimiter = " ";
 my ( @output_intervals, $output_sum );
@@ -139,7 +139,7 @@ GetOptions(
   'length=i'               => \$length,
   'raw'                    => \my $raw_output,
   'reverse'                => \$in_reverse,
-  'transpose|t=i'          => \$transpose,
+  'transpose|t=s'          => \$transpose,
 ) || die "error: could not parse options\n";
 
 print_help() if @ARGV;
@@ -153,7 +153,19 @@ $direction = int($direction);
 die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
 $length = int($length);
 die "error: length must be at least one\n" if $length < 1;
-$transpose = int($transpose);
+
+if ( defined $transpose ) {
+  if ( exists $note2num{$transpose} ) {
+    $transpose = $note2num{$transpose};
+  } elsif ( $transpose =~ m/^(-?\d+)$/ ) {
+    $transpose = $1;
+    $transpose %= $DEG_IN_SCALE;
+  } else {
+    die "error: do not know how to transpose by $transpose\n";
+  }
+} else {
+  $transpose = 0;
+}
 
 $mode = 'minor' if $use_minor;
 if ( defined $mode ) {

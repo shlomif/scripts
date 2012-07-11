@@ -63,6 +63,10 @@ my %Modes = (
 $Modes{'major'} = $Modes{'ionian'};
 $Modes{'minor'} = $Modes{'aeolian'};
 
+# Accepted note names to pitch number for user input
+my %note2num = qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11
+  ces 11 des 1 ees 3 fes 4 ges 6 aes 8 bes 10 eis 5 bis 0);
+
 # Note names for program output
 my %num2note = (
   'ly-sharp' =>
@@ -74,7 +78,7 @@ my $num2note_flavor = 'ly-';
 
 my $output_tmpl = '%{chord}' . "\n";
 
-my $Transpose = 0;
+my $Transpose;
 
 GetOptions(
   'flats'         => \my $use_flats,
@@ -85,7 +89,7 @@ GetOptions(
   'natural'       => \my $use_naturals,
   'outputtmpl=s'  => \$output_tmpl,
   'raw'           => \my $raw_output,
-  'transpose|t=i' => \$Transpose,
+  'transpose|t=s' => \$Transpose,
 ) || print_help();
 
 if ($list_modes) {
@@ -96,6 +100,17 @@ print_help() unless @ARGV;
 
 $Mode = 'minor' if $use_minor;
 die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
+
+if ($Transpose) {
+  if ( exists $note2num{$Transpose} ) {
+    $Transpose = $note2num{$Transpose};
+  } elsif ( $Transpose =~ m/^(-?\d+)$/ ) {
+    $Transpose = $1;
+    $Transpose %= $DEG_IN_SCALE;
+  } else {
+    die "error: do not know how to transpose by $Transpose\n";
+  }
+}
 
 $num2note_flavor .= $use_flats ? 'flat' : 'sharp';
 $output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
