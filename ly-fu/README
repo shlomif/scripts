@@ -1,2 +1,6 @@
 ly-fu is for playing random musical snippets from the command line, the
 other utilities are for various other music related tasks.
+
+There are ZSH completion scripts for these utilities over at:
+
+https://github.com/thrig/zsh-compdef
