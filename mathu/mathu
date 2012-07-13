@@ -9,6 +9,7 @@
 # public domain.
 
 use Getopt::Std;
+use List::Util qw(max sum);
 use Scalar::Util qw(looks_like_number);
 
 my $PHI = 1.6180339887498948482;
@@ -236,18 +237,15 @@ sub handle_golden {
 }
 
 sub handle_divisibleby {
-  my $num = $ARGV[0];
-
-  my $max_test = int( $num / 2 );
+  my $max_test = int( max(@ARGV) / 2 );
   $max_test = 2 if $max_test < 2;
 
   my %seen;
 
-  for my $i ( 1 .. $max_test ) {
-    if ( $num % $i == 0 ) {
-      my $other = $num / $i;
-      print "$num\t$i * $other\n" unless exists $seen{$other};
-      $seen{$i} = ();
+  for my $i ( 2 .. $max_test ) {
+    my @result = grep { $_ % $i == 0 } @ARGV;
+    if ( @result == @ARGV ) {
+      print $i, "\n";
     }
   }
 }
