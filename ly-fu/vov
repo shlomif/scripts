@@ -81,6 +81,7 @@ my $output_tmpl = '%{chord}' . "\n";
 my $Transpose;
 
 GetOptions(
+  'factor=i'      => \my $Default_Factor,
   'flats'         => \my $use_flats,
   'help'          => \&print_help,
   'listmodes'     => \my $list_modes,
@@ -100,6 +101,8 @@ print_help() unless @ARGV;
 
 $Mode = 'minor' if $use_minor;
 die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
+
+$Default_Factor //= $DEFAULT_CHORD_FACTOR;
 
 if ($Transpose) {
   if ( exists $note2num{$Transpose} ) {
@@ -210,7 +213,7 @@ sub parse_roman_numeral {
   $suf //= '';
 
   my %alterations;
-  my $factor = $DEFAULT_CHORD_FACTOR;
+  my $factor = $Default_Factor;
   my $inversion;
 
   # Inversions by trailing letter format: Ia no inversion, Ib first,
