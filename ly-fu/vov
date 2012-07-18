@@ -7,7 +7,9 @@
 #
 # Input format based somewhat upon
 # https://en.wikipedia.org/wiki/Roman_numeral_analysis and other musical
-# sources, with some tweaks for Unix command line input needs.
+# sources, with some tweaks for Unix command line input needs. Output is
+# suitable for input to Lilypond, e.g. via `vov ... | ly-fu -` though
+# can be adjusted by various options.
 
 use strict;
 use warnings;
@@ -297,23 +299,36 @@ sub print_help {
   warn <<"END_HELP";
 Usage: $0 [options] x/x [x/x ...]
 
-Where x are roman numerals (I..VII and i..vii), possibly prefixed with
-# or b to sharpen or flatten the root pitch, possibly suffixed with +
-to augment or * to diminish or ** to double diminish, possibly
-suffixed with an odd integer specifying the chord factor (7 for
-seventh, etc). Options:
+Where x are roman numerals (I..VII and i..vii), possibly prefixed with #
+or b to sharpen or flatten the root pitch, possibly suffixed with + to
+augment or * to diminish or ** to double diminish, possibly suffixed
+with an integer specifying the chord factor or inversion:
 
-  --flats           Use flats in output, instead of default sharps
-  --help            Displays help and exits program
-  --listmodes       Shows list of available modes and exits program
-  --minor           Use minor mode for the base key
-  --mode=s          Specify named mode for the base key
-  --natural         Ignore V vs. v and use intervals implied by the mode
-  --outputtmpl=s    Specify a custom output template
-  --raw             Emit pitch numbers instead of note names
-  --transpose       Number of semitones to transpose the output by; the
-                    base key is C. To move the output to A-something,
-                    transpose by -3 or 9.
+  V5 V6 V64       # Dominant fifth and inversions (also Va, Vb, Vc)
+  V7 V65 V42 V2   # Dominant seventh and inversions (V7a, V7b, V7c, V7d)
+  bII6            # Neapolitan 6th
+
+Options that do nothing else:
+
+  --help            Displays help and exits program.
+  --listmodes       Shows list of available modes and exits program.
+
+Options that adjust the results:
+
+  --minor           Use minor mode (default is Major).
+  --mode=s          Or specify the named mode.
+
+  --factor=i        Specify default chord factor (1 for single notes, and
+                    up to 13 for thirteenth chords). 5th is the default.
+  --flats           Use flats in output, instead of default sharps.
+  --natural         Ignore VII vs. vii vs. 'vii*' in input and use the
+                    intervals implied by the mode. (But a bII would still
+                    lower the root.)
+  --outputtmpl=s    Specify a custom output template (see example below).
+  --raw             Emit pitch numbers instead of note names.
+  --transpose=s     Number of semitones to transpose the output by, or the
+                    note letter to transpose to, e.g. 'a' or -3 or 9 to move
+                    the root to A from the default C.
 
 Examples:
 
