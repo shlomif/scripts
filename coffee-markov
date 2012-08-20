@@ -1,11 +1,10 @@
 #!/usr/bin/perl
 #
 # Example 2nd order markov (with fallback to first) for a model citizen
-# before lunch. Consider instead: http://hailo.org/
+# before lunch (see DATA, below). Consider instead: http://hailo.org/
 
 use strict;
 use warnings;
-use List::Util qw(sum);
 
 my %choice;
 load_choices( \%choice );
@@ -17,27 +16,30 @@ while ( my $choice = next_choice( \@action, \%choice ) ) {
 }
 print join( ' ', @action ), "\n";
 
+# Simplistic weighted value picker. "the alias method" is likely more
+# efficient, but that would require finding or implementing such code,
+# and perhaps delving through learnin' materials such as "Non-Uniform
+# Random Variate Generation" by Luc Devroye.
 sub next_choice {
   my ( $actions, $choices ) = @_;
 
-  my $consideration;
+  my ( $consideration, $odds );
   if ( @$actions > 1 ) {
     $consideration = join '.', @{$actions}[ -2 .. -1 ];
-  } else {
-    $consideration = $actions->[-1];
+    $odds = $choices->{$consideration}->{odds}
+      if exists $choices->{$consideration};
   }
-  my $target_ref = $choices->{$consideration};
-
-  warn "info: for $actions->[-1] picking from $consideration\n";
+  # But fallback to 1st order if nothing for 2nd (Irulan on beginnings,
+  # or perhaps when adjusting the choices on the fly).
+  if ( !defined $odds ) {
+    $consideration = $actions->[-1];
+    $odds          = $choices->{$consideration}->{odds};
+  }
 
   my $choice;
   my $rand = rand;
-  for my $target (
-    sort { $target_ref->{$b} <=> $target_ref->{$a} }
-    keys %$target_ref
-    ) {
-    $choice = $target if $target_ref->{$target} >= $rand;
-  }
+  for my $i (@$odds) { $choice = $i->[1] if $i->[0] >= $rand }
+  warn "info: for $actions->[-1] picking from $consideration, got $choice\n";
   return $choice;
 }
 
@@ -45,28 +47,33 @@ sub load_choices {
   my ($choices) = @_;
   while ( my $line = readline DATA ) {
     my @actions = split ' ', $line;
-    for my $i ( 0 .. $#actions ) {
-      $choices->{ $actions[$i] }->{ $actions[ $i + 1 ] }++
-        unless $i == $#actions;
-      $choices->{ join '.', @actions[ $i .. $i + 1 ] }
+    for my $i ( 0 .. $#actions - 1 ) {
+      $choices->{ $actions[$i] }->{states}->{ $actions[ $i + 1 ] }++;
+      $choices->{ join '.', @actions[ $i .. $i + 1 ] }->{states}
         ->{ $actions[ $i + 2 ] }++
-        unless $i >= $#actions - 1;
+        unless $i > $#actions - 2;
     }
   }
 }
 
 sub normalize_choices {
-  my ($choice_ref) = @_;
+  my ($choices) = @_;
 
-  for my $choice ( keys %$choice_ref ) {
-    my $target_sum = sum values %{ $choice_ref->{$choice} };
-    my $factor = ( $target_sum != 1 ) ? 1 / $target_sum : 1;
-
-    my $running_total = 0;
-    for my $target_value ( values %{ $choice_ref->{$choice} } ) {
-      $target_value  = $target_value * $factor + $running_total;
-      $running_total = $target_value;
+  for my $node ( keys %$choices ) {
+    my $sum = 0;
+    for my $v ( values %{ $choices->{$node}->{states} } ) {
+      $v = 0 if $v < 0;
+      $sum += $v;
     }
+    die "error: node '$node' lacks choices of value\n" if $sum == 0;
+
+    my $cumm = 0;
+    my @odds;
+    for my $k ( keys %{ $choices->{$node}->{states} } ) {
+      $cumm += $choices->{$node}->{states}->{$k} / $sum;
+      unshift @odds, [ $cumm, $k ];
+    }
+    $choices->{$node}->{odds} = \@odds;
   }
 }
 
