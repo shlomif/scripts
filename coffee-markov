@@ -12,6 +12,7 @@ normalize_choices( \%choice );
 
 my @action = 'awaken';
 while ( my $choice = next_choice( \@action, \%choice ) ) {
+  last if !defined $choice or !exists $choice{$choice};
   push @action, $choice;
 }
 print join( ' ', @action ), "\n";
