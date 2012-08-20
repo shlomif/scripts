@@ -60,9 +60,9 @@ sub cummulate {
 }
 
 # Simplistic weighted value picker. "the alias method" is likely more
-# efficient, but that would require finding or implementing such code,
-# and perhaps delving through learnin' materials such as "Non-Uniform
-# Random Variate Generation" by Luc Devroye.
+# efficient, but that would require switching to or borrowing code from
+# Math::Random::Discrete or delving through learnin' materials such as
+# "Non-Uniform Random Variate Generation" by Luc Devroye.
 sub pick {
   my ($odds) = @_;
   my $rand = rand;
