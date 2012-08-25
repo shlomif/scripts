@@ -26,20 +26,12 @@ use warnings;
 use File::Basename qw(basename);
 use File::Spec ();
 
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
-
 my $DEBUG = 0;
 
 my $file_regex = shift;
 my $directory  = shift;
 
-if (! defined $file_regex) {
+if ( !defined $file_regex ) {
   $file_regex = qr/^/;
 }
 
@@ -47,8 +39,8 @@ if (! defined $file_regex) {
 # a terminal, or assumes the files are being passed in on STDIN
 # otherwise. See NOTE above if glf is run from cron (where STDIN will
 # not be connected to a terminal).
-if (! defined $directory) {
-  if (-t STDIN) {
+if ( !defined $directory ) {
+  if ( -t STDIN ) {
     $directory = '.';
   } else {
     $directory = '-';
@@ -107,6 +99,14 @@ sub handle_file {
   if ( !defined $latest_mtime or $file_mtime > $latest_mtime ) {
     $latest_mtime = $file_mtime;
     $latest_file  = $file;
+  }
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
   }
 }
 
