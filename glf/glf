@@ -25,8 +25,11 @@ use strict;
 use warnings;
 use File::Basename qw(basename);
 use File::Spec ();
+use Getopt::Long qw(GetOptions);
 
 my $DEBUG = 0;
+
+GetOptions( 'exclude|e=s' => \my $exclude ) || exit 64;
 
 my $file_regex = shift;
 my $directory  = shift;
@@ -90,6 +93,9 @@ sub handle_file {
   # the filename, not any parent directory file names.
   my $file_basename = basename($file);
   return unless $file_basename =~ m/$file_regex/;
+  if ( defined $exclude ) {
+    return if $file_basename =~ m/$exclude/;
+  }
   return unless -f $file;
 
   my $file_mtime = ( stat($file) )[9];
