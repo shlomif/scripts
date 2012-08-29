@@ -84,9 +84,11 @@ if ( defined $repeats ) {
   @ARGV = (@ARGV) x $repeats;
 }
 
+my $pre_art  = '';
+my $post_art = '';
 if ($do_articulate) {
-  $partial = '\articulate { ' . $partial;
-  push @ARGV, '}';
+  $pre_art  = '\articulate {';
+  $post_art = '}';
 }
 
 $prestaff = "\\relative $relative" unless $is_absolute;
@@ -99,13 +101,24 @@ my $ly_template = <<"END_TMPL";
 }
 \\score {
   \\new Staff << $prestaff {
-    \\set Staff.midiInstrument = #"$instrument"
+    \\set Staff.instrumentName = #"$instrument"
     \\tempo 4=$tempo
     $partial
     @ARGV
   } >>
-  \\midi { }
   \\layout { }
+}
+
+\\score {
+  \\new Staff << $prestaff {
+    \\set Staff.midiInstrument = #"$instrument"
+    \\tempo 4=$tempo
+    $pre_art
+    $partial
+    @ARGV
+    $post_art
+  } >>
+  \\midi { }
 }
 END_TMPL
 
