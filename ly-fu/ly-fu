@@ -1,8 +1,12 @@
 #!/usr/bin/perl
 #
-# Compile and run random LilyPond snippets specified on command line:
+# Compile and run LilyPond snippets specified on command line:
 #
 # ly-fu c des ees c des bes c aes
+#
+# Complicated phrases will likely need quotation, e.g.:
+#
+# ly-fu --instrument=trumpet "c8 g'4 c,8 g'4 c,8 g'2 c,8 g' c, f c ees"
 #
 # ZSH completion available at: https://github.com/thrig/zsh-compdef
 
@@ -14,6 +18,7 @@ use File::Spec ();
 use File::Temp qw/tempfile/;
 use Getopt::Long qw/GetOptions/;
 use IO::Handle;
+use IPC::Open3 qw/open3/;
 
 my $BASENAME = basename($0);
 
@@ -50,18 +55,19 @@ if ( exists $ENV{'MIDI_EDITOR'} ) {
 }
 
 GetOptions(
-  "absolute|abs|a" => \$is_absolute,
+  'absolute|abs|a' => \$is_absolute,
   'articulate'     => \my $do_articulate,
   'help|h|?'       => \&print_help,
-  "instrument|i=s" => \$instrument,
-  "layout|l"       => \$save_layout,
-  "open"           => \$do_open,
-  "partial|p=s"    => \$partial,
-  "relative|b=s"   => \$relative,
-  "repeats|r=s"    => \$repeats,
-  "silent|s"       => \$skip_midi,
-  "sleep|S=s"      => \$sleep_kluge,
-  "tempo|t=s"      => \$tempo,
+  'instrument|i=s' => \$instrument,
+  'layout|l'       => \$save_layout,
+  'open'           => \$do_open,
+  'partial|p=s'    => \$partial,
+  'relative|b=s'   => \$relative,
+  'repeats|r=s'    => \$repeats,
+  'silent|s'       => \$skip_midi,
+  'sleep|S=s'      => \$sleep_kluge,
+  'tempo|t=s'      => \$tempo,
+  'verbose'        => \my $verbose,
 );
 
 $save_layout = 1 if $do_open;
@@ -99,12 +105,15 @@ my $ly_template = <<"END_TMPL";
 \\header {
   title = "ly-fu generated output"
 }
+themusic = {
+  \\tempo 4=$tempo
+  $partial
+  @ARGV
+}
 \\score {
   \\new Staff << $prestaff {
     \\set Staff.instrumentName = #"$instrument"
-    \\tempo 4=$tempo
-    $partial
-    @ARGV
+    \\themusic
   } >>
   \\layout { }
 }
@@ -112,10 +121,8 @@ my $ly_template = <<"END_TMPL";
 \\score {
   \\new Staff << $prestaff {
     \\set Staff.midiInstrument = #"$instrument"
-    \\tempo 4=$tempo
     $pre_art
-    $partial
-    @ARGV
+    \\themusic
     $post_art
   } >>
   \\midi { }
@@ -128,17 +135,39 @@ print $src_fh $ly_template;
 my $exit_status = 0;
 
 # NOTE Lilypond will add suffix to output, hopefully the same suffix
-# used by this script (glob for it if it can be dynamic).
-system( @LILYPOND, "--output=$src_fname", $src_fname ) == 0
-  or die "error: lilypond compile failed: $?\n";
+# used by this script (glob for it if it can be dynamic?).
+#
+# Just system() would be nice, but lilypond spams the terminal, so hide
+# the noise by default. Might want to collect stderr for inspection if
+# things do go awry, but that's more work.
+print $src_fname, "\n";
+my $lypid;
+eval {
+  my ( $wtr, $rdr, $err );
+  $lypid =
+    open3( $wtr, $rdr, $err, @LILYPOND, "--output=$src_fname", $src_fname );
+  while (<$rdr>) {
+    print if $verbose;
+  }
+};
+if ($@) {
+  die "@LILYPOND failed: $@";
+}
+waitpid $lypid, 0;
 
 system( @SCORE_READER, $score_fname ) if $do_open;
 
 if ( !$skip_midi ) {
-  unless ( system( @MIDI_PLAYER, $midi_fname ) ) {
-    # False positives from timidity :/
-    #   warn "warning: '@MIDI_PLAYER $midi_fname' failed: $?\n";
-    #   $exit_status = 70;
+  eval {
+    my ( $wtr, $rdr, $err );
+    my $midipid = open3( $wtr, $rdr, $err, @MIDI_PLAYER, $midi_fname );
+    while (<$rdr>) {
+      print if $verbose;
+    }
+    waitpid $midipid, 0;
+  };
+  if ($@) {
+    die "@MIDI_PLAYER failed: $@";
   }
 }
 
@@ -181,6 +210,7 @@ clash with various shell metacharacters.
   --open          Show the score in some sort of viewer.
   --silent|s      Skip generating MIDI.
   --sleep|S       Sleep before unlink of various tmp files.
+  --verbose       Show noise from lilypond, MIDI player.
 
 END_HELP
   exit 64;
