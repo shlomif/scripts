@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Generate notes of arbitrary scales (subsets of the Western 12-tone
 # chromatic system) from a specified starting note in a specified
@@ -91,6 +91,11 @@ my %modes = (
   hunminor   => [qw(2 1 3 2 1 3 1)],
   phrygian   => [qw(1 2 2 2 1 2 2)],
   locrian    => [qw(1 2 2 1 2 2 2)],
+  p
+    -major => [qw(2 2 3 2)],
+  p
+    -minor => [qw(3 2 2 3)],
+  p-sakura => [qw(1 4 2 1)],
 );
 $modes{'major'} = $modes{'ionian'};
 $modes{'minor'} = $modes{'aeolian'};
