@@ -23,7 +23,7 @@ use IPC::Open3 qw/open3/;
 my $BASENAME = basename($0);
 
 my @LILYPOND         = qw/lilypond/;
-my $LILYPOND_VERSION = '2.14.0';
+my $LILYPOND_VERSION = '2.16.0';
 
 my @MIDI_PLAYER  = qw/timidity/;
 my $MIDI_SUFFIX  = '.midi';
@@ -57,6 +57,7 @@ if ( exists $ENV{'MIDI_EDITOR'} ) {
 GetOptions(
   'absolute|abs|a' => \$is_absolute,
   'articulate'     => \my $do_articulate,
+  'events'         => \my $do_events,
   'help|h|?'       => \&print_help,
   'instrument|i=s' => \$instrument,
   'layout|l'       => \$save_layout,
@@ -96,12 +97,14 @@ if ($do_articulate) {
   $pre_art  = '\articulate {';
   $post_art = '}';
 }
+my $event_listener = $do_events ? '\include "event-listener.ly"' : "";
 
 $prestaff = "\\relative $relative" unless $is_absolute;
 
 my $ly_template = <<"END_TMPL";
 \\version "$LILYPOND_VERSION"
 \\include "articulate.ly"
+$event_listener
 \\header {
   title = "ly-fu generated output"
 }
