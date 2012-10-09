@@ -1,0 +1,96 @@
+#!/usr/bin/env perl
+#
+# Generate variations on input material. Use () to denote material that
+# may vary in that position:
+#
+#   varionator start '(X Y)' '(1 2 3)' fin
+#
+# TODO above doesn't complete the Y/3 final variation.
+#
+# TODO permutations algo does not support nested '(a b (X Y))'
+# statements (but the string parser does).
+
+use strict;
+use warnings;
+
+use File::Slurp qw(read_file);
+
+my $argstr;
+if (@ARGV and $ARGV[-1] ne '-') {
+  $argstr = "@ARGV";
+} else {
+  $argstr = read_file( \*STDIN );
+}
+
+my @possible;
+my @pp = \@possible;
+LOOP: {
+  if ( $argstr =~ m#\G([^()\s]+)\s*#gc ) {
+    push @{ $pp[-1] }, $1;
+    redo LOOP;
+  }
+  if ( $argstr =~ m#\G[(]\s*#gc ) {
+    push @{ $pp[-1] }, [];
+    push @pp, $pp[-1]->[-1];
+    redo LOOP;
+  }
+  if ( $argstr =~ m#\G[)]\s*#gc ) {
+    pop @pp;
+    redo LOOP;
+  }
+}
+
+use Data::Dumper; warn Dumper \@possible;
+
+my $sets = permutations( \@possible );
+for my $sr (@$sets) {
+  print join( ' ', @$sr ), "\n";
+}
+
+{
+  my @iterators;
+
+  sub permutations {
+    my ($possibles) = @_;
+    @iterators = ();
+
+    my @permutations;
+    while ( my @sequence = permute($possibles) ) {
+      push @permutations, \@sequence;
+    }
+    return \@permutations;
+  }
+
+  sub permute {
+    my ($possibles) = @_;
+    my @sequence;
+    for my $i ( 0 .. $#$possibles ) {
+      if ( ref $possibles->[$i] eq 'ARRAY' ) {
+        $iterators[$i] = 0 if !defined $iterators[$i];
+        push @sequence, $possibles->[$i][ $iterators[$i] ];
+      } else {
+        push @sequence, $possibles->[$i];
+      }
+    }
+
+    # increment iterators, reset all subsequent if max something out
+    my $more_todo = 0;
+    for my $i ( reverse 0 .. $#iterators ) {
+      next if !defined $iterators[$i];
+      if ( $iterators[$i] < $#{ $possibles->[$i] } ) {
+        $iterators[$i]++;
+        $more_todo = 1;
+        if ( $iterators[$i] == $#{ $possibles->[$i] } ) {
+          for my $j ( $i + 1 .. $#iterators ) {
+            $iterators[$j] = 0 if defined $iterators[$j];
+          }
+        }
+        last;
+      }
+    }
+    @sequence = () unless $more_todo;
+    return @sequence;
+  }
+}
+
+exit 0;
