@@ -49,14 +49,17 @@ for my $sr (@$sets) {
 
 {
   my @iterators;
+  my $done_iterating;
 
   sub permutations {
     my ($possibles) = @_;
     @iterators = ();
+    $done_iterating = 0;
 
     my @permutations;
     while ( my @sequence = permute($possibles) ) {
       push @permutations, \@sequence;
+      last if $done_iterating;
     }
     return \@permutations;
   }
@@ -88,7 +91,7 @@ for my $sr (@$sets) {
         last;
       }
     }
-    @sequence = () unless $more_todo;
+    $done_iterating = 1 if !$more_todo;
     return @sequence;
   }
 }
