@@ -96,7 +96,7 @@ LOOP: {
       redo LOOP;
     }
     if ( $argstr =~ m#\G[)]\s*#gc ) {
-      pop @pp;
+      pop @pp unless @pp == 1;
       redo LOOP;
     }
   }
