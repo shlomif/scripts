@@ -70,7 +70,7 @@ exit 0;
         last;
       }
     }
-    return ( $more_todo ? 1 : 0 ), @sequence;
+    return $more_todo, @sequence;
   }
 }
 
