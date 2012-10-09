@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
 #
-# Generate variations on input material. Use () to denote material that
-# may vary in that position:
+# Generate all possible variations on input material. Use () to denote
+# material that varies in that position. Shell quoting may be necessary
+# to prevent the shell from doing things with the ().
 #
-#   varionator start '(X Y)' '(1 2 3)' fin
-#
-# TODO above doesn't complete the Y/3 final variation.
+#   $ varionator 'c (d f) (g e b) c'
+#   $ echo 'c (d f) (g e b) c' | varionator -
 #
 # TODO permutations algo does not support nested '(a b (X Y))'
 # statements (but the string parser does).
@@ -15,51 +15,30 @@ use warnings;
 
 use File::Slurp qw(read_file);
 
-my $argstr;
-if (@ARGV and $ARGV[-1] ne '-') {
-  $argstr = "@ARGV";
-} else {
-  $argstr = read_file( \*STDIN );
-}
-
-my @possible;
-my @pp = \@possible;
-LOOP: {
-  if ( $argstr =~ m#\G([^()\s]+)\s*#gc ) {
-    push @{ $pp[-1] }, $1;
-    redo LOOP;
-  }
-  if ( $argstr =~ m#\G[(]\s*#gc ) {
-    push @{ $pp[-1] }, [];
-    push @pp, $pp[-1]->[-1];
-    redo LOOP;
-  }
-  if ( $argstr =~ m#\G[)]\s*#gc ) {
-    pop @pp;
-    redo LOOP;
-  }
-}
-
-use Data::Dumper; warn Dumper \@possible;
-
-my $sets = permutations( \@possible );
+my $possible = possibilities();
+my $sets     = permutations($possible);
 for my $sr (@$sets) {
   print join( ' ', @$sr ), "\n";
 }
 
+exit 0;
+
+########################################################################
+#
+# SUBROUTINES
+
 {
   my @iterators;
-  my $done_iterating;
 
   sub permutations {
     my ($possibles) = @_;
     @iterators = ();
-    $done_iterating = 0;
 
     my @permutations;
-    while ( my @sequence = permute($possibles) ) {
+    my $more_todo = 1;
+    while ($more_todo) {
+      ( $more_todo, my @sequence ) = permute($possibles);
       push @permutations, \@sequence;
-      last if $done_iterating;
     }
     return \@permutations;
   }
@@ -91,9 +70,36 @@ for my $sr (@$sets) {
         last;
       }
     }
-    $done_iterating = 1 if !$more_todo;
-    return @sequence;
+    return ( $more_todo ? 1 : 0 ), @sequence;
   }
 }
 
-exit 0;
+sub possibilities {
+  my $argstr;
+  my @possibles;
+
+  if ( @ARGV and $ARGV[-1] ne '-' ) {
+    $argstr = "@ARGV";
+  } else {
+    $argstr = read_file( \*STDIN );
+  }
+
+  my @pp = \@possibles;
+LOOP: {
+    if ( $argstr =~ m#\G([^()\s]+)\s*#gc ) {
+      push @{ $pp[-1] }, $1;
+      redo LOOP;
+    }
+    if ( $argstr =~ m#\G[(]\s*#gc ) {
+      push @{ $pp[-1] }, [];
+      push @pp, $pp[-1]->[-1];
+      redo LOOP;
+    }
+    if ( $argstr =~ m#\G[)]\s*#gc ) {
+      pop @pp;
+      redo LOOP;
+    }
+  }
+
+  return \@possibles;
+}
