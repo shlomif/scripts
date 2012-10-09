@@ -6,9 +6,6 @@
 #
 #   $ varionator 'c (d f) (g e b) c'
 #   $ echo 'c (d f) (g e b) c' | varionator -
-#
-# TODO permutations algo does not support nested '(a b (X Y))'
-# statements (but the string parser does).
 
 use strict;
 use warnings;
@@ -91,6 +88,9 @@ LOOP: {
       redo LOOP;
     }
     if ( $argstr =~ m#\G[(]\s*#gc ) {
+      # avoid nesting (would only pointlessly complicate the permute code)
+      pop @pp unless @pp == 1;
+
       push @{ $pp[-1] }, [];
       push @pp, $pp[-1]->[-1];
       redo LOOP;
