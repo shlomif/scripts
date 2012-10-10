@@ -27,6 +27,7 @@ exit 0;
 {
   my @iterators;
 
+  # figure out all permutations, return as ref to array of array refs
   sub permutations {
     my ($possibles) = @_;
     @iterators = ();
@@ -40,6 +41,7 @@ exit 0;
     return \@permutations;
   }
 
+  # build next variation, update counter states
   sub permute {
     my ($possibles) = @_;
     my @sequence;
@@ -52,7 +54,8 @@ exit 0;
       }
     }
 
-    # increment iterators, reset all subsequent if max something out
+    # increment variation iterators, reset all subsequent when max
+    # something out
     my $more_todo = 0;
     for my $i ( reverse 0 .. $#iterators ) {
       next if !defined $iterators[$i];
@@ -71,6 +74,7 @@ exit 0;
   }
 }
 
+# Parse what was passed from command line or standard input
 sub possibilities {
   my $argstr;
   my @possibles;
@@ -82,6 +86,8 @@ sub possibilities {
   }
 
   my @pp = \@possibles;
+  # `perldoc perlop` lex-like scanner: whitespace delimits elements, (
+  # starts an alternative block, ) ends one, anything else is data.
 LOOP: {
     if ( $argstr =~ m#\G([^()\s]+)\s*#gc ) {
       push @{ $pp[-1] }, $1;
@@ -98,6 +104,12 @@ LOOP: {
     if ( $argstr =~ m#\G[)]\s*#gc ) {
       pop @pp unless @pp == 1;
       redo LOOP;
+    }
+  }
+  # flatten needless refs to single-element lists
+  for my $p (@possibles) {
+    if ( ref $p eq 'ARRAY' and @$p == 1 ) {
+      $p = $p->[0];
     }
   }
 
