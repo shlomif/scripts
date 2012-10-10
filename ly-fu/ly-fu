@@ -115,6 +115,7 @@ themusic = {
 }
 \\score {
   \\new Staff << $prestaff {
+    \\accidentalStyle "neo-modern"
     \\set Staff.instrumentName = #"$instrument"
     \\themusic
   } >>
