@@ -25,7 +25,7 @@ my $BASENAME = basename($0);
 my @LILYPOND         = qw/lilypond/;
 my $LILYPOND_VERSION = '2.16.0';
 
-my @MIDI_PLAYER  = qw/timidity/;
+my @MIDI_PLAYER  = qw/timidity/;              # but might be adjusted, below
 my $MIDI_SUFFIX  = '.midi';
 my @SCORE_READER = qw/open -a Preview.app/;
 my $SCORE_SUFFIX = '.pdf';
@@ -33,7 +33,7 @@ my $SCORE_SUFFIX = '.pdf';
 my @CLEANUP_SUFFIX = qw/ps pdf/;
 
 my $tempo       = 130;
-my $instrument  = "acoustic grand";
+my $instrument  = "acoustic grand";    # if unchanged MIDI_PLAYER adjusted
 my $do_open     = 0;
 my $relative    = q{c'};
 my $partial     = q{};
@@ -73,6 +73,10 @@ GetOptions(
 
 $save_layout = 1 if $do_open;
 push @LILYPOND, '--pdf' if $save_layout;
+
+if ( $instrument eq 'acoustic grand' ) {
+  @MIDI_PLAYER = qw/pianoteq --midi/;
+}
 
 my ( $src_fh, $src_fname ) = tempfile(
   "$BASENAME.XXXXXXX",
