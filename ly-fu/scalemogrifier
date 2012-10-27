@@ -1,7 +1,5 @@
 #!/usr/bin/env perl
 #
-# XXX complete conversion to Music::LilyPondUtil for music I/O
-#
 # Generate notes of arbitrary scales (subsets of the Western 12-tone
 # chromatic system) from a specified starting note in a specified
 # direction and so forth from other options. This file uses "scale" and
@@ -71,10 +69,7 @@ use warnings;
 
 use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
-use Music::LilyPondUtil ();
 use Text::Wrap qw/wrap/;
-
-my $lyu = Music::LilyPondUtil->new( mode => 'relative' );
 
 # XXX but these have no concept of direction, which for some scales
 # changes the notes, in particular:
@@ -102,6 +97,19 @@ my %modes = (
 );
 $modes{'major'} = $modes{'ionian'};
 $modes{'minor'} = $modes{'aeolian'};
+
+# Accepted note names to pitch number for user input
+my %note2num = qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11
+  ces 11 des 1 ees 3 fes 4 ges 6 aes 8 bes 10 eis 5 bis 0);
+
+# Note names for program output
+my %num2note = (
+  'ly-sharp' =>
+    {qw/0 c 1 cis 2 d 3 dis 4 e 5 f 6 fis 7 g 8 gis 9 a 10 ais 11 b/},
+  'ly-flat' =>
+    {qw/0 c 1 des 2 d 3 ees 4 e 5 f 6 ges 7 g 8 aes 9 a 10 bes 11 b/},
+);
+my $num2note_flavor = 'ly-';
 
 # Not The Scale, but to map back to That Other Scale.
 my $DEG_IN_SCALE = 12;
@@ -144,18 +152,19 @@ if ($list_modes) {
   exit 0;
 }
 
-$lyu->chrome('flats') if $use_flats;
-
 $direction = int($direction);
 die "error: a direction of zero is a bit too aimless\n" if $direction == 0;
 $length = int($length);
 die "error: length must be at least one\n" if $length < 1;
 
 if ( defined $transpose ) {
-  if ( $transpose =~ m/^(-?\d+)$/ ) {
-    $transpose = $1 % $DEG_IN_SCALE;
+  if ( exists $note2num{$transpose} ) {
+    $transpose = $note2num{$transpose};
+  } elsif ( $transpose =~ m/^(-?\d+)$/ ) {
+    $transpose = $1;
+    $transpose %= $DEG_IN_SCALE;
   } else {
-    $transpose = $lyu->notes2pitches($transpose);
+    die "error: do not know how to transpose by $transpose\n";
   }
 } else {
   $transpose = 0;
@@ -176,6 +185,8 @@ if ( defined $output_intervals ) {
   $output_sum       = sum @output_intervals;
 }
 $output_delimiter =~ s/(\\.)/qq!"$1"!/eeg;
+
+$num2note_flavor .= $use_flats ? 'flat' : 'sharp';
 
 @interval_vector = reverse @interval_vector if $in_reverse;
 
@@ -262,7 +273,9 @@ sub names2intervalseries {
 }
 
 sub print_help {
+  my @startnotes = sort { $note2num{$a} <=> $note2num{$b} } keys %note2num;
   $Text::Wrap::columns = 78;
+  my $sc = wrap( '  ', '  ', @startnotes, '  nl' );
   my $modes = wrap( '  ', '  ', sort keys %modes );
 
   warn <<"END_HELP";
@@ -286,6 +299,11 @@ Options affecting output:
   --raw             Emit pitch numbers instead of note names.
   --relative        Generate relative lilypond output (default: absolute).
   --transpose       Number to transpose the output by.
+
+Possible note names for the --intervals or --ois options (or instead
+specify just interval numbers):
+
+$sc
 
 Available modes for --modes option:
 
