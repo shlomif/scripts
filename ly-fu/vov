@@ -68,7 +68,9 @@ $Modes{'major'} = $Modes{'ionian'};
 $Modes{'minor'} = $Modes{'aeolian'};
 
 my $atu = Music::AtonalUtil->new;
-my $lyu = Music::LilyPondUtil->new( mode => 'relative' );
+# Chords generated from the root up, with no notion of register, so omit
+# any register info by disabling state.
+my $lyu = Music::LilyPondUtil->new( keep_state => 0 );
 
 my $output_tmpl = '%{chord}' . "\n";
 
@@ -146,7 +148,7 @@ for my $vov_spec (@ARGV) {
   if ($raw_output) {
     $out_attr{chord} = join " ", @$pset;
   } else {
-    $out_attr{chord} = join " ", map $lyu->p2ly($_), @$pset;
+    $out_attr{chord} = join " ", $lyu->p2ly(@$pset);
   }
   my $str = $output_tmpl;
   $str =~ s/ %{ (\w+) } / defined $out_attr{$1} ? $out_attr{$1} : q{} /egx;
