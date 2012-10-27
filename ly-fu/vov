@@ -13,12 +13,14 @@
 
 use strict;
 use warnings;
+
 use Carp;
 use Getopt::Long qw/GetOptions/;
 use List::Util qw/sum/;
 # So as it turns out atonal functions can be handy for various
 # tonal needs.
-use Music::AtonalUtil;
+use Music::AtonalUtil   ();
+use Music::LilyPondUtil ();
 use Text::Roman qw/roman2int/;
 
 # Leading sharp/flats adjust the tonic up or down (might also support
@@ -65,22 +67,10 @@ my %Modes = (
 $Modes{'major'} = $Modes{'ionian'};
 $Modes{'minor'} = $Modes{'aeolian'};
 
-# Accepted note names to pitch number for user input
-my %note2num = qw(c 0 cis 1 d 2 dis 3 e 4 f 5 fis 6 g 7 gis 8 a 9 ais 10 b 11
-  ces 11 des 1 ees 3 fes 4 ges 6 aes 8 bes 10 eis 5 bis 0);
-
-# Note names for program output
-my %num2note = (
-  'ly-sharp' =>
-    {qw/0 c 1 cis 2 d 3 dis 4 e 5 f 6 fis 7 g 8 gis 9 a 10 ais 11 b/},
-  'ly-flat' =>
-    {qw/0 c 1 des 2 d 3 ees 4 e 5 f 6 ges 7 g 8 aes 9 a 10 bes 11 b/},
-);
-my $num2note_flavor = 'ly-';
+my $atu = Music::AtonalUtil->new;
+my $lyu = Music::LilyPondUtil->new( mode => 'relative' );
 
 my $output_tmpl = '%{chord}' . "\n";
-
-my $Transpose;
 
 GetOptions(
   'factor=i'      => \my $Default_Factor,
@@ -92,7 +82,7 @@ GetOptions(
   'natural'       => \my $use_naturals,
   'outputtmpl=s'  => \$output_tmpl,
   'raw'           => \my $raw_output,
-  'transpose|t=s' => \$Transpose,
+  'transpose|t=s' => \my $Transpose,
 ) || print_help();
 
 if ($list_modes) {
@@ -101,27 +91,23 @@ if ($list_modes) {
 }
 print_help() unless @ARGV;
 
+$lyu->chrome('flats') if $use_flats;
+
 $Mode = 'minor' if $use_minor;
 die "error: no such mode '$Mode'" unless exists $Modes{$Mode};
 
 $Default_Factor //= $DEFAULT_CHORD_FACTOR;
 
 if ($Transpose) {
-  if ( exists $note2num{$Transpose} ) {
-    $Transpose = $note2num{$Transpose};
-  } elsif ( $Transpose =~ m/^(-?\d+)$/ ) {
-    $Transpose = $1;
-    $Transpose %= $DEG_IN_SCALE;
+  if ( $Transpose =~ m/^(-?\d+)$/ ) {
+    $Transpose = $1 % $DEG_IN_SCALE;
   } else {
-    die "error: do not know how to transpose by $Transpose\n";
+    $Transpose = $lyu->notes2pitches($Transpose);
   }
 }
 
-$num2note_flavor .= $use_flats ? 'flat' : 'sharp';
 $output_tmpl =~ s/(\\.)/qq!"$1"!/eeg;
 $output_tmpl .= "\n" unless $output_tmpl =~ m/\s$/;
-
-my $atu = Music::AtonalUtil->new;
 
 for my $vov_spec (@ARGV) {
   my @vovs         = reverse split '/', $vov_spec;
@@ -160,8 +146,7 @@ for my $vov_spec (@ARGV) {
   if ($raw_output) {
     $out_attr{chord} = join " ", @$pset;
   } else {
-    $out_attr{chord} = join " ", map $num2note{$num2note_flavor}->{$_},
-      @$pset;
+    $out_attr{chord} = join " ", map $lyu->p2ly($_), @$pset;
   }
   my $str = $output_tmpl;
   $str =~ s/ %{ (\w+) } / defined $out_attr{$1} ? $out_attr{$1} : q{} /egx;
