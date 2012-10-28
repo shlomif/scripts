@@ -1,9 +1,8 @@
-ly-fu is for playing random musical snippets from the command line, the
-other utilities are for various other music related tasks.
+Random music related programs. ly-fu, scalemogrifier, and vov can now be
+found in the App::MusicTools perl distribution; any utilities here are
+probably more adapted to my needs, or not important enough to include in
+that distribution.
 
 There are ZSH completion scripts for these utilities over at:
 
 https://github.com/thrig/zsh-compdef
-
-scalemogrifier and vov can now be found in the App::MusicTools perl
-distribution.
