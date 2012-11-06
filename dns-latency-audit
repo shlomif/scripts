@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+#
+# Keep tabs on DNS lookup latency. (On Linux, /etc/resolv.conf can set
+# lower timeouts than the default (5 seconds), though too low might
+# cause issues if the requests are being timed out before responses
+# arrive. Testing at $WORK shows maximum lookups of 0.16 seconds, with
+# most requests taking well less time than that. On a functional
+# network, anyways, though lower timeouts when everything is broken just
+# means less waiting to learn the inevitable.)
+#
+# Example usage (probably best run from cron(8) for a few weeks):
+#
+#   $ dns-latency-audit --queryhost microsoft.com 8.8.8.8 >> somelog
+
+use strict;
+use warnings;
+
+use Getopt::Long qw(GetOptions);
+use List::Util qw(shuffle);
+use Net::DNS;
+use Time::HiRes qw(gettimeofday tv_interval);
+
+GetOptions(
+  'querytype=s' => \my $Query_Type,
+  'queryhost=s' => \my $Query_Host
+) or die "could not parse options";
+
+my @Dns_Servers = @ARGV;
+print_help() if !@Dns_Servers or !defined $Query_Host;
+
+$Query_Type //= 'A';
+
+for my $nsip ( shuffle @Dns_Servers ) {
+  my $res = Net::DNS::Resolver->new(
+    nameservers => [$nsip],
+    retrans     => 1,
+    retry       => 1,
+    tcp_timeout => 5,
+    udp_timeout => 5
+  );
+
+  my $start   = [gettimeofday];
+  my $result  = $res->query( $Query_Host, $Query_Type );
+  my $elapsed = tv_interval($start);
+  my @status  = $result ? qw(1) : ( qw(0), $res->errorstring );
+  my $epoch   = time();
+  print "$epoch $nsip $elapsed @status\n";
+}
+
+exit 0;
+
+########################################################################
+#
+# SUBROUTINES
+
+sub print_help {
+  warn <<"HELP";
+Usage: $0 --queryhost=host [--querytype=A] dnsip1 [dnsip2 ..]
+
+Keep tabs on DNS request latency.
+HELP
+  exit 64;
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
+}
