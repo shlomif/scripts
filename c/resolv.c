@@ -5,6 +5,8 @@
  * the Internet). Probably should also do getaddinfo(3) to see if that
  * honors LOCALDOMAIN or not.
  *
+ * A better option for testing is likely `getent hosts www` than this code.
+ *
  * Usage:
  *
  *   resolv www
