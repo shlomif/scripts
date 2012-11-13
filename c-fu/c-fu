@@ -68,13 +68,15 @@ for my $statement (@ARGV) {
   $statement .= ";\n" unless $statement =~ m/;\s*$/;
 }
 
+# PID only in filename as otherwise src and obj would only be related by
+# perhaps the filesystem mtime
 ( $code_fh, $code_fname ) = tempfile(
-  "$BASENAME.src-$$.XXXXXXX",
+  "$BASENAME.src-$$.XXXXXXXXXX",
   DIR    => File::Spec->tmpdir,
   UNLINK => 0
 );
 ( undef, $bin_fname ) = tempfile(
-  "$BASENAME.obj-$$.XXXXXXX",
+  "$BASENAME.obj-$$.XXXXXXXXXX",
   DIR    => File::Spec->tmpdir,
   UNLINK => 0
 );
