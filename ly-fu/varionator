@@ -54,18 +54,15 @@ exit 0;
       }
     }
 
-    # increment variation iterators, reset all subsequent when max
-    # something out
+    # increment variation iterators, reset all subsequent as necessary
     my $more_todo = 0;
     for my $i ( reverse 0 .. $#iterators ) {
       next if !defined $iterators[$i];
       if ( $iterators[$i] < $#{ $possibles->[$i] } ) {
         $iterators[$i]++;
         $more_todo = 1;
-        if ( $iterators[$i] == $#{ $possibles->[$i] } ) {
-          for my $j ( $i + 1 .. $#iterators ) {
-            $iterators[$j] = 0 if defined $iterators[$j];
-          }
+        for my $j ( $i + 1 .. $#iterators ) {
+          $iterators[$j] = 0 if defined $iterators[$j];
         }
         last;
       }
