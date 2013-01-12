@@ -20,7 +20,8 @@ for my $i ( 0 .. $#ARGV ) {
 
 ( my $output = $chord_tmpl ) =~ s/(\\.)/qq!"$1"!/eeg;
 $output .= "\n" unless $output =~ m/ \s$ /x;
-$output =~ s/ %{ (\w+) } / exists $params{$1} ? $params{$1} : q{} /egx;
+$output =~
+  s/ \Q%{\E (\w+) \Q}\E / exists $params{$1} ? $params{$1} : q{} /egx;
 
 print $output;
 exit 0;

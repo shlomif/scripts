@@ -219,7 +219,7 @@ sub rundu {
       if ( $duinfo{ $entry->{subject} } =~ m/$entry->{value}/ ) {
         my $str_out = $output_tmpl;
         $str_out =~
-          s/ %{ (\w+) } / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
+          s/ \Q%{\E (\w+) \Q}\E / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
         print $str_out;
         last;
       }

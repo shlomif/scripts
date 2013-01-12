@@ -46,9 +46,9 @@ unless (@dirs) {
 }
 if ( @dirs != @ARGV ) {
   remark( 'warning',
-       'removed '
-     . ( scalar @ARGV - scalar @dirs )
-     . ' tainted search directory from argument list' );
+        'removed '
+      . ( scalar @ARGV - scalar @dirs )
+      . ' tainted search directory from argument list' );
 }
 
 # load and prepare seen index
@@ -124,8 +124,11 @@ for (@dirs) {
 eval { YAML::DumpFile $seen_file, $seen; };
 if ($@) {
   chomp $@;
-  remark( 'error', 'could not save index',
-    { file => $seen_file, errno => $@ } );
+  remark(
+    'error',
+    'could not save index',
+    { file => $seen_file, errno => $@ }
+  );
   exit 106;
 }
 
@@ -180,11 +183,13 @@ sub process {
 
   for my $tag (@tags) {
     $filedata{tag}   = $tag;
-    $filedata{index} = join '.', map { $filedata{$_} || q{} } sort keys %index;
+    $filedata{index} = join '.',
+      map { $filedata{$_} || q{} } sort keys %index;
 
     next if exists $seen->{ $filedata{index} };
 
-    ( my $output = $output_tmpl ) =~ s/ %{ (\w+) } / $filedata{$1} || q{} /egx;
+    ( my $output = $output_tmpl ) =~
+      s/ \Q%{\E (\w+) \Q}\E / $filedata{$1} || q{} /egx;
     print $output unless exists $printed{$output};
     $printed{$output} = 1;
 
@@ -192,8 +197,8 @@ sub process {
     #
     # need mtime stored in index, as used to retire old records
     $seen->{ $filedata{index} } =
-     { map { exists $filedata{$_} ? ( $_ => $filedata{$_} ) : () }
-       qw(filepath mtime) };
+      { map { exists $filedata{$_} ? ( $_ => $filedata{$_} ) : () }
+        qw(filepath mtime) };
   }
 }
 
@@ -218,7 +223,8 @@ sub filedigest {
   my $file = shift;
 
   unless ( open FILE, "< $file" ) {
-    remark( 'warning', 'could not open file', { file => $file, errno => $! } );
+    remark( 'warning', 'could not open file',
+      { file => $file, errno => $! } );
     return;
   }
   binmode FILE;
@@ -251,7 +257,7 @@ sub filedata {
     $filedata{suffix} = "@portions[1..$#portions]";
   }
   $filedata{filepath} =
-   File::Spec->catfile( $filedata{dirname}, $filedata{filename} );
+    File::Spec->catfile( $filedata{dirname}, $filedata{filename} );
   return \%filedata;
 }
 
@@ -266,15 +272,15 @@ sub remark {
   my $attr_str;
   if ( keys %$attributes ) {
     $attr_str = join ', ',
-     map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-     sort keys %$attributes;
+      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+      sort keys %$attributes;
 
     # escape wacky characters to avoid messing up things
     $attr_str =~ s/ ( [^[:print:]\t] ) / sprintf "\\%03o", ord $1 /egx;
   }
 
   print STDERR "$priority: $message"
-   . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
 
   return 1;
 }
@@ -305,8 +311,11 @@ sub duration2seconds {
       $seconds += $1 * $factor{$2};
     }
   } else {
-    remark( 'error', 'unknown characters in duration',
-      { duration => $tmpdur } );
+    remark(
+      'error',
+      'unknown characters in duration',
+      { duration => $tmpdur }
+    );
     exit 104;
   }
 

@@ -117,7 +117,7 @@ FILE: for my $file (@ARGV) {
   if ( exists $opts{o} ) {
     my $output_file;
     ( $output_file = $opts{o} ) =~
-      s/ %{ (\w+) } / $filedata->{$1} || $defaults->{$1} || q{} /egx;
+      s/ \Q%{\E (\w+) \Q}\E / $filedata->{$1} || $defaults->{$1} || q{} /egx;
 
     my $source_file_mode = ( stat $file )[2] & 07777;
 

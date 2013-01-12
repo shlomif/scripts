@@ -107,7 +107,7 @@ sub get_document {
       $source->{base_uri} = $target->canonical->as_string;
       delete $source->{base_uri}
         unless defined $source->{base_uri}
-          and length $source->{base_uri} >= 1;
+        and length $source->{base_uri} >= 1;
       $source->{source} = \$response->content;
     } else {
       remark(
@@ -187,7 +187,7 @@ sub parse_document {
       }
       delete $result->{text}
         unless defined $result->{text}
-          and length $result->{text} >= 1;
+        and length $result->{text} >= 1;
 
       push @found, $result;
     }
@@ -229,9 +229,9 @@ sub get_url_from_token {
   my $token = shift;
   my $attr = shift || 'href';
   return
-    unless exists $token->[1]{$attr}
-      and defined $token->[1]{$attr}
-      and length $token->[1]{$attr} >= 1;
+        unless exists $token->[1]{$attr}
+    and defined $token->[1]{$attr}
+    and length $token->[1]{$attr} >= 1;
   return $token->[1]{$attr};
 }
 
@@ -248,7 +248,7 @@ sub print_urls {
 
     my $str_out = $output_tmpl;
     $str_out =~
-      s/ %{ (\w+) } / defined $result->{$1} ? $result->{$1} : q{} /egx;
+      s/ \Q%{\E (\w+) \Q}\E / defined $result->{$1} ? $result->{$1} : q{} /egx;
     print $str_out;
   }
 }

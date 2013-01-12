@@ -72,7 +72,7 @@ for my $item ( $response->properties ) {
   # Most folks would use a proper Template module here...
   my $output_string = $output_template;
   $output_string =~
-    s/ %{ (\w+) } / $item->can($1) ? encode_entities($item->$1) : '%{'.$1.'}' /egx;
+    s/ \Q%{\E (\w+) \Q}\E / $item->can($1) ? encode_entities($item->$1) : '%{'.$1.'}' /egx;
   print $output_string;
 }
 

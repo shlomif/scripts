@@ -104,7 +104,7 @@ sub template_cmd {
   return unless @command;
 
   for my $str (@command) {
-    $str =~ s/ %{ ([^}]+) } / $metadata->{$1} || '' /egx;
+    $str =~ s/ \Q%{\E ([^}]+) \Q}\E / $metadata->{$1} || '' /egx;
   }
 
   return @command;

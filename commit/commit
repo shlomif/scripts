@@ -77,7 +77,7 @@ for my $commit_type ( sort keys %tocommit ) {
   }
 
   my @command = map {
-    s/%{(\w+)}/$tmp{$1}||q{}/ge;
+    s/\Q%{\E(\w+)\Q}\E/$tmp{$1}||q{}/ge;
     defined and $_ ne q{} ? $_ : ()
   } split /\s+/, $tmp{exec};
 

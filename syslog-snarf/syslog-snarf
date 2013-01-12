@@ -205,7 +205,7 @@ while (1) {
   ( my $output = $message_template ) =~ s/(\\.)/qq!"$1"!/eeg;
 
   # replaces %{foo} keys from %message hash with values for log entry
-  $output =~ s/%{(\w+)}/$message{$1}||q{}/eg;
+  $output =~ s/\Q%{\E(\w+)\Q}\E/$message{$1}||q{}/eg;
 
   # template needs a line ending thingy!
   print $output;

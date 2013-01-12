@@ -257,7 +257,7 @@ sub handle_condition {
       my @command = parse_tokens($cmd_str);
       for my $part (@command) {
         $part =~
-          s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
+          s/ (?<!\\) \Q%{\E ([^.]+) \. ([^}]+) \Q}\E / $lookup_ref->{$1}->{$2} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
       }
 
@@ -282,13 +282,13 @@ sub handle_condition {
       my ( $stdin, $cmd_tmp ) = split /\s*(?<!\\)\|\s*/, $cmd_str, 2;
 
       $stdin =~
-        s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
+        s/ (?<!\\) \Q%{\E ([^.]+) \. ([^}]+) \Q}\E / $lookup_ref->{$1}->{$2} || '' /egx;
       $stdin =~ s/(\\.)/qq("$1")/eeg;
 
       my @command;
       for my $part ( parse_tokens($cmd_tmp) ) {
         $part =~
-          s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
+          s/ (?<!\\) \Q%{\E ([^.]+) \. ([^}]+) \Q}\E / $lookup_ref->{$1}->{$2} || '' /egx;
         $part =~ s/(\\.)/qq("$1")/eeg;
         push @command, $part;
       }
@@ -306,7 +306,7 @@ sub handle_condition {
       my $lookup_ref = shift;
 
       $output_str =~
-        s/ (?<!\\) %{ ([^.]+) \. ([^}]+) } / $lookup_ref->{$1}->{$2} || '' /egx;
+        s/ (?<!\\) \Q%{\E ([^.]+) \. ([^}]+) \Q}\E / $lookup_ref->{$1}->{$2} || '' /egx;
       $output_str =~ s/(\\.)/qq("$1")/eeg;
       print "$output_str\n";
 
