@@ -68,10 +68,24 @@ int main(int argc, char *argv[])
 
         arglen = strlen(argv[argidx]);
         for (i = 0; i < arglen; i++) {
-            cmd_buf[cmdidx++] = argv[argidx][i];
-            if (cmdidx >= MAX_CMD_LEN)
-                errx(EX_DATAERR, "input exceeds command length (%d)",
-                     MAX_CMD_LEN);
+            /*
+             * Of course, doublequotes within the thus doublequoted atom
+             * must then be escaped, though this might cause problems if
+             * the doublequote is already escaped, but by that point the
+             * Stygian swamp is already sucking you in, godspeed. 
+             */
+            switch (argv[argidx][i]) {
+            case '"':
+                cmd_buf[cmdidx++] = '\\';
+                if (cmdidx >= MAX_CMD_LEN)
+                    errx(EX_DATAERR, "input exceeds command length (%d)",
+                         MAX_CMD_LEN);
+            default:
+                cmd_buf[cmdidx++] = argv[argidx][i];
+                if (cmdidx >= MAX_CMD_LEN)
+                    errx(EX_DATAERR, "input exceeds command length (%d)",
+                         MAX_CMD_LEN);
+            }
         }
 
         cmd_buf[cmdidx++] = '"';
