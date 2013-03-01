@@ -55,7 +55,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts( 'c:Ef:t:u:p:mgs:S:r', \%Opts )
+getopts( 'c:Ef:t:u:p:mgs:Sr', \%Opts )
   or die "$Usage";
 die "$Usage\n"
   unless ( @ARGV == 1 );
@@ -64,18 +64,18 @@ $Target_host = shift;
 #
 # Initialize parameters.
 #
+$Opts{E} = 1 if exists $Opts{S};    # need EHLO to get SIZE
 $Timeout = $Opts{t} || 300;
 $Hostname = calculate_fqdn()
   or die "$0: cannot determine FQDN\n";
-$Port = $Opts{p} || 25;    # default to SMTP port
+$Port = $Opts{p} || 25;             # default to SMTP port
 $Username      = $ENV{LOGNAME} || $ENV{USER} || die "$0: LOGNAME undefined\n";
 $Actual_sender = $Username . '@' . $Hostname;
 $RcptTo_addr   = $Opts{u} || $Actual_sender;
-$Comment       = $Opts{c} . "\n"
-  if ( $Opts{c} );
+$Comment       = defined $Opts{c} ? "$Opts{c}\n" : '';
 my $helo = $Opts{E} ? 'EHLO' : 'HELO';
 
-if ( $Opts{f} ne "" ) {
+if ( defined $Opts{f} ) {
   $MailFrom_addr = $Opts{f};
 } elsif ( $Target_host =~ /^\d+\.\d+\.\d+\.\d+$/ ) {
   $MailFrom_addr = "nobody\@[${Target_host}]";
@@ -83,13 +83,13 @@ if ( $Opts{f} ne "" ) {
   $MailFrom_addr = "nobody\@${Target_host}";
 }
 
-if ( $Opts{s} ne "" ) {
+if ( defined $Opts{s} ) {
   $Hdr_to = $Opts{s};
 } else {
   $Hdr_to = $RcptTo_addr;
 }
 
-if ( $Opts{r} ne "" ) {
+if ( defined $Opts{r} ) {
   $Hdr_from = $Opts{r};
 } else {
   $Hdr_from = $MailFrom_addr;
@@ -157,14 +157,18 @@ write_command( $sock, "RCPT TO:<$RcptTo_addr>\n" );
 system qw(getraw -o *:+) if $Opts{g};
 write_command( $sock, "DATA\n" );
 system qw(getraw -o *:+) if $Opts{g};
-write_command( $sock, $Mssg_body, "(message body)\n" );
+write_command( $sock, $Mssg_body, "(message body)\n", 1 );
 
-if ( $Opts{S} ) {
-  my $str = "QWxsIHdvcmsgYW5kIG5vIHBsYXkgbWFrZXMgSmFjayBhIER1bGwgQm95Cg==\n";
+if ( defined $Opts{S} and $Opts{S} =~ m/^\d+$/ ) {
+  my $str =
+    "QWxsIHdvcmsgYW5kIG5vIHBsYXkgbWFrZXMgSmFjayBhIER1bGwgQm95Cg==\r\n";
   my $str_len    = length $str;
   my $sent_bytes = length $Mssg_body;
   while ( $sent_bytes < $Opts{S} ) {
-    write_command( $sock, $str, "(message SIZE $sent_bytes)\n" );
+    alarm($Timeout);
+    $sock->print($str)
+      or die "$0: socket write failed [$!]\n";
+    alarm(0);
     $sent_bytes += $str_len;
   }
 }
@@ -182,9 +186,10 @@ exit($EX_RELAY_ACCEPTED);
 # usage: write_command($sock, $data_to_send[, $mssg_to_display])
 #
 sub write_command {
-  my $sock = shift;
-  my $data = shift;
-  my $mssg = shift || $data;
+  my $sock      = shift;
+  my $data      = shift;
+  my $mssg      = shift || $data;
+  my $skip_read = shift || 0;
   print color 'bold red' if $Opts{m};
   print ">>> $mssg";
   print color 'reset' if $Opts{m};
@@ -193,7 +198,7 @@ sub write_command {
   $sock->print($data)
     or die "$0: socket write failed [$!]\n";
   alarm(0);
-  return read_response($sock);
+  return read_response($sock) if !$skip_read;
 }
 
 #
@@ -208,6 +213,11 @@ sub read_response {
     chop( $_ = $sock->getline() );
     alarm(0);
     ( $code, $cont, $mssg ) = /(\d\d\d)(.)(.*)/;
+
+    if ( $Opts{S} and $mssg =~ m/SIZE\s(\d+)/ ) {
+      $Opts{S} = $1 * 2;
+    }
+
     print color 'bold blue' if $Opts{m};
     print "<<< ", $_, "\n";
     print color 'reset' if $Opts{m};
@@ -229,8 +239,7 @@ sub calculate_fqdn {
   return $Dflt_hostname
     if ($Dflt_hostname);
   my $host = hostname();
-  warn "info: hostname is '$host' hope that's okay...\n";
-  sleep 2;
+  warn "notice: using hostname $host\n";
   return $host;
 }
 
@@ -296,8 +305,9 @@ default port 25.
 
 =item B<-S>
 
-Sends as much data as it can to the server. Use for SIZE testing. Large
-amounts of data may require that the B<-t> timeout be increased.
+Sends more data than the SIZE limit of the server allows. Turns on B<-
+E> to send C<EHLO>. Disabled if remote server does not advertise a
+C<SIZE> limit.
 
 =item B<-t> I<timeout>
 
