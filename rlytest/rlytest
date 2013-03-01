@@ -55,7 +55,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts( 'c:f:t:u:p:mgs:S:r', \%Opts )
+getopts( 'c:Ef:t:u:p:mgs:S:r', \%Opts )
   or die "$Usage";
 die "$Usage\n"
   unless ( @ARGV == 1 );
@@ -73,6 +73,7 @@ $Actual_sender = $Username . '@' . $Hostname;
 $RcptTo_addr   = $Opts{u} || $Actual_sender;
 $Comment       = $Opts{c} . "\n"
   if ( $Opts{c} );
+my $helo = $Opts{E} ? 'EHLO' : 'HELO';
 
 if ( $Opts{f} ne "" ) {
   $MailFrom_addr = $Opts{f};
@@ -148,7 +149,7 @@ $SIG{ALRM} = sub { die "$0: timeout waiting for socket I/O\n"; };
 $sock->autoflush(1);
 read_response($sock);
 system qw(getraw -o *:+) if $Opts{g};
-write_command( $sock, "HELO $Hostname\n" );
+write_command( $sock, "$helo $Hostname\n" );
 system qw(getraw -o *:+) if $Opts{g};
 write_command( $sock, "MAIL FROM:<$MailFrom_addr>\n" );
 system qw(getraw -o *:+) if $Opts{g};
@@ -267,7 +268,7 @@ frequently is hijacked by spammers to relay massive amounts of junk
 email.  A host that allows third-party relay should be B<immediately>
 secured, disconnected, or shunned as a menace to the Internet.
 
-The following options are available:
+The following options are available (and probably more, see source):
 
 =over 4
 
@@ -276,6 +277,10 @@ The following options are available:
 Embed I<comment> in the body of the test message.  This may
 be useful, for instance, if you are doing some automatic testing
 and want to insert cookies into the messages.
+
+=item B<-E>
+
+Use C<EHLO> instead of C<HELO>.
 
 =item B<-f> I<sender_addr>
 
