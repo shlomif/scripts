@@ -18,6 +18,8 @@ use File::Spec     ();
 
 die "Usage: $0 midifile\n" if @ARGV != 1;
 
+my @TIMIDITY_CMD = qw/timidity --quiet=1/;
+
 my ( $name, $path, $suffix ) =
   File::Basename::fileparse( $ARGV[-1], qr/\.midi/ );
 my $ly_file = File::Spec->catfile( $path, $name . ".ly" );
@@ -26,7 +28,7 @@ if ( defined $suffix and -f $ly_file ) {
   unshift @ARGV, parse_ly($ly_file);
 }
 
-exec qw/timidity/, @ARGV;
+exec @TIMIDITY_CMD, @ARGV;
 
 ########################################################################
 #
