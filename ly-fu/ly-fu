@@ -76,6 +76,11 @@ push @LILYPOND, '--pdf' if $save_layout;
 
 if ( $instrument eq 'acoustic grand' ) {
   @MIDI_PLAYER = qw/pianoteq --midi/;
+} elsif ( $instrument eq 'honky-tonk' ) {
+  @MIDI_PLAYER = ( qw/pianoteq --preset/, 'D4 Honky Tonk', qw/--midi/ );
+} elsif ( $instrument eq 'harpsichord' ) {
+  @MIDI_PLAYER =
+    ( qw/pianoteq --preset/, 'Blanchet harpsichord', qw/--midi/ );
 }
 
 my ( $src_fh, $src_fname ) = tempfile(
