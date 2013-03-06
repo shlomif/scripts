@@ -40,7 +40,8 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < argc; i++) {
         /*
-         * Really OS X? No strnlen?? 
+         * Really OS X? No strnlen?? - appears they have finally added one.
+	 * Sheesh. Seven major releases to get to strnlen.
          */
         if (strlen(argv[i]) >= PATH_MAX)
             errx(EX_DATAERR, "file at arg %d exceeds PATH_MAX (%ld)", i + 1,
