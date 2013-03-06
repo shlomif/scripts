@@ -1,4 +1,4 @@
 --k-and-r-style
 --no-tabs
--cdb -sc
+-sc
 -l78
