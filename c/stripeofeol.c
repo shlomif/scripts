@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 /* Ugh. */
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
+#if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
 static inline size_t strnlen(const char *__string, size_t __maxlen)
 {
     int len = 0;
