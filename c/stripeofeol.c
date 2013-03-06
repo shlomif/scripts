@@ -39,9 +39,7 @@ int main(int argc, char *argv[])
         switch (ch) {
         case 'h':
             usage();
-            /*
-             * NOTREACHED 
-             */
+            /* NOTREACHED */
         default:
             ;
         }
@@ -49,8 +47,10 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc < 1)
-        errx(EX_USAGE, "need files to snip ultimate newlines from");
+    if (argc < 1) {
+        usage();
+        /* NOTREACHED */
+    }
 
     for (i = 0; i < argc; i++) {
         if (strnlen(argv[i], PATH_MAX) >= PATH_MAX)
