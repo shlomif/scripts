@@ -17,17 +17,31 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+/* Ugh. */
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
+static inline size_t strnlen(const char *__string, size_t __maxlen)
+{
+    int len = 0;
+    while (__maxlen-- && *__string++)
+        len++;
+    return len;
+}
+#endif
+
 void trim_file(const int fd, const char *file);
+void usage(void);
 
 int main(int argc, char *argv[])
 {
     int ch, i, fd;
 
-    /*
-     * Do nothing option processing that gets argv/argc setup right.
-     */
-    while ((ch = getopt(argc, argv, "")) != -1) {
+    while ((ch = getopt(argc, argv, "h")) != -1) {
         switch (ch) {
+        case 'h':
+            usage();
+            /*
+             * NOTREACHED 
+             */
         default:
             ;
         }
@@ -39,10 +53,6 @@ int main(int argc, char *argv[])
         errx(EX_USAGE, "need files to snip ultimate newlines from");
 
     for (i = 0; i < argc; i++) {
-        /*
-         * Really OS X? No strnlen?? - appears they have finally added one.
-	 * Sheesh. Seven major releases to get to strnlen.
-         */
         if (strnlen(argv[i], PATH_MAX) >= PATH_MAX)
             errx(EX_DATAERR, "file at arg %d exceeds PATH_MAX (%ld)", i + 1,
                  (long int) PATH_MAX);
@@ -111,4 +121,9 @@ void trim_file(const int fd, const char *file)
             err(EX_IOERR, "could not truncate '%s'", file);
 
     return;
+}
+
+void usage(void)
+{
+    errx(EX_USAGE, "need files to snip ultimate newlines from");
 }
