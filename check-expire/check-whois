@@ -22,7 +22,7 @@ if ( exists $opts{h} or exists $opts{'?'} or not @ARGV ) {
 }
 
 for my $domain (@ARGV) {
-  my %domain_info = ();
+  my %domain_info;
   $domain_info{name} = $domain;
 
   my $whois_str;

@@ -206,7 +206,7 @@ sub parse_known_hosts {
 # remove duplicates and maintain order among hosts
 sub clean_hosts {
   my @hosts  = @_;
-  my %unique = ();
+  my %unique;
 
   for my $host (@hosts) {
     $unique{$host} = 1;

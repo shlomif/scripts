@@ -52,11 +52,11 @@ my %modemap = (
 # character to prefix before file path in verbose mode
 my $PATH_PREFIX = '-';
 
-my @paths       = ();
+my @paths;
 my $output      = q{};
 my $exit_status = 0;
 
-my %opts = ();
+my %opts;
 for (
   map { $_->[0] }
   sort { $a->[1] <=> $b->[1] } map { [ $_, /^[+-]/ ? 0 : 1 ] } @ARGV
@@ -113,8 +113,8 @@ if ( !@paths ) {
 
 $opts{constraint} = 1
   if exists $opts{options}->{u}
-    or exists $opts{options}->{g}
-    or exists $opts{options}->{R};
+  or exists $opts{options}->{g}
+  or exists $opts{options}->{R};
 
 # verbose list by default unless checking something specific
 if ( !exists $opts{constraint} ) {

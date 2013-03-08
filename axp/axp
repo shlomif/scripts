@@ -21,11 +21,11 @@ my %axp_defaults    = ( quiet        => 0 );
 my %libxml_defaults = ( load_ext_dtd => 0 );
 
 # TODO difference between these two hashes??
-my %user_params = ();
+my %user_params;
 # TODO also need some way to read in arbitrary data to defaults hash
 #
 # TODO might also need a "class.style" so can tab complete against a list?
-my %user_default = ();
+my %user_default;
 
 my %opts;
 getopts 'h?qc:s:P:o:p:X:', \%opts;
