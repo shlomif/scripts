@@ -5,7 +5,8 @@
  * partition was root or not) yet du(1) or find(1) only show much less
  * than available space consumed, or at least when one needs to recreate
  * and test such a condition, as opposed to learning it live in
- * production like I did.
+ * production like I did (in particular, via the rm(1) of the file that
+ * is still being written to).
  *
  *   fillerup [-h] [-q] filename
  *
