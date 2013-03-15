@@ -1,0 +1,6 @@
+Some testing results:
+
+ * An old RedHat Linux 7.3 virt shows 100% full, even after the root
+   reserved space is run int. (And "0" Avail.)
+ * OpenBSD 5.2 shows 105% full and -89632 Avail after the root reserved
+   space is run through. (Otherwise "0" and 100%.)
