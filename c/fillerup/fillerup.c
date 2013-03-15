@@ -131,7 +131,7 @@ void do_close(int sig)
     done_writing = 1;
     /*
      * XXX disable the sleep related code to see if that changes whether
-     * this call emits an error?
+     * this call emits an error? - nope. no error from close.
      */
     if (close(fd) < 0)
         err(EX_IOERR, "close() error");
