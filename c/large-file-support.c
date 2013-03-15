@@ -1,9 +1,10 @@
 /*
  * Test *lack* of Linux Large File Support (LFS). Had to compile on a
- * RedHat 7.3 Linux system, as could not convince a RHEL 5 system to
+ * RedHat 7.3 Linux system, as I could not convince a RHEL5 system to
  * compile something that could not write beyond the 2**32/2-1 limit.
  *
- * This program appends to the 'output' file.
+ * This program appends to the 'output' file. A mktemp(1) directory may
+ * be prudent on a mixed-user test system.
  *
  * fflush() threw the error during testing - other programs that lack error
  * checking on fflush may "hang" (strace should show write calls failing?)
