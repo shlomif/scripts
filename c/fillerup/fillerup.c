@@ -100,6 +100,13 @@ int main(int argc, char *argv[])
     if (sigaction(SIGUSR1, &act, NULL) != 0)
         err(EX_OSERR, "sigaction() error");
 
+    /*
+     * Or just use a wrapper:
+     *
+     *   #!/bin/sh
+     *   echo $$
+     *   exec fillerup -q
+     */
     if (!Flag_Quiet)
         fprintf(stderr, "pid %ld\n", (long int) getpid());
 
@@ -128,5 +135,6 @@ void do_close(int sig)
 
 void emit_help(void)
 {
-    errx(EX_USAGE, "need filename to write to");
+    fprintf(stderr, "Usage: fillerup [-h] [-q] filename");
+    exit(EX_USAGE);
 }
