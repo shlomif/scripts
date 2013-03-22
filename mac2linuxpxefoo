@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+
+my $PREFIX = '/tftpboot/pxelinux.cfg/';
+
+chomp(@ARGV = <STDIN>) unless @ARGV;
+
+for my $arg (@ARGV) {
+  $arg =~ tr/A-F:/a-f-/;
+  $arg =~ s/^/01-/;
+
+  print $PREFIX, $arg, "\n";
+}
