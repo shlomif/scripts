@@ -13,6 +13,8 @@
  * XXX figure out way just to test whether stdin "is open".
  */
 
+#include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
 #include <poll.h>
@@ -20,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
-#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
