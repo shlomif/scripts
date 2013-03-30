@@ -1,0 +1,11 @@
+Mostly practice via a reading of "Beej's Guide to Network Programming"
+plus a work need to test various UDP related setups (or to see how many
+UDP packets are lost in what circumstances). There are probably better
+ways, altagoobingleduckgo them.
+
+ * udp-sender sends packets, udp-sink listens for them. A counter is
+   passed in the packet, soas to detect lost or out-of-order
+   packets. Error checking is done at most every step, insofar as
+   UDP allows for that.
+ * Should be portable between Debian (6.0.7) Mac OS X (10.8) OpenBSD
+   (5.2), though most testing done on OS X.
