@@ -9,3 +9,26 @@ ways, altagoobingleduckgo them.
    UDP allows for that.
  * Should be portable between Debian (6.0.7) Mac OS X (10.8) OpenBSD
    (5.2), though most testing done on OS X.
+
+Usage:
+
+  ./udp-sender
+    -p portnum  Port number to send to. Mandatory.
+    -4 | -6     Selects IPv4 or IPv6 (default is unspecified).
+    -c n        Send count packets (default is a large number).
+    -d ms | -f  Delay in milliseconds or flood the packets. (Default 20 ms).
+    hostname    Host to connect to. Mandatory.
+
+  ./udp-sink
+    -p portnum  Port number to listen on. Mandatory.
+    -4 | -6     Selects IPv4 or IPv6 (default is unspecified).
+    -c n        Exit after n packets seen (default is a large number).
+
+So for a localhost test (try it on an idle vs. a busy system):
+
+  ./udp-sink   -4 -p 2952 -c 1000 &
+  ./udp-sender -4 -p 2952 -c 2000 -d 1 127.0.0.1
+
+The sender issues more packets, as due to loss the sink might not see
+enough to exit its loop and print how many were lost. This could
+doubtless be improved on.
