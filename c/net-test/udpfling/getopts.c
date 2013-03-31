@@ -23,7 +23,7 @@ int parse_opts(int argc, char *argv[])
     Flag_AI_Family = AF_UNSPEC;
     Flag_Delay = DEFAULT_DELAY;
 
-    while ((ch = getopt(argc, argv, "46c:d:fp:")) != -1) {
+    while ((ch = getopt(argc, argv, "46c:d:flp:")) != -1) {
         switch (ch) {
         case '4':
             if (fourandsix)
@@ -64,6 +64,9 @@ int parse_opts(int argc, char *argv[])
                 emit_usage();
             Flag_Flood = 1;
             delayed_flood = true;
+            break;
+        case 'l':
+	    Flag_Line_Buf = 1;
             break;
         case 'p':
             if (snprintf(fpp, MAX_PORTNAM_LEN, "%s", optarg) >=

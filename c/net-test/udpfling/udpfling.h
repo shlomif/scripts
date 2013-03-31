@@ -27,4 +27,5 @@ int Flag_AI_Family;             /* For -4 or -6 (default UNSPEC) */
 int Flag_Count;                 /* -c packet count */
 long Flag_Delay;                /* -d delay in milliseconds */
 int Flag_Flood;                 /* -f to flood send packets */
+int Flag_Line_Buf;              /* -l to set line buffering */
 char Flag_Port[MAX_PORTNAM_LEN];        /* -p port name/number to use */

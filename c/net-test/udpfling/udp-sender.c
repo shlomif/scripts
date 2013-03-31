@@ -54,6 +54,8 @@ int main(int argc, char *argv[])
     if (p == NULL)
         errx(EX_IOERR, "could not bind to socket");
 
+    fclose(stdin);
+
     rqtp.tv_sec = Flag_Delay / MS_IN_SEC;
     rqtp.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
 

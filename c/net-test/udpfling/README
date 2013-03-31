@@ -25,12 +25,9 @@ Usage:
     -p portnum  Port number to listen on. Mandatory.
     -4 | -6     Selects IPv4 or IPv6 (default is unspecified).
     -c n        Print stats ever so many packets.
+    -l          Line buffer output instead of default - see setbuf(3).
 
 So for a localhost test (try it on an idle vs. a busy system):
 
-  ./udp-sink   -4 -p 2952 -c 1000 &
-  ./udp-sender -4 -p 2952 -c 2000 -d 1 127.0.0.1
-
-The sender issues more packets, as due to loss the sink might not see
-enough to exit its loop and print how many were lost. This could
-doubtless be improved on.
+  ./udp-sink   -4 -p 2952 -c 100000 > log &
+  ./udp-sender -4 -p 2952 -f 127.0.0.1
