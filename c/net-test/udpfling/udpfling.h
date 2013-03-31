@@ -1,3 +1,4 @@
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -12,7 +13,8 @@
 #include <unistd.h>
 
 #define DEFAULT_DELAY 20        /* default milliseconds for delay */
-#define MS_IN_SEC 1000
+#define MS_IN_SEC 1000          /* milliseconds */
+#define USEC_IN_SEC 1000000     /* microseconds */
 
 /* /etc/services on OpenBSD 5.2 and Mac OS X 10.8 shows maximum service
  * name length of 15 */

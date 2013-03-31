@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
     unsigned long counter = 1;
     uint32_t ncounter;
 
+    Flag_Count = INT_MAX;       /* how many packets to send */
+
     arg_offset = parse_opts(argc, argv);
     argc -= arg_offset;
     argv += arg_offset;

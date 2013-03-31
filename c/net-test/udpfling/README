@@ -24,7 +24,7 @@ Usage:
   ./udp-sink
     -p portnum  Port number to listen on. Mandatory.
     -4 | -6     Selects IPv4 or IPv6 (default is unspecified).
-    -c n        Exit after n packets seen (default is a large number).
+    -c n        Print stats ever so many packets.
 
 So for a localhost test (try it on an idle vs. a busy system):
 

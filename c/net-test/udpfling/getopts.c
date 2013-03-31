@@ -21,7 +21,6 @@ int parse_opts(int argc, char *argv[])
     bool delayed_flood = false;
 
     Flag_AI_Family = AF_UNSPEC;
-    Flag_Count = INT_MAX;
     Flag_Delay = DEFAULT_DELAY;
 
     while ((ch = getopt(argc, argv, "46c:d:fp:")) != -1) {
