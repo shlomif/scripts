@@ -12,7 +12,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define DEFAULT_DELAY 20        /* default milliseconds for delay */
+#define DEFAULT_DELAY 5         /* default milliseconds for delay */
 #define MS_IN_SEC 1000          /* milliseconds */
 #define USEC_IN_SEC 1000000     /* microseconds */
 

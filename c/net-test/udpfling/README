@@ -18,7 +18,7 @@ Usage:
     -p portnum  Port number to send to. Mandatory.
     -4 | -6     Selects IPv4 or IPv6 (default is unspecified).
     -c n        Send count packets (default is a large number).
-    -d ms | -f  Delay in milliseconds or flood the packets. (Default 20 ms).
+    -d ms | -f  Delay in milliseconds or flood the packets. (Default 5 ms).
     hostname    Host to connect to. Mandatory.
 
   ./udp-sink
@@ -27,7 +27,19 @@ Usage:
     -c n        Print stats ever so many packets.
     -l          Line buffer output instead of default - see setbuf(3).
 
-So for a localhost test (try it on an idle vs. a busy system):
+So to test:
 
-  ./udp-sink   -4 -p 2952 -c 100000 > log &
-  ./udp-sender -4 -p 2952 -f 127.0.0.1
+  ./udp-sink   -p 2952 -c 100000 -l | tee log
+
+And feed it:
+
+  ./udp-sender -p 2952 -f localhost
+
+Questions:
+
+What happens via loopback interface? If the system is busy? What happens
+to virts, or between virts? If there is loss, how much does adding delay
+remove the loss? Does running udp-sink & change the loss rate? What
+happens to the loss rate if udp-sink needs to do more work between
+recvfrom() calls? How could multiple sending processes (multiple
+counters) be supported by udp-sink?
