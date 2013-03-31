@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo);
     addr_size = sizeof client_addr;
 
+    setsid();
     fclose(stdin);
     if (Flag_Line_Buf)
         setlinebuf(stdout);
