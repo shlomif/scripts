@@ -27,7 +27,7 @@ int parse_opts(int argc, char *argv[])
         switch (ch) {
         case '4':
             if (fourandsix) {
-                warnx("for IPv4 or IPv6 omit both the -4 and -6 options");
+                warnx("need just one of -4 or -6");
                 emit_usage();
             }
             Flag_AI_Family = AF_INET;
@@ -35,7 +35,7 @@ int parse_opts(int argc, char *argv[])
             break;
         case '6':
             if (fourandsix) {
-                warnx("for IPv4 or IPv6 omit both the -4 and -6 options");
+                warnx("need just one of -4 or -6");
                 emit_usage();
             }
             Flag_AI_Family = AF_INET6;
