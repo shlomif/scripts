@@ -10,6 +10,12 @@ int sockfd;
 int status;
 struct addrinfo hints, *p, *res;
 
+unsigned long counter;
+uint32_t ncounter;
+ssize_t sent_size;
+
+struct timespec delay_by;
+
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
@@ -19,12 +25,6 @@ int main(int argc, char *argv[])
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
     int arg_offset;
-
-    struct timespec rqtp;
-
-    ssize_t sent_size;
-    unsigned long counter = 1;
-    uint32_t ncounter;
 
     Flag_Count = INT_MAX;       /* how many packets to send */
 
@@ -56,11 +56,11 @@ int main(int argc, char *argv[])
 
     fclose(stdin);
 
-    rqtp.tv_sec = Flag_Delay / MS_IN_SEC;
-    rqtp.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
+    delay_by.tv_sec = Flag_Delay / MS_IN_SEC;
+    delay_by.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
 
-    while (counter < Flag_Count) {
-        ncounter = htonl(counter++);
+    while (++counter < Flag_Count) {
+        ncounter = htonl(counter);
         /* TODO also need a packet-pad-to-size-X Flag
          * (listener/sink would need to be aware of that when parsing count) */
         if ((sent_size = sendto(sockfd, &ncounter, sizeof(ncounter), 0,
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
             errx(EX_IOERR, "sent size less than expected");
 
         if (!Flag_Flood)
-            nanosleep(&rqtp, NULL);
+            nanosleep(&delay_by, NULL);
     }
 
     close(sockfd);

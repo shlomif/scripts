@@ -17,8 +17,8 @@
 #define USEC_IN_SEC 1000000     /* microseconds */
 
 /* /etc/services on OpenBSD 5.2 and Mac OS X 10.8 shows maximum service
- * name length of 15 */
-#define MAX_PORTNAM_LEN 16
+ * name length of 15 -- ooops, Debian 6 has one of 16. */
+#define MAX_PORTNAM_LEN 32
 
 void emit_usage(void);
 int parse_opts(int argc, char *argv[]);

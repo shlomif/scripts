@@ -21,12 +21,14 @@ long count_from_client_delta;
 unsigned long loss;
 unsigned long our_count = 1;
 
+struct timespec delay_by;
 struct timeval when;
 
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
     extern int Flag_Count;
+    extern long Flag_Delay;
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
     /* TODO figure out how to parse N number of integers from this,
@@ -78,6 +80,11 @@ int main(int argc, char *argv[])
     if (Flag_Line_Buf)
         setlinebuf(stdout);
 
+    if (Flag_Delay) {
+        delay_by.tv_sec = Flag_Delay / MS_IN_SEC;
+        delay_by.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
+    }
+
     while (1) {
         if ((recv_size =
              recvfrom(sockfd, &ncount_from_client, sizeof(ncount_from_client),
@@ -115,6 +122,9 @@ int main(int argc, char *argv[])
             prev_client_bucket = count_from_client;
         }
 
+        if (Flag_Delay)
+            nanosleep(&delay_by, NULL);
+
         prev_count_from_client = count_from_client;
     }
 
@@ -123,5 +133,5 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-4|-6] [-c n] -p port");
+    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms] [-l] -p port");
 }

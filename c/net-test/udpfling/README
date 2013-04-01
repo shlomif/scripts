@@ -25,6 +25,7 @@ Usage:
     -p portnum  Port number to listen on. Mandatory.
     -4 | -6     Selects IPv4 or IPv6 (default is unspecified).
     -c n        Print stats ever so many packets.
+    -d ms       Delay in milliseconds after processing packet.
     -l          Line buffer output instead of default - see setbuf(3).
 
 So to test:
