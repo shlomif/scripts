@@ -26,14 +26,18 @@ int parse_opts(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "46c:d:flp:")) != -1) {
         switch (ch) {
         case '4':
-            if (fourandsix)
+            if (fourandsix) {
+                warnx("for IPv4 or IPv6 omit both the -4 and -6 options");
                 emit_usage();
+            }
             Flag_AI_Family = AF_INET;
             fourandsix = true;
             break;
         case '6':
-            if (fourandsix)
+            if (fourandsix) {
+                warnx("for IPv4 or IPv6 omit both the -4 and -6 options");
                 emit_usage();
+            }
             Flag_AI_Family = AF_INET6;
             fourandsix = true;
             break;
@@ -47,8 +51,10 @@ int parse_opts(int argc, char *argv[])
             Flag_Count = lval;
             break;
         case 'd':
-            if (delayed_flood)
+            if (delayed_flood) {
+                warnx("cannot both delay and flood packets");
                 emit_usage();
+            }
             errno = 0;
             lval = strtol(optarg, &ep, 10);
             if (optarg[0] == '\0' || *ep != '\0')
@@ -60,13 +66,15 @@ int parse_opts(int argc, char *argv[])
             delayed_flood = true;
             break;
         case 'f':
-            if (delayed_flood)
+            if (delayed_flood) {
+                warnx("cannot both delay and flood packets");
                 emit_usage();
+            }
             Flag_Flood = 1;
             delayed_flood = true;
             break;
         case 'l':
-	    Flag_Line_Buf = 1;
+            Flag_Line_Buf = 1;
             break;
         case 'p':
             if (snprintf(fpp, MAX_PORTNAM_LEN, "%s", optarg) >=
@@ -76,13 +84,16 @@ int parse_opts(int argc, char *argv[])
             break;
         case 'h':
         default:
+            warnx("could not parse options");
             emit_usage();
             /* NOTREACHED */
         }
     }
 
-    if (!has_port)
+    if (!has_port) {
+        warnx("-p port option is mandatory");
         emit_usage();
+    }
 
     return optind;
 }

@@ -32,8 +32,10 @@ int main(int argc, char *argv[])
     argc -= arg_offset;
     argv += arg_offset;
 
-    if (argc == 0 || argv[0] == NULL)
+    if (argc == 0 || argv[0] == NULL) {
+        warnx("no hostname specified");
         emit_usage();
+    }
 
     hints.ai_family = Flag_AI_Family;
     hints.ai_socktype = SOCK_DGRAM;
