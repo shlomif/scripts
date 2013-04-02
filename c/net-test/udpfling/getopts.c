@@ -41,6 +41,7 @@ int parse_opts(int argc, char *argv[])
             Flag_AI_Family = AF_INET6;
             fourandsix = true;
             break;
+
         case 'c':
             errno = 0;
             lval = strtol(optarg, &ep, 10);
@@ -50,6 +51,7 @@ int parse_opts(int argc, char *argv[])
                 errx(EX_DATAERR, "count out of range");
             Flag_Count = lval;
             break;
+
         case 'd':
             if (delayed_flood) {
                 warnx("cannot both delay and flood packets");
@@ -65,6 +67,7 @@ int parse_opts(int argc, char *argv[])
             Flag_Flood = 0;
             delayed_flood = true;
             break;
+
         case 'f':
             if (delayed_flood) {
                 warnx("cannot both delay and flood packets");
@@ -73,18 +76,20 @@ int parse_opts(int argc, char *argv[])
             Flag_Flood = 1;
             delayed_flood = true;
             break;
+
         case 'l':
             Flag_Line_Buf = 1;
             break;
+
         case 'p':
             if (snprintf(fpp, MAX_PORTNAM_LEN, "%s", optarg) >=
                 MAX_PORTNAM_LEN)
                 errx(EX_DATAERR, "port option is too long");
             has_port = true;
             break;
+
         case 'h':
         default:
-            warnx("could not parse options");
             emit_usage();
             /* NOTREACHED */
         }
