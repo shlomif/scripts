@@ -19,14 +19,16 @@ struct timespec delay_by;
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
-    extern int Flag_Count;
-    extern long Flag_Delay;
+    extern unsigned int Flag_Count;
+    extern unsigned int Flag_Delay;
     extern int Flag_Flood;
+    extern unsigned int Flag_Padding;
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
-    int arg_offset;
+    Flag_Count = UINT_MAX;      /* how many packets to send */
 
-    Flag_Count = INT_MAX;       /* how many packets to send */
+    int arg_offset;
+    char *payload;
 
     arg_offset = parse_opts(argc, argv);
     argc -= arg_offset;
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
     hints.ai_socktype = SOCK_DGRAM;
 
     if ((status = getaddrinfo(argv[0], Flag_Port, &hints, &res)) != 0) {
-        errx(EX_UNAVAILABLE, "getaddrinfo error: %s", gai_strerror(status));
+        errx(EX_NOHOST, "getaddrinfo error: %s", gai_strerror(status));
     }
 
     for (p = res; p != NULL; p = p->ai_next) {
@@ -56,19 +58,24 @@ int main(int argc, char *argv[])
     if (p == NULL)
         errx(EX_IOERR, "could not bind to socket");
 
+    setsid();
     fclose(stdin);
 
     delay_by.tv_sec = Flag_Delay / MS_IN_SEC;
     delay_by.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
 
+    if ((payload = malloc(Flag_Padding)) == NULL)
+        err(EX_OSERR, "could not malloc payload");
+    memset(payload, 255, Flag_Padding); /* ones as zeros might compress */
+
     while (++counter < Flag_Count) {
         ncounter = htonl(counter);
-        /* TODO also need a packet-pad-to-size-X Flag
-         * (listener/sink would need to be aware of that when parsing count) */
-        if ((sent_size = sendto(sockfd, &ncounter, sizeof(ncounter), 0,
+        memcpy(payload, &ncounter, sizeof(ncounter));
+
+        if ((sent_size = sendto(sockfd, payload, Flag_Padding, 0,
                                 p->ai_addr, p->ai_addrlen)) < 0)
             err(EX_IOERR, "send error");
-        if (sent_size < sizeof(ncounter))
+        if (sent_size < Flag_Padding)
             errx(EX_IOERR, "sent size less than expected");
 
         if (!Flag_Flood)
@@ -82,5 +89,5 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms|-f] -p port hostname");
+    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms|-f] [-P bytes] -p port hostname");
 }

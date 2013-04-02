@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
@@ -24,8 +25,9 @@ void emit_usage(void);
 int parse_opts(int argc, char *argv[]);
 
 int Flag_AI_Family;             /* For -4 or -6 (default UNSPEC) */
-int Flag_Count;                 /* -c packet count|stats interval */
-long Flag_Delay;                /* -d delay in milliseconds */
+unsigned int Flag_Count;        /* -c packet count|stats interval */
+unsigned int Flag_Delay;        /* -d delay in milliseconds */
 int Flag_Flood;                 /* -f to flood send packets (sender) */
 int Flag_Line_Buf;              /* -l to set line buffering (sink) */
+unsigned int Flag_Padding;      /* -P packet padding size */
 char Flag_Port[MAX_PORTNAM_LEN];        /* -p port name/number to use */

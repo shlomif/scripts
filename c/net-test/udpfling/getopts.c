@@ -1,14 +1,14 @@
 #include <stdbool.h>
-#include <string.h>
 
 #include "udpfling.h"
 
 int parse_opts(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
-    extern int Flag_Count;
-    extern long Flag_Delay;
+    extern unsigned int Flag_Count;
+    extern unsigned int Flag_Delay;
     extern int Flag_Flood;
+    extern unsigned int Flag_Padding;
     extern char Flag_Port[MAX_PORTNAM_LEN];
     char *fpp = Flag_Port;
 
@@ -22,8 +22,9 @@ int parse_opts(int argc, char *argv[])
 
     Flag_AI_Family = AF_UNSPEC;
     Flag_Delay = DEFAULT_DELAY;
+    Flag_Padding = sizeof(uint32_t);
 
-    while ((ch = getopt(argc, argv, "46c:d:flp:")) != -1) {
+    while ((ch = getopt(argc, argv, "46c:d:flP:p:")) != -1) {
         switch (ch) {
         case '4':
             if (fourandsix) {
@@ -79,6 +80,16 @@ int parse_opts(int argc, char *argv[])
 
         case 'l':
             Flag_Line_Buf = 1;
+            break;
+
+        case 'P':
+            errno = 0;
+            lval = strtol(optarg, &ep, 10);
+            if (optarg[0] == '\0' || *ep != '\0')
+                errx(EX_DATAERR, "invalid delay");
+            if (lval >= UINT_MAX || lval < 0)
+                errx(EX_DATAERR, "padding size out of range");
+            Flag_Padding = lval < sizeof(uint32_t) ? sizeof(uint32_t) : lval;
             break;
 
         case 'p':

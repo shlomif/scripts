@@ -18,6 +18,7 @@ Usage:
     -4 | -6     Selects IPv4 or IPv6 (default is unspecified)
     -c n        Send count packets (default is a large number)
     -d ms | -f  Delay in milliseconds or flood the packets (Default 5 ms)
+    -P bytes    Pad packet to this many bytes (Default sizeof(uint32_t))
     -p portnum  Port number to send to - mandatory
     hostname    Host to connect to - mandatory
 
@@ -26,11 +27,12 @@ Usage:
     -c n        Print stats ever so many packets
     -d ms       Delay in milliseconds after processing packet (-f is implicit)
     -l          Line buffer output instead of default - see setbuf(3)
+    -P bytes    Pad packet to this many bytes (Default sizeof(uint32_t))
     -p portnum  Port number to listen on - mandatory
 
 So to test:
 
-  ./udp-sink   -p 2952 -c 100000 -l | tee log
+  ./udp-sink   -p 2952 -c 10000 -l | tee log
 
 And feed it:
 

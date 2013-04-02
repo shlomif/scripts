@@ -27,17 +27,15 @@ struct timeval when;
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
-    extern int Flag_Count;
-    extern long Flag_Delay;
+    extern unsigned int Flag_Count;
+    extern unsigned int Flag_Delay;
+    extern unsigned int Flag_Padding;
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
-    /* TODO figure out how to parse N number of integers from this,
-     * in event get more than one packet from a recvfrom() call */
-//    char recv_buf[4096];
-
-    ssize_t recv_size;
-
     Flag_Count = 10000;         /* how often to print stats */
+
+    char *payload;
+    ssize_t recv_size;
 
     parse_opts(argc, argv);
 
@@ -77,6 +75,7 @@ int main(int argc, char *argv[])
 
     setsid();
     fclose(stdin);
+
     if (Flag_Line_Buf)
         setlinebuf(stdout);
 
@@ -85,23 +84,23 @@ int main(int argc, char *argv[])
         delay_by.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
     }
 
+    if ((payload = malloc(Flag_Padding)) == NULL)
+        err(EX_OSERR, "could not malloc payload");
+
     while (1) {
         if ((recv_size =
-             recvfrom(sockfd, &ncount_from_client, sizeof(ncount_from_client),
-                      0,
-//        if ((recv_size = recvfrom(sockfd, &recv_buf, sizeof(recv_buf), 0,
-                      (struct sockaddr *) &client_addr, &addr_size)
-            ) < 0)
+             recvfrom(sockfd, payload, Flag_Padding, 0,
+                      (struct sockaddr *) &client_addr, &addr_size)) < 0)
             err(EX_IOERR, "recv error");
         if (recv_size == 0)
             errx(EX_IOERR, "connection closed by peer");
-        if (recv_size < sizeof(ncount_from_client))
+        if (recv_size < Flag_Padding)
             errx(EX_IOERR, "recv size less than expected");
-        if (recv_size > sizeof(ncount_from_client))
-            errx(EX_IOERR, "recv size greater than expected %ld vs %ld",
-                 (long) recv_size,
-                 (unsigned long) sizeof(ncount_from_client));
+        if (recv_size > Flag_Padding)
+            errx(EX_IOERR, "recv size greater than expected %ld vs %d",
+                 (unsigned long) recv_size, Flag_Padding);
 
+        memcpy(&ncount_from_client, payload, sizeof(ncount_from_client));
         count_from_client = ntohl(ncount_from_client);
         count_from_client_delta = count_from_client - prev_count_from_client;
 
@@ -133,5 +132,5 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms] [-l] -p port");
+    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms] [-l] [-P bytes] -p port");
 }
