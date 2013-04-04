@@ -13,19 +13,25 @@ struct addrinfo hints, *p, *res;
 unsigned long counter;
 uint32_t ncounter;
 ssize_t sent_size;
+unsigned int backoff = DEFAULT_BACKOFF;
 
-struct timespec delay_by;
+unsigned int time_units, time_units_to_usec;
+
+struct timespec backoff_by, delay_by;
+
+struct sigaction act;
 
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
     extern unsigned int Flag_Count;
     extern unsigned int Flag_Delay;
-    extern int Flag_Flood;
+    extern bool Flag_Flood;
+    extern bool Flag_Nanoseconds;
     extern unsigned int Flag_Padding;
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
-    Flag_Count = UINT_MAX;      /* how many packets to send */
+    Flag_Count = UINT_MAX;      /* how many packets to send (a lot) */
 
     int arg_offset;
     char *payload;
@@ -61,22 +67,47 @@ int main(int argc, char *argv[])
     setsid();
     fclose(stdin);
 
-    delay_by.tv_sec = Flag_Delay / MS_IN_SEC;
-    delay_by.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
+    time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
+    time_units_to_usec = Flag_Nanoseconds ? 1 : USEC_IN_MS;
+    delay_by.tv_sec = Flag_Delay / time_units;
+    delay_by.tv_nsec = (Flag_Delay % time_units) * time_units_to_usec;
 
     if ((payload = malloc(Flag_Padding)) == NULL)
         err(EX_OSERR, "could not malloc payload");
     memset(payload, 255, Flag_Padding); /* ones as zeros might compress */
+
+    act.sa_handler = catch_intr;
+    act.sa_flags = 0;
+    if (sigaction(SIGINT, &act, NULL) != 0)
+        err(EX_OSERR, "could not setup SIGINT handle");
 
     while (++counter < Flag_Count) {
         ncounter = htonl(counter);
         memcpy(payload, &ncounter, sizeof(ncounter));
 
         if ((sent_size = sendto(sockfd, payload, Flag_Padding, 0,
-                                p->ai_addr, p->ai_addrlen)) < 0)
-            err(EX_IOERR, "send error");
-        if (sent_size < Flag_Padding)
-            errx(EX_IOERR, "sent size less than expected");
+                                p->ai_addr, p->ai_addrlen)) < 0) {
+            if (errno == ENOBUFS || errno == EINTR) {
+                if (!Flag_Flood)
+                    warn("retrying sendto (%d):", errno);
+
+                /* But not right away if things going awry */
+                backoff_by.tv_sec = backoff / USEC_IN_MS;
+                backoff_by.tv_nsec = backoff % USEC_IN_MS;
+                nanosleep(&backoff_by, NULL);
+                backoff <<= 1;
+                if (backoff > MAX_BACKOFF)
+                    backoff = MAX_BACKOFF;
+            } else
+                err(EX_IOERR, "send error");
+
+        } else {
+            if (sent_size < Flag_Padding)
+                errx(EX_IOERR, "sent size less than expected: %d vs %d",
+                     (int) sent_size, Flag_Padding);
+
+            backoff = DEFAULT_BACKOFF;
+        }
 
         if (!Flag_Flood)
             nanosleep(&delay_by, NULL);
@@ -87,7 +118,13 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
+void catch_intr(int sig)
+{
+    errx(1, "quit due to SIGINT (sent %ld packets)", counter);
+}
+
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms|-f] [-P bytes] -p port hostname");
+    errx(EX_USAGE,
+         "[-4|-6] [-c n] [-d ms|-f] [-N] [-P bytes] -p port hostname");
 }

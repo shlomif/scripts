@@ -1,5 +1,3 @@
-#include <stdbool.h>
-
 #include "udpfling.h"
 
 int parse_opts(int argc, char *argv[])
@@ -7,7 +5,9 @@ int parse_opts(int argc, char *argv[])
     extern int Flag_AI_Family;
     extern unsigned int Flag_Count;
     extern unsigned int Flag_Delay;
-    extern int Flag_Flood;
+    extern bool Flag_Flood;
+    extern bool Flag_Line_Buf;
+    extern bool Flag_Nanoseconds;
     extern unsigned int Flag_Padding;
     extern char Flag_Port[MAX_PORTNAM_LEN];
     char *fpp = Flag_Port;
@@ -24,7 +24,7 @@ int parse_opts(int argc, char *argv[])
     Flag_Delay = DEFAULT_DELAY;
     Flag_Padding = sizeof(uint32_t);
 
-    while ((ch = getopt(argc, argv, "46c:d:flP:p:")) != -1) {
+    while ((ch = getopt(argc, argv, "46c:d:flNP:p:")) != -1) {
         switch (ch) {
         case '4':
             if (fourandsix) {
@@ -74,12 +74,16 @@ int parse_opts(int argc, char *argv[])
                 warnx("cannot both delay and flood packets");
                 emit_usage();
             }
-            Flag_Flood = 1;
+            Flag_Flood = true;
             delayed_flood = true;
             break;
 
         case 'l':
-            Flag_Line_Buf = 1;
+            Flag_Line_Buf = true;
+            break;
+
+        case 'N':
+	    Flag_Nanoseconds = true;
             break;
 
         case 'P':

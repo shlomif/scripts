@@ -24,11 +24,17 @@ unsigned long our_count = 1;
 struct timespec delay_by;
 struct timeval when;
 
+unsigned int time_units, time_units_to_usec;
+
+struct sigaction act;
+
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
     extern unsigned int Flag_Count;
     extern unsigned int Flag_Delay;
+    extern bool Flag_Line_Buf;
+    extern bool Flag_Nanoseconds;
     extern unsigned int Flag_Padding;
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
@@ -80,12 +86,19 @@ int main(int argc, char *argv[])
         setlinebuf(stdout);
 
     if (Flag_Delay) {
-        delay_by.tv_sec = Flag_Delay / MS_IN_SEC;
-        delay_by.tv_nsec = (Flag_Delay % MS_IN_SEC) * 1000 * 1000;
+        time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
+        time_units_to_usec = Flag_Nanoseconds ? 1 : USEC_IN_MS;
+        delay_by.tv_sec = Flag_Delay / time_units;
+        delay_by.tv_nsec = (Flag_Delay % time_units) * time_units_to_usec;
     }
 
     if ((payload = malloc(Flag_Padding)) == NULL)
         err(EX_OSERR, "could not malloc payload");
+
+    act.sa_handler = catch_intr;
+    act.sa_flags = 0;
+    if (sigaction(SIGINT, &act, NULL) != 0)
+        err(EX_OSERR, "could not setup SIGINT handle");
 
     while (1) {
         if ((recv_size =
@@ -110,14 +123,14 @@ int main(int argc, char *argv[])
             loss += count_from_client_delta;
 
         if (our_count++ % Flag_Count == 0) {
+            /* also in catch_intr, below */
             gettimeofday(&when, NULL);
             fprintf(stdout, "%.4f %ld %ld %.2f%%\n",
-                    when.tv_sec + (double) when.tv_usec / USEC_IN_SEC,
+                    when.tv_sec + (double) when.tv_usec / USEC_IN_MS,
                     loss, count_from_client - prev_client_bucket,
                     (float) loss / (count_from_client -
                                     prev_client_bucket) * 100);
             loss = 0;
-            our_count = 1;
             prev_client_bucket = count_from_client;
         }
 
@@ -130,7 +143,17 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
+void catch_intr(int sig)
+{
+    gettimeofday(&when, NULL);
+    fprintf(stdout, "%.4f %ld %ld %.2f%%\n",
+            when.tv_sec + (double) when.tv_usec / USEC_IN_MS,
+            loss, count_from_client - prev_client_bucket,
+            (float) loss / (count_from_client - prev_client_bucket) * 100);
+    errx(1, "quit due to SIGINT (recv %ld packets)", our_count);
+}
+
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms] [-l] [-P bytes] -p port");
+    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms] [-l] [-N] [-P bytes] -p port");
 }
