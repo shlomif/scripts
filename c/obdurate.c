@@ -45,22 +45,22 @@ int main()
     act.sa_flags = 0;
 
     if (sigaction(SIGTERM, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
     if (sigaction(SIGINT, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
     if (sigaction(SIGHUP, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
     if (sigaction(SIGUSR1, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
     if (sigaction(SIGUSR2, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
     // might happen if stderr closed for some reason?
     if (sigaction(SIGPIPE, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
 
     act.sa_flags |= SA_RESTART;
     if (sigaction(SIGALRM, &act, NULL) != 0)
-        err(EX_OSERR, NULL);
+        err(EX_OSERR, "sigaction failed");
 
     /*
      * (Blocking) I/O is Tricky
