@@ -30,7 +30,7 @@ void whine(int sig);
 int main()
 {
     char buf[BUFSIZ];
-    char tmp_filename[20] = "/tmp/obd.XXXXXXXXXX";
+    char tmp_filename[] = "/tmp/obd.XXXXXXXXXX";
     int nfds;
     struct pollfd pfd[1];
     struct sigaction act;
