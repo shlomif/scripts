@@ -81,11 +81,8 @@ update_git () {
   fi
 
   COMMAND=
-
   # standard area all not-my-project things get dumped into
-  findup -H -q third-party
-  STATUS=$?
-  if [ $STATUS -eq 0 ]; then
+  if echo $CURRENT_DIR | grep third-party >/dev/null; then
     COMMAND="git pull"
   else
     COMMAND="git status"
