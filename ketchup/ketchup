@@ -81,8 +81,11 @@ update_git () {
   fi
 
   COMMAND=
-  # third-party is standard area all non-my-project things get dumped into
-  if echo $CURRENT_DIR | grep third-party >/dev/null; then
+
+  # standard area all not-my-project things get dumped into
+  findup -H -q third-party
+  STATUS=$?
+  if [ $STATUS -eq 0 ]; then
     COMMAND="git pull"
   else
     COMMAND="git status"
@@ -99,10 +102,21 @@ update_git () {
 # figure out how to handle the directory in question
 # TODO need means to specify the order of these...
 check_dir () {
+  findup -H -q .git
+  STATUS=$?
+  if [ $STATUS -eq 0 ]; then
+    update_git
+    return
+  fi
+
   if [ -f CVS/Root ]; then
     update_cvs
     return
-  elif [ -f .svn/entries ]; then
+  fi
+
+  findup -H -q .svn/entries
+  STATUS=$?
+  if [ $STATUS -eq 0 ]; then
     update_svn
     return
   fi
@@ -111,13 +125,6 @@ check_dir () {
   STATUS=$?
   if [ $STATUS -eq 0 ]; then
     update_perforce
-    return
-  fi
-
-  findup -H -q .git
-  STATUS=$?
-  if [ $STATUS -eq 0 ]; then
-    update_git
     return
   fi
 
