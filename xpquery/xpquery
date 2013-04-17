@@ -77,6 +77,10 @@ for my $document (@ARGV) {
   }
 
   my $nodelist = $xc->find($query);
+  my $gotref   = ref $nodelist;
+  if ( $gotref ne 'XML::LibXML::NodeList' ) {
+    die "error: expected XML::LibXML::NodeList but got $gotref instead??\n";
+  }
   for my $node ( $nodelist->get_nodelist ) {
     print $node->toString, "\n";
   }
