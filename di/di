@@ -10,27 +10,25 @@
 
 PROG_NAME=`basename $0`
 
-# First, attempt version control diff...
-[ -f CVS/Root ] && exec cvs diff "$@"
-[ -d .svn ] && exec svn diff "$@"
-
-findup -H -q .p4config
-STATUS=$?
-if [ $STATUS -eq 0 ]; then
-  exec p4 diff -du "$@"
-fi
-
-findup -H -q .git
-STATUS=$?
-if [ $STATUS -eq 0 ]; then
-  git diff --quiet --exit-code
+findup -H -q .git && {
+  WHAT=
+  if [ $# -gt 0 ]; then
+    WHAT=$@
+  else
+    WHAT=.
+  fi
+  git diff --quiet --exit-code "$WHAT"
   STATUS=$?
   if [ $STATUS -eq 1 ]; then
-    exec git diff "$@"
+    exec git diff "$WHAT"
   else
     exit $STATUS
   fi
-fi
+}
+
+[ -f CVS/Root ] && exec cvs diff "$@"
+findup -H -q .svn/entries && exec svn diff "$@"
+findup -H -q .p4config && exec p4 diff -du "$@"
 
 # Otherwise, hunt for diffs based on various conventions I use
 if [ $# -eq 0 ]; then
