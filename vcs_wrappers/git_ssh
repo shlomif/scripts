@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# Sample GIT_SSH wrapper (see git(1)).
+
+SSH_OPTIONS=
+
+PORT=22
+if [ $# -eq 4 ]; then
+  # '-p portnumber' prefix the usual arguments, per git(1)
+  PORT=$2
+  shift 2
+fi
+
+# github has own ~/.gitconfig and ~/.ssh/config setup so needs no logic here
+
+if [ "x$1" = "xgh" ]; then
+  SSH_OPTIONS="-i $HOME/.ssh/id_gitfoo"
+fi
+
+exec ssh -ax \
+  -o ClearAllForwardings=yes -o ControlPath=none \
+  -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic \
+  $SSH_OPTIONS -p "$PORT" "$@"
