@@ -8,7 +8,12 @@
 #   command="/path/to/yak-ssh" ssh-rsa AAAA...
 #
 # Then use SSH, inspect the ssh-yak.* output files for the command and
-# env gleanings.
+# env gleanings. A shorter version less concerned with the env and tmp
+# security needs might run something like:
+#
+#   #!/bin/sh
+#   echo $SSH_ORIGINAL_COMMAND >> $HOME/tmp/ssh-yak
+#   exec $SSH_ORIGINAL_COMMAND
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
@@ -40,6 +45,8 @@ else
 fi
 echo
 
+# might instead do env(1) if interested in exported variables vs. what the
+# shell sets
 echo ENV::BEGIN
 set
 echo ENV::END
