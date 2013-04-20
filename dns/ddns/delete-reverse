@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# Deletes PTR for a given ip address.
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+TIMEOUT=7
+
+[ $# -ne 1 ] && {
+  echo >&2 "usage: $0 ipaddr"
+  exit 1 
+}
+
+REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $1 )
+
+nsupdate -v -d -k $KEY -t $TIMEOUT <<EOF
+prereq yxrrset $REV.in-addr.arpa. PTR
+update delete $REV.in-addr.arpa. PTR
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate"
+fi
+
+exit $STATUS

@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Deletes a CNAME.
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+TIMEOUT=7
+
+[ $# -ne 1 ] && {
+  echo >&2 "usage: $0 cname"
+  exit 1 
+}
+
+echo $1 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 1
+}
+
+nsupdate -k $KEY -t $TIMEOUT <<EOF
+prereq yxrrset $1.$DOM CNAME
+update delete $1.$DOM CNAME
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate"
+fi
+
+exit $STATUS

@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Creates a PTR, though accepts it in the form of "host ipaddr" and then
+# figures out the IPv4 in-addr foo.
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+TIMEOUT=7
+
+[ $# -ne 2 ] && {
+  echo >&2 "usage: $0 host ipaddr"
+  exit 1 
+}
+
+echo $1 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 1
+}
+
+REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $2 )
+
+nsupdate -k $KEY -t $TIMEOUT <<EOF
+prereq nxrrset $REV.in-addr.arpa. PTR
+update add $REV.in-addr.arpa 86400 PTR $1.$DOM.
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: could not update reverse record"
+fi
+
+exit $STATUS

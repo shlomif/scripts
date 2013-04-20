@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Deletes A host (and possible associated PTR).
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+TIMEOUT=7
+
+[ $# -ne 2 ] && {
+  echo >&2 "usage: $0 host ipaddr"
+  exit 1 
+}
+
+echo $1 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 1
+}
+
+echo >&2 "info: deleting A record $1.$DOM ..."
+nsupdate -k $KEY -t $TIMEOUT <<EOF
+prereq yxrrset $1.$DOM A
+update delete $1.$DOM A
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate (on delete A)"
+else
+  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $2 )
+  echo >&2 "info: deleting PTR record $REV.in-addr.arpa. ..."
+  nsupdate -k $KEY -t $TIMEOUT <<EOF_REV
+prereq yxrrset $REV.in-addr.arpa. PTR
+update delete $REV.in-addr.arpa. PTR
+send
+EOF_REV
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo >&2 "$0: non-zero exit from nsupdate (on delete PTR)"
+  fi
+fi
+
+exit $STATUS

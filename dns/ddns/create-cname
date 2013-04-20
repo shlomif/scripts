@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Create a CNAME.
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+TIMEOUT=7
+
+[ $# -ne 2 ] && {
+  echo >&2 "usage: $0 existinghost cname"
+  exit 1 
+}
+
+echo $1 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 1
+}
+
+echo $2 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 1
+}
+
+# could do 'yxdomain' but that assumes 'A' or 'AAAA' exists;
+# 'prereq yxrrset' again falls into 'A' vs. 'AAAA' trap, so
+# just make an agnostic DNS lookup...
+host $1.$DOM >/dev/null || {
+  echo >&2 "$0: existinghost does not resolve"
+  exit 1
+}
+
+nsupdate -k $KEY -t $TIMEOUT <<EOF
+prereq nxdomain $2.$DOM
+update add $2.$DOM 3600 CNAME $1.$DOM
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate"
+fi
+
+exit $STATUS
