@@ -13,7 +13,10 @@
 #
 #   #!/bin/sh
 #   echo $SSH_ORIGINAL_COMMAND >> $HOME/tmp/ssh-yak
-#   exec $SSH_ORIGINAL_COMMAND
+#   eval $SSH_ORIGINAL_COMMAND
+#
+# Note that software may already support limited access via ssh, e.g.
+# git via git-shell(1).
 #
 # The author disclaims all copyrights and releases this script into
 # the public domain.
@@ -54,4 +57,6 @@ echo
 
 ) >> $OUTPUT
 
-exec $SSH_ORIGINAL_COMMAND
+# but need eval not exec to deal with shell quoting and whatnot in the
+# env var...
+eval $SSH_ORIGINAL_COMMAND
