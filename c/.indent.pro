@@ -1,4 +1,0 @@
---k-and-r-style
---no-tabs
--sc
--l78
