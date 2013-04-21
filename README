@@ -1,3 +1,6 @@
 Various Perl and Shell and C Scripts, probably in no way suitable for
 any sort of use whatsoever. See also https://github.com/thrig/zsh-compdef
 which may have ZSH completions for some of the utilities herein.
+
+NOTE things may well be moved or deleted without notice. If this is a
+concern, copy the bits somewhere else.
