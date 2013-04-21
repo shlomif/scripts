@@ -1,6 +1,22 @@
-Various Perl and Shell and C Scripts, probably in no way suitable for
+Various Perl and Shell and C Scripts, doubtless in no way suitable for
 any sort of use whatsoever. See also https://github.com/thrig/zsh-compdef
-which may have ZSH completions for some of the utilities herein.
+which may have ZSH completions for some of the utilities herein. Which,
+again, should not be used, except as a warning to the next ten generations.
 
-NOTE things may well be moved or deleted without notice. If this is a
-concern, copy the bits somewhere else.
+Achtung, Minen
+--------------
+
+Things may well be moved or deleted without notice. If this is a
+concern, copy the bits somewhere else. Or back away, slowly.
+
+A Historical Missive
+--------------------
+
+This ragged bundle of bits began as a CVS repository, not less than a
+few years ago. At one point, it was briefly migrated to Subversion, but
+that ended in disaster when the Subversion database wedged--something
+about BDB and Mac OS X, who knows. One can find traces of this event in
+the history. Anyways, it was back to CVS for a while longer, until
+eventually I moved to git, that being the fashionable thing for Perl
+folks to do, or so I hear. git has yet to blow up on me, which I
+suppose is nice.
