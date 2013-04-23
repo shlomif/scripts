@@ -1,0 +1,85 @@
+#!/usr/bin/env perl
+#
+# Does AXFR and saves the resulting zonefiles to current or some other
+# directory. Usage:
+#
+#   zone-snarf \
+#     --outputdir=/some/where --nameserver=ns1.example.org \
+#     zonefile [zonefile2 ..]
+#
+# Where 'zonefile' contains a list of "example.org" or "0.2.0.192.in-
+# addr.arpa" DNS zone names, optionally followed after a space by a
+# nameserver to use for that zone; if specified, the custom nameserver
+# will take precedence over the one specified on the command line.
+#
+# One could also parse zones out of named.conf or whatever, that would
+# look something like:
+#
+#   the-parser-of-the-zones | zone-snarf --od=... --ns=...
+#
+# Presumably the results would then be checked into a VCS and mails sent
+# about the delta, if any. Improvements might be to check the SOA before
+# doing an AXFR, but that would require saving the SOA value for each
+# zone somewhere.
+#
+# But aren't zone files already checked into VCS? No! Not if dynamic
+# DNS is employed, in which case updates are done via nsupdate(1) or
+# whatever, but still some means may be desired to look at changes
+# over time.
+
+use strict;
+use warnings;
+
+use File::Path qw/make_path/;
+use File::Spec ();
+use Getopt::Long qw/GetOptions/;
+use Net::DNS;
+
+my $Exit_Status = 0;
+
+GetOptions(
+  'outputdir|od=s'  => \my $Output_Dir,
+  'nameserver|ns=s' => \my $Name_Server
+  )
+  or die "Usage: $0 [--od=outputdir] [--ns=nameserver] listofzonesfile ..\n";
+
+if ( defined $Output_Dir ) {
+  make_path($Output_Dir) or die "$0: could not mkdir '$Output_Dir'\n";
+} else {
+  $Output_Dir = ".";
+}
+
+my $Resolver = Net::DNS::Resolver->new;
+
+while (<>) {
+  next if m/^\s*(#|$)/;
+
+  chomp;
+  my ( $zone, $zns ) = split ' ', $_, 2;
+
+  my $ns = defined $zns ? $zns : $Name_Server;
+  die "$0: no nameserver to use for $zone\n" unless defined $ns;
+  $Resolver->nameservers($ns);
+
+  my @zone_data = $Resolver->axfr($zone);
+  if ( !@zone_data ) {
+    warn "warning: could not AXFR '$zone': ", $Resolver->errorstring, "\n";
+    $Exit_Status = 1;
+    next;
+  }
+
+  # KLUGE fixup any "25/0.2.0.192.in-addr.arpa" style zones to not
+  # include / in zone filename, UNPORTABLE if some other OS has
+  # directory sep. character that likewise needs special handling.
+  ( my $zone_fname = $zone ) =~ tr[/][_];
+
+  my $output_file = File::Spec->catfile( $Output_Dir, $zone_fname );
+  open my $ofh, '>', $output_file
+    or die "$0: could not write '$output_file': $!\n";
+
+  foreach my $rr ( sort { $a->string cmp $b->string } @zone_data ) {
+    print $ofh $rr->string, "\n";
+  }
+}
+
+exit $Exit_Status;
