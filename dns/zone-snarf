@@ -10,7 +10,8 @@
 # Where 'zonefile' contains a list of "example.org" or "0.2.0.192.in-
 # addr.arpa" DNS zone names, optionally followed after a space by a
 # nameserver to use for that zone; if specified, the custom nameserver
-# will take precedence over the one specified on the command line.
+# will take precedence over the one specified on the command line. The
+# nameserver may need to be an IP address in older versions of Net::DNS.
 #
 # One could also parse zones out of named.conf or whatever, that would
 # look something like:
@@ -44,7 +45,7 @@ GetOptions(
   or die "Usage: $0 [--od=outputdir] [--ns=nameserver] listofzonesfile ..\n";
 
 if ( defined $Output_Dir ) {
-  make_path($Output_Dir) or die "$0: could not mkdir '$Output_Dir'\n";
+  make_path($Output_Dir);
 } else {
   $Output_Dir = ".";
 }
