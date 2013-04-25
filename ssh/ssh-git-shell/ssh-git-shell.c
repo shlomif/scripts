@@ -1,11 +1,14 @@
 /*
  * git-shell(1) wrapper to allow git-shell access to a particular SSH
  * public key, via a "command" limitation on that public key in the
- * authorized_keys file (see sshd(8) for details):
+ * authorized_keys file (see sshd(8) for details). One use case would
+ * be to share via SSH without dedicating a custom account to git as
+ * appears necessary for git-shell, e.g. to only allow one particular
+ * authorized_key entry access to git-shell via this wrapper:
  *
  *   command="/path/to/this/prog" ssh-rsa AAA...
  *
- * See also the book "Pro Git" chapter 4 in particular.
+ * See also the book "Pro Git", chapter 4 in particular.
  *
  * A shell version would run something like:
  *
@@ -14,8 +17,15 @@
  *   #perhaps parse SSH_ORIGINAL_COMMAND to apply additional limits...
  *   exec git-shell -c "$SSH_ORIGINAL_COMMAND"
  *
+ *   # or directly perhaps via (though might run arbitrary shell code,
+ *   # unless input is audited!)
+ *   eval $SSH_ORIGINAL_COMMAND
+ *
  * Though that has all the gotchas of shell though without all the
- * gotchas of whatever C code I'm managed to throw together...
+ * gotchas of whatever C code I'm managed to throw together. Also, it
+ * might be better not to call git-shell, unless the COMMAND_DIR is
+ * being used, and instead call the git command directly. That is, to
+ * cut git-shell out of the loop.
  *
  * NOTE totally untested under non-ASCII or otherwise exotic locales
  * whose characters might well appear in filesystem paths.
@@ -88,6 +98,7 @@ void emit_usage(void)
 void run_git_shell(int count, char *cmds[])
 {
     // need space for both SSH_ORIGINAL_COMMAND and the null terminator
+    /* hmm, older C apparently could not do this sort of dynamic alloc? */
     char *git_shell_cmd[count + 2];
     int i;
 
