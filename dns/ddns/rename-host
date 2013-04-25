@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Rename A host (and update PTR if possible). Assumes IP does not change.
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+TIMEOUT=7
+
+[ $# -ne 3 ] && {
+  echo >&2 "usage: $0 oldhost newhost ipaddr"
+  exit 64
+}
+
+echo $1 $2 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 65
+}
+
+nsupdate -k $KEY -t $TIMEOUT <<EOF
+prereq yxrrset $1.$DOM A
+update delete $1.$DOM A
+update add $2.$DOM 86400 A $3
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate (A not renamed)"
+else
+  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $3 )
+
+  nsupdate -k $KEY -t $TIMEOUT <<EOF_REV
+prereq yxrrset $REV.in-addr.arpa. PTR
+update delete $REV.in-addr.arpa. PTR
+update add $REV.in-addr.arpa 86400 PTR $2.$DOM.
+send
+EOF_REV
+
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo >&2 "$0: non-zero exit from nsupdate (PTR not updated)"
+  fi
+fi
