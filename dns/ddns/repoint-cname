@@ -8,17 +8,12 @@ TIMEOUT=7
 
 [ $# -ne 2 ] && {
   echo >&2 "usage: $0 existinghost cname"
-  exit 1 
+  exit 64
 }
 
-echo $1 | grep $DOM && {
+echo $1 $2 | grep $DOM && {
   echo >&2 "$0: use short host names"
-  exit 1
-}
-
-echo $2 | grep $DOM && {
-  echo >&2 "$0: use short host names"
-  exit 1
+  exit 65
 }
 
 # could do 'yxdomain' but that assumes 'A' or 'AAAA' exists;
@@ -26,7 +21,7 @@ echo $2 | grep $DOM && {
 # just make an agnostic DNS lookup...
 host $1.$DOM >/dev/null || {
   echo >&2 "$0: existinghost does not resolve"
-  exit 1
+  exit 68
 }
 
 nsupdate -k $KEY -t $TIMEOUT <<EOF

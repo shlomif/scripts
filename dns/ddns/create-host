@@ -9,12 +9,12 @@ TIMEOUT=7
 
 [ $# -ne 2 ] && {
   echo >&2 "usage: $0 host ipaddr"
-  exit 1 
+  exit 64
 }
 
 echo $1 | grep $DOM && {
   echo >&2 "$0: use short host names"
-  exit 1
+  exit 65
 }
 
 nsupdate -k $KEY -t $TIMEOUT <<EOF
@@ -25,17 +25,19 @@ EOF
 
 STATUS=$?
 if [ $STATUS -ne 0 ]; then
-  echo >&2 "$0: non-zero exit from nsupdate (forward not created)"
+  echo >&2 "$0: non-zero exit from nsupdate (A not created)"
 else
   REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $2 )
+
   nsupdate -k $KEY -t $TIMEOUT <<EOF_REV
 prereq nxrrset $REV.in-addr.arpa. PTR
 update add $REV.in-addr.arpa 86400 PTR $1.$DOM.
 send
 EOF_REV
+
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
-    echo >&2 "$0: non-zero exit from nsupdate (reverse not created)"
+    echo >&2 "$0: non-zero exit from nsupdate (PTR not created)"
   fi
 fi
 
