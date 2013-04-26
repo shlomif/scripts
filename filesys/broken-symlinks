@@ -3,7 +3,10 @@
 # Reports dangling or self-pointing symlinks. Use the --exclude option
 # as often as necessary to specify regular expressions of things to
 # ignore, for example files under .mozilla. Use -0 to null separate the
-# output (path to symlink, dangle|self, readlink of symlink).
+# output (path to symlink, dangle|self, readlink of symlink). (However,
+# filenames with newlines in them would be problematic, and would
+# perhaps require nulls everywhere, and then reading by sets of three
+# elements, or some other soluation.)
 
 use strict;
 use warnings;
