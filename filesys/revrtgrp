@@ -219,7 +219,7 @@ $_) and anything below that directory being "pruned" from the search.
 For example, one can easily prune out all directories lower than the
 one supplied as an argument by using the special $parent variable to
 check against the current directory; essentially, this turns off the
-default recursive behaviour of File::Find:
+default recursive behavior of File::Find:
 
   -p '$parent ne $_'
 

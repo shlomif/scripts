@@ -37,7 +37,7 @@ $options = { %$default, %$user };
 
 $out = autoformat $options;
 
-# KLUGE standardize trailing newline behaviour
+# KLUGE standardize trailing newline behavior
 chomp $out;
 
 print $out;

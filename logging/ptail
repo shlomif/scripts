@@ -144,7 +144,7 @@ specific lines of interest from a busy logfile.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 The file to watch is required, and the expression defaults to "print"
-to emulate the behaviour of a C<tail -f>.  The expression is built
+to emulate the behavior of a C<tail -f>.  The expression is built
 from any number of arguments following the file, for greater
 flexibility.  $_ is used to store each line in turn.
 

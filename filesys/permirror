@@ -46,7 +46,7 @@ sub handle_file {
     File::Spec->catfile( $dst_dir, $file_attr{src_file} );
 
   if ( !-e $file_attr{dst_path} ) {
-    warn "notice: skipping non-existant target: $file_attr{dst_path}\n";
+    warn "notice: skipping non-existent target: $file_attr{dst_path}\n";
     return;
   }
 

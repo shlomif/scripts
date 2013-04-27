@@ -26,7 +26,7 @@ is( test_unmime( 'message.decrypt', \@command ),
   $message_txt, 'command: ' . join( ' ', @command, 'message.decrypt' ) );
 
 diag("ignore warning about no MIME data from message.txt");
-# also need defined behaviour for raw file through unmime process
+# also need defined behavior for raw file through unmime process
 is( test_unmime( 'message.txt', \@command ),
   $message_txt, 'command: ' . join( ' ', @command, 'message.txt' ) );
 

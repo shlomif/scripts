@@ -22,7 +22,7 @@ END {
   }
 }
 
-# what stat() colum to read time from (9 mtime, 8 atime, 10 ctime)
+# what stat() column to read time from (9 mtime, 8 atime, 10 ctime)
 my $TIME_INDEX = 9;
 
 use Getopt::Std qw(getopts);
@@ -85,7 +85,7 @@ for my $file (@ARGV) {
   lstat $file;  # populate _ cache for future use
 
   if ( !-e _ ) {
-    warn "warning: skipping non-existant file: file=$file\n";
+    warn "warning: skipping non-existent file: file=$file\n";
     $exit_value = 102;
     next;
   }
@@ -235,9 +235,9 @@ Provides means to list files that have or have similar modification
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
-At lease one file must be supplied. Each directory of the inputt files
-will be searched recursively. A date to search by must be supplied
-either from a file with B<-f> or manually with B<-d>.
+At lease one file must be supplied. Each directory will be searched
+recursively. A date to search by must be supplied either from a file
+with B<-f> or manually with B<-d>.
 
 =head1 OPTIONS
 
@@ -264,12 +264,12 @@ value to compare other files with.
 =item B<-a> I<duration>
 
 Without B<-b>, allows files modified within I<duration> to match. The
-duraction can either be in raw seconds or a short-hand "2m5s" format.
+duration can either be in raw seconds or a short-hand "2m5s" format.
 This means B<-a> I<3h> without B<-b> will match files modified within
 three hours either side of the target date.  Mnemonic: "around."
 
 With B<-b>, allows files modified I<duration> after the target
-date to match.  Mnemonic: "after."
+date to match.
 
 The short-hand duration notation supports w for weeks, d for days, h for
 hours, m for minutes, and s for seconds. Multiple groups add together,
@@ -300,7 +300,7 @@ $_) and anything below that directory being "pruned" from the search.
 For example, one can easily prune out all directories lower than the
 one supplied as an argument by using the special $parent variable to
 check against the current directory; essentially, this turns off the
-default recursive behaviour of File::Find.
+default recursive behavior of File::Find.
 
   -p '$parent ne $_'
 

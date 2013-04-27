@@ -156,7 +156,7 @@ sub do_delete {
   die 'TODO';
 }
 
-# adds specified key(s) into memory (replaces preexistant keys by hash)
+# adds specified key(s) into memory (replaces preexistent keys by hash)
 sub do_add {
   die 'TODO';
 }
@@ -358,10 +358,6 @@ List only SSH1 keys with a BSD-compatible echo(1):
 Delete all keys:
 
   $ (echo -e "delete\tall"; echo write) | manage-authkeys -i
-
-For more information on generating authorized keys, see:
-
-http://cfm.gs.washington.edu/security/ssh/client-pkauth/
 
 =head1 ENVIRONMENT
 
