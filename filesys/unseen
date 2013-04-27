@@ -176,7 +176,7 @@ sub process {
     }
   }
 
-  # filename duplicate supression on output; any duplicates in output
+  # filename duplicate suppression on output; any duplicates in output
   # will be due to different files having the same output such as when
   # the output template excludes the file filename or digest information
   my %printed;
@@ -437,7 +437,7 @@ files for the run in question.
 
 Prevents files older than midnight minus I<duration> from being
 considered with SHA1 checksum comparisons against the seen file
-index. The duraction can either be in raw seconds or a short-hand
+index. The duration can either be in raw seconds or a short-hand
 "2m5s" format.
 
 The default is to skip files older than two weeks. Should the script
@@ -456,7 +456,7 @@ analysis program can be added by specifying a new tag, resulting in
 analysis of prior unseen files by the new program. If new programs need
 not be run over the past files, then do not use the tag option.
 
-Tags are current word characters, plus hypens and periods. They may be
+Tags are current word characters, plus hyphens and periods. They may be
 delimited with any other character, such as commas or spaces, though
 need to be specified as a single unit as far as the shell is concerned,
 if relevant.

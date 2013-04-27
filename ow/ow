@@ -200,7 +200,7 @@ sub expand {
   return $url;
 }
 
-# expects URL to visit, handles lanuching what OS needs.
+# expects URL to visit, handles launching what OS needs.
 sub visit {
   my $url = shift;
   return unless $url;

@@ -26,7 +26,7 @@ use warnings;
 use File::Basename;
 use File::Path;
 
-# what to consider as a filename suffix seperator (all OS I've seen use
+# what to consider as a filename suffix separator (all OS I've seen use
 # a period, but you never know...)
 my $suffix_char = '.';
 my $suffix_re   = qr/(?<!^)\./;
@@ -305,7 +305,7 @@ Short for "Open, Says Me!", this script provides a consistent interface
 to apply various commands to file archives. Given files and various
 command line options, the script attempts to determine what command to
 run on each file in question, based on the contents of a preferences
-file. The point is to avoid having to rember all the bizzare options to
+file. The point is to avoid having to remember all the bizarre options to
 all the different unpacking programs one might use, in favor of a single
 interface that can handle most common archive file handling needs.
 

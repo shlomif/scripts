@@ -196,7 +196,7 @@ sub handle_file {
 if ($report) {
 
   # report on who was a bad user (e.g. is setting the wrong group)
-  # keys are the uid's of bad users
+  # keys are the uids of bad users
   if ( keys %badgroups > 0 && !$quiet ) {
     print "Users owning files with improper groups:\n";
     for ( keys %badgroups ) {

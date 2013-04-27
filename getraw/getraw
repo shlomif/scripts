@@ -332,7 +332,7 @@ Timeout exit status (may be 142, see L<"BUGS"> for details).
 
 Error parsing custom timeout duration.
 
-=tiem B<103>
+=item B<103>
 
 Error parsing key specification.
 

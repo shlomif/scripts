@@ -44,7 +44,7 @@ my %global_prefs = (
   # include decimals in output? (e.g. 25.8 K vs. 26 K)
   'decimal' => 0,
 
-  # include .0 in decmail output?
+  # include .0 in decimal output?
   'decimal_zero' => 0,
 
   # what to divide file sizes down by
@@ -244,7 +244,7 @@ To:       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>
 sub print_machine {
   my $file_loc = shift;
 
-  # open & aquire write lock on the file_loc
+  # open & acquire write lock on the file_loc
   open( FD, "> $file_loc" ) or die "Error opening $file_loc: $!\n";
   FD->autoflush(1);
 
@@ -291,7 +291,7 @@ sub print_machine {
 sub parse_logfile {
   my $count = -1;    # track where we are in array of anon hashes
 
-  # open & aquire write lock on the logfile
+  # open & acquire write lock on the logfile
   open( FD, "+< $logfile" ) or die "Error opening $logfile: $!\n";
   FD->autoflush(1);
 
@@ -349,7 +349,7 @@ $months_of_year \s+
       $data[$count]->{_folder} = $folder;
       $data[$count]->{_size}   = $size;
 
-      # keep separate track of folder locs for ease
+      # keep separate track of folder locks for ease
       # of lookup at cost of more memory
       $folders{$folder}++;
 
@@ -545,7 +545,7 @@ from your ~/.procmailrc file.
 
 Certain preferences must currently be set inside the script itself,
 such as the options on the humanization of bytes.  This might be
-constrewed as a bug.
+construed as a bug.
 
 =head1 OPTIONS
 

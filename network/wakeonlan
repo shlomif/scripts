@@ -153,7 +153,7 @@ wakeonlan [-h] [-v] [-I srcip] [-i dstip] [-p port] [-f file] [[hardware_address
 
 This script sends 'magic packets' to wake-on-lan enabled ethernet
 adapters and motherboards, in order to switch on the called PC. Be sure
-to connect the NIC with the motherboard if neccesary, and enable the WOL
+to connect the NIC with the motherboard if necessary, and enable the WOL
 function in the BIOS.
 
 The 'magic packet' consists of 6 times 0xFF followed by 16 times the
@@ -225,7 +225,7 @@ Copyright (c) 2013 Jeremy Mates.
 Copyright (c) 2000-2005 José Pedro Oliveira.
 
 This is free software. You may modify it and distribute it under Perl's
-Artistic Licence. Modified versions must be clearly indicated.
+Artistic License. Modified versions must be clearly indicated.
 
 =head1 SEE ALSO
 

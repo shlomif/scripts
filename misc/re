@@ -71,7 +71,7 @@ remark(
 exit 1;
 
 # how screen is run. Requires '-d -R' to automagically create or resume
-# a named session and detatch it else where. (-D -R should also work,
+# a named session and detach it else where. (-D -R should also work,
 # but does a logout, which I dislike.)
 sub exec_screen {
   # TODO need means of customizing (some) of the options

@@ -324,7 +324,7 @@ message to this address.
 =back
 
 If the remote host refused to relay the message, the program
-will terminate with a zero exit status dislay a message to
+will terminate with a zero exit status display a message to
 I<stderr> similar to:
 
   rlytest: relay rejected - status code 571
@@ -335,7 +335,7 @@ exit status of 2 and display a message to I<stderr> similar to:
   rlytest: relay accepted - status code 221
 
 Any other (non-zero) exit status indicates a program error, such as a
-bad hostname or host not resopnding.
+bad hostname or host not responding.
 
 =head1 EXAMPLE
 

@@ -125,7 +125,7 @@ Output will be sent to stdout, errors to stderr. Problems will result in
 a non-zero exit code. No news is good news; TLD or domains will only be
 listed if there are wildcard entries infesting the data. See
 L<"SYNOPSIS"> for the two output formats; one is whether the TLD
-speicifed has wildcard support; the other is whether a domain is
+specified has wildcard support; the other is whether a domain is
 wildcarded.
 
 =head1 BUGS

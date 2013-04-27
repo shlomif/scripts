@@ -6,7 +6,7 @@
 # output (path to symlink, dangle|self, readlink of symlink). (However,
 # filenames with newlines in them would be problematic, and would
 # perhaps require nulls everywhere, and then reading by sets of three
-# elements, or some other soluation.)
+# elements, or some other solution.)
 
 use strict;
 use warnings;

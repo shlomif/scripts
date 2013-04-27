@@ -158,7 +158,7 @@ with any files deeper in the filesystem tree will not work by default
 See L<"OPTIONS"> for details on the command line switches supported.
 
 If no files are mentioned on the command line, the script will attempt
-to read them from STDIN, allowing for easy interoperation with various
+to read them from STDIN, allowing for easy inter-operation with various
 shell utilities. For example, to change .htm files to .html:
 
   $ find . ! -type d -name "*.htm" | rename '$_ .= "l"'
@@ -229,7 +229,7 @@ file tree:
 
 A find-by-depth file search should also prevent directory rename
 problems, though the exact invocation of this depends on the find(1)
-varient being used.
+variant being used.
 
 =head1 SECURITY
 

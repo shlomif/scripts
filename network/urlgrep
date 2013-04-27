@@ -322,7 +322,7 @@ the results.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 The script will determine whether a URL, a file, or standard input
-(via a filname of C<->) should be parsed as HTML for links. A Perl
+(via a filename of C<->) should be parsed as HTML for links. A Perl
 regular expression must be specified to limit matches. Any matched URL
 will be printed to standard output, and any errors or warnings to
 standard error.

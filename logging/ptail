@@ -34,7 +34,7 @@ my $reset_tail  = 0;
 # default to just printing input
 my $expression = "print";
 
-# commands to be executed before entring the loop
+# commands to be executed before entering the loop
 my $preop = "";
 
 # parse command-line options
@@ -189,7 +189,7 @@ Lines to read after file reset.
 =back
 
 See L<File::Tail> for more information on the parenthesized parameter
-names, which are File::Tail parameters passed directy to the object.
+names, which are File::Tail parameters passed directly to the object.
 
 =head1 EXAMPLES
 
@@ -198,7 +198,7 @@ printing lines pertaining to dhcpd:
 
   $ ptail -t -1 /var/log/messages 'print if m/ dhcpd/'
 
-Watch for the ip address 10.0.0.1 in C</var/log/system.log>, triming
+Watch for the ip address 10.0.0.1 in C</var/log/system.log>, trimming
 the standard syslog leading information, and saving a copy of the data
 to C</tmp/10.log>:
 

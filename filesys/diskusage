@@ -258,7 +258,7 @@ sub humanize {
     # include decimals in output? (e.g. 25.8K vs. 26K)
     'decimal' => 1,
 
-    # include .0 in decmail output?
+    # include .0 in decimal output?
     'decimal_zero' => 1,
 
     # what to divide file sizes down by

@@ -3,7 +3,7 @@ Based on code at http://cfwiki.org/cfwiki/index.php/SplayTime_testing
 
 Usage: splay-time-test host.example.org [host2 ..]
 
-TODO what do the output times mean? miliseconds?
+TODO what do the output times mean? milliseconds?
 */
 
 #include <stdio.h>

@@ -4,7 +4,7 @@
 # Output control
 -st	# output to STDOUT (so works with BBEdit or vi as Filter)
 -se	# errors to STDERR
--q	# deativate error messages and syntax checking
+-q	# deactivate error messages and syntax checking
 -nsyn	# no syntax checking
 --force-read-binary
 

@@ -134,7 +134,7 @@ L<File::Tail|File::Tail>.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 If no files are mentioned on the command line for reading, this script
-will look fo them on STDIN.
+will look for them on STDIN.
 
 =head1 OPTIONS
 
@@ -174,7 +174,7 @@ Lines to read after file reset.
 =back
 
 See L<File::Tail> for more information on the parenthesized parameter
-names, which are L<File::Tail|File::Tail> parameters passed directy to
+names, which are L<File::Tail|File::Tail> parameters passed directly to
 the object.
 
 =head1 EXAMPLES

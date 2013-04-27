@@ -17,7 +17,7 @@ START_DIR=`pwd`
 PROG_NAME=`basename $0`
 
 # update routines for specific packages
-# takes dirctory (already cd'ed into) and type of update
+# takes directory (already cd'ed into) and type of update
 
 update_cvs () {
   CURRENT_DIR=`pwd`

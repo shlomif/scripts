@@ -313,7 +313,7 @@ standard out. If paranoid, `tail -1` the output to ensure the target
 directory is the only thing in the output for a subsequent chdir.
 
 A non-zero exit status indicates something went wrong. See source for
-exit status number defitions, though the number might have come from the
+exit status number definitions, though the number might have come from the
 "new directory" or "copy files" system calls.
 
 =head1 OPTIONS
@@ -347,7 +347,7 @@ Hide notice messages and do not print target directory. For use as a
 regular 'cp' replacement, where one wants the target directory created,
 but the resulting directory not mentioned.
 
-Will break usage that relys on target directory being printed.
+Will break usage that relies on target directory being printed.
 
 =back
 

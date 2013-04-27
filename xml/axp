@@ -256,7 +256,7 @@ library for GNOME will be adequate.
 
 At minimum, a C<path> option will need to be set to lookup a XSL file;
 more complex needs can be met through macro expansion of C<class> and
-C<style> options againt the C<path>, and the use of a ruleset file to
+C<style> options against the C<path>, and the use of a ruleset file to
 set options based on XML document metadata such as the location on the
 filesystem or the root element name.
 
@@ -329,7 +329,7 @@ create a C<doc.html> from a C<doc.xml> input filename, use:
 =item B<-p> I<parameters>
 
 Read XSL parameters to be used in the document transformation.
-Specify as a space seperated list of key=value pairs. Use "\ " if a
+Specify as a space separated list of key=value pairs. Use "\ " if a
 literal space is needed; backslash expansion will also allow the use
 of \n for a newline and similar.
 
@@ -348,7 +348,7 @@ without notice.
 
   defaults: path=/var/www/htdocs/xsl/%{class}/%{style}.xsl style=default
 
-  # differnt style repository for different website
+  # different style repository for different website
   dirname sub "var/www/othersite" \
     path=/var/www/othersite/_xs/%{class}/%{style}.xsl style=default
 

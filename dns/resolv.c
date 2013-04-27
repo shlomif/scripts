@@ -2,7 +2,7 @@
  * Utility for testing the resolver, as host(1) and dig(1) ignored the
  * LOCALDOMAIN environment variable, and writing C code is educational
  * (if somewhat scary to delve down through the old rusty plumbing of
- * the Internet). Probably should also do getaddinfo(3) to see if that
+ * the Internet). Probably should also do getaddrinfo(3) to see if that
  * honors LOCALDOMAIN or not.
  *
  * A better option for testing is likely `getent hosts www` than this code.

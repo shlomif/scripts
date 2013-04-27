@@ -6,7 +6,7 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 
-# Require non-interactive authuentication methods to prevent things from
+# Require non-interactive authentication methods to prevent things from
 # stalling on a password prompt. Also disable agent, X11, other
 # forwards.
 exec /usr/bin/ssh -a -x \

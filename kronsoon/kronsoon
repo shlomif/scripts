@@ -118,7 +118,7 @@ Options:
 
   --help, -h, -?   Generate this help message.
 
-  --comment "rem"  Specify a comment to preceede cron command with.
+  --comment "rem"  Specify a comment to precede cron command with.
   --format  "ftm"  Custom strftime(3) format for cron timestamp.
   --lead    "sec"  Specify a custom lead time.
   --gmtime, -g     Use gmtime() instead of default localtime().
@@ -171,7 +171,7 @@ Prints a brief usage note about the script.
 
 =item B<--comment>=I<comment string>, B<-c>
 
-Specifies a comment that will preceed the crontab entry.
+Specifies a comment that will precede the crontab entry.
 
   $ kronsoon -c "comment" date
   # comment

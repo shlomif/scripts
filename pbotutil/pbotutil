@@ -323,7 +323,7 @@ sub server_load {
     s/^\s+//;
     next if /^#/;
 
-    # treat blank lines as record seperators
+    # treat blank lines as record separators
     if (/^$/) {
       push @tmp, {} if exists $tmp[-1]->{name} and exists $tmp[-1]->{url};
       next;

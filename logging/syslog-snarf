@@ -59,7 +59,7 @@ my %syslog_priorities = (
 );
 
 # TODO some vendors (notably Apple) have fiddled with these to add
-# NETINFO and similar... support this by reading these defintions
+# NETINFO and similar... support this by reading these definitions
 # from a file?
 my %syslog_facilities = (
   0  => 'kern',

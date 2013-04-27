@@ -29,7 +29,7 @@ signalit () {
 
   # TODO this ps not portable to things like Solaris... but I don't use
   # that. grep -v login to exclude login ... zsh on Mac OS X which must
-  # not be signalled. Ugh.
+  # not be signaled. Ugh.
   ps xwwo pid,command | grep -v login | while read pid command; do
     if echo $command | egrep -- "$PATTERN" >/dev/null; then
       kill -$SIGNAL $pid
@@ -42,7 +42,7 @@ if [ -z "$1" ]; then
   exit 64
 fi
 
-# TODO test new expression first in a subshell to ensure it will work
+# TODO test new expression first in a sub-shell to ensure it will work
 # before running it everywhere?
 
 # KLUGE just clobber a known file, which will cause problems if multiple

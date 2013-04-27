@@ -55,7 +55,7 @@ for my $dir (@ARGV) {
   # work through dirbits, as not all mkdir support -p, and do special
   # things under CVS and Subversion sandboxes
   #
-  # KLUGE // in pathes add empty bits to the list, evict with grep
+  # KLUGE // in paths add empty bits to the list, evict with grep
   for my $dirbit ( grep { defined and $_ ne q{} } @dirbits ) {
     push @seen, $dirbit;
 

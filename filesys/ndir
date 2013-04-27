@@ -43,7 +43,7 @@ for f in "$@"; do
   # Subversion stuff.
   for part in $f; do
 
-    # dirs with leading slash lead to inital null element to skip
+    # dirs with leading slash lead to initial null element to skip
     if [ -z "$part" ]; then
       cd /
       continue

@@ -563,14 +563,14 @@ for an example. At minimum, a named C<class> block should be created
 with the name C<default>. This block should contain rules to handle
 different conditions: C<expired> will be called if the data is expired,
 followed by any C<window> blocks, ordered to process the shortest
-durations first. If none match, a C<default> hander is called.
+durations first. If none match, a C<default> handler is called.
 
 The first matching handler block will exit the script, with an
 C<exit_value> of zero, unless a different C<exit_value> is set.
 
 Blocks can include C<stdout> to print output, C<exec> to run named
 commands, C<pipe> to send input to a named command, and C<exit_value> to
-change the exit status of C<check-expire>. Aruguments to these options
+change the exit status of C<check-expire>. Arguments to these options
 can template information about the certificate and other data (see the
 example below for the syntax, and the source for available parameters).
 

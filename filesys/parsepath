@@ -420,7 +420,7 @@ $0 takes the following arguments in any order:
   group=??? - specify group to limit to (default: current group).
 
   -u    Use current user if constraining.
-  -g    Use currrent group(s) if constraining.
+  -g    Use current group(s) if constraining.
   -R    Use real user/group instead of effective.
 
   -h    Print these notes and exit script.
@@ -477,7 +477,7 @@ Options may be specified in any order:
   group=??? - specify group to limit to (default: current group).
 
   -u    Use current user if constraining.
-  -g    Use currrent group(s) if constraining.
+  -g    Use current group(s) if constraining.
   -R    Use real user/group instead of effective. (Effective permissions
         are used for file access checks, per "Advanced Programming in
         the Unix Environment.)
@@ -508,7 +508,7 @@ On error, the script will exit with a non-zero exit status.
 =item B<10>
 
 The specified user or group did not have access to the file in question
-as requested. Parent directories and files will be listed to stardard
+as requested. Parent directories and files will be listed to standard
 error prior to the script exiting.
 
 =item B<64>

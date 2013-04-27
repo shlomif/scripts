@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Moves files into a predetermined target directory. TODO I think I'm
-# using poorly named ZSH functions for this now (see copyto dcos),
+# using poorly named ZSH functions for this now (see copyto docs),
 # probably should retire this script?
 #
 # TODO need copy option somehow.

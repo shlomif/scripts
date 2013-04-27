@@ -20,7 +20,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-/* Other considerations might be that no path exceedes MAXPATHLEN from
+/* Other considerations might be that no path exceeds MAXPATHLEN from
  * the system include defines, but that's yet more work.
  */
 #define MAX_CMD_LEN 1024

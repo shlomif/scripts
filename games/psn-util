@@ -297,7 +297,7 @@ And some sample queries:
      and move_text='R4b'
    group by move_number order by move_number;
 
-  -- Count non-handicaped openings (these all begin with
+  -- Count non-handicapped openings (these all begin with
   -- ... as the first move)
   select move_text,count(*) from moves
    where move_number=1

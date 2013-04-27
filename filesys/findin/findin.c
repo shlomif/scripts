@@ -2,7 +2,7 @@
  * Find a named file by literal or glob (first argument) in PATH by
  * default, or any arbitrary environment variable (second argument) that
  * consists of a colon-delimited list (e.g. MANPATH, and so forth). If the
- * second argument is a hypen, the list of paths to iterate over is read
+ * second argument is a hyphen, the list of paths to iterate over is read
  * from standard input.
  */
 

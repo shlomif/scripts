@@ -152,7 +152,7 @@ Provides easy means of determining the MX servers for domains.
 
 See L<"OPTIONS"> for details on the command line switches supported.
 Options and domains may be mixed freely on the command line, which
-currently precludes lookup of domain names that being with a hypen.
+currently precludes lookup of domain names that being with a hyphen.
 
 If no domains are listed on the command line, the script will attempt to
 read the list from standard input.

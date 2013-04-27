@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #
 # Parses sudoers. Quick script, does not follow BNF used by sudo, only
-# outputs reformated lines able to parse. Usage:
+# outputs reformatted lines able to parse. Usage:
 #
 # sudo parse-sudoers /etc/sudoers
 #

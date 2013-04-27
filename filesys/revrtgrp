@@ -40,7 +40,7 @@ help() unless @ARGV;
 while (my ($user, undef, $uid, $gid) = getpwent()) {
   $u2g{$uid} = $gid;
 
-  # and a hash for converting group members to uid's
+  # and a hash for converting group members to uids
   $n2u{$user} = $uid;
 }
 
@@ -48,7 +48,7 @@ while (my ($user, undef, $uid, $gid) = getpwent()) {
 if (exists $opts{g}) {
   while (my (undef, undef, $gid, $members) = getgrent()) {
 
-    # need convert space delimited list to uid's...
+    # need convert space delimited list to uids...
     for (split ' ', $members) {
       my $uid = $n2u{$_};
 

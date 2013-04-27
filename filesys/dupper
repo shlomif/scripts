@@ -182,7 +182,7 @@ Options:
 
 Actions: @actions
 
-  -0     Delimit duplicates with ASCII nul character instead of space.
+  -0     Delimit duplicates with ASCII null character instead of space.
 
   -v     Become more verbose about certain operations.
 
