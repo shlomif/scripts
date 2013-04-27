@@ -1,14 +1,12 @@
 #!/bin/sh
 #
-# $Id$
+# Prints intials/date in standard format I use when commenting files.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-#
-# Prints intials/date in standard format I use when commenting files.
 
 # use username, as easier to correlate
-INITIALS=`id -un`
+INITIALS=`id -un`@
 DATE=`date +%Y-%m-%d`
 
 DOINITIALS=no
