@@ -1,7 +1,12 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
-# Unix permissions and ownership changer. Run perldoc(1) on this file
-# for additional documentation.
+# Unix permissions and ownership changer for files and directories (but
+# not symbolic links). Run perldoc(1) on this file for additional
+# documentation.
+#
+# NOTE this task may be better managed by configuration management
+# software that has a policy of what permissions and ownerships to
+# maintain in what directories.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -11,17 +16,9 @@ use warnings;
 
 use File::Find qw(find);
 
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
-
 my (
-  $dirmode,   $filemode, $user, $userid, $group, $groupid,
-  %badgroups, %badperms, $skip, $prune,  $parent
+  $dirmode,   $filemode, $user, $userid, $group,  $groupid,
+  %badgroups, %badperms, $skip, $prune,  $parent, @Stat_Buf,
 );
 
 my $quiet     = 0;
@@ -31,22 +28,22 @@ my $verbose   = 0;
 
 use Getopt::Std qw(getopts);
 my %opts;
-getopts( 'h?p:s:d:f:u:g:Grvql', \%opts );
+getopts( '0h?p:s:d:f:u:g:Grvql', \%opts );
 
 print_help() if exists $opts{h} || exists $opts{'?'};
 
-# make sure we got valid arguments...
 unless ( exists $opts{u}
   or exists $opts{g}
   or exists $opts{f}
   or exists $opts{d} ) {
-  die "Error: no action flag(s) specified\n";
+  warn "Error: no action flag(s) specified\n";
+  exit 64;
 }
 if ( exists $opts{G} and !exists $opts{u} ) {
-  die "Error: the -G flag requires -u\n";
+  warn "Error: the -G flag requires -u\n";
+  exit 64;
 }
 
-# set some misc. options...
 $verbose = 1 if exists $opts{v};
 $report  = 1 if exists $opts{r};
 if ( exists $opts{q} ) {
@@ -60,9 +57,6 @@ $recursive = 0 if exists $opts{l};
 $skip  = $opts{s} if exists $opts{s};
 $prune = $opts{p} if exists $opts{p};
 
-# read in action flags
-
-# get directory mode to set
 if ( exists $opts{d} ) {
   my $temp_dirmode = $opts{d};
 
@@ -122,8 +116,6 @@ if ( exists $opts{u} ) {
 }
 
 if ( !exists $opts{G} ) {
-
-  # need to undefine $groupid, unless there's -g or $group crap
   unless ( exists $opts{g} || defined $group ) {
     undef $groupid;
 
@@ -148,7 +140,7 @@ if ( !exists $opts{G} ) {
           getgrgid $temp_group ) {
 
           # hmmm, at least Linux doesn't appear to allow me to
-          # set the gid to a non-existant group number in perl...
+          # set the gid to a non-existent group number in perl...
           die 'Error: unknown groupid ', $temp_group, "\n";
         }
       } else {
@@ -174,25 +166,26 @@ if ( !exists $opts{G} ) {
   }
 }
 
-# loop over the remaining input, applying mode changes
+shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
 if (@ARGV) {
-  for (@ARGV) {
-    handle_file();
-  }
+  handle_file() for @ARGV;
 } else {
+  $/ = "\0" if exists $opts{'0'};
   while (<STDIN>) {
-    chomp;
+    chomp unless exists $opts{'0'};
     handle_file();
   }
 }
 
 sub handle_file {
-  if ( !-e ) {
-    warn "Warning: skipping non-existant file: $_\n";
-    next;
+  @Stat_Buf = stat;
+
+  if ( !-e _ ) {
+    warn "Warning: skipping non-existent file: $_\n";
+    return;
   }
 
-  if ( -d and $recursive ) {
+  if ( -d _ and $recursive ) {
     $parent = $_;
     find( { wanted => \&zapit, no_chdir => 1 }, $parent );
   } else {
@@ -232,8 +225,8 @@ if ($report) {
 
 # File::Find subroutine that gets called for each file
 sub zapit {
-  # get current user/group ids off of item
-  my ( $cur_mode, $cur_uid, $cur_gid ) = ( lstat $_ )[ 2, 4, 5 ];
+  @Stat_Buf = stat unless @Stat_Buf;
+  my ( $cur_mode, $cur_uid, $cur_gid ) = @Stat_Buf[ 2, 4, 5 ];
 
   # remove type from mode, leaving permission
   $cur_mode = $cur_mode & 07777;
@@ -345,6 +338,14 @@ sub zapit {
         $badperms{$cur_uid}++ if $report;
       }
     }
+  } else {
+    # NOTE: links are not supported; 4.4BSD symbolic links do not have
+    #       modes, while those from SysV do (per the OpenBSD
+    #       src/bin/chmod/chmod.c comments for the 'h' flag). Supporting
+    #       SysV would likely require XS or similar to use the
+    #       presumably different flavor of chmod(2) that influences the
+    #       mode of symlinks.
+    warn "Notice: unsupported file type for chmod: $_\n";
   }
 
   # same user/group-changing code for both dirs and files here
@@ -366,6 +367,8 @@ sub zapit {
     # log this change so we know whose been setting bad groups
     $badgroups{$cur_uid}++ if defined $groupid && $report;
   }
+
+  @Stat_Buf = ();
 }
 
 # parse_mode takes incoming ug+rw,o-rwx requests and returns
@@ -449,24 +452,24 @@ sub apply_mode {
 # a standardized help blarb, see perldoc stuff for more meat
 sub print_help {
   print <<"END_USAGE";
-Usage: modefix [options] [file ..]
+Usage: modefix [options] [-|file ..]
 
 Unix permissions and ownership changer.
-
-Options:
-  -h/?   See this text.
-  -v     Verbose mode.
-  -r     Print a little report summarizing changes.
-  -q     Quiet mode, overrides verbose and report modes.
-  -l     Do no recurse into directories (default is to).
 
  At least one action flag is required:
   -d nn  Directory mode to set, e.g. '2770' or 'g+rx,o-rwx'
   -f nn  File mode to set,      e.g. '660'  or 'ug+rw'
   -u uu  User name to set,      e.g. 'jdoe' or '42'
-  -g gg  Group name to set,     e.g. 'goobers' or '1492'
 
+  -g gg  Group name to set,     e.g. 'goobers' or '1492'
   -G     Use default group for user given by -u (overrides -g)
+
+ Other options:
+  -0     Input on stdin assumed to be "\0" delimited.
+  -l     Do no recurse into directories (default is to).
+  -q     Quiet mode, overrides verbose and report modes.
+  -r     Print a little report summarizing changes.
+  -v     Verbose mode.
 
   -s xx  Perl expression to skip files.
   -p xx  Perl expression to prune directories from search.
@@ -474,7 +477,15 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 END_USAGE
-  exit 100;
+  exit 64;
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
 }
 
 __END__
@@ -493,6 +504,11 @@ Setup group shared C</cvs/> directory permissions for the C<devel> group:
 
   $ modefix -g devel -d ug+rw,g+s,o-rwx /cvs
 
+Fine-grained mode fixing (for example where selecting the desired files
+would be too annoying to select for via I<-s> or I<-p> option code):
+
+  $ find . ! -perm -o=r -print0 | modefix -0 -l ...
+
 =head1 DESCRIPTION
 
 C<modefix> implements the functionality of chmod(1) and chown(8), and
@@ -509,12 +525,15 @@ Reduce to a single filesystem pass with C<modefix>:
 
 =head2 Normal Usage
 
-  $ modefix [options] [file ..]
+  $ modefix [options] [-|file ..]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 
 Files to operate on must be listed on the command line, or, failing
-that, be passed in on standard input.
+that, be passed in on standard input (or, when the single non-option
+argument is C<->).
+
+Symbolic links are followed. See L<"Known Issues">.
 
 =head1 OPTIONS
 
@@ -528,6 +547,11 @@ B<Useful Options>, B<Actions>, and B<Search Customization>.
 =item B<-h>, B<-?>
 
 Print usage notes and exit.
+
+=item B<-0>
+
+Assume standard input delimited by null character. Handy if being piped
+to from C<find -print0> or the like.
 
 =item B<-v>
 
@@ -610,6 +634,9 @@ Would skip applying the changes to any files named C<.rsrc>. Note that
 skip only counts towards whether or not any actions are performed;
 C<modefix> will still recurse into skipped directories.
 
+C<@Stat_Buf> should contain the stat information for the file, and
+cached file tests against C<_> should be possible.
+
 =item B<-p> I<expression>
 
 Perl expression that will result in the current directory (stored in $_)
@@ -618,14 +645,14 @@ and anything below that directory being pruned from the search.
 For example, one can easily prune out all directories lower than the one
 supplied as an argument by using the special C<$parent> variable to
 check against the current directory; essentially, this turns off the
-default recursive behaviour of File::Find:
+default recursive behavior of File::Find:
 
   -p '$parent ne $_'
 
-=back
+C<@Stat_Buf> should contain the stat information for the directory, and
+cached file tests against C<_> should be possible.
 
-Tip: expressions should use the shortcut _ operator in any stat() calls.
-See the documentation for stat() under perlfunc for details.
+=back
 
 =head1 MORE ON MODES
 
@@ -685,9 +712,11 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-C<modefix> does not deal well with soft links: the File::Find module has
-trouble with softlinked directories, and chmod support on symbolic links
-varies by operating system.
+C<modefix> does not deal well or at all with symbolic links: chmod
+support on symbolic links varies by operating system, and would require
+delving into custom system calls on the systems that do support it.
+C<stat> calls are used by this code, which will resolve symbolic links.
+Hope that's okay!
 
 =head1 SEE ALSO
 
