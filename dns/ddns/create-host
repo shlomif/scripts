@@ -18,7 +18,7 @@ echo $1 | grep $DOM && {
 }
 
 nsupdate -k $KEY -t $TIMEOUT <<EOF
-prereq nxdomain $1.$DOM
+prereq nxrrset $1.$DOM A
 update add $1.$DOM 86400 A $2
 send
 EOF
