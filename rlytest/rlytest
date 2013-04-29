@@ -13,7 +13,7 @@
 #
 # Even more updates on 2013-03-01 to use Sys::Hostname, add ability to
 # feed server some amount of data presumably larger than the SIZE
-# offered, other cleanups and improvements.
+# offered, other cleanups and improvements. And -I on 2013-04-29.
 
 use strict;
 use warnings;
@@ -25,7 +25,7 @@ use Sys::Hostname qw/hostname/;
 use Term::ANSIColor;
 
 use vars qw($Usage $Dflt_hostname $Dflt_domain $Root_check %Opts
-  $Target_host $Port $Timeout $Hostname $Username $Comment
+  $Local_host $Target_host $Port $Timeout $Hostname $Username $Comment
   $Actual_sender $MailFrom_addr $RcptTo_addr $Hdr_to $Hdr_from $Mssg_body);
 
 $Usage =
@@ -55,7 +55,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts( 'c:Ef:t:u:p:mgs:Sr', \%Opts )
+getopts( 'c:Ef:I:t:u:p:mgs:Sr', \%Opts )
   or die "$Usage";
 die "$Usage\n"
   unless ( @ARGV == 1 );
@@ -139,10 +139,11 @@ print "Connecting to $Target_host ...\n";
 print color 'reset' if $Opts{m};
 system qw(getraw -o *:+) if $Opts{g};
 my $sock = IO::Socket::INET->new(
+  ( defined $Local_host ? ( LocalAddr => $Local_host ) : () ),
   Proto    => "tcp",
   PeerAddr => $Target_host,
   PeerPort => $Port,
-  Timeout  => $Timeout
+  Timeout  => $Timeout,
 ) or die "$0: socket failed: cannot connect to $Target_host: $@\n";
 
 $SIG{ALRM} = sub { die "$0: timeout waiting for socket I/O\n"; };
@@ -297,6 +298,13 @@ Specifies the (C<MAIL FROM>) email address to use on the probe.
 By default, B<rlytest> tries to calculate an email address in the
 target domain.  This is to ensure that the host is not using simple
 (and easily defeated) envelope checks for anti-relay protection.
+
+=item B<-I> I<localaddr>
+
+Specify local address for the socket call. NOTE this may need to agree
+with DNS or other attributes of the SMTP conversation, as some sites
+check that a PTR exists, or other checks. Or not, if you expect the test
+to fail, and are making sure it does.
 
 =item B<-p> I<port>
 
