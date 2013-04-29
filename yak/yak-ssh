@@ -25,7 +25,7 @@ shortname=`basename $0`
 shortname=${shortname:=ssh-yak}
 
 #OUTPUT=/dev/null
-OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXX`
+OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXXX`
 if [ $? -ne 0 ]; then
   OUTPUT=/tmp/${shortname}.$$
 fi

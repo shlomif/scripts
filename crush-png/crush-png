@@ -11,7 +11,7 @@ if [ -z "$1" ]; then
 fi
 
 for file in "$@"; do
-  TMPFILE=`mktemp .crush-png-tmp.XXXXXXXX` || exit 1
+  TMPFILE=`mktemp .crush-png-tmp.XXXXXXXXXX` || exit 1
   pngcrush -brute -fix -reduce "$file" "$TMPFILE" 1>/dev/null || exit 1
   chmod a+r "$TMPFILE"
   mv "$TMPFILE" "$file"

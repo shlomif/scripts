@@ -84,7 +84,7 @@ if ( $instrument eq 'acoustic grand' ) {
 }
 
 my ( $src_fh, $src_fname ) = tempfile(
-  "$BASENAME.XXXXXXX",
+  "$BASENAME.XXXXXXXXXX",
   DIR    => File::Spec->tmpdir,
   UNLINK => 0
 );

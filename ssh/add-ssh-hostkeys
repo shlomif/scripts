@@ -20,8 +20,8 @@ cleanup () {
   rm -f $TMPKEYS $TMPHOSTS
 }
 
-TMPKEYS=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
-TMPHOSTS=`mktemp /tmp/$BASENAME.XXXXXXXX` || exit 1
+TMPKEYS=`mktemp /tmp/$BASENAME.XXXXXXXXXX` || exit 1
+TMPHOSTS=`mktemp /tmp/$BASENAME.XXXXXXXXXX` || exit 1
 trap "cleanup" 0 1 2 13 15
 
 # need to do host-by-host as ssh-keyscan will abort if it cannot
