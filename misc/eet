@@ -182,7 +182,7 @@ the object.
 Read through then follow several Apache VirtualHost logfiles, passing
 them to a colorizing utility.
 
-  $ eet -t -1 /www/site/logs/*_log | colorize.pl
+  $ eet -t -1 /www/site/logs/*_log | colorize
 
 =head1 BUGS
 

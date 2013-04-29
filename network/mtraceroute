@@ -172,13 +172,13 @@ __END__
 
 =head1 NAME
 
-mtraceroute.pl - summarizes multiple traceroutes.
+mtraceroute - summarizes multiple traceroutes.
 
 =head1 SYNOPSIS
 
 To find out the hops count to some hosts, simply run:
 
-  $ mtraceroute.pl example.com example.org
+  $ mtraceroute example.com example.org
 
 =head1 DESCRIPTION
 
@@ -190,7 +190,7 @@ host among many has the least hops.
 
 =head2 Normal Usage
 
-  $ mtraceroute.pl [options] [host1 host2 .. hostN]
+  $ mtraceroute [options] [host1 host2 .. hostN]
 
 See L<"OPTIONS"> for details on the command line switches supported.
 

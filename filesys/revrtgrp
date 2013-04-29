@@ -207,9 +207,9 @@ being skipped if the expression turns out to be true.  Example:
   -s '-d || m/^\.rsrc$/'
 
 Would skip applying the changes to any directories or items named
-'.rsrc'. B<Warning>: skip only counts towards whether or not any
-actions are performed; modefix.pl will happily apply changes below a
-"skipped" directory.
+'.rsrc'. B<Warning>: skip only counts towards whether or not any actions
+are performed; actions may still be applied below a skipped directory
+(see: purne).
 
 =item B<-p> I<expression>
 
