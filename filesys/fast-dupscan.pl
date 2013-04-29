@@ -44,7 +44,7 @@ for my $size (sort { $a <=> $b } keys %sizes) {
 	my %pot;
         for my $i (@aos) {
             unless (open FILE, $i) {
-	        print STDERR "##Can't open $i: $!\n";
+	        warn "##Can't open $i: $!\n";
 	        next;
 	    }
 	    $dig->addfile(*FILE);

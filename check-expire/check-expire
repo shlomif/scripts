@@ -465,8 +465,7 @@ sub remark {
       sort keys %$attributes;
   }
 
-  print STDERR "$priority: $message"
-    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
+  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
   return 1;
 }
 

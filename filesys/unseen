@@ -279,9 +279,7 @@ sub remark {
     $attr_str =~ s/ ( [^[:print:]\t] ) / sprintf "\\%03o", ord $1 /egx;
   }
 
-  print STDERR "$priority: $message"
-    . ( $attr_str ? ": $attr_str" : q{} ) . "\n";
-
+  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
   return 1;
 }
 
