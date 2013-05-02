@@ -60,7 +60,7 @@ autoflush STDOUT 1;
 #
 # Crack command line.
 #
-getopts( 'c:Ef:I:t:u:p:mgs:Sr', \%Opts )
+getopts( 'Ac:Ef:I:t:u:p:mgs:Sr', \%Opts )
   or die "$Usage";
 die "$Usage\n"
   unless ( @ARGV == 1 );
@@ -160,6 +160,9 @@ system qw(getraw -o *:+) if $Opts{g};
 write_command( $sock, "MAIL FROM:<$MailFrom_addr>\n" );
 system qw(getraw -o *:+) if $Opts{g};
 write_command( $sock, "RCPT TO:<$RcptTo_addr>\n" );
+
+goto ALL_DONE if $Opts{A};
+
 system qw(getraw -o *:+) if $Opts{g};
 write_command( $sock, "DATA\n" );
 system qw(getraw -o *:+) if $Opts{g};
@@ -180,6 +183,7 @@ if ( defined $Opts{S} and $Opts{S} =~ m/^\d+$/ ) {
 }
 
 write_command( $sock, ".\n", "(message EOF)\n" );
+ALL_DONE:
 my $code = write_command( $sock, "QUIT\n" );
 
 #
@@ -273,6 +277,8 @@ B<rlytest>
 [B<-p> I<port>]
 I<target_host>
 
+Among other options.
+
 =head1 DESCRIPTION
 
 The B<rlytest> utility performs a test on I<target_host> to determine
@@ -286,6 +292,10 @@ secured, disconnected, or shunned as a menace to the Internet.
 The following options are available (and probably more, see source):
 
 =over 4
+
+=item B<-A>
+
+Abort the connection before sending C<DATA>.
 
 =item B<-c> I<comment>
 
