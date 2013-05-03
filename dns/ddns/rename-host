@@ -1,13 +1,14 @@
 #!/bin/sh
 #
-# Rename A host (and update PTR if possible). Assumes IP does not change.
+# Rename A host (and update PTR if possible). Unless the A points to
+# multiple records.
 
 DOM=example.edu
 KEY=/etc/nsuk.key
 TIMEOUT=7
 
-[ $# -ne 3 ] && {
-  echo >&2 "usage: $0 oldhost newhost ipaddr"
+[ $# -ne 2 ] && {
+  echo >&2 "usage: $0 oldhost newhost"
   exit 64
 }
 
@@ -16,10 +17,24 @@ echo $1 $2 | grep $DOM && {
   exit 65
 }
 
+IP=
+for hostip in $(dig +short -t A $1.$DOM); do
+  [ $IP ] && {
+    echo >&2 "$0: multiple A records for '$1', do not know which to rename"
+    exit 65
+  }
+  IP=$hostip
+done
+
+[ -z $IP ] && {
+  echo >&2 "$0: no A record found for '$1'"
+  exit 68
+}
+
 nsupdate -k $KEY -t $TIMEOUT <<EOF
 prereq yxrrset $1.$DOM A
 update delete $1.$DOM A
-update add $2.$DOM 86400 A $3
+update add $2.$DOM 86400 A $IP
 send
 EOF
 
@@ -27,7 +42,7 @@ STATUS=$?
 if [ $STATUS -ne 0 ]; then
   echo >&2 "$0: non-zero exit from nsupdate (A not renamed)"
 else
-  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $3 )
+  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $IP )
 
   nsupdate -k $KEY -t $TIMEOUT <<EOF_REV
 prereq yxrrset $REV.in-addr.arpa. PTR
@@ -39,5 +54,6 @@ EOF_REV
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
     echo >&2 "$0: non-zero exit from nsupdate (PTR not updated)"
+    echo >&2 "NOTE: UW-IT may own reverse, check SOA and EE named.conf zones"
   fi
 fi
