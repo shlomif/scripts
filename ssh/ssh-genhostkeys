@@ -32,4 +32,5 @@ if [ "$keydir" = "/" ]; then
 fi
 
 rm -- "$keydir/"ssh_host_*
-exec ssh-keygen -A
+ssh-keygen -A || exit 1
+for f in "$keydir/"ssh_host_*; do ssh-keygen -l -f $f; done
