@@ -1,20 +1,21 @@
 #!/bin/sh
 #
-# Generates new host keys for servers running OpenSSH 2.
+# Generates new host keys for servers running OpenSSH. Some OS include
+# scripts to handle this, e.g. via their ports or package systems. The
+# known_hosts data on client systems will also need to change, or will
+# otherwise show warnings. Regenerating new keys from time to time is
+# advisable, especially on low-entropy-at-install-time virts.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
-
-# should be 0, if errors will be that of last error to occur
-RETVAL=0
 
 keydir=/etc/ssh
 
 if [ ! -z "$1" ]; then
   keydir=$1
 else
-  # some systems (Mac OS X, older Linux, OpenBSD) keep SSH keyfiles
-  # under /etc instead of /etc/ssh
+  # Older systems (or still Mac OS X?) keep SSH keyfiles under /etc
+  # instead of /etc/ssh.
   if [ ! -d "$keydir" ]; then
     keydir=/etc
   fi
@@ -22,26 +23,13 @@ fi
 
 if [ ! -d "$keydir" ]; then
   echo "error: no such directory: file=$keydir" >&2
-  exit 101
+  exit 72
 fi
 
 if [ "$keydir" = "/" ]; then
   echo "warning: key directory is root: file=$keydir" >&2
+  sleep 3
 fi
 
-while read type keyfile; do
-  # TODO interrupt while these are running might lead to problems,
-  # though atomic writes hard to integrate into a shell script...
-  yes | ssh-keygen -t "$type" -f "$keydir/$keyfile" -N q{}
-
-  # preserve non-zero exits, as running multiple commands
-  if [ $RETVAL != 0 ]; then
-    RETVAL=$?
-  fi
-done <<'EOF'
-dsa ssh_host_dsa_key
-rsa ssh_host_rsa_key
-rsa1 ssh_host_key
-EOF
-
-exit $RETVAL
+rm -- "$keydir/"ssh_host_*
+exec ssh-keygen -A
