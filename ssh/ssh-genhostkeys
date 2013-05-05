@@ -6,16 +6,24 @@
 # otherwise show warnings. Regenerating new keys from time to time is
 # advisable, especially on low-entropy-at-install-time virts.
 #
-# The author disclaims all copyrights and releases this script into the
-# public domain.
+# Usage:
+#   ssh-genhostkeys            (assumes /etc/ssh, otherwise tries /etc)
+#   ssh-genhostkeys /some/dir
+#
+# NOTE Debian may lack `ssh-keygen -A`; try:
+#   rm /etc/ssh/ssh_host_*
+#   dpkg-reconfigure openssh-server
+#
+# The author disclaims all copyrights and releases this script into
+# the public domain.
 
 keydir=/etc/ssh
 
 if [ ! -z "$1" ]; then
   keydir=$1
 else
-  # Older systems (or still Mac OS X?) keep SSH keyfiles under /etc
-  # instead of /etc/ssh.
+  # Older systems (and still Mac OS X or at least my 10.8 updgraded from
+  # 10.6) keep SSH keyfiles under /etc instead of /etc/ssh.
   if [ ! -d "$keydir" ]; then
     keydir=/etc
   fi
