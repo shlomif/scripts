@@ -6,8 +6,8 @@ DOM=example.edu
 KEY=/etc/nsuk.key
 TIMEOUT=7
 
-[ $# -ne 2 ] && {
-  echo >&2 "usage: $0 host ipaddr"
+[ $# -lt 1 -o $# -gt 2 ] && {
+  echo >&2 "usage: $0 host [ipaddr]"
   exit 64
 }
 
@@ -15,6 +15,24 @@ echo $1 | grep $DOM && {
   echo >&2 "$0: use short host names"
   exit 65
 }
+
+IP=
+if [ $# -eq 2 ]; then
+  IP=$2
+else
+  for hostip in $(dig +short -t A $1.$DOM); do
+    [ $IP ] && {
+      echo >&2 "$0: multiple A records for '$1', do not know which to delete"
+      exit 65
+    }
+    IP=$hostip
+  done
+
+  [ -z $IP ] && {
+    echo >&2 "$0: no A record found for '$1'"
+    exit 68
+  }
+fi
 
 nsupdate -k $KEY -t $TIMEOUT <<EOF
 prereq yxrrset $1.$DOM A
@@ -26,7 +44,7 @@ STATUS=$?
 if [ $STATUS -ne 0 ]; then
   echo >&2 "$0: non-zero exit from nsupdate (on delete A)"
 else
-  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $2 )
+  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $IP )
 
   nsupdate -k $KEY -t $TIMEOUT <<EOF_REV
 prereq yxrrset $REV.in-addr.arpa. PTR
