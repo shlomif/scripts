@@ -10,7 +10,7 @@ int sockfd;
 int status;
 struct addrinfo hints, *p, *res;
 
-unsigned long counter;
+unsigned long counter, prev_sent_count;
 uint32_t ncounter;
 ssize_t sent_size;
 unsigned int backoff = DEFAULT_BACKOFF;
@@ -18,20 +18,18 @@ unsigned int backoff = DEFAULT_BACKOFF;
 unsigned int time_units, time_units_to_usec;
 
 struct timespec backoff_by, delay_by;
+struct timeval when;
 
 struct sigaction act;
 
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
-    extern unsigned int Flag_Count;
-    extern unsigned int Flag_Delay;
-    extern bool Flag_Flood;
-    extern bool Flag_Nanoseconds;
-    extern unsigned int Flag_Padding;
+    extern unsigned int Flag_Count, Flag_Delay, Flag_Max_Send, Flag_Padding;
+    extern bool Flag_Flood, Flag_Line_Buf, Flag_Nanoseconds;
     extern char Flag_Port[MAX_PORTNAM_LEN];
 
-    Flag_Count = UINT_MAX;      /* how many packets to send (a lot) */
+    Flag_Max_Send = UINT_MAX;   /* how many packets to send (a lot) */
 
     int arg_offset;
     char *payload;
@@ -64,8 +62,8 @@ int main(int argc, char *argv[])
     if (p == NULL)
         errx(EX_IOERR, "could not bind to socket");
 
-    setsid();
-    fclose(stdin);
+    if (Flag_Line_Buf)
+        setlinebuf(stdout);
 
     time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
     time_units_to_usec = Flag_Nanoseconds ? 1 : USEC_IN_MS;
@@ -81,7 +79,7 @@ int main(int argc, char *argv[])
     if (sigaction(SIGINT, &act, NULL) != 0)
         err(EX_OSERR, "could not setup SIGINT handle");
 
-    while (++counter < Flag_Count) {
+    while (++counter < Flag_Max_Send) {
         ncounter = htonl(counter);
         memcpy(payload, &ncounter, sizeof(ncounter));
 
@@ -109,6 +107,15 @@ int main(int argc, char *argv[])
             backoff = DEFAULT_BACKOFF;
         }
 
+        if (counter % Flag_Count == 0) {
+            // XXX also in catch intr, below?
+            gettimeofday(&when, NULL);
+            fprintf(stdout, "%.4f %ld\n",
+                    when.tv_sec + (double) when.tv_usec / USEC_IN_MS,
+                    counter - prev_sent_count);
+            prev_sent_count = counter;
+        }
+
         if (!Flag_Flood)
             nanosleep(&delay_by, NULL);
     }
@@ -120,11 +127,15 @@ int main(int argc, char *argv[])
 
 void catch_intr(int sig)
 {
+    gettimeofday(&when, NULL);
+    fprintf(stdout, "%.4f %ld\n",
+            when.tv_sec + (double) when.tv_usec / USEC_IN_MS,
+            counter - prev_sent_count);
     errx(1, "quit due to SIGINT (sent %ld packets)", counter);
 }
 
 void emit_usage(void)
 {
     errx(EX_USAGE,
-         "[-4|-6] [-c n] [-d ms|-f] [-N] [-P bytes] -p port hostname");
+         "[-4|-6] [-C maxsend] [-c stati] [-d ms|-f] [-l] [-N] [-P bytes] -p port hostname");
 }

@@ -14,9 +14,8 @@ struct sockaddr_storage client_addr;
 int yes = 1;                    // for setsockopt() SO_REUSEADDR, below
 
 uint32_t ncount_from_client;
-unsigned long count_from_client;
-unsigned long prev_client_bucket;
-unsigned long prev_count_from_client;
+unsigned long count_from_client, count_backtracks, prev_client_bucket,
+    prev_count_from_client;
 long count_from_client_delta;
 unsigned long loss;
 unsigned long our_count = 1;
@@ -31,14 +30,9 @@ struct sigaction act;
 int main(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
-    extern unsigned int Flag_Count;
-    extern unsigned int Flag_Delay;
-    extern bool Flag_Line_Buf;
-    extern bool Flag_Nanoseconds;
-    extern unsigned int Flag_Padding;
+    extern unsigned int Flag_Count, Flag_Delay, Flag_Padding;
+    extern bool Flag_Line_Buf, Flag_Nanoseconds;
     extern char Flag_Port[MAX_PORTNAM_LEN];
-
-    Flag_Count = 10000;         /* how often to print stats */
 
     char *payload;
     ssize_t recv_size;
@@ -79,9 +73,6 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo);
     addr_size = sizeof client_addr;
 
-    setsid();
-    fclose(stdin);
-
     if (Flag_Line_Buf)
         setlinebuf(stdout);
 
@@ -117,19 +108,22 @@ int main(int argc, char *argv[])
         count_from_client = ntohl(ncount_from_client);
         count_from_client_delta = count_from_client - prev_count_from_client;
 
-        if (count_from_client_delta < 0)
+        if (count_from_client_delta < 0) {
             warnx("negative delta at %ld", count_from_client);
-        else if (count_from_client_delta != 1)
+            count_backtracks++;
+        } else if (count_from_client_delta != 1)
             loss += count_from_client_delta;
 
         if (our_count++ % Flag_Count == 0) {
             /* also in catch_intr, below */
             gettimeofday(&when, NULL);
-            fprintf(stdout, "%.4f %ld %ld %.2f%%\n",
+            fprintf(stdout, "%.4f %ld %ld %.2f%% %ld\n",
                     when.tv_sec + (double) when.tv_usec / USEC_IN_MS,
                     loss, count_from_client - prev_client_bucket,
                     (float) loss / (count_from_client -
-                                    prev_client_bucket) * 100);
+                                    prev_client_bucket) * 100,
+                    count_backtracks);
+            count_backtracks = 0;
             loss = 0;
             prev_client_bucket = count_from_client;
         }
@@ -155,5 +149,5 @@ void catch_intr(int sig)
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-4|-6] [-c n] [-d ms] [-l] [-N] [-P bytes] -p port");
+    errx(EX_USAGE, "[-4|-6] [-c stati] [-d ms] [-l] [-N] [-P bytes] -p port");
 }

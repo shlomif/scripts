@@ -3,12 +3,8 @@
 int parse_opts(int argc, char *argv[])
 {
     extern int Flag_AI_Family;
-    extern unsigned int Flag_Count;
-    extern unsigned int Flag_Delay;
-    extern bool Flag_Flood;
-    extern bool Flag_Line_Buf;
-    extern bool Flag_Nanoseconds;
-    extern unsigned int Flag_Padding;
+    extern unsigned int Flag_Count, Flag_Delay, Flag_Max_Send, Flag_Padding;
+    extern bool Flag_Flood, Flag_Line_Buf, Flag_Nanoseconds;
     extern char Flag_Port[MAX_PORTNAM_LEN];
     char *fpp = Flag_Port;
 
@@ -21,10 +17,11 @@ int parse_opts(int argc, char *argv[])
     bool delayed_flood = false;
 
     Flag_AI_Family = AF_UNSPEC;
+    Flag_Count = DEFAULT_STATS_INTERVAL;
     Flag_Delay = DEFAULT_DELAY;
     Flag_Padding = sizeof(uint32_t);
 
-    while ((ch = getopt(argc, argv, "46c:d:flNP:p:")) != -1) {
+    while ((ch = getopt(argc, argv, "46C:c:d:flNP:p:")) != -1) {
         switch (ch) {
         case '4':
             if (fourandsix) {
@@ -43,13 +40,23 @@ int parse_opts(int argc, char *argv[])
             fourandsix = true;
             break;
 
+        case 'C':
+            errno = 0;
+            lval = strtol(optarg, &ep, 10);
+            if (optarg[0] == '\0' || *ep != '\0')
+                errx(EX_DATAERR, "invalid -C count");
+            if (lval >= INT_MAX || lval < 0)
+                errx(EX_DATAERR, "-C count out of range");
+            Flag_Max_Send = lval;
+            break;
+
         case 'c':
             errno = 0;
             lval = strtol(optarg, &ep, 10);
             if (optarg[0] == '\0' || *ep != '\0')
-                errx(EX_DATAERR, "invalid count");
+                errx(EX_DATAERR, "invalid -c count");
             if (lval >= INT_MAX || lval < 0)
-                errx(EX_DATAERR, "count out of range");
+                errx(EX_DATAERR, "-c count out of range");
             Flag_Count = lval;
             break;
 
@@ -63,7 +70,7 @@ int parse_opts(int argc, char *argv[])
             if (optarg[0] == '\0' || *ep != '\0')
                 errx(EX_DATAERR, "invalid delay");
             if (lval >= LONG_MAX || lval < 0)
-                errx(EX_DATAERR, "delay out of range");
+                errx(EX_DATAERR, "delay -d out of range");
             Flag_Delay = lval;
             Flag_Flood = 0;
             delayed_flood = true;
@@ -83,7 +90,7 @@ int parse_opts(int argc, char *argv[])
             break;
 
         case 'N':
-	    Flag_Nanoseconds = true;
+            Flag_Nanoseconds = true;
             break;
 
         case 'P':
