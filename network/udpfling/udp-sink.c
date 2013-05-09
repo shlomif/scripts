@@ -140,10 +140,11 @@ int main(int argc, char *argv[])
 void catch_intr(int sig)
 {
     gettimeofday(&when, NULL);
-    fprintf(stdout, "%.4f %ld %ld %.2f%%\n",
+    fprintf(stdout, "%.4f %ld %ld %.2f%% %ld\n",
             when.tv_sec + (double) when.tv_usec / USEC_IN_MS,
             loss, count_from_client - prev_client_bucket,
-            (float) loss / (count_from_client - prev_client_bucket) * 100);
+            (float) loss / (count_from_client - prev_client_bucket) * 100,
+            count_backtracks);
     errx(1, "quit due to SIGINT (recv %ld packets)", our_count);
 }
 
