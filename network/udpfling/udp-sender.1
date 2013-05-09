@@ -1,0 +1,95 @@
+.Dd May 9 2013
+.Dt UDP-SENDER 1
+.Os
+.Sh NAME
+.Nm udp-sender
+.Nd sends packets to
+.Xr udp-sink 1
+.Sh SYNOPSIS
+.Nm udp-sender
+.Bk -words
+.Op Fl 46flN
+.Op Fl C Ar maxpackets
+.Op Fl c Ar statsinterval
+.Op Fl d Ar delay
+.Op Fl P Ar packetsize
+.Op Fl p Ar port
+.Sm off
+.No hostname
+.Sm on
+.Ek
+.Sh DESCRIPTION
+.Nm
+sends packets to the
+.Xr udp-sink 1
+command. The packets contain a counter value, possibly padded out to
+.Ar packetsize
+amount of data.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl 4
+Send on IPv4 addresses only.
+.It Fl 6
+Send on IPv6 addresses only.
+.It Fl C Ar maxpackets
+Exit after sending
+.Ar maxpackets .
+.It Fl c Ar statsinterval
+Emit statistics every
+.Ar statsinterval
+packets sent. This logs how quickly the client is sending.
+.It Fl d Ar delay
+Wait
+.Ar delay
+milliseconds after sending a packet, or instead nanoseconds if
+.Fl N
+is employed.
+.Fl f
+is incompatible with this option.
+.It Fl f
+Flood send packets.
+.Fl d
+is incompatible with this option.
+.It Fl l
+Make stdout line buffered.
+.It Fl N
+Changes
+.Fl d
+argument units to nanoseconds.
+.It Fl P Ar packetsize
+Pad sent data to
+.Ar packetsize .
+.It Fl p Ar port
+Send to UDP
+.Ar port .
+.El
+.Pp
+The arguments used should ideally agree with those in
+.Xr udp-sink 1
+for any given test. Only one 
+.Nm
+instance should send to a
+.Xr udp-sink 1
+instance, as multiple senders will confuse the packet counting.
+.Sh OUTPUT FORMAT
+The statistics are whitespace delimited, and include the timestamp and
+number of packets set for a given
+.Ar statsinterval
+count of sent packets.
+.Sh EXIT STATUS
+.Nm
+will send until
+.Ar maxpackets
+have been sent (0 exit status), or an exit status >0 if an error occurs
+or the process is terminated. SIGINT will cause
+.Nm
+to emit a final statistics line before exiting.
+.Sh SEE ALSO
+.Xr udp-sink 1
+.Rs
+.%T "Beej's Guide to Network Programming"
+.%U http://beej.us/guide/bgnet/
+.Re
+.Sh AUTHOR
+Jeremy Mates

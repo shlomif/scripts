@@ -1,0 +1,91 @@
+.Dd May 9 2013
+.Dt UDP-SINK 1
+.Os
+.Sh NAME
+.Nm udp-sink
+.Nd accepts packets from
+.Xr udp-sender 1
+and emits stats
+.Sh SYNOPSIS
+.Nm udp-sink
+.Bk -words
+.Op Fl 46lN
+.Op Fl c Ar statsinterval
+.Op Fl d Ar delay
+.Op Fl P Ar packetsize
+.Op Fl p Ar port
+.Ek
+.Sh DESCRIPTION
+.Nm
+accepts packets from the
+.Xr udp-sender 1
+command and emits statistics on the packets received. The packets
+contain a counter value, possibly padded with
+.Ar packetsize
+amount of data.
+.Nm
+checks the counter value, detects out-of-order packets, and emits
+statistics about packet loss each
+.Ar statsinterval
+number of packets received.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl 4
+Listen on IPv4 addresses only.
+.It Fl 6
+Listen on IPv6 addresses only.
+.It Fl c Ar statsinterval
+Emit statistics every
+.Ar statsinterval
+packets received. A lower value will be necessary under heavy packet loss
+situations.
+.It Fl d Ar delay
+Wait
+.Ar delay
+milliseconds after processing a packet, or instead nanoseconds if
+.Fl N
+is employed.
+.It Fl l
+Make stdout line buffered.
+.It Fl N
+Changes
+.Fl d
+argument units to nanoseconds.
+.It Fl P Ar packetsize
+Assume data from
+.Xr udp-sender 1
+is of size
+.Ar packetsize .
+.It Fl p Ar port
+Listen on UDP
+.Ar port .
+.El
+.Pp
+The arguments used should ideally agree with those in
+.Xr udp-sender 1
+for any given test. Only one 
+.Xr udp-sender 1
+instance should send to a
+.Nm
+instance, as multiple senders will confuse the packet counting.
+.Sh OUTPUT FORMAT
+The statistics are whitespace delimited, and include the timestamp,
+packet loss count, packet count, packet loss percentage, and a count of
+out-of-order packets for a given
+.Ar statsinterval
+count of received packets.
+.Sh EXIT STATUS
+.Nm
+will listen until terminated, or abort with an exit status >0 if an error
+occurs. SIGINT will cause
+.Nm
+to emit a final statistics line before exiting.
+.Sh SEE ALSO
+.Xr udp-sender 1
+.Rs
+.%T "Beej's Guide to Network Programming"
+.%U http://beej.us/guide/bgnet/
+.Re
+.Sh AUTHOR
+Jeremy Mates
