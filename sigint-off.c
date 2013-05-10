@@ -15,15 +15,13 @@
  * However, the behavior (whether the echo is run or not) appears to vary
  * by the OS or shell? Getting confounding results...
  */
+
 #include <sys/types.h>
 
 #include <err.h>
-#include <errno.h>
 #include <signal.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
-#include <unistd.h>
 
 void polonius_polka(int sig);
 
@@ -31,7 +29,7 @@ int main()
 {
     /* no signal handler */
 
-    sleep(6);
+    for (;;);
 
     exit(EXIT_SUCCESS);
 }

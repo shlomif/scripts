@@ -1,24 +1,25 @@
 /*
  * See sigint-off.c for motiviation.
  */
+
 #include <sys/types.h>
 
 #include <err.h>
-#include <errno.h>
 #include <signal.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
-#include <unistd.h>
 
 void polonius_polka(int sig);
 
 int main()
 {
-    /* PORTABILITY - see "signals" chapter in APUE for concerns */
+    /* PORTABILITY - see "signals" chapter in APUE for concerns; copy
+     * sigaction code from obdurate.c if OS needs that istead of
+     * signal().
+     */
     signal(SIGINT, polonius_polka);
 
-    sleep(6);
+    for (;;);
 
     exit(EXIT_SUCCESS);
 }
