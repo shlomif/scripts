@@ -26,5 +26,5 @@ int main()
 
 void polonius_polka(int sig)
 {
-    errx(EX_NOUSER, "oh I am slain");
+    errx(EX_NOUSER, "oh I am slain");   // 128+sig does not change what zsh sees
 }

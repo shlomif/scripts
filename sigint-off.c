@@ -1,19 +1,10 @@
 /*
- * So this is due to the following puzzler where `tail -f` behaves
- * differently than code that catches SIGINT, wherein the ; echo ...
- * is not run by the shell as expected after the `tail -f`.
+ * So this is due to the puzzler where `tail -f ...; echo foo` may or
+ * may not run the `echo` after control+c is pressed in ZSH. It turns
+ * out that modern shells are quite complicated in their signal and
+ * job handling:
  *
- *   $ ./sigint ; echo asdf
- *   pid=2032 ppid=18042 tcgetpgrp=2032
- *   ^Csigint: oh I am slain
- *   asdf
- *   $ tail -n1 -f /etc/passwd; echo ya ya
- *   _postgresql:*:503:503:PostgreSQL Manager:/var/postgresql:/bin/sh
- *   ^C
- *   $ 
- *
- * However, the behavior (whether the echo is run or not) appears to vary
- * by the OS or shell? Getting confounding results...
+ * http://www.zsh.org/mla/workers/2013/msg00454.html
  */
 
 #include <sys/types.h>
@@ -36,5 +27,5 @@ int main()
 
 void polonius_polka(int sig)
 {
-    errx(EX_NOUSER, "oh I am slain");
+    errx(EX_NOUSER, "oh I am slain");   // 128+sig does not change what zsh sees
 }
