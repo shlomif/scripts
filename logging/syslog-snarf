@@ -207,6 +207,12 @@ while (1) {
   # replaces %{foo} keys from %message hash with values for log entry
   $output =~ s/\Q%{\E(\w+)\Q}\E/$message{$1}||q{}/eg;
 
+  # sanitize anything naughty (see "TERMINAL EMULATOR SECURITY ISSUES"
+  # link in SEE ALSO section, below, for details; this will hexify
+  # anything non-ASCII printable and thus probably screw up any fancily
+  # encoded data, e.g. UTF-8.)
+  $output =~ s/([^\n\r -~])/sprintf "0x%02x", ord($1)/eg;
+
   # template needs a line ending thingy!
   print $output;
 }
@@ -220,9 +226,8 @@ sub print_help {
   warn <<"HELP";
 Usage: $0 [opts]
 
-Syslogd server for debugging or experimenting with syslog.
+Syslogd server for debugging or experimenting with syslog. Options:
 
-Options for version $VERSION:
   -h/-?  Display this message
   -l     Lists available message keys to template on and exists
 
@@ -377,7 +382,10 @@ No known bugs.
 
 =head1 SEE ALSO
 
-perl(1), [RFC 3164]
+[RFC 3164]
+
+"TERMINAL EMULATOR SECURITY ISSUES"
+http://marc.info/?l=bugtraq&m=104612710031920&w=2
 
 =head1 AUTHOR
 
