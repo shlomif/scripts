@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Usage:
+#   safertail -f /some/log
+#
+# Use if unsure whether the logging application is screening out
+# terminal escape codes, though at the cost of altering the data shown
+# (e.g. non-ASCII gets hexified). \x00-\x1f would be a more limited
+# range to defang, assuming 0x7f or higher cannot do anything naughty.
+#
+# Background and details:
+#   http://marc.info/?l=bugtraq&m=104612710031920&w=2
+
+tail "$@" | perl -ple 's/([^ -~])/sprintf "%%%02x", ord($1)/eg'
