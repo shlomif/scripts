@@ -10,5 +10,9 @@
 #
 # Background and details:
 #   http://marc.info/?l=bugtraq&m=104612710031920&w=2
+#
+# As an example, tail a file, then echo something naughty into it:
+#
+# perl -le 'print map chr, 0x1B,0x5D,0x32,0x3B,0x48,0x69,0x07' >> thatlog
 
 tail "$@" | perl -ple 's/([^ -~])/sprintf "%%%02x", ord($1)/eg'
