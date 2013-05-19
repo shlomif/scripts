@@ -3,6 +3,14 @@
 # Prints information about file paths, or checks for Unix permissions
 # problems. Run perldoc(1) on this script for additional documentation.
 #
+# NOTE A better approach to maintaining file system permissions is to
+#      instead to use Configuration Management software, such that the
+#      permissions of a particular file system tree are maintained
+#      according to some policy. However, in cases where that is not
+#      done, this program may offer handy debugging information. It will
+#      not, however, fix the root cause of permissions errors stemming
+#      from hand-managed permissions, though.
+#
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
@@ -10,14 +18,6 @@ use strict;
 use warnings;
 use Cwd qw(realpath);
 use File::Spec ();
-
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
 
 # NOTE may need alteration per site policy on usernames
 my $USERNAME_MATCH = qr/[\w-]{1,32}/;
@@ -205,6 +205,14 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
 }
 
 exit $exit_status;
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
+}
 
 sub resolve_path {
   my $potential = shift;
@@ -553,7 +561,3 @@ Jeremy Mates
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 SCRIPT CATEGORIES
-
-UNIX/System_administration
