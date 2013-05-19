@@ -14,7 +14,7 @@ sub print_help;
 
 use File::Basename qw/dirname/;
 use File::Copy;
-use File::Path qw/mkpath/;
+use File::Path::Tiny ();
 
 use Getopt::Std;
 my %opts;
@@ -46,6 +46,8 @@ chomp( @ARGV = <STDIN> ) unless @ARGV;
 # and flag the help text if nothing from STDIN
 print_help unless @ARGV;
 
+my $exit_status = 0;
+
 {
 
   # loosen things up to ease off-the-cuff code on command line
@@ -64,25 +66,34 @@ print_help unless @ARGV;
     print $fn, ' ', $was, ' ', $_, "\n" if $preview;
 
     next if exists $opts{p} or exists $opts{n};
+    if ( $fn eq 'copy' and !-f $was ) {
+      # since File::Copy doesn't know what to do with directories (there
+      # is File::Copy::Recursive...)
+      warn "notice: refusing to copy non-file '$was'\n";
+      $exit_status = 1;
+      next;
+    }
 
     if ( -e and $interactive ) {
       print "$_ exists.  Overwrite? (y/[n]) ";
       next unless <STDIN> =~ /^[Yy]/;
     }
 
-    if ( exists $opts{M} and $_ =~ m{/} ) {
+    if ( exists $opts{M} ) {
       my $output_dir = dirname($_);
-      if ( !-d $output_dir ) {
-        mkpath($output_dir);
-      }
+      File::Path::Tiny::mk($output_dir)
+        or die "error: could not create path '$output_dir': $!\n";
     }
 
     unless ( eval "$fn(\$was, \$_)" ) {
       warn "warning: could not $fn $was to $_: $!\n";
+      $exit_status = 1;
       next;
     }
   }
 }
+
+exit $exit_status;
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
@@ -150,6 +161,11 @@ current working directory, given that the rename function does not work
 across different filesystems. Renaming parent directories before dealing
 with any files deeper in the filesystem tree will not work by default
 (see L<"EXAMPLES"> for solutions).
+
+The exit status is zero if all goes well, or >0 on error. The script may
+not abort in some cases if files fail to be handled; the exit status
+will be non-zero in such cases, and standard error will contain
+message(s) as to which files failed for what reasons.
 
 =head1 USAGE
 
