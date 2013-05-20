@@ -19,10 +19,10 @@ use Getopt::Long qw/GetOptions/;
 GetOptions(
   '0'           => \my $Flag_Null,
   'copy|c'      => \my $Flag_Copy,
-  'help|h|?'    => \&print_help,
-  'move|m'      => \my $Flag_Move,
-  'mkdir|M'     => \my $Flag_Mkdir,
   'dry-run|n|p' => \my $Flag_Dry_Run,
+  'help|h|?'    => \&print_help,
+  'mkdir|M'     => \my $Flag_Mkdir,
+  'move|m'      => \my $Flag_Move,
   'verbose|v'   => \my $Flag_Verbose,
 ) or print_help();
 
