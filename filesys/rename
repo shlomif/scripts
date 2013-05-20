@@ -10,11 +10,13 @@
 use strict;
 use warnings;
 
-use File::Basename qw/dirname/;
+use File::Basename qw/basename dirname/;
 use File::Copy qw/copy move/;
 use File::Path::Tiny ();
 use File::Spec       ();
 use Getopt::Long qw/GetOptions/;
+
+my $MYNAME = basename($0);
 
 GetOptions(
   '0'           => \my $Flag_Null,
@@ -27,7 +29,7 @@ GetOptions(
 ) or print_help();
 
 if ( $Flag_Copy and $Flag_Move ) {
-  warn "error: cannot both copy and move a file\n";
+  warn "$MYNAME: error: cannot both copy and move a file\n";
   print_help();
 }
 
@@ -40,7 +42,8 @@ if ($Flag_Copy) {
 
 my $expr = shift;
 if ( !defined $expr ) {
-  warn "error: need Perl expression (and likely filenames to operate on)\n";
+  warn
+    "$MYNAME: error: need Perl expression (and likely filenames to operate on)\n";
   print_help();
 }
 
@@ -61,9 +64,16 @@ sub handle_file {
   no strict;
   no warnings;
 
+  if ( !-e ) {
+    warn "$MYNAME: notice: skipping '$_' as does not exist\n"
+      if $Flag_Verbose;
+    $exit_status = 66;
+    return;
+  }
+
   my $origfile = $_;
   eval $expr;
-  die "error: unable to eval expression: $@" if $@;
+  die "$MYNAME: error: unable to eval expression: $@" if $@;
   return if File::Spec->rel2abs($origfile) eq File::Spec->rel2abs($_);
 
   print join( ' ', $how, $origfile, $_ ), "\n"
@@ -74,20 +84,20 @@ sub handle_file {
   if ( $how eq 'copy' and !-f $origfile ) {
     # since File::Copy doesn't know what to do with directories (there
     # is a File::Copy::Recursive module...)
-    warn "notice: refusing to copy non-file '$origfile'\n";
-    $exit_status = 1;
+    warn "$MYNAME: notice: refusing to copy non-file '$origfile'\n";
+    $exit_status = 65;
     return;
   }
 
   if ($Flag_Mkdir) {
     my $output_dir = dirname($_);
     File::Path::Tiny::mk($output_dir)
-      or die "error: could not create path '$output_dir': $!\n";
+      or die "$MYNAME: error: could not create path '$output_dir': $!\n";
   }
 
   unless ( eval "$how(\$origfile, \$_)" ) {
-    warn "warning: could not $how '$origfile' to '$_': $!\n";
-    $exit_status = 1;
+    warn "$MYNAME: warning: could not $how '$origfile' to '$_': $!\n";
+    $exit_status = 74;
   }
 }
 
@@ -96,14 +106,14 @@ exit $exit_status;
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
+    warn "$MYNAME: error: problem closing STDOUT: $!\n";
     exit 74;
   }
 }
 
 sub print_help {
   warn <<"HELP";
-Usage: $0 [options] Perl-expression [file ..]|-
+Usage: $MYNAME [options] Perl-expression [file ..]|-
 
 Alters file names according to Perl expressions.
 
@@ -151,10 +161,11 @@ boundaries; enable the C<move> option if unsure). Renaming parent
 directories before dealing with any files deeper in the filesystem tree
 will not work by default (see L<"EXAMPLES"> for solutions).
 
-The exit status is C<0> if all goes well, or >0 on error. C<rename> may
-not abort in some cases if files fail to be handled; the exit status
-will be non-zero in such cases, and standard error will contain
-message(s) as to which files failed for what reasons.
+The exit status is C<0> if all goes well, or >0 on error. The error
+codes often come from L<sysexits(3)>. C<rename> may not abort in some
+cases if files fail to be handled; the exit status will be non-zero in
+such cases, and standard error will contain message(s) as to which files
+failed for what reasons.
 
 =head1 USAGE
 
@@ -247,7 +258,7 @@ relevant warnings or limitations.
 
 =head1 SEE ALSO
 
-L<find(1)>
+L<find(1)>, L<sysexits(3)>
 
 There are a variety of other tools in this space that may better
 suit your needs (or conflict with this program):
