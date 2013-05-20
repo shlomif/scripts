@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Alters file names according to perl expressions, with various other
+# Alters file names according to Perl expressions, with various other
 # options available. Run perldoc(1) on this file for additional
 # documentation.
 #
@@ -49,7 +49,7 @@ if ( $Flag_Copy and $Flag_Move ) {
 
 my $expr = shift;
 if ( !defined $expr ) {
-  warn "error: need perl expression (and likely filenames to operate on)\n";
+  warn "error: need Perl expression (and likely filenames to operate on)\n";
   print_help();
 }
 
@@ -112,9 +112,9 @@ END {
 
 sub print_help {
   warn <<"HELP";
-Usage: $0 [options] perl-expression [file ..]|-
+Usage: $0 [options] Perl-expression [file ..]|-
 
-Alters file names according to perl expressions.
+Alters file names according to Perl expressions.
 
   -0     Assume input on stdin null delimited
   -c     Copy instead of rename
