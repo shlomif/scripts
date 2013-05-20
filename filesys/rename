@@ -26,25 +26,16 @@ GetOptions(
   'verbose|v'   => \my $Flag_Verbose,
 ) or print_help();
 
-my $rename_method = \&CORE::rename;
-my $how           = 'rename';
-if ( !defined &$rename_method ) {
-  warn "notice: out-of-date perl; defaulting to File::Copy::move\n";
-  $rename_method = \&File::Copy::move;
-  $how           = 'move';
-  if ( !defined &$rename_method ) {
-    die "error: File::Copy is too old, giving up\n";
-  }
-}
 if ( $Flag_Copy and $Flag_Move ) {
   warn "error: cannot both copy and move a file\n";
   print_help();
-} elsif ($Flag_Copy) {
-  $rename_method = \&File::Copy::copy;
-  $how           = 'copy';
+}
+
+my $how = 'rename';
+if ($Flag_Copy) {
+  $how = 'copy';
 } elsif ($Flag_Move) {
-  $rename_method = \&File::Copy::move;
-  $how           = 'move';
+  $how = 'move';
 }
 
 my $expr = shift;
@@ -94,7 +85,7 @@ sub handle_file {
       or die "error: could not create path '$output_dir': $!\n";
   }
 
-  unless ( $rename_method->( $origfile, $_ ) ) {
+  unless ( eval "$how(\$origfile, \$_)" ) {
     warn "warning: could not $how '$origfile' to '$_': $!\n";
     $exit_status = 1;
   }
