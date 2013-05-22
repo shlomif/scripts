@@ -1,6 +1,9 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
-# Stop operation of a long running process after a certain time period.
+# Stop operation of a long running process after a certain time period:
+#
+#   timeout duration command [command args ...]
+#
 # Run perldoc(1) on this file for additional documentation.
 #
 # The author disclaims all copyrights and releases this script into the
@@ -9,12 +12,18 @@
 use strict;
 use warnings;
 
-use Carp;
-use Getopt::Std;
+use File::Basename qw/basename/;
+use Getopt::Long qw/GetOptions/;
+my $has_timehires;
+eval { require Time::HiRes };
+unless ($@) {
+  require Time::HiRes;
+  $has_timehires = 1;
+}
 
-my (%opts, %features, $t0);
+my $MYNAME = basename($0);
 
-# how to convert short human durations into seconds  
+# how to convert short human durations into seconds
 my %factor = (
   'w' => 604800,
   'd' => 86400,
@@ -23,69 +32,54 @@ my %factor = (
   's' => 1,
 );
 
-# optional high resolution timers
-eval { require Time::HiRes; };
-unless ($@) {
-  require Time::HiRes;
-  $features{'Time::HiRes'} = 1;
-}
+GetOptions(
+  'help|h|?'  => \&help,
+  'quiet|q'   => \my $Flag_Quiet,
+  'verbose|v' => \my $Flag_Verbose
+) or help();
 
-# parse command-line options
-getopts('h?vq', \%opts);
-
-help() if exists $opts{h} or exists $opts{'?'};
-
-if (exists $opts{v}) {
-  $features{verbose} = 1;
-}
-
-# regular program arguments
 my $duration = shift;
-help() unless @ARGV;
+help() if !defined $duration or !@ARGV;
 
-# figure out duration, start timer, and fork/exec to run program
 my $timeout = duration2seconds($duration);
 $duration = seconds2duration($timeout);
 
-$t0 = [Time::HiRes::gettimeofday()] if $features{'Time::HiRes'} and $features{verbose};
+my $t0 = [ Time::HiRes::gettimeofday() ]
+  if $has_timehires and $Flag_Verbose;
 
-my $pid = open WATCH, "-|";
+# Capture::Tiny and IPC::System::Simple would doubtless be better than this
+my $pid = open my $child_fh, "-|";
 
-if ($pid) {  # parent
+if ($pid) {    # parent
   eval {
     local $SIG{ALRM} = sub { die "alarm\n" };
 
     alarm $timeout;
 
-    # ergh, need STDERR output pass through... Expect??
-    while (<WATCH>) {
+    print while ( readline $child_fh );
+    close $child_fh or warn "$MYNAME: notice: kid exited $?\n";
 
-      # keep track of output frequency?
-      print;
-    }
-    close WATCH or warn "Warning: kid exited $?\n";
-
-    # so one knows how long positive runs take
-    warn "Info: program ran for ",
-     sprintf("%.1f", Time::HiRes::tv_interval($t0)), " seconds\n"
-     if $features{'Time::HiRes'} and $features{verbose};
+    warn "$MYNAME: program ran for ",
+      sprintf( "%.1f", Time::HiRes::tv_interval($t0) ), " seconds\n"
+      if $has_timehires and $Flag_Verbose;
 
     alarm 0;
   };
   if ($@) {
-    die unless $@ eq "alarm\n";
+    die "$MYNAME: error: $@" unless $@ eq "alarm\n";
 
-    warn "Error: timeout ($duration) exceeded: killing pid $pid\n" unless exists $opts{q};
+    warn "$MYNAME: duration $duration exceeded: killing pid $pid\n"
+      unless $Flag_Quiet;
 
-    for my $signal (qw(TERM INT HUP KILL)) {
+    for my $signal (qw/TERM INT HUP KILL/) {
       last if kill $signal, $pid;
-      sleep 2;
-      warn "Warning: kill of $pid (via $signal) failed...\n";
+      sleep 1;
+      warn "$MYNAME: kill -$signal $pid failed...\n";
     }
 
   }
-} else {  # child
-  exec @ARGV or die "Error: could not exec: $!\n";
+} else {    # child
+  exec @ARGV or die "$MYNAME: could not exec '@ARGV': $!\n";
 }
 
 # takes duration such as "2m3s" and returns number of seconds.
@@ -94,21 +88,21 @@ sub duration2seconds {
   my $timeout;
 
   # assume raw seconds for plain number
-  if ($tmpdur =~ m/^\d+$/) {
+  if ( $tmpdur =~ m/^\d+$/ ) {
     $timeout = $tmpdur * 60;
 
-  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+  } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
 
     # match "2m 5s" style input and convert to seconds
-    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
+    while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
       $timeout += $1 * $factor{$2};
     }
   } else {
-    die "Error: unknown characters in duration.\n";
+    die "$MYNAME: error: unknown characters in duration\n";
   }
 
-  unless (defined $timeout and $timeout =~ m/^\d+$/) {
-    die "Error: unable to parse duration.\n";
+  unless ( defined $timeout and $timeout =~ m/^\d+$/ ) {
+    die "$MYNAME: error: unable to parse duration\n";
   }
 
   return $timeout;
@@ -118,48 +112,50 @@ sub duration2seconds {
 sub seconds2duration {
   my $tmpsec = shift;
 
-  unless (defined $tmpsec and $tmpsec =~ m/^\d+$/) {
-    die "Error: argument not an integer";
+  unless ( defined $tmpsec and $tmpsec =~ m/^\d+$/ ) {
+    die "$MYNAME: error: argument not an integer";
   }
 
   my $seconds = $tmpsec % 60;
-  $tmpsec = ($tmpsec - $seconds) / 60;
+  $tmpsec = ( $tmpsec - $seconds ) / 60;
   my $minutes = $tmpsec % 60;
-  $tmpsec = ($tmpsec - $minutes) / 60;
+  $tmpsec = ( $tmpsec - $minutes ) / 60;
 
   #  my $hours = $tmpsec;
   my $hours = $tmpsec % 24;
-  $tmpsec = ($tmpsec - $hours) / 24;
+  $tmpsec = ( $tmpsec - $hours ) / 24;
   my $days  = $tmpsec % 7;
-  my $weeks = ($tmpsec - $days) / 7;
+  my $weeks = ( $tmpsec - $days ) / 7;
 
   # TODO better way to do this?
   my $temp = ($weeks) ? "${weeks}w" : q{};
   $temp .= ($days)    ? "${days}d"    : q{};
   $temp .= ($hours)   ? "${hours}h"   : q{};
   $temp .= ($minutes) ? "${minutes}m" : q{};
-  $temp .= ($seconds) ? "${seconds}s"  : q{};
+  $temp .= ($seconds) ? "${seconds}s" : q{};
   return $temp;
 }
 
 # a generic help blarb
 sub help {
   warn <<"HELP";
-Usage: $0 duration program [program args]
+Usage: $0 [options] duration command [command args ..]
 
-Stops operation of long running programs.  Duration is either seconds,
-or a shorthand format of "2m3s" for 123 seconds.
+Stops operation of the specified command after the specified duration.
+The duration is either seconds, or a shorthand format of "2m3s" for
+123 seconds.
 
-Options:
-  -h/-?  Display this message
-
-  -v     Verbose.  Prints program run time unless timeout is hit.
+  -h  Emit this blarb and exit
+  -q  Quiet, emit somewhat fewer messages
+  -v  Verbose, prints program run time unless timeout is hit
 
 Run perldoc(1) on this script for additional documentation.
 
 HELP
   exit 64;
 }
+
+__END__
 
 =head1 NAME
 
@@ -176,15 +172,14 @@ Break out of sleep program after five seconds:
 =head2 Overview
 
 This script allows programs to be stopped after a specified period of
-time.  Practical uses for this script include escape from buggy
-programs that stall from Makefile, where a SIGINT to stop the program
-will also stop make.
+time. Practical uses for this script include escape from buggy programs
+that stall from Makefile, where a SIGINT to stop the program will also
+stop make (because the SIGINT goes to the foreground process group, as I
+much later learned).
 
 =head2 Normal Usage
 
-  $ timeout duration program [program args]
-
-See L<"OPTIONS"> for details on the command line switches supported.
+  $ timeout [options] duration command [command args ..]
 
 The duration can either be a number (raw seconds), or a shorthand
 format of the form "2m3s" for 120 seconds.  The following factors are
@@ -203,27 +198,22 @@ time values to existing timeouts:
 
 Would only allow the sleep to run for six seconds.
 
-An error will occur if the script is unable to parse the supplied
-duration.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
+Options:
 
 =over 4
 
-=item B<-h>, B<-?>
+=item B<--help> | B<-h> | B<-?>
 
-Prints a brief usage note about the script.
+Prints a brief usage note about the script and then exits.
 
-=item B<-q>
+=item B<--quiet> | B<-q>
 
-Quiet mode.  Prints less status messages.
+Quiet mode. Prints fewer status messages.
 
-=item B<-v>
+=item B<--verbose> | B<-v>
 
-Verbose mode.  Currently prints program run time unless the timeout is
-reached.
+Verbose mode. Currently prints program run time unless the timeout is
+reached. And only if L<Time::HiRes> is available.
 
 =back
 
@@ -244,19 +234,20 @@ No known bugs.
 
 =head1 TODO
 
-Currently, a hard upper time limit must be specified.  In theory, one
+Currently, a hard upper time limit must be specified. In theory, one
 could watch the output from the program and stop the program if it
-remains idle for some period of time.
+remains idle for some period of time. (But that gets into the tricky
+realm of "busy but doing work" vs. "hung but still looks like it is
+doing something" depending on how poorly written the program is and what
+is failing.)
 
 Since using a piped read from a program, likely cannot supply STDIN to
-the program in question.
-
-Make sure signals are properly passed back from command being run and
-reported on?
+the program in question. Fork this program and use an C<IPC::*> module
+if that is necessary.
 
 =head1 SEE ALSO
 
-perl(1), perlipc(1)
+L<Capture::Tiny>, L<IPC::System::Simple>, perlipc(1)
 
 =head1 AUTHOR
 
