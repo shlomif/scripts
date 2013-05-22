@@ -121,7 +121,7 @@ Alters file names according to Perl expressions.
   -c     Copy instead of rename
   -h/-?  Display this message
   -M     Make directories if necessary
-  -m     Move instead of rename or copy
+  -m     Move instead of rename
   -n/-p  Dry run (preview changes only)
   -v     Be verbose
 
@@ -253,7 +253,7 @@ Patches that fix problems or add new features are welcome.
 
 Bugs are left as an exercise to the expression writer.
 
-See the documentation for the rename function being used for any
+See the documentation for the C<rename> function being used for any
 relevant warnings or limitations.
 
 =head1 SEE ALSO
