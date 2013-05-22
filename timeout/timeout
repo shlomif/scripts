@@ -2,7 +2,7 @@
 #
 # Stop operation of a long running process after a certain time period:
 #
-#   timeout duration command [command args ...]
+#   timeout duration -- command [command args ...]
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -47,29 +47,28 @@ $duration = seconds2duration($timeout);
 my $t0 = [ Time::HiRes::gettimeofday() ]
   if $has_timehires and $Flag_Verbose;
 
-# Capture::Tiny and IPC::System::Simple would doubtless be better than this
-my $pid = open my $child_fh, "-|";
+my $exit_status = 0;
 
-if ($pid) {    # parent
+my $pid = fork();
+if ( $pid != 0 ) {    # parent
   eval {
     local $SIG{ALRM} = sub { die "alarm\n" };
-
     alarm $timeout;
 
-    print while ( readline $child_fh );
-    close $child_fh or warn "$MYNAME: notice: kid exited $?\n";
+    wait();
+
+    alarm 0;
 
     warn "$MYNAME: program ran for ",
       sprintf( "%.1f", Time::HiRes::tv_interval($t0) ), " seconds\n"
       if $has_timehires and $Flag_Verbose;
-
-    alarm 0;
   };
   if ($@) {
     die "$MYNAME: error: $@" unless $@ eq "alarm\n";
 
     warn "$MYNAME: duration $duration exceeded: killing pid $pid\n"
       unless $Flag_Quiet;
+    $exit_status = 1;
 
     for my $signal (qw/TERM INT HUP KILL/) {
       last if kill $signal, $pid;
@@ -81,6 +80,8 @@ if ($pid) {    # parent
 } else {    # child
   exec @ARGV or die "$MYNAME: could not exec '@ARGV': $!\n";
 }
+
+exit $exit_status;
 
 # takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
@@ -139,7 +140,7 @@ sub seconds2duration {
 # a generic help blarb
 sub help {
   warn <<"HELP";
-Usage: $0 [options] duration command [command args ..]
+Usage: $0 [options] duration -- command [command args ..]
 
 Stops operation of the specified command after the specified duration.
 The duration is either seconds, or a shorthand format of "2m3s" for
@@ -177,9 +178,12 @@ that stall from Makefile, where a SIGINT to stop the program will also
 stop make (because the SIGINT goes to the foreground process group, as I
 much later learned).
 
+The exit status will be 0 if the command completes before the timeout,
+or >0 if anything goes awry or the command is killed.
+
 =head2 Normal Usage
 
-  $ timeout [options] duration command [command args ..]
+  $ timeout [options] duration -- command [command args ..]
 
 The duration can either be a number (raw seconds), or a shorthand
 format of the form "2m3s" for 120 seconds.  The following factors are
@@ -239,15 +243,12 @@ could watch the output from the program and stop the program if it
 remains idle for some period of time. (But that gets into the tricky
 realm of "busy but doing work" vs. "hung but still looks like it is
 doing something" depending on how poorly written the program is and what
-is failing.)
-
-Since using a piped read from a program, likely cannot supply STDIN to
-the program in question. Fork this program and use an C<IPC::*> module
-if that is necessary.
+is failing.) Fork this program and use an C<IPC::*> module if
+interaction with I/O to or from the command run is necessary.
 
 =head1 SEE ALSO
 
-L<Capture::Tiny>, L<IPC::System::Simple>, perlipc(1)
+L<Capture::Tiny>, L<IPC::System::Simple>, L<perlipc>
 
 =head1 AUTHOR
 
