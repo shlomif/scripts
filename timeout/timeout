@@ -88,9 +88,8 @@ sub duration2seconds {
   my $tmpdur = shift;
   my $timeout;
 
-  # assume raw seconds for plain number
   if ( $tmpdur =~ m/^\d+$/ ) {
-    $timeout = $tmpdur * 60;
+    $timeout = $tmpdur;
 
   } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
 
