@@ -52,3 +52,13 @@ remove the loss? Does running udp-sink & change the loss rate? What
 happens to the loss rate if udp-sink needs to do more work between
 recvfrom() calls? How could multiple sending processes (multiple
 counters) be supported by udp-sink?
+
+For More Reading Consider:
+
+G. Sankaranarayanan, L. Potter, B. Hannaford, 'Measurement and
+Simulation of Time Varying Packet Delay with Applications to Networked
+Haptic Virtual Environments,' Proceedings of 1st international
+Conference on Robot Communication and Coordination (Robocom 2007), pp.
+1-8, IEEE Press, Piscataway, NJ., Athens, Greece, October 2007.
+
+http://brl.ee.washington.edu/BRL_Pubs/Pdfs/Rep210.pdf
