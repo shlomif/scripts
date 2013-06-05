@@ -38,7 +38,7 @@ my $expression = "print";
 my $preop = "";
 
 # parse command-line options
-getopts( 'h?m:i:a:t:r:p:', \%opts );
+getopts( 'Sa:h?i:m:p:r:t:', \%opts );
 
 help() if exists $opts{h} or exists $opts{'?'} or not @ARGV;
 
@@ -51,7 +51,7 @@ $reset_tail  = $opts{r} if exists $opts{r} and $opts{r} =~ /^-?\d+$/;
 $preop = $opts{p} if exists $opts{p};
 
 # filename to tail on and perl expression to apply to each line
-$filename   = shift;
+$filename = shift;
 $expression = "@ARGV" if @ARGV;
 
 # don't buffer STDOUT soas to interoperate with tee(1) properly
@@ -64,6 +64,8 @@ die 'Preop failed: ', $@, if $@;
 # KLUGE read from standard input for filename of -
 if ( $filename eq '-' ) {
   while (<STDIN>) {
+    s/([^ - ~])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
+
     eval $expression;
     die 'Expression error: ', $@ if $@;
   }
@@ -80,8 +82,9 @@ if ( $filename eq '-' ) {
 
   # loop forever on file; apply supplied expression to each line
   while ( defined( $_ = $file->read ) ) {
-    eval $expression;
+    s/([^ - ~])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
 
+    eval $expression;
     die 'Expression error: ', $@ if $@;
   }
 }
@@ -97,6 +100,8 @@ Tails a file and applies perl expression to each line.
 
 Options:
   -h/-?   Display this message
+
+  -S      Sanitize input (hex encode anything non-printable).
 
   -p exp  Code to be executed before entering loop.
 
@@ -122,7 +127,7 @@ ptail - tails a file and applies a perl expression to each line
 
 Follow a logfile, and print any lines mentioning ipmon:
 
-  $ ptail /var/log/messages print if m/ipmon/
+  $ ptail /var/log/messages 'print if m/ipmon/'
 
 See L<"EXAMPLES"> for more ideas.
 
@@ -160,6 +165,10 @@ This script currently supports the following command line switches:
 =item B<-h>, B<-?>
 
 Prints a brief usage note about the script.
+
+=item B<-S>
+
+Sanitize input (hex encode anything non-printable).
 
 =item B<-p> I<expression>
 
