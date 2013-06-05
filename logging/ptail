@@ -64,7 +64,7 @@ die 'Preop failed: ', $@, if $@;
 # KLUGE read from standard input for filename of -
 if ( $filename eq '-' ) {
   while (<STDIN>) {
-    s/([^ -~])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
+    s/([^ -~\t\r\n])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
 
     eval $expression;
     die 'Expression error: ', $@ if $@;
@@ -82,7 +82,7 @@ if ( $filename eq '-' ) {
 
   # loop forever on file; apply supplied expression to each line
   while ( defined( $_ = $file->read ) ) {
-    s/([^ -~])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
+    s/([^ -~\t\r\n])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
 
     eval $expression;
     die 'Expression error: ', $@ if $@;
