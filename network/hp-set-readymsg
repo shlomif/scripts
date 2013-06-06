@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+#
+# Set the "ready message" on a HP printer. Mostly for the lols.
+
+use strict;
+use warnings;
+
+use IO::Socket;
+
+# though newer printers have bigger displays, or older smaller
+die "Usage: $0 printer 32charmaxmessage\n" if @ARGV < 2;
+
+my $host     = shift;
+my $readymsg = "@ARGV";
+
+my $socket = IO::Socket::INET->new(
+  PeerAddr => $host,
+  PeerPort => 9100,
+  Proto    => "tcp",
+  Type     => SOCK_STREAM,
+  Timeout  => 7,
+);
+die "error: could not connect\n" unless $socket;
+
+$readymsg = substr $readymsg, 0, 32;
+$readymsg =~ tr/"//d;
+
+# TODO is the \@PJL JOB bit necessary?
+my $data = <<"EOJ";
+\e%-12345X\@PJL JOB
+\@PJL RDYMSG DISPLAY="$readymsg"
+\@PJL EOJ
+\e%-12345X
+EOJ
+
+print $socket $data;
+close $socket;
