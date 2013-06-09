@@ -38,7 +38,18 @@
  *   01000010
  *
  * So 42, being private, enables the penultimate bit, while 40, being
- * assigned to Apple, does not.
+ * assigned to Apple, does not. However! There appear to be a few OUI
+ * that set the private (locally administered) or broadcast bits:
+ *
+ *   $ < oui.txt perl -ne '$s{$1}++ if m/\s(..)-.*\(hex/;' \
+ *     -e 'END { printf "%08b %s\n", hex($_), $_ for sort keys %s }' \
+ *     | perl -nle 'print if m/1. / or m/1 /'
+ *   00000010 02
+ *   00010001 11
+ *   10101010 AA
+ *
+ * These perhaps should be avoided in "private" assignments, or I've
+ * made a mistake somewhere in my calculations (byte order?).
  */
 
 #include <err.h>
@@ -70,7 +81,7 @@ int main(int argc, char *argv[])
     char mac[] = "XX:XX:XX:XX:XX:XX";
     char *mp;
     unsigned long randval;
-    unsigned int position, rvi, randbit;
+    unsigned int position, randbit, rvi;
 
     while ((ch = getopt(argc, argv, "h?mp")) != -1) {
         switch (ch) {
@@ -135,5 +146,5 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-m] [-p] 00:11:22:XX:XX:XX");
+    errx(EX_USAGE, "[-m] [-p] 02:03:04:XX:XX:XX");
 }
