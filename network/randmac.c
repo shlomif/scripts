@@ -41,7 +41,7 @@
  * assigned to Apple, does not. However! There appear to be a few OUI
  * that set the private (locally administered) or broadcast bits:
  *
- *   $ < oui.txt perl -ne '$s{$1}++ if m/\s(..)-.*\(hex/;' \
+ *   $ < oui.txt perl -ne '$s{$1}++ if m/^\s+(..)-.*\(hex/;' \
  *     -e 'END { printf "%08b %s\n", hex($_), $_ for sort keys %s }' \
  *     | perl -nle 'print if m/1. / or m/1 /'
  *   00000010 02
@@ -49,7 +49,16 @@
  *   10101010 AA
  *
  * These perhaps should be avoided in "private" assignments, or I've
- * made a mistake somewhere in my calculations (byte order?).
+ * made a mistake somewhere in my calculations. The 11 (broadcast bit
+ * enabled) is a single assignment:
+ *
+ *   11-00-AA   (hex)           PRIVATE
+ *
+ * While the 02 (various companies) and AA (DEC) show 18 globally
+ * assigned prefixes in the private address space. Doubtless the odds of
+ * a random private address landing in one of these subnets and
+ * conflicting with some actual piece of hardware from one of these
+ * vendors would be somewhat low.
  */
 
 #include <err.h>
