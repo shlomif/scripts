@@ -33,6 +33,7 @@ my %factor = (
 );
 
 GetOptions(
+  'l'         => \my $Flag_Lineout,
   'help|h|?'  => \&help,
   'quiet|q'   => \my $Flag_Quiet,
   'verbose|v' => \my $Flag_Verbose
@@ -75,7 +76,8 @@ if ( $pid != 0 ) {    # parent
       sleep 1;
       warn "$MYNAME: kill -$signal $pid failed...\n";
     }
-
+    # for cleaner shell display
+    print "\n" if $Flag_Lineout;
   }
 } else {    # child
   exec @ARGV or die "$MYNAME: could not exec '@ARGV': $!\n";
