@@ -70,14 +70,17 @@
 #include <unistd.h>
 
 /* Each 'X' in the input corresponds to 4 bits, these are to pull
- * appropriate amount of bits out of the random data. "All the bits" of
- * random(3) are usable, so we'll use them all. */
+ * appropriate amount of bits out of the random data. */
 #define MAC_BIT_MASK  15
 #define MAC_SEG_SIZE  4
 
 /* How to toggle the appropriate bits for the flags */
 #define MAC_MULTICAST 1<<0
 #define MAC_PRIVATE   1<<1
+
+/* "All the bits" of random(3) are usable, so use as many MAC_SEG_SIZE of
+ * the 31 as possible. */
+#define RAND_MAX_BITS 28
 
 void emit_usage(void);
 
@@ -120,7 +123,8 @@ int main(int argc, char *argv[])
     position = 0;
     while (*mp != '\0') {
         if (*mp == 'X') {
-            randbit = (int) (randval >> (rvi * MAC_SEG_SIZE)) & MAC_BIT_MASK;
+            randbit =
+                (int) (randval >> (rvi++ * MAC_SEG_SIZE)) & MAC_BIT_MASK;
             /* KLUGE will fail if there is prefix material, e.g.
              * 01-XX-XX-XX-XX-XX-XX, but supporting that would
              * necessitate a more complicated parser.
@@ -137,7 +141,7 @@ int main(int argc, char *argv[])
             }
             printf("%x", randbit);
 
-            if (++rvi >= sizeof(randval)) {
+            if (rvi * MAC_SEG_SIZE >= RAND_MAX_BITS) {
                 /* whoops, need more random data... */
                 randval = random();
                 rvi = 0;
