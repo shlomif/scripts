@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* A range of N will need log2 of that (rounded up) bits to store
+    /* A range of N will need log2 of that (rounded up) bits to obtain
      * all the possible values. */
     bits = (int) ceil(log2((double) randrange));
     if (bits > RAND_BITS_MAX)
@@ -86,5 +86,5 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "-c count -r rand");
+    errx(EX_USAGE, "-c count -r randrange");
 }
