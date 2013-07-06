@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
         else
             err(EX_IOERR, "error reading header from -f file");
     }
-    while (argc-- > 0) {
+    while (*argv) {
         if (strnlen(*argv, PATH_MAX) > PATH_MAX)
             errx(EX_DATAERR, "file %s exceeds PATH_MAX (%d)",
                  *argv, PATH_MAX);
