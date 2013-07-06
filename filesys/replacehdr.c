@@ -29,9 +29,9 @@
 
 void emit_help(void);
 
-char Flag_Srcfile[PATH_MAX + 1];                           /* -f */
-unsigned int Flag_Offset;                                  /* -O */
-unsigned int Flag_Size;                                    /* -S */
+char Flag_Srcfile[PATH_MAX + 1];        /* -f */
+unsigned int Flag_Offset;       /* -O */
+unsigned int Flag_Size;         /* -S */
 
 int main(int argc, char *argv[])
 {
@@ -48,9 +48,8 @@ int main(int argc, char *argv[])
         case 'f':
             /* PORTABILITY olden Unix will lack these. Meh. */
             if (strnlen(optarg, PATH_MAX) > PATH_MAX)
-                errx(EX_DATAERR, "-f file exceeds PATH_MAX (%d)",
-                     (int) PATH_MAX);
-            (void) strncpy(Flag_Srcfile, optarg, PATH_MAX);
+                errx(EX_DATAERR, "-f file exceeds PATH_MAX (%d)", PATH_MAX);
+            strncpy(Flag_Srcfile, optarg, PATH_MAX);
             Flag_Srcfile[sizeof(Flag_Srcfile) - 1] = '\0';
             break;
         case 'O':
@@ -71,7 +70,7 @@ int main(int argc, char *argv[])
     if (argc == 0 || Flag_Size == 0 || Flag_Srcfile[0] == '\0')
         emit_help();
 
-    if ((bufp = (char *) malloc(Flag_Size)) == NULL)
+    if ((bufp = malloc(Flag_Size)) == NULL)
         err(EX_OSERR, "could not malloc() buffer");
 
     if ((fd = open(Flag_Srcfile, O_RDONLY)) == -1)
@@ -82,15 +81,15 @@ int main(int argc, char *argv[])
      */
     if ((hdr_size = read(fd, bufp, Flag_Size)) != Flag_Size) {
         if (hdr_size > -1)
-            errx(EX_IOERR, "could not read %d from -f file: got %d",
-                 Flag_Size, (int) hdr_size);
+            errx(EX_IOERR, "could not read %d from -f file: got %ld",
+                 Flag_Size, hdr_size);
         else
             err(EX_IOERR, "error reading header from -f file");
     }
     while (argc-- > 0) {
         if (strnlen(*argv, PATH_MAX) > PATH_MAX)
             errx(EX_DATAERR, "file %s exceeds PATH_MAX (%d)",
-                 *argv, (int) PATH_MAX);
+                 *argv, PATH_MAX);
         if ((fd = open(*argv, O_WRONLY)) == -1)
             err(EX_IOERR, "could not open() %s", *argv);
         if (Flag_Offset > 0)
@@ -104,8 +103,8 @@ int main(int argc, char *argv[])
          */
         if ((hdr_size = write(fd, bufp, Flag_Size)) != Flag_Size) {
             if (hdr_size > -1)
-                errx(EX_IOERR, "could not write %d to %s: got %d",
-                     Flag_Size, *argv, (int) hdr_size);
+                errx(EX_IOERR, "could not write %d to %s: got %ld",
+                     Flag_Size, *argv, hdr_size);
             else
                 err(EX_IOERR, "error writing to %s", *argv);
         }

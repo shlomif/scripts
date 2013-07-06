@@ -20,7 +20,7 @@ int main()
     assert(gettimeofday(&after, NULL) != -1);
 
     delta_t = after.tv_sec - before.tv_sec;
-    delta_t += (float) (after.tv_usec - before.tv_usec) / USEC_IN_SEC;
+    delta_t += (after.tv_usec - before.tv_usec) / USEC_IN_SEC;
     fprintf(stderr, "delta %.3f\n", delta_t);
 
     return (0);

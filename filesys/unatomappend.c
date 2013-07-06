@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         if (n == -1)
             err(EX_IOERR, "write error");
         else if (n < patlen)
-            errx(EX_IOERR, "incomplete write %d", (int) n);
+            errx(EX_IOERR, "incomplete write %d", n);
 
         written += n;
     }

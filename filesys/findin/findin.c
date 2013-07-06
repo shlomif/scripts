@@ -102,10 +102,9 @@ void iterate(char *file_expr, char *env, int record_delim,
                 ix_cur_dir = 0;
             }
         } else {
-            cur_dir[ix_cur_dir++] = (char) c;
+            cur_dir[ix_cur_dir++] = c;
             if (ix_cur_dir >= PATH_MAX) {
-                fprintf(stderr, "path exceeds %d characters\n",
-                        (int) PATH_MAX);
+                fprintf(stderr, "path exceeds %d characters\n", PATH_MAX);
                 exit_status = EX_DATAERR;
                 return;
             }
@@ -152,7 +151,7 @@ void check_dir(char *directory, char *file_expr)
         return;
     }
 
-    for (i = 0; i < (int) g.gl_pathc; i++) {
+    for (i = 0; i < g.gl_pathc; i++) {
         printf("%s\n", g.gl_pathv[i]);
         ++hits;
     }

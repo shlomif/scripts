@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
             errx(EX_IOERR, "recv size less than expected");
         if (recv_size > Flag_Padding)
             errx(EX_IOERR, "recv size greater than expected %ld vs %d",
-                 (unsigned long) recv_size, Flag_Padding);
+                 recv_size, Flag_Padding);
 
         memcpy(&ncount_from_client, payload, sizeof(ncount_from_client));
         count_from_client = ntohl(ncount_from_client);

@@ -20,6 +20,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#include <sys/types.h>
+#include <unistd.h>
+#include <time.h>
+#endif
 #include <unistd.h>
 
 #define RAND_BITS_MAX 31
@@ -56,12 +61,18 @@ int main(int argc, char *argv[])
 
     /* A range of N will need log2 of that (rounded up) bits to obtain
      * all the possible values. */
-    bits = (int) ceil(log2((double) randrange));
+    bits = ceil(log2((double) randrange));
     if (bits > RAND_BITS_MAX)
         errx(1, "random range is too large for random(3)");
     bits_mask = (1 << bits) - 1;
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+    /* something hopefully decent enough */
+    srandom(time(NULL) ^ (getpid() + (getpid() << 15)));
+#else
+    /* assume modern *BSD (tested on Mac OS X, OpenBSD) */
     srandomdev();
+#endif
 
     randsrc = random();
     randsrc_idx = 0;
@@ -70,8 +81,7 @@ int main(int argc, char *argv[])
             randsrc = random();
             randsrc_idx = 0;
         }
-        randval =
-            (unsigned int) (randsrc >> (randsrc_idx++ * bits)) & bits_mask;
+        randval = (randsrc >> (randsrc_idx++ * bits)) & bits_mask;
         /* If the random range does not match up perfectly with a power
          * of two, some high-bit values will not be usable. */
         if (randval >= randrange) {

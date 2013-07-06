@@ -29,7 +29,7 @@ int main(void)
     pid_t pid;
     int status;
 
-    setvbuf(stdout, (char *) 0, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     printf("shs%% ");
     while (fgets(buf, MAXLINE, stdin) != NULL) {
@@ -39,7 +39,7 @@ int main(void)
             warn("%s", "fork error");
 
         else if (pid == 0) {    // child
-            execlp(buf, buf, (char *) 0);
+            execlp(buf, buf, NULL);
             warn("%s%s", "could not execlp ", buf);
             exit(127);
         }

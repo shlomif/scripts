@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
         tmp = strtok(host, ":");
         if (tmp) {
             host = tmp;
-            tmp = strtok((char *) NULL, ":");
+            tmp = strtok(NULL, ":");
             if (tmp) {
                 if (port)
                     errx(R_USAGE, "%s",
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
         cur_log_bucket = time(NULL) / LOG_PERIOD;
         if (cur_log_bucket > prev_log_bucket) {
-            printf("%ld %ld %ld\n", (long) time(NULL),
+            printf("%ld %ld %ld\n", time(NULL),
                    req_count - prev_req_count, err_count);
 
             prev_log_bucket = cur_log_bucket;

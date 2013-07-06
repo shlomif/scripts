@@ -101,8 +101,8 @@ int main(int argc, char *argv[])
 
         } else {
             if (sent_size < Flag_Padding)
-                errx(EX_IOERR, "sent size less than expected: %d vs %d",
-                     (int) sent_size, Flag_Padding);
+                errx(EX_IOERR, "sent size less than expected: %ld vs %d",
+                     sent_size, Flag_Padding);
 
             backoff = DEFAULT_BACKOFF;
         }

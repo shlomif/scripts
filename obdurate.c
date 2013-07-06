@@ -75,7 +75,7 @@ int main()
     }
     pfd[0].events = POLLPRI;
 
-    printf("info: pid %ld\n", (long int) getpid());
+    printf("info: pid %d\n", getpid());
 
     for (;;) {
         nfds = poll(pfd, 1, 60 * 1000);
@@ -93,5 +93,5 @@ int main()
 
 void whine(int sig)
 {
-    warnx("caught signal %d at %ld", sig, (long int) time(NULL));
+    warnx("caught signal %d at %ld", sig, time(NULL));
 }

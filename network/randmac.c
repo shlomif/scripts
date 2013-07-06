@@ -123,8 +123,7 @@ int main(int argc, char *argv[])
     position = 0;
     while (*mp != '\0') {
         if (*mp == 'X') {
-            randbit =
-                (int) (randval >> (rvi++ * MAC_SEG_SIZE)) & MAC_BIT_MASK;
+            randbit = (randval >> (rvi++ * MAC_SEG_SIZE)) & MAC_BIT_MASK;
             /* KLUGE will fail if there is prefix material, e.g.
              * 01-XX-XX-XX-XX-XX-XX, but supporting that would
              * necessitate a more complicated parser.

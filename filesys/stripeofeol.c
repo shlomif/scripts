@@ -54,8 +54,8 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < argc; i++) {
         if (strnlen(argv[i], PATH_MAX) >= PATH_MAX)
-            errx(EX_DATAERR, "file at arg %d exceeds PATH_MAX (%ld)", i + 1,
-                 (long int) PATH_MAX);
+            errx(EX_DATAERR, "file at arg %d exceeds PATH_MAX (%d)", i + 1,
+                 PATH_MAX);
 
         if ((fd = open(argv[i], O_RDWR, 0)) < 0)
             err(EX_IOERR, "could not open '%s'", argv[i]);
@@ -73,7 +73,7 @@ void trim_file(const int fd, const char *file)
     long int start_size, trunc_size, i;
     char buf[2];
 
-    if ((start_size = (long int) lseek(fd, 0, SEEK_END)) < 0)
+    if ((start_size = lseek(fd, 0, SEEK_END)) < 0)
         err(EX_IOERR, "could not seek '%s'", file);
     if (start_size == 0)
         return;                 /* empty file, whatevs */

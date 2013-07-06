@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
             break;
         case 'y':
             yflag = 1;
-            if ((int) time(&now) == -1)
+            if (time(&now) == -1)
                 errx(EX_OSERR, "time(3) could not obtain current time");
             localtime_r(&now, &filler);
             break;
@@ -104,7 +104,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
     struct tm when = { };
     unsigned int j;
     char out_buf[LINE_MAX];
-    unsigned long sret;
+    size_t sret;
 
     ibp = input_buf;
 
@@ -122,7 +122,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
             }
             when.tm_isdst = -1; /* Try to auto-handle DST */
 
-            sret = (unsigned long) strftime(out_buf, LINE_MAX, oflag, &when);
+            sret = strftime(out_buf, LINE_MAX, oflag, &when);
             if (sret > 0) {
                 printf("%s%s", out_buf,
                        (gflag && sflag) ? " "
@@ -133,7 +133,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
                       linenum);
             }
             if (gflag) {
-                j = (unsigned int) (past_date_p - input_buf - 1);
+                j = past_date_p - input_buf - 1;
                 ibp = past_date_p;
             } else {
                 break;
@@ -141,7 +141,7 @@ void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
         } else {
             ibp++;
             if (!sflag)
-                putchar((unsigned char) input_buf[j]);
+                putchar(input_buf[j]);
         }
     }
 
