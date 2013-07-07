@@ -6,9 +6,11 @@
  *
  * Use the -p option for a private MAC, and -m for a multicast MAC, but
  * these only apply if the initial octet is XX. That is, if the first
- * octet is XX, the -m and -p options will limit the possibilities for
- * that octet. If the first octet is instead specified, it is assumed
- * you know what you are doing, and the -m and -p options do nothing.
+ * octet is XX, the -m and -p options will enable the appropriate bits,
+ * which otherwise will be set to 0 by default. If the first octet is
+ * specified (that is, is not XX to be filled in), the options or
+ * absence thereof influence nothing.
+ *
  * Example usage:
  *
  *   $ randmac -p
@@ -69,6 +71,11 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#include <sys/types.h>
+#include <time.h>
+#endif
+
 /* Each 'X' in the input corresponds to 4 bits, these are to pull
  * appropriate amount of bits out of the random data. */
 #define MAC_BIT_MASK  15
@@ -78,9 +85,11 @@
 #define MAC_MULTICAST 1<<0
 #define MAC_PRIVATE   1<<1
 
-/* "All the bits" of random(3) are usable, so use as many MAC_SEG_SIZE of
- * the 31 as possible. */
-#define RAND_MAX_BITS 28
+/* "All the bits" of random(3) are usable, so use as many MAC_SEG_SIZE
+ * of the 31 as possible (in hindsight, this is largely a needless and
+ * bug infested complication; better to just call random and run with
+ * those results). */
+#define RAND_MAX_BITS 31
 
 void emit_usage(void);
 
@@ -115,7 +124,14 @@ int main(int argc, char *argv[])
     if (argv[0] != NULL)
         (void) strncpy(mac, argv[0], sizeof(mac) - 1);
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+    /* something hopefully decent enough */
+    srandom(time(NULL) ^ (getpid() + (getpid() << 15)));
+#else
+    /* assume modern *BSD */
     srandomdev();
+#endif
+
     randval = random();
     rvi = 0;
 
@@ -124,10 +140,10 @@ int main(int argc, char *argv[])
     while (*mp != '\0') {
         if (*mp == 'X') {
             randbit = (randval >> (rvi++ * MAC_SEG_SIZE)) & MAC_BIT_MASK;
+
             /* KLUGE will fail if there is prefix material, e.g.
              * 01-XX-XX-XX-XX-XX-XX, but supporting that would
-             * necessitate a more complicated parser.
-             */
+             * necessitate a more complicated parser. */
             if (position == 1) {
                 if (Flag_Multicast)
                     randbit |= MAC_MULTICAST;
@@ -140,8 +156,7 @@ int main(int argc, char *argv[])
             }
             printf("%x", randbit);
 
-            if (rvi * MAC_SEG_SIZE >= RAND_MAX_BITS) {
-                /* whoops, need more random data... */
+            if (RAND_MAX_BITS - rvi * MAC_SEG_SIZE < MAC_SEG_SIZE) {
                 randval = random();
                 rvi = 0;
             }
@@ -153,7 +168,7 @@ int main(int argc, char *argv[])
     }
     putchar('\n');
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }
 
 void emit_usage(void)
