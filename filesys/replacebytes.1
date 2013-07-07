@@ -1,0 +1,56 @@
+.Dd Jul 7 2013
+.Dt REPLACEBYTES 1
+.Os
+.Sh NAME
+.Nm replacebytes
+.Nd alters files in-place with data from a source file
+.Sh SYNOPSIS
+.Nm replacebytes
+-f file [-I offset] [-S size | -s] [-O offset] file [..]
+.Sh DESCRIPTION
+Alters files in-place with the specified bytes from the source file at
+the specified offset in any files listed.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl f Ar file
+Source file to read the replacement bytes from. Mandatory.
+.It Fl I Ar offset
+Offset at which to read from the
+.Fl f
+file. Zero by default.
+.It Fl O Ar offset
+Offset at which to write the data from the
+.Fl f
+file into the output file(s) listed. Zero by default.
+.It Fl s
+Read the entire source file (minus any
+.Fl I
+offset). Incompatible with the
+.Fl S
+flag.
+.It Fl S Ar size
+Size of the data to read from the
+.Fl f
+file. Incompatible with the
+.Fl s
+flag. One of
+.Fl s
+or
+.Fl S
+must be specified, along with one or more files to replace the data in.
+.El
+.Sh CAVEATS
+The files will be altered in-place, without locking. Such edits are not
+atomic, and other (more or less) simultaneous changes to the files might
+cause corruption. Adjust the workflow to copy and rename the files, if
+necessary, and ensure that backups have been made before using this tool
+on any data you care about.
+.Sh EXIT STATUS
+.Ex -std replacebytes
+.Sh SEE ALSO
+.Xr dd 1 ,
+.Xr hexdump 1 ,
+.Xr sysexits 3
+.Sh AUTHOR
+Jeremy Mates
