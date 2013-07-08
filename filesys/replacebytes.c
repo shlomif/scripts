@@ -61,15 +61,15 @@ int main(int argc, char *argv[])
             Flag_Srcfile[sizeof(Flag_Srcfile) - 1] = '\0';
             break;
         case 'I':
-            if (sscanf(optarg, "%lu", &Flag_Input_Offset) != 1)
+            if (sscanf(optarg, "%li", &Flag_Input_Offset) != 1)
                 errx(EX_DATAERR, "could not parse -I offset option");
             break;
         case 'O':
-            if (sscanf(optarg, "%lu", &Flag_Offset) != 1)
+            if (sscanf(optarg, "%li", &Flag_Offset) != 1)
                 errx(EX_DATAERR, "could not parse -O offset option");
             break;
         case 'S':
-            if (sscanf(optarg, "%lu", &Flag_Size) != 1)
+            if (sscanf(optarg, "%li", &Flag_Size) != 1)
                 errx(EX_DATAERR, "could not parse -S size option");
             break;
         case 's':
