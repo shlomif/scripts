@@ -6,7 +6,7 @@
 .Nd alters files in-place with data from a source file
 .Sh SYNOPSIS
 .Nm replacebytes
--f file [-I offset] [-S size | -s] [-O offset] file [..]
+[-f file | -m msg] [-I offset] [-s | -S size] [-O offset] file [..]
 .Sh DESCRIPTION
 Alters files in-place with the specified bytes from the source file at
 the specified offset in any files listed.
@@ -14,11 +14,18 @@ the specified offset in any files listed.
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl f Ar file
-Source file to read the replacement bytes from. Mandatory.
+Source file to read the replacement bytes from. Mandatory, or instead
+specify the data to write with the
+.Fl m
+flag. 
 .It Fl I Ar offset
 Offset at which to read from the
 .Fl f
 file. Zero by default.
+.It Fl m Ar message
+Data to write into file, instead of reading said data via the
+.Fl f
+flag. Will cause the size flags to be ignored.
 .It Fl O Ar offset
 Offset at which to write the data from the
 .Fl f
