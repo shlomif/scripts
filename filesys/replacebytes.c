@@ -153,10 +153,6 @@ int main(int argc, char *argv[])
                 err(EX_IOERR, "error writing to %s", *argv);
         }
 
-        /* but must seek to end, else (unsurprising in hindsight) truncation */
-        if (lseek(fd, 0, SEEK_END) == -1)
-            err(EX_IOERR, "could not lseek() to end of %s", *argv);
-
         if (close(fd) == -1)
             err(EX_IOERR, "error closing %s", *argv);
 
