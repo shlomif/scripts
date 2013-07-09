@@ -10,12 +10,15 @@
  *   replacebytes -S 1024 -f srcfile fixfile1 fixfile2 ..
  *   replacebytes -I 123 -O 456 -S 789 -f src fix
  *   replacebytes -s -f src2 fix2
+ *   replacebytes -m 'the text' -O 1234 fix3
  *
  * Which would replace the first 1024 bytes of `fixfile*' with the first
  * 1024 bytes of `srcfile', or take 789 bytes from `src' at offset 123
  * and write it at offset 456 of `fix', or write the entire contents of
- * `src2' over the beginning of `fix2'. See also dd(1), hexdump(1), and
- * your backups. Backups are nice. You have backups, right?
+ * `src2' over the beginning of `fix2', or instead use the -m option to
+ * specify the replacement text. See also dd(1), hexdump(1), the
+ * File::ReplaceBytes Perl module, and your backups. Backups are nice.
+ * You have backups, right?
  */
 
 #include <sys/types.h>
@@ -44,10 +47,10 @@ int main(int argc, char *argv[])
 
     off_t offset = 0;           /* for -s related lseek auto-sizing */
 
-    char *bufp;
+    char *bufp = NULL;
     ssize_t hdr_size;
 
-    while ((ch = getopt(argc, argv, "h?f:I:O:S:s")) != -1) {
+    while ((ch = getopt(argc, argv, "h?f:I:m:O:S:s")) != -1) {
         switch (ch) {
         case 'h':
         case '?':
@@ -64,15 +67,26 @@ int main(int argc, char *argv[])
             if (sscanf(optarg, "%li", &Flag_Input_Offset) != 1)
                 errx(EX_DATAERR, "could not parse -I offset option");
             break;
+        case 'm':
+            /* no trailing \0 as writing the entire buffer */
+            hdr_size = strnlen(optarg, LINE_MAX);
+            if ((bufp = malloc(hdr_size)) == NULL)
+                err(EX_OSERR, "could not malloc() buffer");
+            strncpy(bufp, optarg, hdr_size);
+            Flag_Size = hdr_size;
+            break;
         case 'O':
             if (sscanf(optarg, "%li", &Flag_Offset) != 1)
                 errx(EX_DATAERR, "could not parse -O offset option");
             break;
         case 'S':
-            if (sscanf(optarg, "%li", &Flag_Size) != 1)
-                errx(EX_DATAERR, "could not parse -S size option");
+            /* only update size if not already set (e.g. by -m) */
+            if (Flag_Size == 0)
+                if (sscanf(optarg, "%li", &Flag_Size) != 1)
+                    errx(EX_DATAERR, "could not parse -S size option");
             break;
         case 's':
+            /* noop if -m fills buffer, above */
             Flag_Auto_Size = true;
             break;
         default:
@@ -83,7 +97,7 @@ int main(int argc, char *argv[])
     argv += optind;
 
     if (argc == 0 || (Flag_Size == 0 && Flag_Auto_Size == false)
-        || Flag_Srcfile[0] == '\0')
+        || (Flag_Srcfile[0] == '\0' && !bufp))
         emit_help();
     if (Flag_Size > 0 && Flag_Auto_Size == true) {
         warnx("cannot use both -s and -S");
@@ -92,44 +106,46 @@ int main(int argc, char *argv[])
 
     /********************************************************************
      *
-     * Read to buffer from the source (-f) file.
+     * Read to buffer from the source (-f) file (unless -m).
      *
      */
 
-    if ((fd = open(Flag_Srcfile, O_RDONLY)) == -1)
-        err(EX_IOERR, "could not open() source %s", Flag_Srcfile);
+    if (!bufp) {
+        if ((fd = open(Flag_Srcfile, O_RDONLY)) == -1)
+            err(EX_IOERR, "could not open() source %s", Flag_Srcfile);
 
-    if (Flag_Auto_Size) {
-        if ((offset = lseek(fd, 0, SEEK_END)) == -1)
-            err(EX_IOERR, "could not lseek() to end of %s", Flag_Srcfile);
-        if (offset < 1)
-            errx(EX_DATAERR, "no data in source %s", Flag_Srcfile);
-        if (Flag_Input_Offset > 0) {
-            offset -= Flag_Input_Offset;
+        if (Flag_Auto_Size) {
+            if ((offset = lseek(fd, 0, SEEK_END)) == -1)
+                err(EX_IOERR, "could not lseek() to end of %s", Flag_Srcfile);
             if (offset < 1)
-                errx(EX_DATAERR, "no data beyond offset in source %s",
-                     Flag_Srcfile);
+                errx(EX_DATAERR, "no data in source %s", Flag_Srcfile);
+            if (Flag_Input_Offset > 0) {
+                offset -= Flag_Input_Offset;
+                if (offset < 1)
+                    errx(EX_DATAERR, "no data beyond offset in source %s",
+                         Flag_Srcfile);
+            }
+            if (offset > 0)
+                Flag_Size = offset;
         }
-        if (offset > 0)
-            Flag_Size = offset;
-    }
 
-    if ((bufp = malloc(Flag_Size)) == NULL)
-        err(EX_OSERR, "could not malloc() buffer");
+        if ((bufp = malloc(Flag_Size)) == NULL)
+            err(EX_OSERR, "could not malloc() buffer");
 
-    /* PORTABILITY same concerns as write(2) below, but since a fixed
-     * header size is mandatory, do want to fail if cannot read
-     * exactly that. */
-    if ((hdr_size =
-         pread(fd, bufp, Flag_Size, Flag_Input_Offset)) != Flag_Size) {
-        if (hdr_size > -1) {
-            errx(EX_IOERR, "could not read %ld from %s: got instead %ld",
-                 Flag_Size, Flag_Srcfile, hdr_size);
-        } else {
-            err(EX_IOERR, "error reading header from %s", Flag_Srcfile);
+        /* PORTABILITY same concerns as write(2) below, but since a fixed
+         * header size is mandatory, do want to fail if cannot read
+         * exactly that. */
+        if ((hdr_size =
+             pread(fd, bufp, Flag_Size, Flag_Input_Offset)) != Flag_Size) {
+            if (hdr_size > -1) {
+                errx(EX_IOERR, "could not read %ld from %s: got instead %ld",
+                     Flag_Size, Flag_Srcfile, hdr_size);
+            } else {
+                err(EX_IOERR, "error reading header from %s", Flag_Srcfile);
+            }
         }
+        close(fd);
     }
-    close(fd);
 
     /********************************************************************
      *
@@ -165,6 +181,6 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     fprintf(stderr,
-            "Usage: replacebytes -f file [-I offset] [-S size | -s] [-O offset] file [..]\n");
+            "Usage: replacebytes [-f file|-m str] [-I off] [-s|-S size] [-O off] file [..]\n");
     exit(EX_USAGE);
 }
