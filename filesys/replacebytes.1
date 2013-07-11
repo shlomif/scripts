@@ -6,7 +6,7 @@
 .Nd alters files in-place with data from a source file
 .Sh SYNOPSIS
 .Nm replacebytes
-[-f file | -m msg] [-I offset] [-s | -S size] [-O offset] file [..]
+[ -f file | -m msg ] [-I offset] [ -s | -S size ] [-t size] [-O offset] file [..]
 .Sh DESCRIPTION
 Alters files in-place with the specified bytes from the source file at
 the specified offset in any files listed.
@@ -46,6 +46,11 @@ flag. One of
 or
 .Fl S
 must be specified, along with one or more files to replace the data in.
+.It Fl t Ar offset
+Truncate (or extend) the files to the specified offset. This is done
+after the 
+.Xr pwrite 2
+system call.
 .El
 .Sh CAVEATS
 The files will be altered in-place, without locking. Such edits are not
@@ -58,6 +63,7 @@ on any data you care about.
 .Sh SEE ALSO
 .Xr dd 1 ,
 .Xr hexdump 1 ,
+.Xr pwrite 2 ,
 .Xr sysexits 3
 .Sh AUTHOR
 Jeremy Mates

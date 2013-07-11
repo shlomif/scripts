@@ -40,6 +40,7 @@ char Flag_Srcfile[PATH_MAX + 1];        /* -f */
 unsigned long Flag_Input_Offset;        /* -I */
 unsigned long Flag_Offset;      /* -O */
 unsigned long Flag_Size;        /* -S */
+unsigned long Flag_Trunc;       /* -t */
 
 int main(int argc, char *argv[])
 {
@@ -50,7 +51,7 @@ int main(int argc, char *argv[])
     char *bufp = NULL;
     ssize_t hdr_size;
 
-    while ((ch = getopt(argc, argv, "h?f:I:m:O:S:s")) != -1) {
+    while ((ch = getopt(argc, argv, "h?f:I:m:O:S:st:")) != -1) {
         switch (ch) {
         case 'h':
         case '?':
@@ -88,6 +89,10 @@ int main(int argc, char *argv[])
         case 's':
             /* noop if -m fills buffer, above */
             Flag_Auto_Size = true;
+            break;
+        case 't':
+            if (sscanf(optarg, "%li", &Flag_Trunc) != 1)
+                errx(EX_DATAERR, "could not parse -t truncate option");
             break;
         default:
             emit_help();
@@ -168,6 +173,10 @@ int main(int argc, char *argv[])
             else
                 err(EX_IOERR, "error writing to %s", *argv);
         }
+
+        if (Flag_Trunc > 0)
+            if (ftruncate(fd, Flag_Trunc) != 0)
+                err(EX_IOERR, "could not truncate() %s", *argv);
 
         if (close(fd) == -1)
             err(EX_IOERR, "error closing %s", *argv);
