@@ -43,7 +43,7 @@ void run_git_shell(unsigned int count, char *cmds[]);
 
 int Flag_Syslog;                /* log to syslog */
 
-char *DEFAULT_CMD[] = { "git-shell", "-c" };
+const char *DEFAULT_CMD[] = { "git-shell", "-c" };
 
 char *Orig_Cmd_Str;
 
@@ -98,12 +98,12 @@ void emit_usage(void)
 void run_git_shell(unsigned int count, char *cmds[])
 {
     if (count < 1 || count > 512)
-      err(EX_DATAERR, "too few or too many command args");
+        err(EX_DATAERR, "too few or too many command args");
 
     // need space for both SSH_ORIGINAL_COMMAND and the null terminator
     /* hmm, older C apparently could not do this sort of dynamic alloc? */
     char *git_shell_cmd[count + 2];
-    int i;
+    unsigned int i;
 
     for (i = 0; i < count; i++)
         git_shell_cmd[i] = *cmds++;

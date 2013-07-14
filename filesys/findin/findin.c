@@ -125,7 +125,8 @@ void check_dir(char *directory, char *file_expr)
     char file_path[PATH_MAX];
     char err_msg[PATH_MAX + 32];
     glob_t g;
-    int i, ret;
+    unsigned int i;
+    int ret;
 
     ret =
         snprintf(file_path, PATH_MAX, "%s%c%s", directory, DIR_DELIMITER,

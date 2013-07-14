@@ -69,7 +69,7 @@ int parse_opts(int argc, char *argv[])
             lval = strtol(optarg, &ep, 10);
             if (optarg[0] == '\0' || *ep != '\0')
                 errx(EX_DATAERR, "invalid delay");
-            if (lval >= LONG_MAX || lval < 0)
+            if (lval >= INT_MAX || lval < 0)
                 errx(EX_DATAERR, "delay -d out of range");
             Flag_Delay = lval;
             Flag_Flood = 0;
@@ -98,7 +98,7 @@ int parse_opts(int argc, char *argv[])
             lval = strtol(optarg, &ep, 10);
             if (optarg[0] == '\0' || *ep != '\0')
                 errx(EX_DATAERR, "invalid delay");
-            if (lval >= UINT_MAX || lval < 0)
+            if (lval >= INT_MAX || lval < 0)
                 errx(EX_DATAERR, "padding size out of range");
             Flag_Padding = lval < sizeof(uint32_t) ? sizeof(uint32_t) : lval;
             break;

@@ -61,9 +61,9 @@ int main(int argc, char *argv[])
 {
     char buf[] =
         "all writes and no planning make filesystem go something something... ";
-    int buf_size = sizeof(buf);
+    unsigned long buf_size = sizeof(buf);
     int ch;                     /* getopt */
-    int backoff = 1;            /* write failure delay (seconds) */
+    unsigned int backoff = 1;   /* write failure delay (seconds) */
     struct sigaction act;       /* SIGUSR1 */
 
     while ((ch = getopt(argc, argv, "hq")) != -1) {

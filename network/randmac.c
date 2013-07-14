@@ -82,8 +82,8 @@
 #define MAC_SEG_SIZE  4
 
 /* How to toggle the appropriate bits for the flags */
-#define MAC_MULTICAST 1<<0
-#define MAC_PRIVATE   1<<1
+#define MAC_MULTICAST 1U<<0
+#define MAC_PRIVATE   1U<<1
 
 /* "All the bits" of random(3) are usable, so use as many MAC_SEG_SIZE
  * of the 31 as possible (in hindsight, this is largely a needless and

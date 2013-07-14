@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
 {
     char *ibp, *past_date_p;
-    struct tm when = { };
+    struct tm when;
     unsigned int j;
     char out_buf[LINE_MAX];
     size_t sret;

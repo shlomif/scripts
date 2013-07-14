@@ -30,7 +30,8 @@ int f_dryrun;
 
 int main(int argc, char *argv[])
 {
-    int ch, argidx, cmdidx, i, sysval;
+    int ch, argidx, cmdidx, sysval;
+    unsigned int i;
     size_t arglen;
     char cmd_buf[MAX_CMD_LEN];
 
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
      * the char-by-char foo?
      */
     cmd_buf[0] = '\0';
+    cmdidx = 0;
     for (argidx = 0; argidx < argc; argidx++) {
         if (argidx > 0) {
             cmd_buf[cmdidx++] = ' ';

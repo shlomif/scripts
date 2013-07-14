@@ -32,7 +32,8 @@ int Aflag;                      /* use O_APPEND if set */
 
 int main(int argc, char *argv[])
 {
-    int ch, fd, n;
+    int ch, fd;
+    long n;
     unsigned long patlen, iters, i, written = 0;
     char *ep;
     struct timespec rqtp;
@@ -96,7 +97,7 @@ int main(int argc, char *argv[])
         if (n == -1)
             err(EX_IOERR, "write error");
         else if (n < patlen)
-            errx(EX_IOERR, "incomplete write %d", n);
+            errx(EX_IOERR, "incomplete write %ld", n);
 
         written += n;
     }

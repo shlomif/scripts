@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        printf("%ld\n", randval + plus);
+        printf("%ld\n", (long) randval + plus);
     }
 
     exit(EXIT_SUCCESS);
