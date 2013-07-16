@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+#
+# Encode data via Significant Whitespace, optionally placing said ws
+# over the end of the lines of an input file. Output is done to stdout.
+# May be handy to bypass, say, XML-based security checks that foolishly
+# ignore and preserve the whitespace present in a document. Decoding
+# left as exercise to reader.
+#
+# TODO test with say UTF-8 or other encodings of the message.
+
+use strict;
+use warnings;
+
+use Getopt::Long qw/GetOptions/;
+
+GetOptions( 'message|m=s' => \my $msg, 'width|w=i' => \my $ws_width )
+  or emit_help();
+
+$ws_width //= 2;
+if ( $ws_width < 1 ) {
+  warn "$0: invalid whitespace width (must be positive integer)\n";
+  exit 65;
+}
+
+( my $encoded = $msg ) =~
+  s{(.)}{my $bits = sprintf "%08b", ord $1; $bits =~ tr/01/ \t/; $bits }eg;
+
+my $file = shift;
+if ( defined $file ) {
+  # Example. Specific dispositions would depend on the length of the
+  # message, number of lines in the file, where the encoded data can be
+  # stashed (end-of-line or also elsewhere?), and etc.
+  open my $fh, '<', $file or die "$0: could not read $file: $!\n";
+  while ( my $line = readline $fh ) {
+    $line =~ s/\s+$//;
+    if ( $encoded =~ m/\G([ \t]{1,$ws_width})/gc ) {
+      $line .= $1;
+    }
+    print $line, "\n";
+  }
+  if ( $encoded =~ m/\G([ \t]+)/gc ) {
+    print $1, "\n";
+  }
+} else {
+  print $encoded, "\n";
+}
+
+sub emit_help {
+  warn "Usage: $0 -m msg -w width [file] [ > output ]\n";
+  exit 64;
+}

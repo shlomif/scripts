@@ -1,0 +1,78 @@
+Lethe - Data Begins to Forget Itself 		 
+	  	
+file(1) and similar software provide for efficient identification of 		 
+various file formats via "magic" tests. Obscuring this information may 		 
+be of some value, for example to hide file contents from a quick  	 
+filesystem scan--assuming that the file extension, if any, is also masked--    
+or to slow down analysis of the thus unknown file contents. Obviously, 		 
+the code and especially the specific steps taken to obscure the data			 
+must be kept secure, as unless the goal is merely file corruption, 		 
+there must be a way to reverse the obfuscations, and if those the data				
+is not for can trivially undo the lethery, then there is no point to 			
+this exercise. 	  
+  	 
+Binary files are relatively easy to mask, as very little must be changed    
+to throw off a magic test. Plain text may require more work, especially 			
+if the text must be masked from casual human observation. ASCII armored  		
+PGP messages have very distinctive header and footers, for example. 		 
+Modest obfuscations might easily be detectable via suitable rules added 	 	
+to an intrusion detection or other data auditing system, especially if 		 
+particular obfuscation steps remain in use over long periods of time. 	 	
+ 		 
+Plain text might profitably be converted to word salad spam, or encoded			 
+into a JPEG, with that file having proper headers and such: only if a  	 
+human attempted to view the image, or deep checks performed on the file    
+contents, would the chameleon be revealed, depending on how seamlessly 			
+the non-JPEG data is melded to the JPEG format. The point of this 	  
+exercise: deny the simple and efficient categorization of data, require 		 
+that more time and energy be spent on analysis, or force the risk of not	   
+learning what the thus obscured data is. 		 
+ 	 	
+A downside: relatively few people will carry out such modifications, so 		 
+if the modifications are detected, they may stand out like both PGP			 
+users do in a sea of unencrypted communication. This may attract  	 
+unwanted attention to the data and its milieu, or provide an excellent    
+means to divert limited manpower and resources towards a false scent: a 		 
+data nerd flytrap, perhaps. Also, the need for the method to remain			 
+secure limits the audience; an individual or small set of individuals 		 
+might mask their data or communications this way, but the obfuscations 	 	
+will not scale to widespread uses, unless standardized methods of 			
+sufficient CPU costs can be devised to better deny real-time scanning 		 
+and categorization of file contents. Partial obfuscation may suffice; 		 
+for example, it may be known that a file is a MP3, via a .mp3 extension, 	 	
+but other details of the file contents obscured (length, ID tags, enough 			
+obfuscation to cause a MP3 parser to fail to read the data), and only  	 
+with specific steps could the proper contents be recovered.  	 
+    
+Why not just encrypt? Because encryption may stand out like a sore 		 
+thumb, and there may be standard operating procedures for it as there 		 
+are guides to Western chess openings. Obfuscating the data should thwart 		 
+automated data classification and analysis, and force either the risk of				
+ignoring the obfuscated data--"it's just spam"--or the costs of bringing 			
+more expensive resources to bear on the unknown--"I think there's  	 
+something here, just give me a few more hours to work on the problem." 		 
+Standard encryption could help with the known MP3 case; a random 			
+password might be used, forcing anyone who wants to recover the audio to 		 
+brute force that password. Whether to encrypt, obfuscate, or both will				
+depend on the data, its uses, and other goals. 			
+ 	  
+On Deliberate Data Corruption 			
+ 	  
+Random file corruption may also be a goal; in this case, data near the 		 
+beginning of the file should remain unharmed, so that the header remains 	 	
+correct, and data elsewhere altered. If the file type is known, care may 		 
+be taken to alter the meat and not the skeleton of the format, or to			 
+systemically alter the data: change the numbers and thus their results
+or relationships, introduce spelling or grammar errors, or the like. The
+attacker should thus have knowledge of various common file formats, some
+idea of how to change the data, and ideally some statistical chops--
+introducing corruptions that can then be ignored as outliers would make
+for poor work.
+
+Checksums or version control would help detect such changes; therefore,
+care must be taken in identifying proper targets for this attack: small
+data, where the user has not bothered with data control, or large data,
+where there is too much information to perform checksums on, or if the
+attack is made while results are being generated, so that the corruption
+is lost in the routine of workflow. These would likely require insider
+knowledge to pull off properly.
