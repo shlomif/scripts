@@ -7,37 +7,24 @@
  * the file lacks a trailing newline.)
  */
 
-#include <sys/param.h>
-
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-/* Ugh. */
-#if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
-static inline size_t strnlen(const char *__string, size_t __maxlen)
-{
-    int len = 0;
-    while (__maxlen-- && *__string++)
-        len++;
-    return len;
-}
-#endif
 
 void trim_file(const int fd, const char *file);
 void usage(void);
 
 int main(int argc, char *argv[])
 {
-    int ch, i, fd;
+    int ch, fd;
 
-    while ((ch = getopt(argc, argv, "h")) != -1) {
+    while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
         case 'h':
+        case '?':
             usage();
             /* NOTREACHED */
         default:
@@ -52,16 +39,13 @@ int main(int argc, char *argv[])
         /* NOTREACHED */
     }
 
-    for (i = 0; i < argc; i++) {
-        if (strnlen(argv[i], PATH_MAX) >= PATH_MAX)
-            errx(EX_DATAERR, "file at arg %d exceeds PATH_MAX (%d)", i + 1,
-                 PATH_MAX);
-
-        if ((fd = open(argv[i], O_RDWR, 0)) < 0)
-            err(EX_IOERR, "could not open '%s'", argv[i]);
-        trim_file(fd, argv[i]);
-        if (close(fd) < 0)
-            err(EX_IOERR, "could not close '%s'", argv[i]);
+    while (*argv) {
+        if ((fd = open(*argv, O_RDWR)) == -1)
+            err(EX_IOERR, "could not open '%s'", *argv);
+        trim_file(fd, *argv);
+        if (close(fd) == -1)
+            err(EX_IOERR, "could not close '%s'", *argv);
+        argv++;
     }
 
     exit(EXIT_SUCCESS);
@@ -119,8 +103,6 @@ void trim_file(const int fd, const char *file)
     if (trunc_size < start_size)
         if (ftruncate(fd, trunc_size) != 0)
             err(EX_IOERR, "could not truncate '%s'", file);
-
-    return;
 }
 
 void usage(void)
