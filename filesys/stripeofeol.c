@@ -14,6 +14,8 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#define BUF_SIZE 512
+
 void trim_file(const int fd, const char *file);
 void usage(void);
 
@@ -50,48 +52,70 @@ int main(int argc, char *argv[])
 }
 
 /*
- * Gist of logic is to step backwards through the file, ending
- * when a non-newline character is detected, and then truncating
- * the file at that point. This will be quick for normal files,
- * but less so for pathological cases of large files consisting
- * entirely of newlines. (For which a larger buf and looping over
- * that would help avoid excess system calls.)
+ * Read chunks of the file from end to the beginning, truncate at first
+ * non-newline character or 0 if beginning of file reached.
  */
 void trim_file(const int fd, const char *file)
 {
-    char buf;
-    long start_size, trunc_size, offset;
+    char *bp, buf[BUF_SIZE];
+    long byte_count, i, offset, read_size, read_where, total_size, trunc_size;
 
-    if ((start_size = lseek(fd, 0, SEEK_END)) < 0)
+    if ((total_size = lseek(fd, 0, SEEK_END)) < 0)
         err(EX_IOERR, "could not seek '%s'", file);
-    if (start_size == 0)
-        return;                 /* empty file, whatevs */
+    if (total_size == 0)
+        return;                 /* empty file, nothing to do */
 
-    trunc_size = start_size;
+    offset = trunc_size = total_size;
 
-    for (offset = start_size; offset > 0; offset--) {
-        if (pread(fd, &buf, 1, offset - 1) != 1)
-            err(EX_IOERR, "could not pread '%s'", file);
+    while (offset > 0) {
+        read_where = offset - BUF_SIZE;
+        read_size = BUF_SIZE;
+        if (read_where < 0) {
+            /* not a full buffer remaining at head of file, adjust... */
+            read_size = BUF_SIZE + read_where;
+            read_where = 0;
+        }
 
-        switch (buf) {
-        case '\n':
-        case '\r':
-            break;
-        default:
-            /* non-newline, stop at this offset */
-            goto TEN;
+        byte_count = pread(fd, &buf, (size_t) read_size, read_where);
+
+        if (byte_count == 0)
+            errx(EX_IOERR, "unexpected EOF on pread of '%s'", file);
+        else if (byte_count == -1)
+            err(EX_IOERR, "pread failed on '%s'", file);
+        else if (byte_count < -1)
+            errx(EX_IOERR, "unexpected return from pread of '%s': %ld", file,
+                 byte_count);
+        else {
+            bp = buf + byte_count;
+            for (i = 0; i < byte_count; i++) {
+                switch (*--bp) {
+                case '\n':
+                case '\r':
+                    break;
+                default:
+                    trunc_size -= i;
+                    /* to escape from both loops */
+                    i = byte_count;
+                    offset = 0;
+                }
+            }
+        }
+
+        /* buffer all newlines, truncate to at least here, but only if
+         * not escaping from the loop */
+        if (offset > 0) {
+            trunc_size -= byte_count;
+            offset -= byte_count;
         }
     }
-  TEN:
-    trunc_size = offset;
 
     /*
      * An edge case is if the file is changed between the "find the
-     * offset code" and this here truncate, but that gets into locking,
-     * or more properly the file workflow and how to avoid locking, for
+     * offset" and this here truncate, but that gets into locking, or
+     * more properly the file workflow and how to avoid locking, for
      * which I am fond of rename(2).
      */
-    if (trunc_size < start_size)
+    if (trunc_size < total_size)
         if (ftruncate(fd, trunc_size) == -1)
             err(EX_IOERR, "could not truncate '%s'", file);
 }
