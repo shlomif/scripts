@@ -60,7 +60,7 @@ void trim_file(const int fd, const char *file)
     char *bp, buf[BUF_SIZE];
     long byte_count, i, offset, read_size, read_where, total_size, trunc_size;
 
-    if ((total_size = lseek(fd, 0, SEEK_END)) < 0)
+    if ((total_size = lseek(fd, (off_t)0, SEEK_END)) < 0)
         err(EX_IOERR, "could not seek '%s'", file);
     if (total_size == 0)
         return;                 /* empty file, nothing to do */
