@@ -278,6 +278,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: bitswapprime -o offset -s size file ...\n");
+    fprintf(stderr, "Usage: byteswapprime -o offset -s size file ...\n");
     exit(EX_USAGE);
 }
