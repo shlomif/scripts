@@ -8,6 +8,11 @@
  *   blocksig -s 2 sleep 30
  *
  *   blocksig -s '1 2 15 30 31' ...    # see signal.h for numbers
+ *
+ * A useful use of this program is mask C-c from something that
+ * otherwise exits the game with no means to restore:
+ *
+ *   blocksig /usr/games/trek
  */
 
 #include <err.h>
