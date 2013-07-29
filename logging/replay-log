@@ -25,7 +25,7 @@ getopts 'h?r:f:o:s:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'};
 
-my ( $previous_epoch, $random_seed, $speed_factor );
+my ( %previous_epoch, $random_seed, $speed_factor );
 
 # increase playback speed
 if ( exists $opts{f} and defined $opts{f} and $opts{f} > 1 ) {
@@ -40,7 +40,7 @@ if (  exists $opts{r}
   and $opts{r} > 0 ) {
 
   $random_seed    = $opts{r};
-  $previous_epoch = time;
+  $previous_epoch{random} = time;
 }
 
 # use custom output file
@@ -63,18 +63,21 @@ while (<>) {
   # TODO will need to read different log formats (standard syslog, squid,
   # apache, custom...): split into "time, rest of data" and have means to
   # output "time with format, rest of data"
-  my %data;
+  my $rawtime, $logsource, $suffix;
 
-  ( $data{rawtime}, $data{suffix} ) =
+  ( $rawtime, $suffix ) =
    $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
 
-  $data{epoch} =
-     $random_seed
-   ? $previous_epoch + rand $random_seed
-   : syslog_to_epoch( $data{rawtime} );
+  # multiple log sources may have different local times, so track time per source
+  ( $logsource ) = $suffix =~ m/^\s*(\S+)/x;
 
-  if ( defined $previous_epoch ) {
-    my $delay = ( $data{epoch} - $previous_epoch ) / $speed_factor;
+  $epoch =
+     $random_seed
+   ? $previous_epoch{random} + rand $random_seed
+   : syslog_to_epoch( $rawtime );
+
+  if ( defined $previous_epoch{$logsource} ) {
+    my $delay = ( $epoch - $previous_epoch{$logsource} ) / $speed_factor;
 
     # KLUGE syslog messages may have different timezones, which results
     # in negative time differences. Workaround: detect and sleep random
@@ -90,12 +93,12 @@ while (<>) {
   # timestamp based on the current time. Allow templating off %data,
   # different time formatting via strftime.
   if ($random_seed) {
-    print epoch_to_str( $data{epoch} ), $data{suffix}, $/;
+    print epoch_to_str( $epoch ), $suffix, $/;
   } else {
     print $_, $/;
   }
 
-  $previous_epoch = $data{epoch};
+  $previous_epoch{$logsource} = $epoch;
 }
 
 sub epoch_to_str {
