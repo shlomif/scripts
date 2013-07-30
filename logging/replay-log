@@ -7,6 +7,9 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
+use strict;
+use warnings;
+
 use POSIX qw(strftime);
 use Time::Local qw(timelocal);
 use Time::HiRes qw(sleep);
@@ -39,14 +42,14 @@ if (  exists $opts{r}
   and defined $opts{r}
   and $opts{r} > 0 ) {
 
-  $random_seed    = $opts{r};
+  $random_seed = $opts{r};
   $previous_epoch{random} = time;
 }
 
 # use custom output file
 if ( exists $opts{o} ) {
   open STDOUT, '>', $opts{o}
-   or die "error: could not open: errno=$!, file=$opts{o}\n";
+    or die "error: could not open: errno=$!, file=$opts{o}\n";
 }
 
 # leading delay (good if need time to get something else running)
@@ -54,46 +57,53 @@ if ( exists $opts{s} and defined $opts{s} and $opts{s} > 0 ) {
   sleep $opts{s};
 }
 
-# force flush on output for better replay of logs
+# force flush on output for better replay of logs (under modern Perl,
+# instead use STDOUT->autoflush(1))
 $| = 1;
 
 while (<>) {
   chomp;
 
-  # TODO will need to read different log formats (standard syslog, squid,
-  # apache, custom...): split into "time, rest of data" and have means to
-  # output "time with format, rest of data"
-  my $rawtime, $logsource, $suffix;
+  my ( $rawtime, $suffix ) =
+    $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
 
-  ( $rawtime, $suffix ) =
-   $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
+  # WindowServer spams system.log with multi-line entries :( but
+  # probably should check for valid input, regardless
+  if ( !defined $rawtime or !defined $suffix ) {
+    warn "notice: could not parse date and message from line $.: $_\n";
+    next;
+  }
 
-  # multiple log sources may have different local times, so track time per source
-  ( $logsource ) = $suffix =~ m/^\s*(\S+)/x;
+  # multiple log sources may have different local times, so track time
+  # per source (I try to set UTC everywhere to help avoid this and other
+  # problems with local timezones)
+  my ($logsource) = $suffix =~ m/^\s*(\S+)/;
 
-  $epoch =
-     $random_seed
-   ? $previous_epoch{random} + rand $random_seed
-   : syslog_to_epoch( $rawtime );
+  my $epoch;
+  if ( defined $random_seed ) {
+    $logsource = 'random';
+    $epoch     = $previous_epoch{$logsource} + rand $random_seed;
+  } else {
+    $epoch = syslog_to_epoch($rawtime);
+  }
 
   if ( defined $previous_epoch{$logsource} ) {
     my $delay = ( $epoch - $previous_epoch{$logsource} ) / $speed_factor;
 
-    # KLUGE syslog messages may have different timezones, which results
-    # in negative time differences. Workaround: detect and sleep random
-    # time value. (TODO use moving average instead?)
+    # sanity check - if negative for the source (daylight savings time
+    # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
+    # random positive delay.
     if ( $delay < 0 ) {
-      $delay = rand ($random_seed || 3);
+      $delay = rand( $random_seed || 3 );
     }
 
     sleep $delay;
   }
 
-  # TODO for output, either want original string, or rework with new
-  # timestamp based on the current time. Allow templating off %data,
-  # different time formatting via strftime.
+  # original string, or rework with new timestamp based on the
+  # current time.
   if ($random_seed) {
-    print epoch_to_str( $epoch ), $suffix, $/;
+    print epoch_to_str($epoch), $suffix, $/;
   } else {
     print $_, $/;
   }
@@ -108,7 +118,8 @@ sub epoch_to_str {
 
 # convert default syslog timestamp into epoch seconds. Uses current
 # year, as syslog does not record the year (nor the timezone, but that's
-# another rant).
+# another rant). NOTE this whole mess might profitably be replaced with
+# use POSIX::strptime qw/strptime/
 sub syslog_to_epoch {
   my $date = shift;
   my $epoch;
@@ -117,9 +128,9 @@ sub syslog_to_epoch {
   @month_map{qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)} = 0 .. 11;
 
   my ( $month, $day, $hour, $min, $sec ) =
-   $date =~ m/^(\w{3}) \s\s? (\d\d?) \s (\d\d):(\d\d):(\d\d)/x;
+    $date =~ m/^(\w{3}) \s\s? (\d\d?) \s (\d\d):(\d\d):(\d\d)/x;
   $epoch = timelocal $sec, $min, $hour, $day, $month_map{$month},
-   1900 + (localtime)[5];
+    1900 + (localtime)[5];
 
   return $epoch;
 }
@@ -192,7 +203,8 @@ Only supports Unix syslogd(8) data at present.
 See L<"OPTIONS"> for details on the command line switches supported.
 
 Log data is read from standard input, and sent to standard output,
-unless a custom output file is specified.
+unless a custom output file is specified. Errors or warnings (e.g. the
+inability to parse a log line) will appear on standard error.
 
 =head1 OPTIONS
 
@@ -211,7 +223,8 @@ Send output to I<filename> instead of standard out.
 =item B<-r> I<random-seed>
 
 Use I<random-seed> as the random seed to C<rand()>; logs will playback
-using a random delay based on the seed.
+using a random delay (in seconds, floating point) based on the seed; the
+timestamp in the message will be ignored.
 
 =item B<-f> I<factor>
 
@@ -242,7 +255,7 @@ perl(1)
 
 =head1 AUTHOR
 
-Jeremy Mates
+Jeremy Mates plus patches from Dave Caplinger
 
 =head1 COPYRIGHT
 
