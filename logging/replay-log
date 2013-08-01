@@ -94,7 +94,7 @@ while (<>) {
     # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
     # random positive delay.
     if ( $delay < 0 ) {
-      $delay = rand( $random_seed || 3 );
+      $delay = (defined $random_seed) ? rand( $random_seed || 3 ) : 0 ;
     }
 
     sleep $delay;
