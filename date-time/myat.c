@@ -48,7 +48,8 @@ int main(int argc, char *argv[])
         when.tm_hour = when.tm_min = 0;
     }
 
-    strftime(strtime, BUF_MAX, "%H:%M %b %d %Y", &when);
+    if (strftime(strtime, BUF_MAX, "%H:%M %b %d %Y", &when) < 1)
+        errx(EX_SOFTWARE, "could not strftime input");
 
     if (execlp("at", "at", strtime, NULL) == -1)
         err(EX_OSERR, "could not exec at");
