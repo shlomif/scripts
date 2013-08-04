@@ -100,7 +100,7 @@ while (<>) {
 
     # sanity check - if negative for the source (daylight savings time
     # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
-    # random positive delay.
+    # random positive delay (or no delay).
     if ( $delay < 0 ) {
       $delay = (defined $random_seed) ? rand( $random_seed || 3 ) : 0 ;
     }
@@ -109,6 +109,7 @@ while (<>) {
     # spent since we last saw this $logsource. This can happen due to
     # buffering or network delays somewhere in a forwarding chain of
     # syslog collector servers: device -> server1 -> server2 -> logfile
+    # and can be significant (tens of seconds) depending on the buffer sizes
     if ( $epoch != $previous_epoch{$logsource} ) {
       if ( defined $previous_clock{$logsource} ) {
         my $now = gettimeofday();
@@ -117,6 +118,7 @@ while (<>) {
                epoch_to_str($previous_epoch{$logsource}) .
                " (at " . epoch_to_str($previous_clock{$logsource}) . ")\n";
         if ( $already_spent > $delay ) {
+          # we've fallen behind; catch up ASAP
           $delay = 0;
         } else {
           $delay -= $already_spent;
@@ -131,7 +133,8 @@ while (<>) {
 
   }
 
-  # save the *current* time that we saw this timestamp
+  # save the *current* time that we first saw this timestamp in the logs
+  # but not subsequent times for the same timestamp
   my $previous = $previous_epoch{$logsource} || 0;
   if ( $epoch != $previous ) {
     $previous_clock{$logsource} = gettimeofday();
