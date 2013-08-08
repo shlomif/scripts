@@ -12,7 +12,7 @@ use warnings;
 
 use POSIX qw(strftime);
 use Time::Local qw(timelocal);
-use Time::HiRes qw(sleep);
+use Time::HiRes qw(sleep gettimeofday tv_interval);
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
@@ -24,11 +24,19 @@ END {
 
 use Getopt::Std;
 my %opts;
-getopts 'h?r:f:o:s:', \%opts;
+getopts 'h?dr:f:o:s:', \%opts;
 
 print_help() if exists $opts{h} or exists $opts{'?'};
 
-my ( %previous_epoch, $random_seed, $speed_factor );
+my ( %previous_clock, %previous_epoch, $random_seed, $speed_factor );
+
+# enable debugging output
+my $DEBUG;
+if ( exists $opts{d} ) {
+  $DEBUG = 1;
+} else {
+  $DEBUG = 0;
+}
 
 # increase playback speed
 if ( exists $opts{f} and defined $opts{f} and $opts{f} > 1 ) {
@@ -92,13 +100,49 @@ while (<>) {
 
     # sanity check - if negative for the source (daylight savings time
     # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
-    # random positive delay.
+    # random positive delay (or no delay).
     if ( $delay < 0 ) {
       $delay = (defined $random_seed) ? rand( $random_seed || 3 ) : 0 ;
     }
 
-    sleep $delay;
+    # Sleep for the $delay time minus how much clock time we've already
+    # spent since we last saw this $logsource. This can happen due to
+    # buffering or network delays somewhere in a forwarding chain of
+    # syslog collector servers: device -> server1 -> server2 -> logfile
+    # and can be significant (tens of seconds) depending on the buffer sizes
+    if ( $epoch != $previous_epoch{$logsource} ) {
+      if ( defined $previous_clock{$logsource} ) {
+        my $now = gettimeofday();
+        my $already_spent = tv_interval( [$previous_clock{$logsource}], [$now] );
+        $DEBUG && warn "... already $already_spent since last $logsource on " .
+               epoch_to_str($previous_epoch{$logsource}) .
+               " (at " . epoch_to_str($previous_clock{$logsource}) . ")\n";
+        if ( $already_spent > $delay ) {
+          # we've fallen behind; catch up ASAP
+          $delay = 0;
+        } else {
+          $delay -= $already_spent;
+        }
+      }
+    }
+
+    if ( $delay > 0) {
+      $DEBUG && warn "... sleep $delay \n";
+      sleep $delay;
+    }
+
   }
+
+  # save the *current* time that we first saw this timestamp in the logs
+  # but not subsequent times for the same timestamp
+  my $previous = $previous_epoch{$logsource} || 0;
+  if ( $epoch != $previous ) {
+    $previous_clock{$logsource} = gettimeofday();
+    $DEBUG && warn "... clock = " . epoch_to_str($previous_clock{$logsource}) .
+           " for $logsource on " . epoch_to_str($epoch) . "\n";
+  }
+
+  $previous_epoch{$logsource} = $epoch;
 
   # original string, or rework with new timestamp based on the
   # current time.
@@ -107,8 +151,6 @@ while (<>) {
   } else {
     print $_, $/;
   }
-
-  $previous_epoch{$logsource} = $epoch;
 }
 
 sub epoch_to_str {
@@ -149,6 +191,8 @@ Options:
   -f nn  Numeric factor to speed replay up by, such as 3600.
   -r nn  Specify random seed to rand() for random replay speed.
   -s nn  Sleep this long before starting.
+
+  -d     Enable debugging output.
 
 Run perldoc(1) on this script for additional documentation.
 
