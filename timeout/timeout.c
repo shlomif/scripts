@@ -90,7 +90,7 @@ main(int argc, char *argv[])
              * take down.
              */
 	    if (kill(bill, SIGTERM) == -1)
-		err(EX_OSERR, "could not kill child");
+		err(EX_OSERR, "could not kill child pid %d", bill);
 
 	    exit_status = EXIT_TIMEOUT;
 	} else {
