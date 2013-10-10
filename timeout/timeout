@@ -2,7 +2,7 @@
 #
 # Stop operation of a long running process after a certain time period:
 #
-#   timeout duration -- command [command args ...]
+#   timeout [-q] -- duration command [command args ...]
 #
 # Run perldoc(1) on this file for additional documentation.
 #
@@ -57,6 +57,7 @@ if ( $pid != 0 ) {    # parent
     alarm $timeout;
 
     wait();
+    $exit_status = ($? & 127 > 0) ? 128 + $? : $? >> 8;
 
     alarm 0;
 
@@ -69,7 +70,7 @@ if ( $pid != 0 ) {    # parent
 
     warn "$MYNAME: duration $duration exceeded: killing pid $pid\n"
       unless $Flag_Quiet;
-    $exit_status = 1;
+    $exit_status = 2;
 
     for my $signal (qw/TERM INT HUP KILL/) {
       last if kill $signal, $pid;
@@ -141,7 +142,7 @@ sub seconds2duration {
 # a generic help blarb
 sub help {
   warn <<"HELP";
-Usage: $0 [options] duration -- command [command args ..]
+Usage: $0 [options] -- duration command [command args ..]
 
 Stops operation of the specified command after the specified duration.
 The duration is either seconds, or a shorthand format of "2m3s" for
@@ -167,7 +168,7 @@ timeout - stop operation of long running programs
 
 Break out of sleep program after five seconds:
 
-  $ timeout 5s sleep 60
+  $ timeout -- 5s sleep 60
 
 =head1 DESCRIPTION
 
@@ -184,7 +185,7 @@ or >0 if anything goes awry or the command is killed.
 
 =head2 Normal Usage
 
-  $ timeout [options] duration -- command [command args ..]
+  $ timeout [options] -- duration command [command args ..]
 
 The duration can either be a number (raw seconds), or a shorthand
 format of the form "2m3s" for 120 seconds.  The following factors are
@@ -199,7 +200,7 @@ recognized:
 Multiple factors will be added together, allowing easy addition of
 time values to existing timeouts:
 
-  $ timeout 3s3s sleep 60
+  $ timeout -- 3s3s sleep 60
 
 Would only allow the sleep to run for six seconds.
 
