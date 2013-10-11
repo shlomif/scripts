@@ -3,6 +3,13 @@
  * Originally (written in Perl and) motivated by a Sisyphean Java Mess
  * that would not exit itself, but also handy for closing web browsers
  * after some amount of time, or similar needs.
+ *
+ * Usage:
+ *   timeout [-q] -- duration command [command args ...]
+ *
+ * For example to kill off a browser after some time:
+ *   exec timeout -- 11h systrace -a -e xombrero
+ *
  */
 
 #include <sys/time.h>
