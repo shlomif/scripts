@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Local all nodes ping, mostly to help avoid having to read ping6(8) again.
+
+if [ -z $1 ]; then
+  echo >&2 $0 interface
+  exit 64
+fi
+
+exec ping6 -w ff02::1%$1
