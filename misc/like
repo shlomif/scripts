@@ -1,0 +1,18 @@
+#!/usr/bin/env perl
+#
+# Probably useless (instead see acct(2) or accton(8) or the like). Usage:
+#
+#   like somecmd somecmdargs ..
+
+use strict;
+use warnings;
+
+use DB_File;
+use File::Spec ();
+
+my %hits;
+tie %hits, 'DB_File', File::Spec->catfile( $ENV{HOME}, '.likedb' );
+$hits{ $ARGV[0] }++;
+untie %hits;
+
+exec @ARGV or exit 1;
