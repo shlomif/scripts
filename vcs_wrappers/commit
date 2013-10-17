@@ -46,21 +46,21 @@ my ( %tocommit, @unknown );
 for my $file (@ARGV) {
   my ( $filename, $filepath, undef ) = fileparse($file);
 
-  if ( -f File::Spec->catfile( $filepath, qw{CVS Root} ) ) {
-
-    push @{ $tocommit{cvs} }, $file unless $file eq 'CVS';
-
-  } elsif ( -f File::Spec->catfile( $filepath, qw{.svn entries} ) ) {
-
-    push @{ $tocommit{svn} }, $file unless $file eq '.svn';
+  # Might be problematic for mixed repositories, but I don't do that,
+  # so there.
+  if ( defined findup('.git') ) {
+    push @{ $tocommit{git} }, $file unless $file eq '.git';
 
   } elsif ( defined findup('.p4config') ) {
-
     push @{ $tocommit{perforce} }, $file unless $file eq '.p4config';
 
-  } elsif ( defined findup('.git') ) {
+  } elsif ( -f File::Spec->catfile( $filepath, qw{CVS Root} ) ) {
+    push @{ $tocommit{cvs} }, $file unless $file eq 'CVS';
 
-    push @{ $tocommit{git} }, $file unless $file eq '.git';
+    # Current versions use a sole .svn file. Still mad at SVN for it
+    # eating my data and totally wedging on me, though.
+  } elsif ( defined findup('.svn') ) {
+    push @{ $tocommit{svn} }, $file unless $file eq '.svn';
 
   } else {
     push @unknown, $file;
