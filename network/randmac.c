@@ -61,6 +61,11 @@
  * a random private address landing in one of these subnets and
  * conflicting with some actual piece of hardware from one of these
  * vendors would be somewhat low.
+ *
+ * IPv4 broadcast sets all ones (low odds of randomly rolling); IPv4
+ * multicast uses a prefix of 01:00:5e, and IPv6 multicast 33:33. This
+ * tool at present takes no effort not to generate something inside
+ * these ranges.
  */
 
 #include <err.h>
