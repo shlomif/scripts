@@ -1,12 +1,23 @@
 /* IPv6 address qualifier (-f, the default) or reverse DNSer (-r).
  * Mostly just C practice, find a proper library or use sipcalc or
- * something else instead, as this code is short on tests. */
+ * something else instead, as this code is short on tests.
+ *
+ * Requires -std=c99 to compile.
+ */
+
+/* ugh, linux */
+#if defined(linux) || defined(__linux) || defined(__linux__)
+extern char *optarg;
+extern int optind, opterr, optopt;
+#define _GNU_SOURCE
+#endif
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +27,7 @@
 #define QUADS 8
 
 void emit_help(void);
-void emit_unparsable(const char *str, const int idx, const char *err);
+void emit_unparsable(const char *str, const int idx, const char *err_str);
 
 bool Flag_Forward = true;
 bool Flag_Reverse = false;
@@ -65,8 +76,8 @@ main(int argc, char *argv[])
     int state = STATE_START;
 
     while (1) {
-        int advance;
-        int ret;
+        int advance = 0;
+        int ret = 0;
 
         if (state == STATE_START || state == STATE_WANTHEX) {
             if ((ret = sscanf(ap, "%4[A-Fa-f0-9]%n", tmpstr, &advance)) == 1) {
@@ -93,7 +104,7 @@ main(int argc, char *argv[])
         if (state == STATE_START || state == STATE_WANTCOLON) {
             if ((ret = sscanf(ap, "%2[:]%n", tmpstr, &advance)) == 1) {
                 /* :: mark where zero run happens, increment things */
-                if (strnlen(tmpstr, 2) == 2) {
+                if (strnlen(tmpstr, (size_t) 2) == 2) {
                     /* but only once, as cannot be two :: in a v6 addr */
                     if (dblcln_idx == -1) {
                         dblcln_idx = curquad;
@@ -179,10 +190,10 @@ emit_help(void)
 }
 
 void
-emit_unparsable(const char *str, const int idx, const char *err)
+emit_unparsable(const char *str, const int idx, const char *err_str)
 {
-    if (err) {
-        warnx("error: could not parse ipv6-address: %s", err);
+    if (err_str) {
+        warnx("error: could not parse ipv6-address: %s", err_str);
     } else {
         warnx("error: could not parse ipv6-address");
     }
