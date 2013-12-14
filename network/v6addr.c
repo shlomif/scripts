@@ -1,6 +1,8 @@
 /* IPv6 address qualifier (-f, the default) or reverse DNSer (-r).
- * Mostly just C practice, find a proper library or use sipcalc or
- * something else instead, as this code is short on tests.
+ * Attempts a manual parse of the v6 address supplied as the first
+ * argument, and will report where that parsing goes awry. Otherwise,
+ * inet_pton(3) is used for a final opinion on the input and to produce
+ * the output address.
  *
  * Requires -std=c99 to compile.
  */
@@ -12,6 +14,9 @@ extern int optind, opterr, optopt;
 #define _GNU_SOURCE
 #endif
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include <ctype.h>
@@ -26,7 +31,9 @@ extern int optind, opterr, optopt;
 #include <sysexits.h>
 #include <unistd.h>
 
+/* for manual parse; in6_addr instead uses 16 8-bit unsigned ints */
 #define QUADS 8
+#define S6ADDR_MAX 16
 
 void emit_help(void);
 void emit_unparsable(const char *str, const int idx, const char *err_str);
@@ -126,10 +133,14 @@ main(int argc, char *argv[])
 		}
 	    }
 	}
-	/* % treated like EOF as address might have trailing %lo0 */
-	if (ret == EOF || *ap == '%')
+	if (ret == EOF)
 	    break;
-
+	/* % treated like EOF as address might have trailing %lo0 (but
+	 * inet_pton() does not like that, so NUL it out here). */
+	if (*ap == '%') {
+	    *ap = '\0';
+	    break;
+	}
 	emit_unparsable(*argv, input_offset, NULL);
     }
 
@@ -158,7 +169,8 @@ main(int argc, char *argv[])
     }
 
     /* A final opinion (but does not show where the address goes awry) */
-    if ((ret = inet_pton(AF_INET6, *argv, NULL)) != 1) {
+    struct in6_addr v6addr;
+    if ((ret = inet_pton(AF_INET6, *argv, &v6addr)) != 1) {
 	if (ret == -1) {
 	    emit_unparsable(*argv, input_offset, strerror(errno));
 	} else {
@@ -166,23 +178,23 @@ main(int argc, char *argv[])
 	}
     }
 
-    /* emit address */
+    /* emit address (using the inet_pton() parsed results) */
     if (Flag_Forward) {
-	for (int i = 0; i < QUADS; i++) {
-	    printf("%04x", addr[i]);
-	    if (i < QUADS - 1)
+	for (int i = 0; i < S6ADDR_MAX; i++) {
+	    printf("%02x", v6addr.s6_addr[i]);
+	    if (i < S6ADDR_MAX - 1 && i % 2 == 1)
 		putchar(':');
 	}
     } else {
 	/* reverse for DNS is slightly trickier */
-	for (int i = QUADS - 1; i >= 0; i--) {
-	    if (addr[i] == 0) {
-		printf("0.0.0.0.");
-	    } else if (addr[i] == UINT16_MAX) {
-		printf("f.f.f.f.");
+	for (int i = S6ADDR_MAX - 1; i >= 0; i--) {
+	    if (v6addr.s6_addr[i] == 0) {
+		printf("0.0.");
+	    } else if (v6addr.s6_addr[i] == UINT8_MAX) {
+		printf("f.f.");
 	    } else {
-		for (int j = 0; j < 4; j++) {
-		    printf("%1x.", addr[i] >> (j * 4) & 15);
+		for (int j = 0; j < 2; j++) {
+		    printf("%1x.", v6addr.s6_addr[i] >> (j * 4) & 15);
 		}
 	    }
 	}
