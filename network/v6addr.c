@@ -54,7 +54,7 @@ main(int argc, char *argv[])
 {
     int ch;
 
-    while ((ch = getopt(argc, argv, "fr")) != -1) {
+    while ((ch = getopt(argc, argv, "fhr")) != -1) {
 	switch (ch) {
 	    /* last of these mentioned wins, in event shell aliases involved */
 	case 'f':
@@ -65,6 +65,7 @@ main(int argc, char *argv[])
 	    Flag_Reverse = true;
 	    Flag_Forward = false;
 	    break;
+	case 'h':
 	default:
 	    emit_help();
 	    /* NOTREACHED */
