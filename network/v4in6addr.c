@@ -5,7 +5,8 @@
  *
  *   v4in6addr -t 64:ff9b:: 192.0.2.1
  *
- * Requires -std=c99 to compile.
+ * Requires -std=c99 to compile. Tested (albeit briefly) on both
+ * OpenBSD/amd64 and Debian/ppc for little- vs. big-endian needs.
  */
 
 /* ugh, linux */
@@ -38,7 +39,7 @@ struct in_addr v4addr;
 /* default v6 template and -t flag argument */
 struct in6_addr v6addr;
 
-int Flag_Prefix = 96;		/* -p prefix length */
+int Flag_Prefix = 96;           /* -p prefix length */
 
 void emit_help(void);
 
@@ -48,38 +49,41 @@ main(int argc, char *argv[])
     int ch, ret;
 
     while ((ch = getopt(argc, argv, "hp:t:")) != -1) {
-	switch (ch) {
-	case 'p':
-	    if (sscanf(optarg, "%d", &Flag_Prefix) != 1)
-		errx(EX_DATAERR, "could not parse -p prefixlen flag");
+        switch (ch) {
+        case 'p':
+            if (sscanf(optarg, "%d", &Flag_Prefix) != 1)
+                errx(EX_DATAERR, "could not parse -p prefixlen flag");
 
-	    break;
-	case 't':
-	    if ((ret = inet_pton(AF_INET6, optarg, &v6addr)) != 1) {
-		if (ret == -1)
-		    err(EX_DATAERR, "inet_pton() could not parse -t '%s'", optarg);
-		else
-		    errx(EX_DATAERR, "inet_pton() could not parse -t '%s'", optarg);
-	    }
-	    break;
-	case 'h':
-	default:
-	    emit_help();
-	    /* NOTREACHED */
-	}
+            break;
+        case 't':
+            if ((ret = inet_pton(AF_INET6, optarg, &v6addr)) != 1) {
+                if (ret == -1)
+                    err(EX_DATAERR, "inet_pton() could not parse -t '%s'", optarg);
+                else
+                    errx(EX_DATAERR, "inet_pton() could not parse -t '%s'", optarg);
+            }
+            break;
+        case 'h':
+        default:
+            emit_help();
+            /* NOTREACHED */
+        }
     }
     argc -= optind;
     argv += optind;
 
     if (argc == 0)
-	emit_help();
+        emit_help();
 
     if ((ret = inet_pton(AF_INET, *argv, &v4addr)) != 1) {
-	if (ret == -1)
-	    err(EX_DATAERR, "inet_pton() could not parse '%s'", *argv);
-	else
-	    errx(EX_DATAERR, "inet_pton() could not parse '%s'", *argv);
+        if (ret == -1)
+            err(EX_DATAERR, "inet_pton() could not parse '%s'", *argv);
+        else
+            errx(EX_DATAERR, "inet_pton() could not parse '%s'", *argv);
     }
+
+    /* little endian arch? big endian? other? normalize. */
+    v4addr.s_addr = htonl(v4addr.s_addr);
 
     /* In all cases bits 64-71 must be zero [RFC 4291] */
     v6addr.s6_addr[8] = 0;
@@ -87,76 +91,76 @@ main(int argc, char *argv[])
     /* figure out what else needs to happen to v6 address */
     switch (Flag_Prefix) {
     case 96:
-	/* just copy v4 into ultimate 32 bits - nothing else to zero */
-	for (int i = 0; i < 4; i++)
-	    v6addr.s6_addr[i + 12] = v4addr.s_addr >> (i * 8) & 0xff;
+        /* just copy v4 into ultimate 32 bits - nothing else to zero */
+        for (int i = 0; i < 4; i++)
+            v6addr.s6_addr[i + 12] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
 
-	break;
+        break;
     case 64:
-	/* v4 address follows bits 64-71 */
-	for (int i = 0; i < 4; i++)
-	    v6addr.s6_addr[i + 9] = v4addr.s_addr >> (i * 8) & 0xff;
+        /* v4 address follows bits 64-71 */
+        for (int i = 0; i < 4; i++)
+            v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
 
-	/* zero ultimate 24 bits (reserved suffix) */
-	for (int i = 13; i < S6ADDR_MAX; i++)
-	    v6addr.s6_addr[i] = 0;
+        /* zero ultimate 24 bits (reserved suffix) */
+        for (int i = 13; i < S6ADDR_MAX; i++)
+            v6addr.s6_addr[i] = 0;
 
-	break;
+        break;
     case 56:
-	/* 8 bits prior to bits 64-71, remaining 24 after */
-	v6addr.s6_addr[7] = v4addr.s_addr & 0xff;
-	for (int i = 0; i < 3; i++)
-	    v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((i + 1) * 8) & 0xff;
+        /* 8 bits prior to bits 64-71, remaining 24 after */
+        v6addr.s6_addr[7] = v4addr.s_addr >> 24 & 0xff;
+        for (int i = 0; i < 3; i++)
+            v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((2 - i) * 8) & 0xff;
 
-	/* zero ultimate 32 bits (reserved suffix) */
-	for (int i = 12; i < S6ADDR_MAX; i++)
-	    v6addr.s6_addr[i] = 0;
+        /* zero ultimate 32 bits (reserved suffix) */
+        for (int i = 12; i < S6ADDR_MAX; i++)
+            v6addr.s6_addr[i] = 0;
 
-	break;
+        break;
     case 48:
-	/* 16 bits prior to bits 64-71, 16 after */
-	for (int i = 0; i < 2; i++)
-	    v6addr.s6_addr[i + 6] = v4addr.s_addr >> (i * 8) & 0xff;
-	for (int i = 0; i < 2; i++)
-	    v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((i + 2) * 8) & 0xff;
+        /* 16 bits prior to bits 64-71, 16 after */
+        for (int i = 0; i < 2; i++)
+            v6addr.s6_addr[i + 6] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
+        for (int i = 0; i < 2; i++)
+            v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((1 - i) * 8) & 0xff;
 
-	/* zero ultimate 40 bits (reserved suffix) */
-	for (int i = 11; i < S6ADDR_MAX; i++)
-	    v6addr.s6_addr[i] = 0;
+        /* zero ultimate 40 bits (reserved suffix) */
+        for (int i = 11; i < S6ADDR_MAX; i++)
+            v6addr.s6_addr[i] = 0;
 
-	break;
+        break;
     case 40:
-	/* 24 bits prior to bits 64-71, remaining 8 after */
-	for (int i = 0; i < 3; i++) {
-	    v6addr.s6_addr[i + 5] = v4addr.s_addr >> (i * 8) & 0xff;
-	}
-	v6addr.s6_addr[9] = v4addr.s_addr >> 24 & 0xff;
+        /* 24 bits prior to bits 64-71, remaining 8 after */
+        for (int i = 0; i < 3; i++) {
+            v6addr.s6_addr[i + 5] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
+        }
+        v6addr.s6_addr[9] = v4addr.s_addr & 0xff;
 
-	/* zero ultimate 48 bits (reserved suffix) */
-	for (int i = 10; i < S6ADDR_MAX; i++)
-	    v6addr.s6_addr[i] = 0;
+        /* zero ultimate 48 bits (reserved suffix) */
+        for (int i = 10; i < S6ADDR_MAX; i++)
+            v6addr.s6_addr[i] = 0;
 
-	break;
+        break;
     case 32:
-	/* v4 address follows 32-bit prefix */
-	for (int i = 0; i < 4; i++)
-	    v6addr.s6_addr[i + 4] = v4addr.s_addr >> (i * 8) & 0xff;
+        /* v4 address follows 32-bit prefix */
+        for (int i = 0; i < 4; i++)
+            v6addr.s6_addr[i + 4] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
 
-	/* zero ultimate 56 bits (reserved suffix) */
-	for (int i = 9; i < S6ADDR_MAX; i++)
-	    v6addr.s6_addr[i] = 0;
+        /* zero ultimate 56 bits (reserved suffix) */
+        for (int i = 9; i < S6ADDR_MAX; i++)
+            v6addr.s6_addr[i] = 0;
 
-	break;
+        break;
     default:
-	warnx("unknown prefix length '%d' (must be one of 32 40 48 56 64 96)", Flag_Prefix);
-	emit_help();
+        warnx("unknown prefix length '%d' (must be one of 32 40 48 56 64 96)", Flag_Prefix);
+        emit_help();
     }
 
     /* emit v6 address */
     for (int i = 0; i < S6ADDR_MAX; i++) {
-	printf("%02x", v6addr.s6_addr[i]);
-	if (i < S6ADDR_MAX - 1 && i % 2 == 1)
-	    putchar(':');
+        printf("%02x", v6addr.s6_addr[i]);
+        if (i < S6ADDR_MAX - 1 && i % 2 == 1)
+            putchar(':');
     }
     putchar('\n');
 

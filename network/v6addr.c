@@ -4,7 +4,8 @@
  * inet_pton(3) is used for a final opinion on the input and to produce
  * the output address.
  *
- * Requires -std=c99 to compile.
+ * Briefly tested on OpenBSD/amd64 and Debian/ppc, no apparent endian
+ * issues present in this code.
  */
 
 /* ugh, linux */
@@ -52,7 +53,16 @@ uint16_t addr[QUADS];
 int
 main(int argc, char *argv[])
 {
+    char *ap;
+    char tmpstr[5];		/* buffer for parsed segments */
     int ch;
+    int curquad = 0;
+    int dblcln_idx = -1;	/* where the :: is if any */
+    int dblcln_offset = 0;	/* for error output */
+    int input_offset = 0;	/* for error output */
+    int state = STATE_START;
+    int ret = 0;
+    struct in6_addr v6addr;
 
     while ((ch = getopt(argc, argv, "fhr")) != -1) {
 	switch (ch) {
@@ -77,14 +87,7 @@ main(int argc, char *argv[])
     if (argc == 0)
 	emit_help();
 
-    char *ap = *argv;
-    char tmpstr[5];		/* buffer for parsed segments */
-    int curquad = 0;
-    int dblcln_idx = -1;	/* where the :: is if any */
-    int dblcln_offset = 0;	/* for error output */
-    int input_offset = 0;	/* for error output */
-    int state = STATE_START;
-    int ret = 0;
+    ap = *argv;
 
     while (1) {
 	int advance = 0;
@@ -170,7 +173,6 @@ main(int argc, char *argv[])
     }
 
     /* A final opinion (but does not show where the address goes awry) */
-    struct in6_addr v6addr;
     if ((ret = inet_pton(AF_INET6, *argv, &v6addr)) != 1) {
 	if (ret == -1) {
 	    emit_unparsable(*argv, input_offset, strerror(errno));
