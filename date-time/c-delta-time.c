@@ -4,11 +4,12 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define USEC_IN_SEC 1000000
 
-int main()
+int main(void)
 {
     struct timeval before, after;
     double delta_t;
@@ -23,5 +24,6 @@ int main()
     delta_t += (after.tv_usec - before.tv_usec) / USEC_IN_SEC;
     fprintf(stderr, "delta %.3f\n", delta_t);
 
-    return (0);
+    /* for compat with -fstack-protector-all, cannot just return */
+    exit(EXIT_SUCCESS);
 }

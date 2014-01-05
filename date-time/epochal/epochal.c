@@ -1,9 +1,11 @@
 /*
- * Parse timestamps via strptime(3) in data passed via standard input,
- * and emits the time data formatted via strftime(3) to standard out.
+ * Parses timestamps via strptime(3) in data passed via standard input, and
+ * emits the time data formatted via strftime(3) to standard out.
  */
 
+/* ugh, linux */
 #ifdef __linux__
+#define _GNU_SOURCE
 #define _XOPEN_SOURCE
 #endif
 
@@ -11,6 +13,7 @@
 
 #include <err.h>
 #include <locale.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,140 +21,179 @@
 #include <time.h>
 #include <unistd.h>
 
-#define LINE_MAX 8192
-
-int exit_status = EXIT_SUCCESS;
+/* Limit on realloc() of strftime output buffer, mostly for if someone
+ * specifies a stupidly long strftime() format. */
+#define OUTBUF_LEN_MIN 32
+#define OUTBUF_LEN_MAX 8192
 
 /* Command Line Options */
-char *fflag;                    /* Input format (for strptime) */
-int gflag;                      /* Do time check multiple times per line? */
-char *oflag;                    /* Output format (for strftime) */
-int sflag;                      /* Suppress output (just timestamps out)? */
-int yflag;                      /* Auto-fill in year (from current year)? */
-char *Yflag;                    /* Specify year */
+char *Flag_Input_Format;        /* -f for strptime - required */
+bool Flag_Global;               /* -g multiple times per line */
+char *Flag_Output_Format;       /* -o for strftime */
+bool Flag_Suppress;             /* -s suppress other output */
+bool Flag_Custom_Year;          /* -y or -Y YYYY custom year */
 
-time_t now;                     /* for when -y set */
-struct tm filler;               /* for -y or -Y supplied data */
+/* for -[yY] supplied data and pre-filler for subsequent strptime results */
+struct tm Default_Tm;
 
-void parseline(char *, unsigned int, unsigned long);
-void usage(void);
+void emit_help(void);
+void parseline(char *line, const ssize_t linenum);
 
 int main(int argc, char *argv[])
 {
-    int ch;
-    char input_buf[LINE_MAX];
-    unsigned long linenum;
+    time_t now;
 
     if (!setlocale(LC_ALL, ""))
         errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
 
-    while ((ch = getopt(argc, argv, "f:go:syY:")) != -1) {
+    int ch;
+    while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
         switch (ch) {
         case 'f':
-            fflag = optarg;
+            if (asprintf(&Flag_Input_Format, "%s", optarg) == -1)
+                err(EX_SOFTWARE, "asprintf(3) could not copy -f flag");
             break;
+
         case 'g':
-            gflag = 1;
+            Flag_Global = true;
             break;
+
         case 'o':
-            oflag = optarg;
+            if (asprintf(&Flag_Output_Format, "%s", optarg) == -1)
+                err(EX_SOFTWARE, "asprintf(3) could not copy -o flag");
             break;
+
         case 's':
-            sflag = 1;
+            Flag_Suppress = true;
             break;
+
         case 'y':
-            yflag = 1;
             if (time(&now) == -1)
-                errx(EX_OSERR, "time(3) could not obtain current time");
-            localtime_r(&now, &filler);
+                errx(EX_OSERR, "time(3) could not obtain current time??");
+            localtime_r(&now, &Default_Tm);
+            Flag_Custom_Year = true;
             break;
+
         case 'Y':
-            Yflag = optarg;
-            if (!strptime(Yflag, "%Y", &filler))
-                errx(EX_USAGE,
-                     "strptime(3) could not parse year from -Y argument");
+            if (!strptime(optarg, "%Y", &Default_Tm))
+                errx(EX_USAGE, "strptime(3) could not parse year from -Y flag");
+            Flag_Custom_Year = true;
             break;
+
+        case 'h':
+        case '?':
         default:
-            ;
+            emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
     argv += optind;
 
-    if (fflag == NULL || (yflag && Yflag != NULL))
-        usage();
-    if (oflag == NULL)
-        oflag = "%s";           /* Default to epoch for output */
+    if (!Flag_Input_Format)
+        emit_help();
 
-    linenum = 1;
-    while (1) {
-        if (fgets(input_buf, LINE_MAX, stdin) == NULL) {
-            if (!feof(stdin))
-                err(EX_IOERR, "could not read line %ld", linenum);
-            break;
-        } else {
-            parseline(input_buf, strlen(input_buf), linenum);
-            linenum++;
-        }
+    /* Due to crazy behavior on Mac OS X (see also guard for it, below), and
+     * otherwise there are less expensive syscalls that can better deal with
+     * epoch values. */
+    if (strncmp(Flag_Input_Format, "%s", (size_t)2) == 0)
+        errx(EX_DATAERR, "%%s is not supported as input format");
+
+    if (!Flag_Output_Format)
+        Flag_Output_Format = "%s";      // ignore warning about qual. discard
+
+    char *line = NULL;
+    ssize_t linenum = 1;
+    size_t linesize = 0;
+    ssize_t linelen;
+    while ((linelen = getline(&line, &linesize, stdin)) != -1) {
+        parseline(line, linenum);
+        linenum++;
     }
+    if (ferror(stdin))
+        err(EX_IOERR, "getline() error on stdin");
 
-    exit(exit_status);
+    exit(EXIT_SUCCESS);
 }
 
-void parseline(char *input_buf, unsigned int ib_len, unsigned long linenum)
-{
-    char *ibp, *past_date_p;
-    struct tm when;
-    unsigned int j;
-    char out_buf[LINE_MAX];
-    size_t sret;
-
-    ibp = input_buf;
-
-    for (j = 0; j < ib_len; j++) {
-        if (input_buf[j] == '\n') {
-            putchar('\n');
-            break;
-        }
-
-        past_date_p = strptime(ibp, fflag, &when);
-
-        if (past_date_p) {
-            if (when.tm_year == 0 && (yflag || Yflag != NULL)) {
-                when.tm_year = filler.tm_year;
-            }
-            when.tm_isdst = -1; /* Try to auto-handle DST */
-
-            sret = strftime(out_buf, LINE_MAX, oflag, &when);
-            if (sret > 0) {
-                printf("%s%s", out_buf,
-                       (gflag && sflag) ? " "
-                       : gflag ? "" : sflag ? "\n" : past_date_p);
-            } else {
-                exit_status = EX_OSERR;
-                warnx("unexpected return from strftime(3) at line %ld",
-                      linenum);
-            }
-            if (gflag) {
-                j = past_date_p - input_buf - 1;
-                ibp = past_date_p;
-            } else {
-                break;
-            }
-        } else {
-            ibp++;
-            if (!sflag)
-                putchar(input_buf[j]);
-        }
-    }
-
-    return;
-}
-
-void usage(void)
+void emit_help(void)
 {
     fprintf(stderr,
             "Usage: epochal [-sg] [-y|-Y yyyy] -f input-format [-o output-fmt]\n"
             "  Pass data in via standard input. See strftime(3) for formats.\n");
     exit(EX_USAGE);
+}
+
+void parseline(char *line, const ssize_t linenum)
+{
+    char *past_date_p;
+    size_t ret;
+    static char *outbuf;
+    static size_t outbuf_len = OUTBUF_LEN_MIN;
+    static struct tm when;
+
+    if (!outbuf)
+        if ((outbuf = malloc(outbuf_len)) == NULL)
+            err(EX_OSERR, "malloc() failed to create output buffer");
+
+    /* Pre-fill with zeros or what -[yY] or other flags set; this may cause
+     * problems if strptime resets fields expected to be set to what a flag
+     * set, but otherwise need to set something to avoid gibberish values.
+     * However, since current flags are for things the input data lacks, will
+     * let strptime results take priority over the global defaults. */
+    when = Default_Tm;
+
+    while (*line != '\0') {
+        if (*line == '\n') {
+            putchar('\n');
+            break;
+        }
+
+        if ((past_date_p = strptime(line, Flag_Input_Format, &when)) != NULL) {
+            /* Uhh so yeah about that %s thing on Mac OS X. Guard for it. */
+            if (past_date_p - line < 1)
+                errx(EX_SOFTWARE, "error: zero-width timestamp parse");
+
+            while ((ret =
+                    strftime(outbuf, outbuf_len, Flag_Output_Format, &when))
+                   == 0) {
+                outbuf_len <<= 1;
+                if (outbuf_len > OUTBUF_LEN_MAX)
+                    errx(EX_SOFTWARE,
+                         "strftime() output too large for buffer %d at stdin:%ld",
+                         OUTBUF_LEN_MAX, linenum);
+                if ((outbuf = realloc(outbuf, outbuf_len)) == NULL)
+                    err(EX_OSERR,
+                        "realloc() could not resize output buffer to %ld",
+                        outbuf_len);
+            }
+
+            fwrite(outbuf, ret, (size_t) 1, stdout);
+
+            if (!Flag_Global) {
+                if (Flag_Suppress) {
+                    putchar('\n');
+                } else {
+                    printf("%s", past_date_p);
+                }
+
+                /* no global search means we're done with the line */
+                break;
+
+            } else {
+                /* spacer necessary between just the strftimes */
+                if (Flag_Suppress)
+                    putchar(' ');
+            }
+
+            when = Default_Tm;
+            line = past_date_p;
+        } else {
+            /* charwise until strptime finds something, or not */
+            if (!Flag_Suppress) {
+                putchar(*line);
+            }
+            line++;
+        }
+    }
 }

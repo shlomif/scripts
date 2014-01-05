@@ -15,24 +15,26 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility converts timestamps in standard input via the
+utility (tries to) convert timestamps in standard input via a user-supplied
 .Xr strptime 3
 function to an output format (epoch by default, or customized via the
 .Fl o
-option) and emits the data to standard out.
+option), and emits the data to standard out.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl f Ar input-format
 Mandatory, specifies input format timestamps will be detected with. The
 .Xr strftime 3
-manual details the format specification.
+manual details the format specification. Note that
+.Qq Dv %s
+is not supported as an input type, and should not be used. (It is safe as an output format, though.)
 .It Fl g
 Multiple timestamps will be searched for and replaced on a line, instead of just the first.
 .It Fl o Ar output-format
 Output format (default is epoch time via the
 .Qq Dv %s
-conversion specification).
+conversion specification). This format is safe for output, but not as an input format.
 .It Fl s
 Non-timestamp data will be omitted from the output.
 .It Fl y
@@ -42,18 +44,8 @@ field is zero. The current year is only set when the program is launched.
 .It Fl Y Ar year
 Fill in the specified year if the parsed
 .Qq Dv tm_year
-field is zero.
+field is zero. Last mentioned y-flag wins.
 .El
-.Sh RETURN CODES
-.Bl -tag -width Ds
-.It 0
-Success.
-.It 1
-Usage error, probably due to the mandatory
-.Fl o
-option not being supplied. Usage information will be emitted to standard error.
-.It 2
-System error. Indicates a line was too long, or there were errors calling various system functions. Diagnostic messages should be emitted to standard error.
 .Sh EXAMPLES
 Parse 
 .Xr syslogd(8)
@@ -74,12 +66,24 @@ timezone option, or may not support various conversion specifications:
 .Pp
 Though usually converting enough of the timestamp to epoch suffices for
 subsequent awk/perl munging of the data.
-.Sh SEE ALSO
-.Xr strptime 3 ,
-.Xr strftime 3
-.Sh AUTHOR
-.An Jeremy Mates
 .Sh CAVEATS
 The various 
 .Xr strftime 3
-conversion specifications may not be portable, especially to more eldritch flavors of Unix. Non-UTC timezones have not been tested. Daylight Saving Time has not been tested for, but should be detected. There may be other unknown gotchas, depending on the implementation of the system functions involved or the locale involved.
+conversion specifications may not be portable, especially to more eldritch flavors of Unix. Non-UTC timezones have not been tested. Daylight Saving Time has not been tested for (stop using such horrid timezones!). There may be other unknown gotchas, depending on the implementation of the system functions involved or the locale involved.
+.Pp
+.Qq Dv %s
+as mentioned above should not be used with the 
+.Fl f Ar input-format
+flag.
+.Pp
+Also, there may be unexpected date or time values depending on what is missing from the 
+.Xr strptime 3
+parse into the zero-by-default struct, for example if the month or day of month is not parsed from the input. Patches welcome for such an edge case.
+.Sh EXIT STATUS
+.Ex -std epochal
+.Sh SEE ALSO
+.Xr strptime 3 ,
+.Xr strftime 3 ,
+.Xr sysexits 3
+.Sh AUTHOR
+.An Jeremy Mates
