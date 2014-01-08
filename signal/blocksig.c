@@ -38,16 +38,11 @@ int main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "h?s:")) != -1) {
         switch (ch) {
-        case 'h':
-        case '?':
-            emit_help();
-            /* NOTREACHED */
         case 's':
             sigemptyset(&block);
             while (sscanf(optarg, "%d%*[^0-9]%n", &sig_num, &advance) == 1) {
                 if (sig_num < 1)
-                    errx(EX_DATAERR,
-                         "signal number must be positive integer");
+                    errx(EX_DATAERR, "signal number must be positive integer");
                 else if (sig_num > SIG_MAX)
                     errx(EX_DATAERR,
                          "signal number out of range: %d exceeds max of %d",
@@ -56,8 +51,12 @@ int main(int argc, char *argv[])
                 optarg += advance;
             }
             break;
+
+        case 'h':
+        case '?':
         default:
             emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
@@ -71,7 +70,8 @@ int main(int argc, char *argv[])
 
     if (execvp(*argv, argv) == -1)
         err(EX_OSERR, "could not exec %s", *argv);
-    exit(EXIT_SUCCESS);         /* NOTREACHED */
+
+    exit(1);                    /* NOTREACHED */
 }
 
 void emit_help(void)

@@ -34,11 +34,12 @@ main(int argc, char *argv[])
         case 'q':
             Flag_Quiet = true;
             break;
+
         case 'h':
         case '?':
         default:
-            /* NOTREACHED */
             emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;

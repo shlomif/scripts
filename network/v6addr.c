@@ -75,6 +75,7 @@ main(int argc, char *argv[])
 	    Flag_Reverse = true;
 	    Flag_Forward = false;
 	    break;
+
 	case 'h':
 	default:
 	    emit_help();

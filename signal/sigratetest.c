@@ -35,10 +35,9 @@ int main(int argc, char *argv[])
         switch (ch) {
         case 'h':
         case '?':
-            emit_help();
-            /* NOTREACHED */
         default:
             emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;

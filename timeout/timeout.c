@@ -10,6 +10,8 @@
  * For example to kill off a browser after some time:
  *   exec timeout -- 11h systrace -a -e xombrero
  *
+ * Huh, the Linux tools apparently have a `timeout` thingy. Go figure.
+ *
  */
 
 #include <sys/time.h>
@@ -49,15 +51,14 @@ main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "h?q")) != -1) {
 	switch (ch) {
-	case 'h':
-	case '?':
-	    emit_help();
-	    /* NOTREACHED */
 	case 'q':
 	    Flag_Quiet = true;
 	    break;
+	case 'h':
+	case '?':
 	default:
 	    emit_help();
+	    /* NOTREACHED */
 	}
     }
     argc -= optind;

@@ -87,6 +87,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+ /* ugh, linux */
 #if defined(linux) || defined(__linux) || defined(__linux__)
 #include <sys/types.h>
 #include <time.h>
@@ -125,19 +126,26 @@ main(int argc, char *argv[])
         case '6':
             Flag_IPv6ify = true;
             break;
+
+	/* TODO auto-scan string for X and hexchars to figure out size so can
+	 * then remove this option. */
         case 'B':
             if (sscanf(optarg, "%lu", &mac_bytes) != 1)
                 errx(EX_DATAERR, "could not parse -B bytes flag");
             break;
+
         case 'L':
             Flag_Literal = true;
             break;
+
         case 'm':
             Flag_Multicast = true;
             break;
+
         case 'p':
             Flag_Private = true;
             break;
+
         case 'h':
         case '?':
         default:
@@ -160,7 +168,7 @@ main(int argc, char *argv[])
         mstrp = *argv;
 
 #if defined(linux) || defined(__linux) || defined(__linux__)
-    /* something hopefully decent enough */
+    /* something hopefully decent enough :( */
     srandom(time(NULL) ^ (getpid() + (getpid() << 15)));
 #else
     /* assume modern *BSD */
