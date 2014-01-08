@@ -13,24 +13,29 @@
 #include <time.h>
 #include <unistd.h>
 
-#define BUF_MAX 42
+/* for strftime out, minimum sized to the default at time format in my
+ * locale, below. */
+#define BUF_LEN_MIN 18
+#define BUF_LEN_MAX 72
 
 void emit_help(void);
+
+struct tm when;                 /* free zeroing of struct members */
 
 int main(int argc, char *argv[])
 {
     int ch;
-    struct tm when;
-    char strtime[BUF_MAX];
+    /* for strftime output */
+    size_t buf_len = BUF_LEN_MIN;
+    char *buf;
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
         case 'h':
         case '?':
-            emit_help();
-            /* NOTREACHED */
         default:
             emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
@@ -38,6 +43,9 @@ int main(int argc, char *argv[])
 
     if (argc < 1)
         emit_help();
+
+    if ((buf = malloc(buf_len)) == NULL)
+        err(EX_OSERR, "malloc() failed to create output buffer");
 
     if (!strptime(*argv, "%Y-%m-%d", &when))
         errx(EX_DATAERR, "could not parse YYYY-MM-DD");
@@ -48,12 +56,20 @@ int main(int argc, char *argv[])
         when.tm_hour = when.tm_min = 0;
     }
 
-    if (strftime(strtime, BUF_MAX, "%H:%M %b %d %Y", &when) < 1)
-        errx(EX_SOFTWARE, "could not strftime input");
+    while (strftime(buf, buf_len, "%H:%M %b %d %Y", &when) < 1) {
+        buf_len <<= 1;
+        if (buf_len > BUF_LEN_MAX)
+            errx(EX_SOFTWARE, "strftime() output too large for buffer %d",
+                 BUF_LEN_MAX);
+        if ((buf = realloc(buf, buf_len)) == NULL)
+            err(EX_OSERR,
+                "realloc() could not resize output buffer to %ld", buf_len);
+    }
 
-    if (execlp("at", "at", strtime, NULL) == -1)
+    if (execlp("at", "at", buf, NULL) == -1)
         err(EX_OSERR, "could not exec at");
-    exit(EXIT_SUCCESS);         /* NOTREACHED */
+
+    exit(1);                    /* NOTREACHED due to exec or so we hope */
 }
 
 void emit_help(void)

@@ -3,20 +3,17 @@
 #include "findin.h"
 
 static char *dir_list;
-static int got_env = FALSE;
+static bool got_env;
 
-int get_next_env(char *env)
+int get_next_env(char const *env)
 {
     int c;
 
-    if (got_env != TRUE) {
-        dir_list = getenv(env);
-        if (dir_list == NULL) {
-            fprintf(stderr, "no such environment variable: %s\n", env);
-            exit_status = EX_USAGE;
-            return EOF;
+    if (!got_env) {
+        if ((dir_list = getenv(env)) == NULL) {
+            errx(EX_USAGE, "no such environment variable '%s'", env);
         }
-        got_env = TRUE;
+        got_env = true;
     }
 
     c = *dir_list++;

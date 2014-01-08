@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Randomization, fun for the whole family! (And less so for any DHCP or other
+# server that keeps track of such things.) Adjust the random MAC pattern to
+# taste, e.g. all Xs, or whatever. And compile randmac, etc.
+#
+# (OS X 10.9 otherwise lacks the 'lladdr random' feature present on OpenBSD.)
+
+for iface in en0 en1; do
+  sudo ifconfig $iface lladdr $(randmac -L 00:00:36:XX:XX:XX)
+done

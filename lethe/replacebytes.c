@@ -35,118 +35,92 @@
 
 void emit_help(void);
 
-bool Flag_Auto_Size;            /* -s */
-char Flag_Srcfile[PATH_MAX + 1];        /* -f */
-unsigned long Flag_Input_Offset;        /* -I */
+char *Flag_Srcfile;             /* -f */
 unsigned long Flag_Offset;      /* -O */
-unsigned long Flag_Size;        /* -S */
 unsigned long Flag_Trunc;       /* -t */
 
 int main(int argc, char *argv[])
 {
     int ch, fd;
-
-    off_t offset = 0;           /* for -s related lseek auto-sizing */
-
     char *bufp = NULL;
-    ssize_t hdr_size;
+    int buf_len = 0;
+    off_t seek_len;
+    int write_len;
 
-    while ((ch = getopt(argc, argv, "h?f:I:m:O:S:st:")) != -1) {
+    while ((ch = getopt(argc, argv, "h?f:m:O:t:")) != -1) {
         switch (ch) {
-        case 'h':
-        case '?':
-            emit_help();
-            /* NOTREACHED */
         case 'f':
-            /* PORTABILITY olden Unix will lack. Meh. Otherwise, do not
-             * care if truncate, as I don't even know what they're doing
-             * with a path that long. Something naughty, I suppose. */
-            strncpy(Flag_Srcfile, optarg, PATH_MAX);
-            Flag_Srcfile[sizeof(Flag_Srcfile) - 1] = '\0';
+            if ((Flag_Srcfile = strndup(optarg, PATH_MAX)) == NULL)
+                err(EX_SOFTWARE, "could not copy the -f flag");
             break;
-        case 'I':
-            if (sscanf(optarg, "%li", &Flag_Input_Offset) != 1)
-                errx(EX_DATAERR, "could not parse -I offset option");
-            break;
+
         case 'm':
-            /* no trailing \0 as writing the entire buffer */
-            hdr_size = strnlen(optarg, LINE_MAX);
-            if ((bufp = malloc(hdr_size)) == NULL)
-                err(EX_OSERR, "could not malloc() buffer");
-            strncpy(bufp, optarg, hdr_size);
-            Flag_Size = hdr_size;
+            if ((buf_len = asprintf(&bufp, "%s", optarg)) == -1)
+                err(EX_SOFTWARE, "could not copy the -m flag");
             break;
+
         case 'O':
             if (sscanf(optarg, "%li", &Flag_Offset) != 1)
                 errx(EX_DATAERR, "could not parse -O offset option");
             break;
-        case 'S':
-            /* only update size if not already set (e.g. by -m) */
-            if (Flag_Size == 0)
-                if (sscanf(optarg, "%li", &Flag_Size) != 1)
-                    errx(EX_DATAERR, "could not parse -S size option");
-            break;
-        case 's':
-            /* noop if -m fills buffer, above */
-            Flag_Auto_Size = true;
-            break;
+
         case 't':
             if (sscanf(optarg, "%li", &Flag_Trunc) != 1)
                 errx(EX_DATAERR, "could not parse -t truncate option");
             break;
+
+        case 'h':
+        case '?':
         default:
             emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
     argv += optind;
 
-    if (argc == 0 || (Flag_Size == 0 && Flag_Auto_Size == false)
-        || (Flag_Srcfile[0] == '\0' && !bufp))
+    if (bufp && Flag_Srcfile) {
+        warnx("cannot mix -m and -f flags");
         emit_help();
-    if (Flag_Size > 0 && Flag_Auto_Size == true) {
-        warnx("cannot use both -s and -S");
+    }
+    if (argc == 0) {
+        warnx("need files to operate on");
         emit_help();
     }
 
     /********************************************************************
      *
-     * Read to buffer from the source (-f) file (unless -m).
+     * Read to buffer from the source (-f) file.
      *
      */
 
     if (!bufp) {
         if ((fd = open(Flag_Srcfile, O_RDONLY)) == -1)
-            err(EX_IOERR, "could not open() source %s", Flag_Srcfile);
+            err(EX_IOERR, "could not open() -f '%s'", Flag_Srcfile);
 
-        if (Flag_Auto_Size) {
-            if ((offset = lseek(fd, 0, SEEK_END)) == -1)
-                err(EX_IOERR, "could not lseek() to end of %s", Flag_Srcfile);
-            if (offset < 1)
-                errx(EX_DATAERR, "no data in source %s", Flag_Srcfile);
-            if (Flag_Input_Offset > 0) {
-                offset -= Flag_Input_Offset;
-                if (offset < 1)
-                    errx(EX_DATAERR, "no data beyond offset in source %s",
-                         Flag_Srcfile);
-            }
-            if (offset > 0)
-                Flag_Size = offset;
-        }
+        if ((seek_len = lseek(fd, 0, SEEK_END)) == -1)
+            err(EX_IOERR, "could not lseek() to end -f '%s'", Flag_Srcfile);
+        if (seek_len < 1)
+            errx(EX_DATAERR, "no data in -f '%s'", Flag_Srcfile);
 
-        if ((bufp = malloc(Flag_Size)) == NULL)
-            err(EX_OSERR, "could not malloc() buffer");
+        if (seek_len >= INT_MAX)
+            errx(EX_DATAERR, "too much data in -f '%s'", Flag_Srcfile);
+
+        if ((bufp = malloc((size_t) seek_len)) == NULL)
+            err(EX_OSERR, "could not malloc() buffer for -f '%s' contents",
+                Flag_Srcfile);
 
         /* PORTABILITY same concerns as write(2) below, but since a fixed
          * header size is mandatory, do want to fail if cannot read
          * exactly that. */
-        if ((hdr_size =
-             pread(fd, bufp, Flag_Size, Flag_Input_Offset)) != Flag_Size) {
-            if (hdr_size > -1) {
-                errx(EX_IOERR, "could not read %ld from %s: got instead %ld",
-                     Flag_Size, Flag_Srcfile, hdr_size);
+        if ((buf_len = (int) pread(fd, bufp, (size_t) seek_len, 0)) != seek_len) {
+            if (buf_len > -1) {
+                errx(EX_IOERR,
+                     "could not read %lld from -f '%s': got instead %d",
+                     seek_len, Flag_Srcfile, buf_len);
             } else {
-                err(EX_IOERR, "error reading header from %s", Flag_Srcfile);
+                err(EX_IOERR, "error reading header from -f '%s'",
+                    Flag_Srcfile);
             }
         }
         close(fd);
@@ -160,26 +134,28 @@ int main(int argc, char *argv[])
 
     while (*argv) {
         if ((fd = open(*argv, O_WRONLY)) == -1)
-            err(EX_IOERR, "could not open() %s", *argv);
+            err(EX_IOERR, "could not open() output file '%s'", *argv);
 
         /* PORTABILITY "some platforms allow for nbytes to range between
          * SSIZE_MAX and SIZE_MAX -2" per OpenBSD write(2). Worry about
          * this if actually see it in the wild. */
-        if ((hdr_size =
-             pwrite(fd, bufp, Flag_Size, Flag_Offset)) != Flag_Size) {
-            if (hdr_size > -1)
-                errx(EX_IOERR, "could not write %ld to %s: got instead %ld",
-                     Flag_Size, *argv, hdr_size);
+        if ((write_len =
+             (int) pwrite(fd, bufp, (size_t) buf_len,
+                          (off_t) Flag_Offset)) != buf_len) {
+            if (write_len > -1)
+                errx(EX_IOERR,
+                     "could not write %d to output file '%s': got instead %d",
+                     buf_len, *argv, write_len);
             else
-                err(EX_IOERR, "error writing to %s", *argv);
+                err(EX_IOERR, "error writing to output file '%s'", *argv);
         }
 
         if (Flag_Trunc > 0)
-            if (ftruncate(fd, Flag_Trunc) != 0)
-                err(EX_IOERR, "could not truncate() %s", *argv);
+            if (ftruncate(fd, (off_t) Flag_Trunc) != 0)
+                err(EX_IOERR, "could not truncate() outpuat file '%s'", *argv);
 
         if (close(fd) == -1)
-            err(EX_IOERR, "error closing %s", *argv);
+            err(EX_IOERR, "error closing output file '%s'", *argv);
 
         argv++;
     }
@@ -190,6 +166,6 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     fprintf(stderr,
-            "Usage: replacebytes [-f file|-m str] [-I off] [-s|-S size] [-O off] file [..]\n");
+            "Usage: replacebytes [-f file|-m str] [-I offset] file [file2 ...]\n");
     exit(EX_USAGE);
 }

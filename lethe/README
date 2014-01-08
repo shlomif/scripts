@@ -76,3 +76,49 @@ where there is too much information to perform checksums on, or if the
 attack is made while results are being generated, so that the corruption
 is lost in the routine of workflow. These would likely require insider
 knowledge to pull off properly.
+
+Ruminations On Periodic Changes
+
+Timing and other metadata may be masked by automation; if one reads a website
+say in the morning, and again over lunch, this could instead be automated by
+saving a copy say four times per day, and reading the cached copy. This would
+eliminate the timing information of the website reads, though might still
+record client laptop to resource cache interactions, assuming a mostly
+offline laptop.
+
+Commits could also be masked by this method, e.g. by staging `git commit` with
+at(1) jobs, though the complexity of that may preclude effective use; on the
+other hand, public commits and pushes should not be too hard to batch up into
+automated jobs. This would mask the actual commit times and related metadata
+available from that, down to the frequency with which such public commits are
+made, though if all such commits are made say, daily, or weekly, that should
+greatly mask when the changes were actually made.
+
+Timing on comments or other posts to websites would be difficult to mask, as
+these would require automation of the various particular websites, etc. Mail
+might be eaiser, e.g. with a MTA that only releases batched mail at periodic
+intervals (say, once an hour), though these communication delays might pose
+difficulties in conducting online communications, e.g. for a new job. Such slow
+deliveries would help mask when the actual mail was composed, lowering the
+timing and correlation resolution of anyone listening for such events.
+
+On the other hand, increasing the noise, by making web requests more frequent,
+would also help mask timings, and increase the data collection requirements of
+listeners for such metadata. This would work for pull requests, though less so
+for push comments on websites or sending of mail. Mail could send a message of
+the same size at the same times each day, filled with (encrypted) gibberish or
+the actual (encrypted) message, if there is one, to thwart listeners for when
+messages are sent. This would force each actual message to be looked at and
+decryption or other techniques used to try to figure out whether the message is
+gibberish or not. The (encrypted) gibberish would ideally need to be plain-text
+similar to regularly sent messages, e.g. generated via a large corpus and
+markov engine, and the actual messages perhaps also mostly gibberish.
+
+Largly disconnected laptops will be problematic, as these will pop on and off
+the Internet, and need to communicate with cache locations, activity very easy
+for someone interested in to look for. Therefore, the ideal communications
+point would be something always on the Internet, and non-Internet methods used
+to get data to and from that batching/periodic communication node.
+
+Most of the population will not take such measures, so taking such measures
+as are outlined above might well attract notice.

@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Faster for me then fiddling around in system preferences.
+
+if `networksetup -getairportpower en1 | grep -qi On`; then
+  pkill -HUP ssh
+  apple-randomize-macaddr
+  networksetup -setairportpower en1 off
+  echo off
+else
+  # customized to turn off the Apple stuff and just be PF rules to block stuff
+  sudo pfctl -e -F all -f /etc/pf.conf >/dev/null
+
+  networksetup -setairportpower en1 on
+  apple-randomize-macaddr
+  echo on
+fi

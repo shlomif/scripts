@@ -6,6 +6,6 @@ getenv.o: getenv.c findin.h
 	$(CC) $(CFLAGS) -c getenv.c
 
 clean:
-	@-rm -f findin *.o
+	@-rm -f findin *.o *.core
 # for Mac OS X debug info cleanup
 	@-rm -rf *.dSYM

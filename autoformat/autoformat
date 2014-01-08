@@ -26,7 +26,7 @@ END {
 }
 
 # these are the default preferences
-$default = { squeeze => 1, all => 0 };
+$default = { right => 79, squeeze => 1, all => 0 };
 
 # merge in user prefs from command line
 $input = '$user = {' . $ARGV[0] . '};';

@@ -33,6 +33,12 @@ class list
 suffix tar.bz tar.bz2 tbz
 exec tar tvjf %{file}
 
+name xz
+suffix xz 
+exec xz --decompress %{file}
+verbose -v
+quiet -q
+
 # TODO need to experiment with -noautoopen (prevents autorun or not??)
 name Apple disk image
 suffix dmg

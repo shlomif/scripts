@@ -1,10 +1,10 @@
 /*
  * Snips any ultimate linefeed chars (\r and \n) from the named files.
  *
- * This is mostly just silly programming practice; files on Unix often
- * need that ultimate newline, as otherwise shell 'while' loops might
- * loose that last line, and so forth. (Hence certain editors warning if
- * the file lacks a trailing newline.)
+ * This is mostly just silly programming practice; files on Unix often need
+ * that ultimate newline, as otherwise shell 'while' loops might loose that
+ * last line, and so forth. (Hence certain editors warning if the file lacks
+ * a trailing newline.)
  */
 
 #include <err.h>
@@ -17,7 +17,7 @@
 #define BUF_SIZE 512
 
 void trim_file(const int fd, const char *file);
-void usage(void);
+void emit_help(void);
 
 int main(int argc, char *argv[])
 {
@@ -27,17 +27,16 @@ int main(int argc, char *argv[])
         switch (ch) {
         case 'h':
         case '?':
-            usage();
-            /* NOTREACHED */
         default:
-            ;
+            emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
     argv += optind;
 
     if (argc < 1)
-        usage();
+        emit_help();
 
     while (*argv) {
         if ((fd = open(*argv, O_RDWR)) == -1)
@@ -51,16 +50,14 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-/*
- * Read chunks of the file from end to the beginning, truncate at first
- * non-newline character or 0 if beginning of file reached.
- */
+/* Read chunks of the file from end to the beginning, truncate at first non-
+ * newline character or 0 if beginning of file reached. */
 void trim_file(const int fd, const char *file)
 {
     char *bp, buf[BUF_SIZE];
     long byte_count, i, offset, read_size, read_where, total_size, trunc_size;
 
-    if ((total_size = lseek(fd, (off_t)0, SEEK_END)) < 0)
+    if ((total_size = lseek(fd, (off_t) 0, SEEK_END)) < 0)
         err(EX_IOERR, "could not seek '%s'", file);
     if (total_size == 0)
         return;                 /* empty file, nothing to do */
@@ -109,18 +106,17 @@ void trim_file(const int fd, const char *file)
         }
     }
 
-    /*
-     * An edge case is if the file is changed between the "find the
-     * offset" and this here truncate, but that gets into locking, or
-     * more properly the file workflow and how to avoid locking, for
-     * which I am fond of rename(2).
-     */
+    /* An edge case is if the file is changed between the "find the offset"
+     * and this here truncate, but that gets into locking, or more properly
+     * the file workflow and how to avoid locking, for which I am fond of
+     * rename(2). */
     if (trunc_size < total_size)
         if (ftruncate(fd, trunc_size) == -1)
             err(EX_IOERR, "could not truncate '%s'", file);
 }
 
-void usage(void)
+void emit_help(void)
 {
-    errx(EX_USAGE, "need files to snip ultimate newlines from");
+    fprintf(stderr, "Usage: stripeofeol file [file2 ...]\n");
+    exit(EX_USAGE);
 }

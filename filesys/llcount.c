@@ -10,40 +10,45 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define FMT_BUF 42
+void emit_help(void);
 
 int main(int argc, char *argv[])
 {
-    char fmt[FMT_BUF] = "% 3ld % 5ld % 4ld ";
+    char *fmt = "% 3ld % 5ld % 4ld ";
     char *linep;
     FILE *fh;
     int ch;
     size_t len, slen = 0;
-    unsigned long lineno = 1;
+    ssize_t lineno = 1;
 
-    while ((ch = getopt(argc, argv, "f:x")) != -1) {
+    while ((ch = getopt(argc, argv, "f:h?x")) != -1) {
         switch (ch) {
         case 'f':
-            /* not really a sensible thing to offer, especially if in
-             * any way untrustworthy input is involved, e.g. any human
-             * with an input device */
-            strncpy(fmt, optarg, FMT_BUF);
-            fmt[FMT_BUF - 1] = '\0';
+            /* Not really a sensible thing to offer, especially if in any way
+             * untrustworthy input is involved, that is, any human with any
+             * input device. */
+            asprintf(&fmt, "%s", optarg);
             break;
+
         case 'x':
-            strncpy(fmt, "% 3ld %# 5lx % 4ld ", FMT_BUF);
-            fmt[FMT_BUF - 1] = '\0';
+            asprintf(&fmt, "%% 3ld %%# 5lx %% 4ld ");
             break;
+
+        case 'h':
+        case '?':
+        default:
+            emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
     argv += optind;
 
     if (argc != 1)
-        errx(EX_USAGE, "[-x | -f ...] file");
+        emit_help();
 
     if ((fh = fopen(*argv, "r")) == NULL)
-        err(EX_IOERR, "could not open %s", *argv);
+        err(EX_IOERR, "could not open '%s'", *argv);
 
     while ((linep = fgetln(fh, &len)) != NULL) {
         dprintf(STDOUT_FILENO, fmt, lineno++, slen, len);
@@ -54,4 +59,10 @@ int main(int argc, char *argv[])
         err(EX_IOERR, "error reading file");
 
     exit(EXIT_SUCCESS);
+}
+
+void emit_help(void)
+{
+    fprintf(stderr, "Usage: llcount [-x | -f ...] file\n");
+    exit(EX_USAGE);
 }

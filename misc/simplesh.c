@@ -40,7 +40,7 @@ int main(void)
 
         else if (pid == 0) {    // child
             execlp(buf, buf, NULL);
-            warn("%s%s", "could not execlp ", buf);
+            warn("could not execlp '%s'", buf);
             exit(127);
         }
 
