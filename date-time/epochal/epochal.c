@@ -26,6 +26,8 @@
 #define OUTBUF_LEN_MIN 32
 #define OUTBUF_LEN_MAX 8192
 
+#define INPUT_FORMAT_MAXLEN 99
+
 /* Command Line Options */
 char *Flag_Input_Format;        /* -f for strptime - required */
 bool Flag_Global;               /* -g multiple times per line */
@@ -50,7 +52,8 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
         switch (ch) {
         case 'f':
-            if (asprintf(&Flag_Input_Format, "%s", optarg) == -1)
+            if (asprintf(&Flag_Input_Format, "%*s", INPUT_FORMAT_MAXLEN, optarg)
+                == -1)
                 err(EX_SOFTWARE, "asprintf(3) could not copy -f flag");
             break;
 
@@ -59,7 +62,8 @@ int main(int argc, char *argv[])
             break;
 
         case 'o':
-            if (asprintf(&Flag_Output_Format, "%s", optarg) == -1)
+            if (asprintf
+                (&Flag_Output_Format, "%*s", INPUT_FORMAT_MAXLEN, optarg) == -1)
                 err(EX_SOFTWARE, "asprintf(3) could not copy -o flag");
             break;
 
@@ -96,7 +100,7 @@ int main(int argc, char *argv[])
     /* Due to crazy behavior on Mac OS X (see also guard for it, below), and
      * otherwise there are less expensive syscalls that can better deal with
      * epoch values. */
-    if (strncmp(Flag_Input_Format, "%s", (size_t)2) == 0)
+    if (strncmp(Flag_Input_Format, "%s", (size_t) 2) == 0)
         errx(EX_DATAERR, "%%s is not supported as input format");
 
     if (!Flag_Output_Format)

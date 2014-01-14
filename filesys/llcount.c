@@ -10,6 +10,8 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#define INPUT_FORMAT_MAXLEN 99
+
 void emit_help(void);
 
 int main(int argc, char *argv[])
@@ -27,7 +29,8 @@ int main(int argc, char *argv[])
             /* Not really a sensible thing to offer, especially if in any way
              * untrustworthy input is involved, that is, any human with any
              * input device. */
-            asprintf(&fmt, "%s", optarg);
+            if (asprintf(&fmt, "%*s", INPUT_FORMAT_MAXLEN, optarg) == -1)
+	      err(EX_SOFTWARE, "asprintf(3) could not copy -f flag");
             break;
 
         case 'x':

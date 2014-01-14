@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     pid = fork();
     switch (pid) {
     case -1:
-        errx(EX_UNAVAILABLE, "%s", "could not fork");
+        errx(EX_UNAVAILABLE, "could not fork");
 
     case 0:                    /* child */
         signal(SIGUSR1, handle);

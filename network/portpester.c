@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 
     host = argv[0];
     if (!host || host[0] == '\0')
-        errx(R_USAGE, "%s", "no hostname specified");
+        errx(R_USAGE, "no hostname specified");
     port = argv[1];
 
     /*
@@ -110,14 +110,13 @@ int main(int argc, char *argv[])
             tmp = strtok(NULL, ":");
             if (tmp) {
                 if (port)
-                    errx(R_USAGE, "%s",
-                         "cannot mix host:port and host port usages");
+                    errx(R_USAGE, "cannot mix host:port and host port usages");
                 port = tmp;
             }
         }
     }
     if (!port)
-        errx(R_USAGE, "%s", "no port specified");
+        errx(R_USAGE, "no port specified");
 
     setlinebuf(stdout);         /* play adequately with tee(1) */
 
@@ -138,7 +137,7 @@ int main(int argc, char *argv[])
              socket(res->ai_family, res->ai_socktype,
                     res->ai_protocol)) < 0) {
             if (vflag)
-                warn("%s", "could not create socket");
+                warn("could not create socket");
             err_count++;
         } else {
             /* TODO may need to set other sockopts here (IP_TOS, SO_SNDBUF?) */

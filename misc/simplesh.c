@@ -36,7 +36,7 @@ int main(void)
         buf[strlen(buf) - 1] = 0;
 
         if ((pid = fork()) < 0)
-            warn("%s", "fork error");
+            warn("fork error");
 
         else if (pid == 0) {    // child
             execlp(buf, buf, NULL);
@@ -45,7 +45,7 @@ int main(void)
         }
 
         if ((pid = waitpid(pid, &status, 0)) < 0)       // parent
-            warn("%s", "waitpid error");
+            warn("waitpid error");
 
         printf("shs%% ");
     }
