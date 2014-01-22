@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+#
+# Generates a unique "word" not present in the input "words". This word will be
+# as short as possible (unless all possible char->char combinations are present
+# in the input). This digression motivated by the question "how can I find a
+# unique and ideally short to type string that does not exist in this here
+# input data?" The quick solution to the actual problem was to use
+# "matlab_kluge" which is unique given MATLAB filesystem paths as input. Oh,
+# and to the programmer who made MATLAB refuse to install add-ons on unix if
+# the install path contains the '.' character: I hate you. But it did prompt
+# this I guess graph theory pratice.
+
+use strict;
+use warnings;
+
+use List::Util qw/max/;
+
+my ( %freq, %seen );
+my $max_word_len = 0;
+
+# If possible, trim redundant data from the input to speed this parsing bit up.
+# That is, pass in just "cat" instead of "cat cat cat", or for filesystem paths
+# do something like `(pwd; find . -type f) | notin` instead of having find(1)
+# repeat the fully qualified path on each and every file hit.
+while (<>) {
+  for my $word (m/[a-z]+/g) {
+    my @chars = split '', $word;
+    for my $i ( 0 .. $#chars - 1 ) {
+      $freq{ $chars[$i] }++;
+      $seen{ $chars[$i] }{ $chars[ $i + 1 ] } = ();
+    }
+    $max_word_len = max( length $word, $max_word_len );
+  }
+}
+
+# Favor less-frequently-links-elsewhere characters before their more
+# popular peers. (Moreso a waste of time as graph approaches the edge case
+# detailed below.)
+my @out_chars = map $_->[1],
+  sort { $a->[0] <=> $b->[0] } map { [ $freq{$_} // 0, $_ ] } ('a'..'z');
+
+# Build the unique word (via the first character that steps off the graph
+# established by the character links in the input data)
+my @walk = $out_chars[0];
+FOREVER: while (1) {
+  for my $c (@out_chars) {
+    if ( !exists $seen{ $walk[-1] }{$c} ) {
+      push @walk, $c;
+      last FOREVER;
+    }
+  }
+  push @walk, $out_chars[0];
+
+  # Edge case: a pathological graph where every possible char->char link has
+  # been established, which without this check would create an anti-halting
+  # pattern. Well, until the process ran into some limit, e.g. the user
+  # swearing and mashing on C+c, or running out of memory. If we've constructed
+  # a word longer than the longest word in the input, it's pretty likely to be
+  # unique. This method then necessitates running up to the longest word in the
+  # input for such graphs; a more clever solution would necessitate deeper
+  # knowledge of actual walks in the input data, e.g. that "a", "ab", "aba" but
+  # not "abab" exist in the Gutenberg complete Shakespeare text.
+  #
+  # This also implies that if you do not care about finding the shortest string
+  # (when there are missing char->char links, that is), a more expedient method
+  # might be to calculate the longest word in the input, then emit "a"x($len+1)
+  # as your unique word.
+  last FOREVER if @walk > $max_word_len;
+}
+print join( '', @walk ), "\n";
