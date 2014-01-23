@@ -39,7 +39,7 @@ my $max_word_len = 0;
 
 while (<>) {
   # NOTE this list of characters should probably agree with @out_chars
-  for my $word (m/([a-z]{2,})/g) {
+  for my $word (m/[a-z]{2,}/g) {
     next if $words{$word}++;
 
     my @chars = split '', $word;
