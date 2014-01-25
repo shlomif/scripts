@@ -7,13 +7,16 @@ use strict;
 use warnings;
 use feature qw(say);
 
+# see "Non-Uniform Random Variate Generation" by Luc Devroye for gory details
+use Math::Random::Discrete;
+
 my %Dog_Days = (
   kennel => { states => { door  => 0.5, gate1 => 0.5 }, },
   door   => { states => { tree  => 1 }, },
   gate1  => { states => { tree  => 1 }, },
   gate2  => { states => { loops => 1 }, },
   tree   => { states => { tree  => 0.9, loops => 0.1 }, },
-  loops  => { states => { loops => 0.83, gate2 => 0.16, kennel => 0.1 }, },
+  loops => { states => { loops => 0.83, gate2 => 0.16, kennel => 0.1 }, },
 );
 cummulate( \%Dog_Days );
 
@@ -24,49 +27,24 @@ do {
     warn "notice: aborting as no such node '$current_state'\n";
     $current_state = 'kennel';
   } else {
-    $current_state = pick( $Dog_Days{$current_state}->{odds} );
+    $current_state = $Dog_Days{$current_state}->{pick}->rand;
   }
 } until $current_state eq 'kennel';
 
 say $current_state;
 exit 0;
 
-# Build weighted odds to determine next state. Keep original odds around
-# in event start tuning the results and need to easily rebuild the quick-to-
-# pick from odds thingy. Scales well enough to small datasets (a few
-# thousand entries), limited subsequent status (well under 50), and
-# short musical phrases (most often well under 100 elements).
 sub cummulate {
   my ($decisions) = @_;
   for my $node ( keys %$decisions ) {
-    my $sum = 0;
-    for my $v ( values %{ $decisions->{$node}->{states} } ) {
-      if ( $v < 0 ) {
-        warn "warning: node '$node' adjusting negative value to zero\n";
-        $v = 0;
-      }
-      $sum += $v;
+    my ( @things, @weights );
+    for my $thing ( keys %{ $decisions->{$node}->{states} } ) {
+      push @things,  $thing;
+      push @weights, $decisions->{$node}->{states}->{$thing};
     }
-    die "error: node '$node' lacks choices of value\n" if $sum == 0;
+    die "error: node '$node' lacks choices\n" unless @things;
 
-    my $cumm = 0;
-    my @odds;
-    for my $k ( keys %{ $decisions->{$node}->{states} } ) {
-      $cumm += $decisions->{$node}->{states}->{$k} / $sum;
-      unshift @odds, [ $cumm, $k ];
-    }
-    $decisions->{$node}->{odds} = \@odds;
+    $decisions->{$node}->{pick} =
+      Math::Random::Discrete->new( \@weights, \@things );
   }
-}
-
-# Simplistic weighted value picker. "the alias method" is likely more
-# efficient, but that would require switching to or borrowing code from
-# Math::Random::Discrete or delving through learnin' materials such as
-# "Non-Uniform Random Variate Generation" by Luc Devroye.
-sub pick {
-  my ($odds) = @_;
-  my $rand = rand;
-  my $choice;
-  for my $i (@$odds) { $choice = $i->[1] if $i->[0] >= $rand }
-  return $choice;
 }
