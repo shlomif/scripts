@@ -1,0 +1,13 @@
+#!/bin/sh
+
+rm sym
+
+# try to get derp.sh to write into evil file instead of expected sym
+make bruteln
+./bruteln evil sym &
+
+echo >&2 remember to pkill bruteln
+
+while [ 1 ]; do
+  ./derp.sh
+done
