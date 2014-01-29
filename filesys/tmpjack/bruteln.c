@@ -4,23 +4,17 @@
  * files or whatnot in a tmp dir or b) instead used mktemp(3) properly.
  */
 
-#include <sys/time.h>
-
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
 
-#define USEC_IN_SEC 1000000
-
 void emit_help(void);
 
 int main(int argc, char *argv[])
 {
     int ch;
-    struct timeval before, after;
-    double delta_t;
 
     while ((ch = getopt(argc, argv, "h?s")) != -1) {
         switch (ch) {
@@ -36,8 +30,6 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    gettimeofday(&before, NULL);
-
     while (1) {
         /* could doubtless be much improved on, for example with inode change
          * notification services, or more intelligent unlink/symlink cycles, or
@@ -45,11 +37,6 @@ int main(int argc, char *argv[])
         symlink(argv[0], argv[1]);
         unlink(argv[1]);
     }
-
-    gettimeofday(&after, NULL);
-    delta_t = after.tv_sec - before.tv_sec;
-    delta_t += (after.tv_usec - before.tv_usec) / USEC_IN_SEC;
-    fprintf(stderr, "delta %.3f\n", delta_t);
 
     exit(EXIT_SUCCESS);
 }
