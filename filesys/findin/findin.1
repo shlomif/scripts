@@ -25,13 +25,15 @@ Directories passed via standard input must be specified one per line. Returning 
 .B $ echo $fpath | tr ' ' '\\\\n' | findin _mplayer -
 
 .SH "SEE ALSO"
-find(1), findup(1), glob(3)
+find(1), findup(1), glob(3), zshexpn(1), zshparam(1)
 
-Using the Z-Shell (zsh), this utility can be replaced with expressions such as:
+Using the Z-Shell (zsh), this utility might be replaced with expressions such as:
 
-.B % print -l ${^fpath}/_mplayer
+.B % print -l ${^fpath}/_pgrep(N)
 
-.B % print -l ${^path}/*cpu*(N)
+.B % print -l ${^path}/perl(N)
+
+.B % print -l ${^${(s.:.)PATH}}/perl(N)
 
 .SH BUGS
 No known issues.
