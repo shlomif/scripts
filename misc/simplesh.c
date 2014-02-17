@@ -11,18 +11,15 @@
  *
  * Ideas for implementing 'cd' at end of this file.
  */
-
 #include <sys/types.h>
 #include <sys/wait.h>
-
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
-
 #define MAXLINE 640
-
 int main(void)
 {
     char buf[MAXLINE];
@@ -33,19 +30,19 @@ int main(void)
 
     printf("shs%% ");
     while (fgets(buf, MAXLINE, stdin) != NULL) {
-        buf[strlen(buf) - 1] = 0;
+        buf[strlen(buf) - 1] = '\0';
 
-        if ((pid = fork()) < 0)
-            warn("fork error");
-
-        else if (pid == 0) {    // child
+        pid = vfork();
+        if (pid == 0) {         /* child */
             execlp(buf, buf, NULL);
             warn("could not execlp '%s'", buf);
-            exit(127);
+            _exit(EX_OSERR);
+        } else if (pid > 0) {   /* parent */
+            if ((pid = waitpid(pid, &status, 0)) < 0)
+                warn("waitpid error");
+        } else {
+            warn("vfork error");
         }
-
-        if ((pid = waitpid(pid, &status, 0)) < 0)       // parent
-            warn("waitpid error");
 
         printf("shs%% ");
     }

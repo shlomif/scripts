@@ -59,10 +59,10 @@ int main(int argc, char *argv[])
     send_delay.tv_sec = 0;
     send_delay.tv_nsec = nsecs;
 
-    pid = fork();
+    pid = vfork();
     switch (pid) {
     case -1:
-        errx(EX_UNAVAILABLE, "could not fork");
+        errx(EX_UNAVAILABLE, "could not vfork");
 
     case 0:                    /* child */
         signal(SIGUSR1, handle);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
             sleep(1);
         fprintf(stderr, "rate %ld ooo %d sigs %d\n", send_delay.tv_nsec,
                 ooo_count, sig_count);
-        exit(0);
+        _exit(0);
 
     default:                   /* parent */
         signal(SIGCHLD, SIG_IGN);

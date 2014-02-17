@@ -69,7 +69,7 @@ main(int argc, char *argv[])
 
     iTimer.it_value.tv_sec = parse_duration(*argv++);
 
-    bill = fork();
+    bill = vfork();
     if (bill == 0) {		/* child */
 	if (execvp(*argv, argv) == -1)
 	    err(EX_OSERR, "could not exec %s", *argv);
