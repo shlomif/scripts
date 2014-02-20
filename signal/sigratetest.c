@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     send_delay.tv_sec = 0;
     send_delay.tv_nsec = nsecs;
 
-    pid = vfork();
+    pid = fork();
     switch (pid) {
     case -1:
         errx(EX_UNAVAILABLE, "could not vfork");
