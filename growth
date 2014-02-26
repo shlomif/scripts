@@ -1,0 +1,16 @@
+#!/usr/bin/env perl
+#
+# Grow $100 (or whatever--the monetary units are not important) by 1% over 5000
+# years. Absurd result aside, bear in mind that no (recorded) human culture has
+# yet to hold its fiscal systems together for anything close to that walk of
+# time. Maybe the dinosaurs? They certainly were "too big to fail."
+
+use strict;
+use warnings;
+
+my $p = 1.00e2;
+
+for my $y ( 1 .. 5.00e3 ) {
+  $p += $p * 1.00e-2;
+}
+printf "%.3g\n", $p;
