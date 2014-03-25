@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+#
+# Maybe run something. Maybe not.
+
+use strict;
+use warnings;
+
+use File::Basename qw/basename/;
+use Scalar::Util qw/looks_like_number/;
+
+my $PROG = basename $0;
+
+my $odds = shift or die "Usage: maybe n/m cmd [cmdargs..]\n";
+my ( $numer, $denom ) = split '/', $odds, 2;
+
+if ( !defined $numer
+  or !defined $denom
+  or !looks_like_number $numer
+  or !looks_like_number $denom
+  or $numer <= 0
+  or $denom <= 0 ) {
+  warn "$PROG: could not parse odds from first argument\n";
+  die "Usage: maybe n/m cmd [cmdargs..]\n";
+}
+
+if ( $numer > $denom ) {
+  warn "$PROG: numerator must be less than denominator\n";
+  die "Usage: maybe n/m cmd [cmdargs..]\n";
+}
+
+exit if rand() > $numer / $denom;
+exec @ARGV;
