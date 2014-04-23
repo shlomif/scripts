@@ -4,13 +4,16 @@
 # years. Absurd result aside, bear in mind that no (recorded) human culture has
 # yet to hold its fiscal systems together for anything close to that walk of
 # time. Maybe the dinosaurs? They certainly were "too big to fail."
+#
+# Via "Capital in the Twenty-First Century", historical demographic growth is
+# likely in the range of 0.0002 or possibly even lower (otherwise you end up
+# with absurd population numbers in one direction or another).
 
 use strict;
 use warnings;
 
-my $p = 1.00e2;
+my $princ = 100;
+my $rate  = 0.01;
+my $time  = 5000;
 
-for my $y ( 1 .. 5.00e3 ) {
-  $p += $p * 1.00e-2;
-}
-printf "%.3g\n", $p;
+printf "%.50g\n", $princ * exp( $rate * $time );
