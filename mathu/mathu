@@ -15,20 +15,21 @@ use Scalar::Util qw(looks_like_number);
 my $PHI = 1.6180339887498948482;
 
 my %ability = (
-  sum         => { handle => \&handle_sum, },
-  mean        => { handle => \&handle_mean, },
-  sdev        => { handle => \&handle_sdev, },
-  percent     => { handle => \&handle_percent, },
-  max         => { handle => \&handle_max, },
-  min         => { handle => \&handle_min, },
   basic       => { handle => \&handle_basic, },
   dist        => { handle => \&handle_distribution, },
-  ratio       => { handle => \&handle_ratio, },
-  golden      => { handle => \&handle_golden, },
   divisibleby => { handle => \&handle_divisibleby, },
   empirical   => { handle => \&handle_empirical, },
-  zscore      => { handle => \&handle_zscore, },
+  expo        => { handle => \&handle_expo, },
+  golden      => { handle => \&handle_golden, },
+  max         => { handle => \&handle_max, },
+  mean        => { handle => \&handle_mean, },
+  min         => { handle => \&handle_min, },
+  percent     => { handle => \&handle_percent, },
   polyfactor  => { handle => \&handle_polyfactor, },
+  ratio       => { handle => \&handle_ratio, },
+  sdev        => { handle => \&handle_sdev, },
+  sum         => { handle => \&handle_sum, },
+  zscore      => { handle => \&handle_zscore, },
 );
 
 # how to format output numbers with printf
@@ -144,9 +145,8 @@ sub handle_basic {
   $results{count} = @array;
 
   print map {
-        $_ . " "
-      . ( $results{$_} =~ /\./ ? numbertidy( $results{$_} ) : $results{$_} )
-      . "\n"
+    $_ . " "
+      . ( $results{$_} =~ /\./ ? numbertidy( $results{$_} ) : $results{$_} ) . "\n"
   } sort keys %results;
 }
 
@@ -258,6 +258,13 @@ sub handle_empirical {
   for ( -3 .. 3 ) {
     print $_, "\t", $mean + $_ * $sdev, "\n";
   }
+}
+
+# PeRT
+sub handle_expo {
+  my ( $principal, $rate, $time ) = @ARGV;
+
+  printf "$format\n", $principal * exp( $rate * $time );
 }
 
 sub handle_zscore {
