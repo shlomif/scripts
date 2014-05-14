@@ -1,0 +1,95 @@
+#!/usr/bin/env perl
+#
+# Shows new (unseen) lines from a file, based on a cached seek() value if
+# possible but otherwise the whole file; contexts allow for different
+# readers of the same file to maintain independent read positions. Various
+# conditions (e.g. a new inode due to rename(2), log rotation, new lines
+# changed at top of the file, etc) may cause file contents to be missed;
+# this program is not for such cases.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the same terms as Perl itself.
+
+use strict;
+use warnings;
+
+use File::Basename qw/basename dirname/;
+use File::Path qw/make_path/;
+use File::Spec ();
+use Getopt::Long qw/GetOptions/;
+
+my $MYNAME = basename($0);
+
+GetOptions(
+  'cache-dir|D=s' => \my $Flag_Cache_Dir,
+  'context|c=s'   => \my $Flag_Context,
+  'dry-run|n'     => \my $Flag_Dry_Run,
+  'help|h|?'      => \&print_help,
+) or print_help();
+
+if ( !defined $Flag_Cache_Dir ) {
+  die "$MYNAME: error: need --cache-dir for stash files\n";
+}
+$Flag_Context ||= 'default';
+
+my $file = shift || print_help();
+
+# Device and inode used to track files; this will likely require some sort
+# of tmpwatch cleanup on the cache dir, though will handle new mounts or
+# files changing due to inode, with all the benefits and pitfalls thereof.
+my $file_num = join '.', ( stat($file) )[ 0, 1 ];
+my $stash_file =
+  File::Spec->catfile( $Flag_Cache_Dir, $file_num, $Flag_Context );
+
+my $last_position = 0;
+
+open my $seek_log, '<', $stash_file;
+if ($seek_log) {
+  ($last_position) = readline($seek_log) =~ m/^([0-9]+)/;
+}
+
+open my $fh, '<', $file or die "$MYNAME: error: could not open '$file': $!\n";
+seek $fh, $last_position, 0
+  or die "$MYNAME: error: could not seek on '$file': $!\n";
+print while readline $fh;
+
+if ( !$Flag_Dry_Run ) {
+  $last_position = tell $fh;
+
+  eval { make_path( dirname($stash_file) ) };
+  if ($@) {
+    chomp $@;
+    die "$MYNAME: error: could not create directory for '$stash_file': $@\n";
+  }
+
+  open $seek_log, '>', $stash_file
+    or die "$MYNAME: error: could not write to stash '$stash_file': $!\n";
+  print $seek_log $last_position, "\n";
+  close $seek_log;
+}
+
+########################################################################
+#
+# SUBROUTINES
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "$MYNAME: error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
+}
+
+sub print_help {
+  warn <<"HELP";
+Usage: $MYNAME [-D cachedir] [-c context] file
+
+Shows lines not previously seen from a file.
+
+  -c ccc   Context (unique label for a unique position in file).
+  -D dir   Cache directory.
+  -n       Dry run. Last seen position is not updated.
+
+HELP
+  exit 64;
+}
