@@ -16,6 +16,8 @@
  * line up to bit size boundaries). Hooray? A library version that used
  * "all the random bits" and offered dynamic range selection of varying
  * amounts of bits was about *twice* as slow as just calling random()!
+ *
+ * Also, use arc4random() and family instead of srandomdev/random anyways.
  */
 
 #include <err.h>

@@ -87,12 +87,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
- /* ugh, linux */
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#include <sys/types.h>
-#include <time.h>
-#endif
-
 #include "macutil.h"
 
 /* http://tools.ietf.org/html/rfc2373 - section 2.5.1 - 2 or 0010 for
@@ -166,14 +160,6 @@ main(int argc, char *argv[])
 
     if (argc > 0)
         mstrp = *argv;
-
-#if defined(linux) || defined(__linux) || defined(__linux__)
-    /* something hopefully decent enough :( */
-    srandom(time(NULL) ^ (getpid() + (getpid() << 15)));
-#else
-    /* assume modern *BSD */
-    srandomdev();
-#endif
 
     if (str2mac(mstrp, mp, mac_bytes) == -1)
         errx(EX_DATAERR, "not enough data to fill MAC");
