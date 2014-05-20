@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Check for a DNAME record in a given domain.tld; these have been used to make
+# "foo.longexamplename.edu" a mirror for "foo.len.edu" and then hilarity
+# happens when records are added to the zone with the DNAME in it, for the
+# serial updates, but the new records do not show up. If possible, avoid any
+# such DNS name changes, and if there is a name change, avoid this sort of
+# mirroring.
+
+if [ -z "$1" ]; then
+  echo >&2 Usage: $0 domain.tld
+fi
+OUT=`dig +short -t DNAME -q "$1" 2>&1`
+if [ -z "$OUT" ]; then
+  exit
+else
+  echo $OUT
+  exit 1
+fi
