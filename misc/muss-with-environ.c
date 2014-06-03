@@ -3,7 +3,7 @@
  * possible for something misbehaved to muss with the pointer and create a
  * duplicate environment entry:
  *
- *   make muss-with-environ && ./muss-with-environ env | grep PATH
+ *   make muss-with-environ && ./muss-with-environ env | grep '^'PATH
  */
 
 #include <err.h>
@@ -12,12 +12,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+extern char **environ;
+
 void emit_help(void);
 
 int main(int argc, char *argv[])
 {
     int ch;
-    extern char **environ;
+    char **envp;
 
     /* mostly to get argv lined up right */
     while ((ch = getopt(argc, argv, "h?")) != -1) {
@@ -37,13 +39,14 @@ int main(int argc, char *argv[])
         emit_help();
 
     /* don't do this. */
-    char **envp = environ;
-    while (*envp++ != NULL);
-    envp--;
+    envp = environ;
+    while (*envp != NULL) {
+        envp++;
+    }
     *envp++ = "PATH=/wibble";
-    envp = NULL;
+    *envp = NULL;
 
-    if (execvp(argv[0], argv) == -1)
+    if (execvp(*argv, argv) == -1)
         err(EX_OSERR, "could not exec '%s'", argv[0]);
 
     /* NOTREACHED due to exec or so we hope */
