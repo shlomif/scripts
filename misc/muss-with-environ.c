@@ -4,6 +4,11 @@
  * duplicate environment entry:
  *
  *   make muss-with-environ && ./muss-with-environ env | grep '^'PATH
+ *
+ * As to why any application would do such, well, that's a good question, and
+ * I've certainly never seen it in production, but someone on #zsh claimed to
+ * have seen duplicate environment entries on Mac OS X somehow...might also be
+ * handy to test application behavior in such a wacky case.
  */
 
 #include <err.h>
