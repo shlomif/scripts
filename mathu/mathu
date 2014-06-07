@@ -16,6 +16,7 @@ my $PHI = 1.6180339887498948482;
 
 my %ability = (
   basic       => { handle => \&handle_basic, },
+  C           => { handle => \&handle_C, },
   dist        => { handle => \&handle_distribution, },
   divisibleby => { handle => \&handle_divisibleby, },
   empirical   => { handle => \&handle_empirical, },
@@ -148,6 +149,20 @@ sub handle_basic {
     $_ . " "
       . ( $results{$_} =~ /\./ ? numbertidy( $results{$_} ) : $results{$_} ) . "\n"
   } sort keys %results;
+}
+
+sub handle_C {
+  my ( $n, $r ) = @ARGV;
+
+  die "Usage: $0 C n r (where n>=r)\n" if $n < $r;
+
+  printf "%d\n", factorial($n) / ( factorial($r) * factorial( $n - $r ) );
+}
+
+sub factorial {
+  my $s = 1;
+  for ( 2 .. $_[0] ) { $s *= $_ }
+  $s;
 }
 
 sub handle_distribution {
