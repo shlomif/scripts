@@ -21,7 +21,7 @@ int main(void)
  * Otherwise not very portable, given the distances involved, or the varying
  * struct forms between different OS. */
     pthread_t weaver_maid, ox_driver;
-    int pattern = 1431655765;
+    int pattern = 21845;
     int *driver;
 
     if (pthread_create(&weaver_maid, NULL, waiting, &pattern) != 0)
@@ -37,15 +37,22 @@ int main(void)
 
 void *busy(void *arg)
 {
-    fprintf(stderr, "thread tid %p is %s\n", pthread_self(), (char *) arg);
+    fprintf(stderr, "thread tid %p is %s\n", (void *)pthread_self(), (char *) arg);
     for (;;);
-    return ((void *) 0);
 }
 
 void *waiting(void *arg)
 {
+    int *patternp = arg;
     struct timespec yawn = { 21, 42 };
-    fprintf(stderr, "thread tid %p waits\n", pthread_self());
+    fprintf(stderr, "thread tid %p waits\n", (void *)pthread_self());
+    *patternp = 43690;
     nanosleep(&yawn, NULL);
     pthread_exit(arg);
+
+    /* This gets a "control reaches end of non-void function" warning which
+     * the following will suppress though 'The pthread_exit() function
+     * cannot return to its caller' kinda obviates the possibility of it
+     * being called. */
+    //return ((void *) -1);
 }
