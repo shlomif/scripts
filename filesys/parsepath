@@ -125,8 +125,7 @@ if ( !exists $opts{constraint} ) {
 if ( exists $opts{constraint} and not exists $opts{role} ) {
   if ( exists $opts{options}->{g} ) {
     $opts{role} =
-      determine_role( 'group', split / /,
-      exists $opts{options}->{R} ? $( : $) );
+      determine_role( 'group', split / /, exists $opts{options}->{R} ? $( : $) );
   } else {
     $opts{role} =
       determine_role( 'user', exists $opts{options}->{R} ? $< : $> );
@@ -188,8 +187,7 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
 
       $links_followed++;
       if ( $links_followed > $LINK_FOLLOW_MAX ) {
-        warn
-          "error: symlink recursion exceeded: limit=$LINK_FOLLOW_MAX, path=$path\n";
+        warn "error: symlink recursion exceeded: limit=$LINK_FOLLOW_MAX, path=$path\n";
         next PATH;
       }
       $current = $previous;
@@ -269,8 +267,7 @@ sub determine_role {
       $userdata{id} = eval qq{$function("$who")};
 
       if ( !defined $userdata{id} ) {
-        warn
-          "error: could not determine id: function=$function, $type=$who\n";
+        warn "error: could not determine id: function=$function, $type=$who\n";
         exit 102;
       }
 
@@ -290,8 +287,7 @@ sub determine_role {
     my $id = ( getpwuid $userdata[0]->{id} )[3];
 
     if ( !defined $id ) {
-      warn "warning: user id not found, ignoring: id=", $userdata[0]->{id},
-        "\n";
+      warn "warning: user id not found, ignoring: id=", $userdata[0]->{id}, "\n";
     } else {
 
       if ( !exists $seen{"group.$id"} ) {
@@ -332,11 +328,14 @@ sub getfileinfo {
 
   my %filedata;
   $filedata{name} = $file;
-  @filedata{qw(unix_mode unix_uid unix_gid)} = ( lstat $file )[ 2, 4, 5 ];
+  @filedata{qw(dev ino unix_mode unix_uid unix_gid)} =
+    ( lstat $file )[ 0, 1, 2, 4, 5 ];
 
   if ( !defined $filedata{unix_mode} ) {
     return;
   }
+
+  $filedata{unix_id} = join '.', $filedata{dev}, $filedata{ino};
 
   # TODO means of converting unix mode to drwx------ format?
 
@@ -407,7 +406,9 @@ sub render_filedata {
   my $filedata = shift;
 
   return
-    "$filedata->{type} $filedata->{unix_mode_octal} $filedata->{unix_user}:$filedata->{unix_group} $filedata->{name}"
+      "$filedata->{type} $filedata->{unix_mode_octal} "
+    . ( exists $opts{options}->{i} ? $filedata->{unix_id} . " " : '' )
+    . "$filedata->{unix_user}:$filedata->{unix_group} $filedata->{name}"
     . ( exists $filedata->{link} ? ' -> ' . $filedata->{link} : q{} );
 }
 
@@ -433,6 +434,7 @@ $0 takes the following arguments in any order:
 
   -h    Print these notes and exit script.
   -v    Verbose list of path to file (default if nothing else).
+  -i    Show dev.inode numbers in output.
 
   -l    Chase tail symlink targets.
 
@@ -492,6 +494,7 @@ Options may be specified in any order:
 
   -h    Print these notes and exit script.
   -v    Verbose list of path to file (default if nothing else).
+  -i    Show dev.inode numbers in output.
 
   -l    Chase tail symlink targets.
 
