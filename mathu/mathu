@@ -1,9 +1,10 @@
 #!/usr/bin/perl
 #
-# Performs various mathematical and statistical operations on input
-# data. (Also known as me being too lazy to use R, or for when I want
-# something quick to mess about with on the CLI, since I am terrible at
-# doing math in my head.)
+# Performs various mathematical and statistical operations on input data. (Also
+# known as me being too lazy to use R, or for when I want something quick to
+# mess about with on the CLI, since I am terrible at doing math in my head.)
+# Not for any sort of unattended or non-interactive use, due to lack of input
+# sanity checking, etc.
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -17,6 +18,7 @@ my $PHI = 1.6180339887498948482;
 my %ability = (
   basic       => { handle => \&handle_basic, },
   C           => { handle => \&handle_C, },
+  derivative  => { handle => \&handle_derivative, },
   dist        => { handle => \&handle_distribution, },
   divisibleby => { handle => \&handle_divisibleby, },
   empirical   => { handle => \&handle_empirical, },
@@ -163,6 +165,46 @@ sub factorial {
   my $s = 1;
   for ( 2 .. $_[0] ) { $s *= $_ }
   $s;
+}
+
+# Output (from single-column input) can then be plotted in R via:
+#
+# > x=read.table("dat")
+# > plot(x$V1,type='l',ylim=c(min(x,na.rm=TRUE),max(x,na.rm=TRUE)))
+# > lines(x$V2,type='l',col='red',lty=2)
+# > lines(x$V3,type='l',col='blue',lty=3)
+sub handle_derivative {
+  my $deriv_max = 2;
+  my @prev_vals;
+  my $previous_x = 0;
+  my $cols;
+  while (<>) {
+    chomp;
+    my @input = grep looks_like_number $_, split /[\s,]+/, $_;
+    if ( @input < 1 || @input > 2 ) {
+      die "too little or too much data on $ARGV:$. - '$_'\n";
+    }
+    $cols //= @input;
+    if ( defined $cols and $cols != @input ) {
+      die "inconstant column count expected $cols but $ARGV:$. had '$_'\n";
+    }
+    if ( @input == 1 ) {
+      @input[ 0, 1 ] = ( undef, $input[0] );
+    }
+    my @values;
+    push @values, $input[1];
+    for my $i ( 1 .. $deriv_max ) {
+      if ( defined $prev_vals[ $i - 1 ] ) {
+        my $delta_x = defined $input[0] ? $input[0] - $previous_x : 1;
+        push @values, ( $values[ $i - 1 ] - $prev_vals[ $i - 1 ] ) / $delta_x;
+      } else {
+        push @values, 'NA';
+      }
+    }
+    print join( ' ', @values ), "\n";
+    @prev_vals  = grep { $_ ne 'NA' } @values;
+    $previous_x = $input[0];
+  }
 }
 
 sub handle_distribution {
