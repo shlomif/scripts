@@ -1,0 +1,8 @@
+#!/bin/sh
+
+[ $# -ne 1 ] && {
+  echo >&2 "Usage: $0 dns-server-name-or-ip"
+  exit 1
+}
+
+exec dig +short -c chaos -t txt @"$1" version.bind
