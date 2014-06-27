@@ -201,8 +201,8 @@ sub handle_derivative {
         push @values, 'NA';
       }
     }
-    print join( ' ', @values ), "\n";
-    @prev_vals  = grep { $_ ne 'NA' } @values;
+    print join( ' ', ( @input == 1 ? () : $input[0] ), @values ), "\n";
+    @prev_vals = grep { $_ ne 'NA' } @values;
     $previous_x = $input[0];
   }
 }

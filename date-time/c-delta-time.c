@@ -20,6 +20,9 @@ int main(void)
 
     assert(gettimeofday(&after, NULL) != -1);
 
+    /* One handy sanity check might be to confirm that time has actually
+     * advanced, a concern tied up with what time sync protocol is being used,
+     * whether that protocol is operating correct, and etc. */
     delta_t = after.tv_sec - before.tv_sec;
     delta_t += (after.tv_usec - before.tv_usec) / USEC_IN_SEC;
     fprintf(stderr, "delta %.3f\n", delta_t);
