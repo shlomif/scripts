@@ -10,30 +10,30 @@
 #include <unistd.h>
 
 #define IF_YOU_HAVE_TO_ASK 42
-#define TEST_COUNT 999999
+#define TEST_COUNT 999983
 
 bool house_coinflip(void);
 bool coinflip(void);
 
+double audit(bool(*result) (void));
+
 int main(void)
+{
+    printf("house heads %.2f%%\n", audit(&house_coinflip));
+    printf("      heads %.2f%%\n", audit(&coinflip));
+
+    exit(EXIT_SUCCESS);
+}
+
+double audit(bool(*result) (void))
 {
     long tests = TEST_COUNT;
     long head_count = 0;
     while (tests-- > 0) {
-        if (house_coinflip() == true)
+        if (result() == true)
             head_count++;
     }
-    printf("house heads %.2f%%\n", (double) head_count / TEST_COUNT);
-
-    tests = TEST_COUNT;
-    head_count = 0;
-    while (tests-- > 0) {
-        if (coinflip() == true)
-            head_count++;
-    }
-    printf("      heads %.2f%%\n", (double) head_count / TEST_COUNT);
-
-    exit(EXIT_SUCCESS);
+    return (double) head_count / TEST_COUNT;
 }
 
 bool house_coinflip(void)
