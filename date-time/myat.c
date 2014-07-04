@@ -16,7 +16,7 @@
 /* for strftime out, minimum sized to the default at time format in my
  * locale, below. */
 #define BUF_LEN_MIN 18
-#define BUF_LEN_MAX 72
+#define BUF_LEN_MAX 283
 
 void emit_help(void);
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc < 1)
+    if (argc < 1 || argc > 2)
         emit_help();
 
     if ((buf = malloc(buf_len)) == NULL)
@@ -52,8 +52,6 @@ int main(int argc, char *argv[])
     if (argc == 2) {
         if (!strptime(*++argv, "%H:%M", &when))
             errx(EX_DATAERR, "could not parse HH:MM");
-    } else {
-        when.tm_hour = when.tm_min = 0;
     }
 
     while (strftime(buf, buf_len, "%H:%M %b %d %Y", &when) < 1) {
@@ -69,7 +67,7 @@ int main(int argc, char *argv[])
     if (execlp("at", "at", buf, NULL) == -1)
         err(EX_OSERR, "could not exec at");
 
-    exit(1);                    /* NOTREACHED due to exec or so we hope */
+    exit(EX_OSERR);             /* NOTREACHED due to exec or so we hope */
 }
 
 void emit_help(void)
