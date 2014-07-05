@@ -42,7 +42,7 @@ int main(void)
         char buf[BUFSIZE];
         ssize_t howmuch;
         while (1) {
-            if ((howmuch = read(STDIN_FILENO, &buf, BUFSIZE)) < 0) {
+            if ((howmuch = read(STDIN_FILENO, &buf, (size_t) BUFSIZE)) < 0) {
                 err(EX_IOERR, "read() failed");
             } else if (howmuch == 0) {  /* EOF */
                 break;
