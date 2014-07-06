@@ -1,0 +1,31 @@
+.Dd $Mdocdate: July  6 2014 $
+.Dt MYAT 1
+.Os
+.Sh NAME
+.Nm myat
+.Nd at(1) wrapper with ISO 8601ish time parsing
+.Sh SYNOPSIS
+.Nm myat
+.Op Fl hq
+.Op Ar YYYY-MM-DD [HH:MM]
+.Sh DESCRIPTION
+.Nm
+accepts either YYYY-MM-DD [HH:MM] or just HH:MM (assumed today) and formats that time as appropriate for at(1), then calls at(1) with said time.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl h
+Print brief usage note.
+.El
+.Sh EXAMPLES
+.Dl $ echo not long now | myat 2038-01-19
+.Dl $ echo all is lost  | myat 2038-01-19 03:14
+.Dl $ myat 23:14
+.Dl   echo some reminder
+.Dl   ^D
+.Sh EXIT STATUS
+.Ex -std myat
+.Sh SEE ALSO
+.Xr at 1
+.Sh AUTHOR
+.An Jeremy Mates

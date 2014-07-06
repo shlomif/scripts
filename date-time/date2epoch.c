@@ -24,6 +24,7 @@ void emit_help(void);
 
 bool Flag_Quiet;                /* -q */
 
+/* free zeroing of struct members though creates mday gotcha */
 struct tm when;
 
 int main(int argc, char *argv[])

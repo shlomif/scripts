@@ -13,21 +13,26 @@
 #include <time.h>
 #include <unistd.h>
 
-/* for strftime out, minimum sized to the default at time format in my
- * locale, below. */
+/* Oh, the silly olden days with their middle-endian Month Day Year--no
+ * wonder I cannot memorize this! */
+#define AT_TIMEFORMAT "%H:%M %b %d %Y"
+
+/* for strftime result; minimum is sized to AT_TIMEFORMAT in my locale */
 #define BUF_LEN_MIN 18
-#define BUF_LEN_MAX 283
+#define BUF_LEN_MAX 72
 
 void emit_help(void);
 
-struct tm when;                 /* free zeroing of struct members */
+/* free zeroing of struct members (though creates mday gotcha (that is not
+ * relevant here as %d must be supplied by caller, and if they want to set that
+ * to 0, well, more power to them)) */
+struct tm when;
 
 int main(int argc, char *argv[])
 {
     int ch;
-    /* for strftime output */
-    size_t buf_len = BUF_LEN_MIN;
-    char *buf;
+    size_t time_str_len = BUF_LEN_MIN;
+    char *time_str;
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
@@ -44,27 +49,40 @@ int main(int argc, char *argv[])
     if (argc < 1 || argc > 2)
         emit_help();
 
-    if ((buf = malloc(buf_len)) == NULL)
+    if ((time_str = malloc(time_str_len)) == NULL)
         err(EX_OSERR, "malloc() failed to create output buffer");
 
-    if (!strptime(*argv, "%Y-%m-%d", &when))
-        errx(EX_DATAERR, "could not parse YYYY-MM-DD");
-    if (argc == 2) {
-        if (!strptime(*++argv, "%H:%M", &when))
-            errx(EX_DATAERR, "could not parse HH:MM");
+    if (strptime(*argv, "%Y-%m-%d", &when)) {
+        if (argc == 2)
+            if (!strptime(*++argv, "%H:%M", &when))
+                errx(EX_USAGE, "could not parse HH:MM");
+    } else if (strptime(*argv, "%H:%M", &when)) {
+        time_t epoch;
+        struct tm *now;
+        if (time(&epoch) == (time_t) - 1)
+            err(EX_OSERR, "time() failed");
+        if ((now = localtime(&epoch)) == NULL)
+            err(EX_OSERR, "localtime() failed");
+        when.tm_year = now->tm_year;
+        when.tm_mon = now->tm_mon;
+        when.tm_mday = now->tm_mday;
+    } else {
+        /* in contrast to the "garbled time" error from at(1) ... */
+        errx(EX_USAGE, "need YYYY-MM-DD or HH:MM as first argument");
     }
 
-    while (strftime(buf, buf_len, "%H:%M %b %d %Y", &when) < 1) {
-        buf_len <<= 1;
-        if (buf_len > BUF_LEN_MAX)
+    while (strftime(time_str, time_str_len, AT_TIMEFORMAT, &when) < 1) {
+        time_str_len <<= 1;
+        if (time_str_len > BUF_LEN_MAX)
             errx(EX_SOFTWARE, "strftime() output too large for buffer %d",
                  BUF_LEN_MAX);
-        if ((buf = realloc(buf, buf_len)) == NULL)
+        if ((time_str = realloc(time_str, time_str_len)) == NULL)
             err(EX_OSERR,
-                "realloc() could not resize output buffer to %ld", buf_len);
+                "realloc() could not resize output buffer to %ld",
+                time_str_len);
     }
 
-    if (execlp("at", "at", buf, NULL) == -1)
+    if (execlp("at", "at", time_str, (char *) 0) == -1)
         err(EX_OSERR, "could not exec at");
 
     exit(EX_OSERR);             /* NOTREACHED due to exec or so we hope */
@@ -73,5 +91,6 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     fprintf(stderr, "Usage: myat YYYY-MM-DD [HH:MM]\n");
+    fprintf(stderr, "       myat HH:MM      (assumes today)\n");
     exit(EX_USAGE);
 }
