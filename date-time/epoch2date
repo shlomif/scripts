@@ -7,6 +7,8 @@
 #   echo 1059673440 | xargs epoch2date
 #   echo 1059673440 1404433529 | epoch2date -
 #
+# Run perldoc(1) on this file for additional documentation.
+#
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
@@ -21,6 +23,7 @@ my $basename = basename $0;
 use Getopt::Std;
 my %opts;
 getopts( 'h?f:gl', \%opts );
+print_help() if exists $opts{h} or exists $opts{'?'};
 
 if ( not @ARGV or exists $opts{h} or exists $opts{'?'} ) {
   warn "Usage: $basename [-f strftime] [-g|-l] [epoch [epoch ...]|-]\n";
@@ -48,6 +51,25 @@ for my $entry (@ARGV) {
   }
 }
 
+sub print_help {
+  warn <<"HELP";
+Usage: $0 [opts] [epoch [epoch ...]|-]
+
+Converts unix epoch to human readable dates.
+
+Options:
+  -h/-?   Display this message
+
+  -f fmt  strftime(3) format for output date.
+
+  -g      Use gmtime() call.
+  -l      Use localtime() call (default).
+
+Run perldoc(1) on this script for additional documentation.
+HELP
+  exit 64;
+}
+
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
   unless ( close(STDOUT) ) {
@@ -55,3 +77,85 @@ END {
     exit 74;
   }
 }
+
+__END__
+
+=head1 NAME
+
+epoch2date - converts unix epoch to human readable dates
+
+=head1 SYNOPSIS
+
+  $ epoch2date `perl -E 'say time'`
+  $ echo 1059673440 | xargs epoch2date
+  $ echo 1059673440 1404433529 | epoch2date -
+
+  $ epoch2date -g 1404662217
+  $ epoch2date -l 1404662217
+  $ TZ=US/Pacific epoch2date 1404662217
+
+=head1 DESCRIPTION
+
+Converts unix epoch seconds to human readable dates.
+
+=head1 OPTIONS
+
+This script currently supports the following command line switches:
+
+=over 4
+
+=item B<-f> I<format>
+
+L<strftime(3)> format for output date. Default is something ISO 8601ish.
+
+=item B<-g>
+
+Use the L<gmtime()> function (a.k.a. UTC or Zulu or +0000).
+
+=item B<-h>, B<-?>
+
+Prints a brief usage note.
+
+=item B<-l>
+
+Use the C<localtime> function. This is the default. However, the author now
+sets all systems to use UTC (to avoid the various pitfalls of timezones that
+suffer from Daylight Saving Time), and obtains the local time zone when
+necessary via:
+
+  $ TZ=US/Pacific epoch2date ...
+
+This is explicit (danger! a timezone that wobbles!) and provides for better
+documentation than a short option flag does.
+
+=back
+
+=head1 BUGS
+
+=head2 Reporting Bugs
+
+Newer versions of this script may be available from:
+
+http://github.com/thrig/sial.org-scripts/tree/master
+
+If the bug is in the latest version, send a report to the author.
+Patches that fix problems or add new features are welcome.
+
+=head2 Known Issues
+
+No known bugs but probably lots.
+
+=head1 SEE ALSO
+
+L<strftime(3)>
+
+=head1 AUTHOR
+
+Jeremy Mates
+
+=head1 COPYRIGHT
+
+The author disclaims all copyrights and releases this script into the
+public domain.
+
+=cut

@@ -6,17 +6,8 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
-require 5;
 use strict;
 use warnings;
-
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
 
 # how to convert various time units to seconds
 my %factor = (
@@ -114,7 +105,7 @@ sub deltatimefmt {
 
 sub print_help {
   warn <<"HELP";
-Usage: $0 [opts] [time specifications]
+Usage: $0 [time specifications]
 
 Totals up short hand time durations.
 
@@ -124,6 +115,14 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 HELP
   exit 64;
+}
+
+END {
+  # Report problems when writing to stdout (perldoc perlopentut)
+  unless ( close(STDOUT) ) {
+    warn "error: problem closing STDOUT: $!\n";
+    exit 74;
+  }
 }
 
 __END__
@@ -142,18 +141,12 @@ sumtime - totals up short-hand time durations
 
 =head1 DESCRIPTION
 
-=head2 Overview
-
-Short description of what script is intended to do.
-
-=head2 Normal Usage
+Sums up short-hand time durations. Usage:
 
   $ sumtime [options] [time specifications]
 
 Input is either taken from the data on the command line, or failing
 that, from STDIN.
-
-See L<"OPTIONS"> for details on the command line switches supported.
 
 =head1 OPTIONS
 
@@ -188,10 +181,6 @@ Output formatting, e.g. raw seconds, or ability to select output time
 format (e.g. hours only, and so forth).  Ability to set a default
 input factor, e.g. when passing in unadorned hours or minutes.
 
-=head1 SEE ALSO
-
-perl(1)
-
 =head1 AUTHOR
 
 Jeremy Mates
@@ -200,9 +189,5 @@ Jeremy Mates
 
 The author disclaims all copyrights and releases this script into the
 public domain.
-
-=head1 SCRIPT CATEGORIES
-
-Utilities
 
 =cut
