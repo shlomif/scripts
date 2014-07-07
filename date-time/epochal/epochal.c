@@ -43,6 +43,8 @@ void parseline(char *line, const ssize_t linenum);
 
 int main(int argc, char *argv[])
 {
+    FILE *fh;
+    int ret;
     time_t now;
 
     if (!setlocale(LC_ALL, ""))
@@ -52,9 +54,11 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
         switch (ch) {
         case 'f':
-            if (asprintf(&Flag_Input_Format, "%*s", INPUT_FORMAT_MAXLEN, optarg)
+            if ((ret = asprintf(&Flag_Input_Format, "%s", optarg))
                 == -1)
                 err(EX_SOFTWARE, "asprintf(3) could not copy -f flag");
+            if (ret > INPUT_FORMAT_MAXLEN)
+                errx(EX_DATAERR, "-f flag longer than %d", INPUT_FORMAT_MAXLEN);
             break;
 
         case 'g':
@@ -62,9 +66,10 @@ int main(int argc, char *argv[])
             break;
 
         case 'o':
-            if (asprintf
-                (&Flag_Output_Format, "%*s", INPUT_FORMAT_MAXLEN, optarg) == -1)
+            if ((ret = asprintf(&Flag_Output_Format, "%s", optarg)) == -1)
                 err(EX_SOFTWARE, "asprintf(3) could not copy -o flag");
+            if (ret > INPUT_FORMAT_MAXLEN)
+                errx(EX_DATAERR, "-o flag longer than %d", INPUT_FORMAT_MAXLEN);
             break;
 
         case 's':
@@ -72,9 +77,10 @@ int main(int argc, char *argv[])
             break;
 
         case 'y':
-            if (time(&now) == -1)
+            if (time(&now) == (time_t) - 1)
                 errx(EX_OSERR, "time(3) could not obtain current time??");
-            localtime_r(&now, &Default_Tm);
+            if (localtime_r(&now, &Default_Tm) == NULL)
+                errx(EX_OSERR, "localtime_r(3) failed??");
             Flag_Custom_Year = true;
             break;
 
@@ -106,16 +112,23 @@ int main(int argc, char *argv[])
     if (!Flag_Output_Format)
         Flag_Output_Format = "%s";      // ignore warning about qual. discard
 
+    if (argc == 0 || strncmp(*argv, "-", (size_t) 2) == 0) {
+        fh = stdin;
+    } else {
+        if ((fh = fopen(*argv, "r")) == NULL)
+            err(EX_IOERR, "could not open '%s'", *argv);
+    }
+
     char *line = NULL;
     ssize_t linenum = 1;
     size_t linesize = 0;
     ssize_t linelen;
-    while ((linelen = getline(&line, &linesize, stdin)) != -1) {
+    while ((linelen = getline(&line, &linesize, fh)) != -1) {
         parseline(line, linenum);
         linenum++;
     }
-    if (ferror(stdin))
-        err(EX_IOERR, "getline() error on stdin");
+    if (ferror(fh))
+        err(EX_IOERR, "error reading file");
 
     exit(EXIT_SUCCESS);
 }
@@ -123,7 +136,7 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     fprintf(stderr,
-            "Usage: epochal [-sg] [-y|-Y yyyy] -f input-format [-o output-fmt]\n"
+            "Usage: epochal [-sg] [-y|-Y yyyy] -f input-format [-o output-fmt] [file|-]\n"
             "  Pass data in via standard input. See strftime(3) for formats.\n");
     exit(EX_USAGE);
 }

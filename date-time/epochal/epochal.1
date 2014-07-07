@@ -1,4 +1,4 @@
-.Dd $Mdocdate: April 29 2011 $
+.Dd $Mdocdate: July  7 2014 $
 .Dt EPOCHAL 1
 .nh
 .Os
@@ -12,6 +12,7 @@
 .Op Fl Y Ar year
 .Op Fl o Ar output-format
 .Fl f Ar input-format
+.Op Ar file|-
 .Ek
 .Sh DESCRIPTION
 The
@@ -29,7 +30,9 @@ Mandatory, specifies input format timestamps will be detected with. The
 .Xr strftime 3
 manual details the format specification. Note that
 .Qq Dv %s
-is not supported as an input type, and should not be used. (It is safe as an output format, though.)
+is not supported as an input type, and should not be used. (It is safe as an output format, though.) Also note that
+.Qq Dv %Z
+can cause issues, and may be best avoided or otherwise worked around.
 .It Fl g
 Multiple timestamps will be searched for and replaced on a line, instead of just the first.
 .It Fl o Ar output-format
