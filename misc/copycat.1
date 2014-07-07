@@ -1,0 +1,40 @@
+.Dd $Mdocdate: July  7 2014 $
+.Dt COPYCAT 1
+.Os
+.Sh NAME
+.Nm copycat
+.Nd copy STDIN to both STDOUT and to CLIPBOARD
+.Sh SYNOPSIS
+.Nm copycat
+.Sh DESCRIPTION
+.Nm
+copies any data passed on STDIN to both STDOUT and to the command mentioned in the CLIPBOARD environment variable (or to
+.Xr pbcopy 1 ,
+if CLIPBOARD is not set).
+.Pp
+If using
+.Xr tmux 1
+via MacPorts on Mac OS X, the tmux-pasteboard MacPorts package may be of service.
+.Sh EXAMPLES
+How I configure OpenBSD (the xclip port must be installed):
+.Pp
+.Dl $ export CLIPBOARD=$HOME/libexec/pbcopy
+.Dl $ cat $HOME/libexec/pbcopy
+.Dl #!/bin/sh
+.Dl exec xclip -in
+.Dl $ 
+.Pp
+Then in
+.Xr vi 1
+one may then use a filter via some range to copy the desired lines to the clipboard while also to not destroy that data in
+.Xr vi 1 :
+.Pp
+.Dl :...!copycat
+.Sh EXIT STATUS
+.Ex -std copycat
+.Sh SEE ALSO
+.Xr pbcopy 1 ,
+.Xr vi 1 ,
+.Xr xclip 1
+.Sh AUTHOR
+.An Jeremy Mates

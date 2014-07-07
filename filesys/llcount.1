@@ -1,0 +1,27 @@
+.Dd $Mdocdate: July  7 2014 $
+.Dt LLCOUNT 1
+.Os
+.Sh NAME
+.Nm llcount
+.Nd length of line count utility for text files
+.Sh SYNOPSIS
+.Nm llcount
+.Bk -words
+.Op Fl hx
+.Op Ar file|-
+.Ek
+.Sh DESCRIPTION
+.Nm
+displays the line number, the start position of that line, and the length of the line of the file mentioned or failing that or if the file is - the data from standard input is used. The file data is then displayed after this metadata. The
+.Fl x
+option specifies that hexadecimal should be used instead of decimal for the line start position value, while the
+.Fl h
+prints a brief usage message.
+.Pp
+.Sh EXIT STATUS
+.Ex -std llcount
+.Sh SEE ALSO
+.Xr hexdump 1 ,
+.Xr replacebytes 1
+.Sh AUTHOR
+.An Jeremy Mates

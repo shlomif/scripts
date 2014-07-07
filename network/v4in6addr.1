@@ -1,0 +1,32 @@
+.Dd $Mdocdate: July  7 2014 $
+.Dt V4IN6ADDR 1
+.Os
+.Sh NAME
+.Nm v4in6addr
+.Nd converts IPv4 address to IPv6 embedded form
+.Sh SYNOPSIS
+.Nm v4in6addr
+.Bk -words
+.Op Fl p Ar prefixlen
+.Op Fl t Ar template
+.Ar ipv4-addr
+.Ek
+.Sh DESCRIPTION
+.Nm
+converts IPv4 address to IPv6 embedded form per RFC 6052.
+.Pp
+The 
+.Fl p
+option accepts the prefix length (one of 32, 40, 48, 56, 64, or 96) with the default being 96, and the
+.Fl t
+option takes a template to use as the IPv6 address.
+.Pp
+.Sh EXAMPLES
+.Dl v4in6addr -t 64:ff9b:: 192.0.2.1
+.Dl v4in6addr -t 64:ff9b:: 192.0.2.1 -p 64
+.Sh EXIT STATUS
+.Ex -std v4in6addr
+.Sh SEE ALSO
+.Xr ifconfig 8
+.Sh AUTHOR
+.An Jeremy Mates

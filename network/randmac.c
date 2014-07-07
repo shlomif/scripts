@@ -1,47 +1,6 @@
 /*
  * Generates a (possibly) random Media Access Control (MAC) address.
  *
- * https://en.wikipedia.org/wiki/MAC_address
- * http://standards.ieee.org/develop/regauth/oui/oui.txt
- *
- * The -p flag sets the private MAC bit (very unlikely to be assigned by
- * IEEE, but see below) and the -m flag sets the multicast MAC bit. IPv4
- * and IPv6 set certain MAC prefixes (again, see below) for their
- * multicast traffic. NOTE lacking the -m or -p flags, the default is to
- * generate a public, non-multicast address. Specify the -L flag to
- * enforce a literal or locked MAC address. This disables the -m and -p
- * related bit flips.
- *
- * The -B bytes flag and a corresponding number of hex-or-X characters
- * as the first argument to this program allow for other sizes of MAC
- * addresses to be generated.
- *
- * The -6 flag IPv6ifies (EUI-64) a 48-bit MAC address, and will flip a
- * bit, independent of the -L flag. However, the -L flag might be handy
- * with -6 to avoid the otherwise mandatory -m or -p related flips.
- *
- * Incomplete segments may be specified ("01:02:c:03:04:05") and will be
- * converted to the equivalent of "0c" and not to "c0".
- *
- * Example usage:
- *
- *   $ randmac                        # public random 48-bit MAC
- *   $ randmac -p                     # private random 48-bit MAC
- *   $ randmac -p XX:12:34:56:78:XX   # same, but less random
- *   $ randmac -L 40:a6:d9:XX:XX:XX   # Apple, Inc.
- *   $ randmac -L 42:a6:d9:XX:XX:XX   # private
- *   $ randmac -L a:b:c:d:e:f         # not random at all
- *
- *   $ randmac -B 8 -p XX:XX:XX:XX:XX:XX:XX:XX   # private MAC-64
- *
- *   $ randmac -L6 00:11:22:XX:XX:XX | sed 's/^/fe80::/' # IPv6 link-local
- *
- * Prefix material may throw off calculations for the -m and -p options.
- * Use sed(1) afterwards to workaround this limitation, for example to
- * generate a random filename for use under the pxelinux.cfg directory:
- *
- *   $ randmac -p XX-XX-XX-XX-XX-XX | sed 's/^/01-/'
- *
  * A digression on bits, the contents of out.txt as provided by IEEE,
  * and IP multicast specifics follows.
  *
@@ -73,11 +32,6 @@
  * assigned prefixes in the private address space. Doubtless the odds of
  * a random private address landing in one of these subnets and
  * conflicting with some actual piece of hardware would be somewhat low.
- *
- * IPv4 broadcast sets all ones (low odds of randomly rolling if given
- * all XXs); IPv4 multicast uses a prefix of 01:00:5e, and IPv6
- * multicast the prefix 33:33. This tool at present takes no effort not
- * to generate something inside these various ranges.
  */
 
 #include <err.h>

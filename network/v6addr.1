@@ -1,0 +1,34 @@
+.Dd $Mdocdate: July  7 2014 $
+.Dt V6ADDR 1
+.Os
+.Sh NAME
+.Nm v6addr
+.Nd IPv6 address qualifier or ip6.arpa.ifier
+.Sh SYNOPSIS
+.Nm v6addr
+.Bk -words
+.Op Fl fr
+.Ar ipv6-addr
+.Ek
+.Sh DESCRIPTION
+.Nm
+by default (or with
+.Fl f
+) fully qualifies IPv6 addresses, or with
+.Fl r
+prints the address in reverse DNS ip6.arpa form (one likely simpler to use than
+by having to parse the output from
+.Xr sipcalc 1 .
+.Pp
+.Sh EXAMPLES
+.Dl v6addr ::1
+.Dl v6addr -f ::1
+.Pp
+.Dl v6addr -r ::1
+.Sh EXIT STATUS
+.Ex -std v6addr
+.Sh SEE ALSO
+.Xr inet_pton 3 ,
+.Xr sipcalc 1
+.Sh AUTHOR
+.An Jeremy Mates
