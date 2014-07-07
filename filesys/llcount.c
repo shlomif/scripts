@@ -10,8 +10,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define INPUT_FORMAT_MAXLEN 99
-
 void emit_help(void);
 
 int main(int argc, char *argv[])
@@ -25,14 +23,6 @@ int main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "f:h?x")) != -1) {
         switch (ch) {
-        case 'f':
-            /* Not really a sensible thing to offer, especially if in any way
-             * untrustworthy input is involved, that is, any human with any
-             * input device. */
-            if (asprintf(&fmt, "%*s", INPUT_FORMAT_MAXLEN, optarg) == -1)
-	      err(EX_SOFTWARE, "asprintf(3) could not copy -f flag");
-            break;
-
         case 'x':
             asprintf(&fmt, "%% 3ld %%# 5lx %% 4ld ");
             break;
@@ -47,11 +37,15 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc != 1)
+    if (argc > 1)
         emit_help();
 
-    if ((fh = fopen(*argv, "r")) == NULL)
-        err(EX_IOERR, "could not open '%s'", *argv);
+    if (argc == 0 || strncmp(*argv, "-", 2) == 0) {
+        fh = stdin;
+    } else {
+        if ((fh = fopen(*argv, "r")) == NULL)
+            err(EX_IOERR, "could not open '%s'", *argv);
+    }
 
     while ((linep = fgetln(fh, &len)) != NULL) {
         dprintf(STDOUT_FILENO, fmt, lineno++, slen, len);
@@ -66,6 +60,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: llcount [-x | -f ...] file\n");
+    fprintf(stderr, "Usage: llcount [-x] [file|-]\n");
     exit(EX_USAGE);
 }
