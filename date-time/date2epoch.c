@@ -68,8 +68,8 @@ int main(int argc, char *argv[])
     }
     if (argc > 2 && !Flag_Quiet) {
         ++argv;
-        if (!((strncmp(*argv, "UTC", 4) == 0)
-              || (strncmp(*argv, "GMT", 4) == 0)))
+        if (!((strncmp(*argv, "UTC", (size_t) 4) == 0)
+              || (strncmp(*argv, "GMT", (size_t) 4) == 0)))
             warnx("use of unknown timezone %s may lead to incorrect epoch",
                   *argv);
     }

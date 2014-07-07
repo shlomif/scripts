@@ -13,7 +13,7 @@
  *
  * So 42:a6:d9, being private, enables the penultimate bit, while
  * 40:a6:d9, being assigned to Apple, does not. However! There appear
- * to be several OUI that set the priate or broadcast bits:
+ * to be several registered OUI that set the private or broadcast bits:
  *
  *   $ < oui.txt perl -ne '$s{$1}++ if m/^\s+(..)-.*\(hex/;' \
  *     -e 'END { printf "%08b %s\n", hex($_), $_ for sort keys %s }' \

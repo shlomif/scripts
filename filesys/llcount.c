@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     if (argc > 1)
         emit_help();
 
-    if (argc == 0 || strncmp(*argv, "-", 2) == 0) {
+    if (argc == 0 || strncmp(*argv, "-", (size_t) 2) == 0) {
         fh = stdin;
     } else {
         if ((fh = fopen(*argv, "r")) == NULL)
