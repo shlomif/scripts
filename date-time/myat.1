@@ -13,6 +13,12 @@
 .Nm
 accepts either YYYY-MM-DD [HH:MM] or just HH:MM (assumed today) and formats that time as appropriate for at(1), then calls at(1) with said time.
 .Pp
+Note that 
+.Xr at 1
+at least on OpenBSD executes the scheduled job from the directory it was scheduled from; this can be a problem if a reminder is made from ~/tmp/foo that is then deleted before the job can run. If this is problematic, add a 
+.Xr chdir 2
+call or use a shell function wrapper to change to a safe directory first.
+.Pp
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl h

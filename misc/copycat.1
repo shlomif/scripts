@@ -10,8 +10,10 @@
 .Sh DESCRIPTION
 .Nm
 copies any data passed on STDIN to both STDOUT and to the command mentioned in the CLIPBOARD environment variable (or to
-.Xr pbcopy 1 ,
-if CLIPBOARD is not set).
+.Xr pbcopy 1
+or
+.Xr xsel 1x
+depending if CLIPBOARD is not set).
 .Pp
 If using
 .Xr tmux 1
@@ -25,7 +27,18 @@ How I configure OpenBSD (the xclip port must be installed):
 .Dl exec xclip -in
 .Dl $ 
 .Pp
-Then in
+.Xr xsel 1x
+is another option, though must be used with a wrapper
+.Pp
+.Dl #!/bin/sh
+.Dl exec xsel --input
+.Pp
+as otherwise
+.Xr xsel 1x
+guesses incorrectly on what to do when used under
+.Xr vi 1 .
+.Pp
+Then, in
 .Xr vi 1
 one may then use a filter via some range to copy the desired lines to the clipboard while also to not destroy that data in
 .Xr vi 1 :
@@ -36,6 +49,7 @@ one may then use a filter via some range to copy the desired lines to the clipbo
 .Sh SEE ALSO
 .Xr pbcopy 1 ,
 .Xr vi 1 ,
-.Xr xclip 1
+.Xr xclip 1x ,
+.Xr xsel 1x
 .Sh AUTHOR
 .An Jeremy Mates
