@@ -1,4 +1,4 @@
-.Dd $Mdocdate: July  7 2014 $
+.Dd $Mdocdate: July  9 2014 $
 .Dt COPYCAT 1
 .nh
 .Os
@@ -11,9 +11,7 @@
 .Nm
 copies any data passed on STDIN to both STDOUT and to the command mentioned in the CLIPBOARD environment variable (or to
 .Xr pbcopy 1
-or
-.Xr xsel 1x
-depending if CLIPBOARD is not set).
+if CLIPBOARD is not set).
 .Pp
 If using
 .Xr tmux 1
@@ -25,10 +23,10 @@ How I configure OpenBSD (the xclip port must be installed):
 .Dl $ cat $HOME/libexec/pbcopy
 .Dl #!/bin/sh
 .Dl exec xclip -in
-.Dl $ 
+.Dl $ chmod +x $HOME/libexec/pbcopy
 .Pp
 .Xr xsel 1x
-is another option, though must be used with a wrapper
+is another option, though also must be used with a wrapper
 .Pp
 .Dl #!/bin/sh
 .Dl exec xsel --input
