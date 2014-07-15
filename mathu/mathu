@@ -9,6 +9,7 @@
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
+use Math::BigInt;
 use Getopt::Std;
 use List::Util qw(max sum);
 use Scalar::Util qw(looks_like_number);
@@ -162,9 +163,8 @@ sub handle_C {
 }
 
 sub factorial {
-  my $s = 1;
-  for ( 2 .. $_[0] ) { $s *= $_ }
-  $s;
+  my $x = Math::BigInt->new($_[0]);
+  $x->bfac();
 }
 
 # Output (from single-column input) can then be plotted in R via:
