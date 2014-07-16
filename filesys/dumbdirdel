@@ -1,0 +1,48 @@
+#!/usr/bin/env perl
+#
+# So in theory there are PATH_MAX limits on Unix, though at least on Mac OS X
+# (10.9.4) and the "Mac OS Extended (Journaled)" filesystem, one can run:
+#
+#   while `mkdir aaaaaaaa`; do cd aaaaaaaa; done
+#
+# For a while, which results in a tree that cannot be deleted, as `rm -rf
+# aaaaaaaa` at the top fails eventually with 'rm: aaaaaaa: Directory not empty'
+# and then `find -d aaaaaaa -exec rmdir {} \+` emits various noises about the
+# directory being too long or then not being empty; -execdir results in 'No
+# such file or directory' and then 'Directory not empty', whee! Doing a ZSH tab
+# complete cd into the deepest directory and then `cd ..` results in ZSH
+# exiting stage left. OpenBSD 5.5 is much better behaved, and destroys a 19K
+# aaaaaaaa directory tree rather rapidly with `rm -rf`. Using the system calls
+# below gets the job done on Mac OS X, as does the superior:
+#
+#   perl -MFile::Path=remove_tree -e 'remove_tree(shift)' ...
+#
+# unlike the Mac OS X find(1) or rm(1) utilities, go figure. Also note the
+# difference between the ZSH built-in pwd and the system pwd:
+#
+#   % /bin/pwd
+#   pwd: getcwd: Result too large
+#   % pwd | tr -d '\n' | wc -c
+#   11320
+
+use 5.012;
+use strict;
+use warnings;
+
+my @dirs = shift or die "Usage: $0 directory-to-destroy\n";
+
+FISH:
+chdir $dirs[-1] or die "could not chdir " . join( '/', @dirs ) . ": $!\n";
+opendir my $dh, '.' or die "could not open " . join( '/', @dirs ) . ": $!\n";
+while ( readdir $dh ) {
+  next if $_ eq '.' or $_ eq '..';
+  if ( -d $_ ) {
+    push @dirs, $_;
+    goto FISH;
+  }
+}
+
+for my $d ( reverse @dirs ) {
+  chdir '..' or die "could not chdir .. from " . join( '/', @dirs ) . ": $!\n";
+  rmdir $d or die "could not rmdir: $!\n";
+}
