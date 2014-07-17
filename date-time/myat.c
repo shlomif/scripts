@@ -7,8 +7,11 @@
  */
 
 #include <err.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
@@ -20,6 +23,8 @@
 /* for strftime result; minimum is sized to AT_TIMEFORMAT in my locale */
 #define BUF_LEN_MIN 18
 #define BUF_LEN_MAX 72
+
+bool Flag_Quiet;                /* -q */
 
 void emit_help(void);
 
@@ -34,8 +39,12 @@ int main(int argc, char *argv[])
     size_t time_str_len = BUF_LEN_MIN;
     char *time_str;
 
-    while ((ch = getopt(argc, argv, "h?")) != -1) {
+    while ((ch = getopt(argc, argv, "h?q")) != -1) {
         switch (ch) {
+        case 'q':
+            Flag_Quiet = true;
+            break;
+
         case 'h':
         case '?':
         default:
@@ -48,6 +57,23 @@ int main(int argc, char *argv[])
 
     if (argc < 1 || argc > 2)
         emit_help();
+
+    if (!Flag_Quiet) {
+        /* but note that this limit is easy to get past in a shell via
+         *   while `mkdir aaaaaaaa`; do cd aaaaaaaa; done
+         * but in that case this here code gives up as is right and proper.
+         */
+        char cwd[PATH_MAX], *wdp, *token;
+        if (!getcwd(cwd, (size_t) PATH_MAX))
+            err(EX_IOERR, "getcwd() failed");
+        wdp = strdup(cwd);
+        while ((token = strsep(&wdp, "/")) != NULL) {
+            if (strncmp(token, "tmp", (size_t) 4)) {
+                fprintf(stderr, "warning: CWD contains 'tmp': %s\n", cwd);
+                break;
+            }
+        }
+    }
 
     if ((time_str = malloc(time_str_len)) == NULL)
         err(EX_OSERR, "malloc() failed to create output buffer");
@@ -90,7 +116,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: myat YYYY-MM-DD [HH:MM]\n");
-    fprintf(stderr, "       myat HH:MM      (assumes today)\n");
+    fprintf(stderr, "Usage: myat [-q] YYYY-MM-DD [HH:MM]\n");
+    fprintf(stderr, "       myat [-q] HH:MM      (assumes today)\n");
     exit(EX_USAGE);
 }
