@@ -143,10 +143,11 @@ sub handle_basic {
   }
   return unless @array;
 
+  $results{count} = @array;
   $results{mean} = mean( \@array, $results{sum} );
+  $results{range} = $results{max} - $results{min};
   $results{sdev} = standard_deviation( \@array, $results{mean} );
   $results{ssdev} = sample_standard_deviation( \@array, $results{mean} );
-  $results{count} = @array;
 
   print map {
     $_ . " "
