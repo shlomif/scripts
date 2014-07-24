@@ -38,7 +38,8 @@ my %open = (
   pbcopy        => [qw(sgrax pbcopy)],
   safari        => [qw(open -a Safari --background)],
   wget          => [qw(wget)],
-  xombrero      => [qw(xombrero -n)],                 # requires enable_socket
+  w3m           => [qw(w3m -M)],
+  xombrero      => [qw(xombrero -n)],                    # requires enable_socket
 );
 
 my %pfiles = (
@@ -307,8 +308,7 @@ sub remark {
 
   my $attr_str;
   if ($attributes) {
-    $attr_str = join ', ',
-      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+    $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
       sort keys %$attributes;
   }
 
