@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
             err(EX_IOERR, "getcwd() failed");
         wdp = strdup(cwd);
         while ((token = strsep(&wdp, "/")) != NULL) {
-            if (strncmp(token, "tmp", (size_t) 4)) {
+            if (strncmp(token, "tmp", (size_t) 4) == 0) {
                 fprintf(stderr, "warning: CWD contains 'tmp': %s\n", cwd);
                 break;
             }
