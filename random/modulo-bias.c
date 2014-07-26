@@ -10,7 +10,9 @@
  * Actually, the exact numbers depend on the rand() implementation and the
  * seed; Mac OS X rand() produced the 257 for an arbitrary seed; this
  * version tries out multiple seeds (TRIALS) and emits what is likely the
- * maximum failure of the fitness test for that seed.
+ * maximum failure of the fitness test for that seed. However! It still
+ * remains that if RAND_MAX is much larger than the range, there is no
+ * (statistically significant) modulo bias.
  *
  * CFLAGS=`pkg-config --libs --cflags gsl` make ...
  */
