@@ -35,6 +35,7 @@ my %open = (
   'lwp-noproxy' => [qw(lwp-request -P)],
   lynx          => [qw(lynx)],
   open          => [qw(open --background)],
+  openfg        => [qw(open)],
   pbcopy        => [qw(sgrax pbcopy)],
   safari        => [qw(open -a Safari --background)],
   wget          => [qw(wget)],
@@ -211,6 +212,12 @@ sub visit {
 
   my $method = exists $opts{o} ? $opts{o} : $default_open;
   die "error: unknown open method: $method\n" unless exists $open{$method};
+
+  # or otherwise a more complicated configuration that maps certain shortcuts
+  # to certain methods...
+  if ( $url =~ m{^dict://} ) {
+    $method = 'openfg';
+  }
 
   # TODO dispatch table for this
   if ( ref $open{$method} eq 'ARRAY' ) {
@@ -448,7 +455,7 @@ the value.
   cpan    http://search.metacpan.org/
   cpan@   https://metacpan.org/search?q=%@
 
-  # But only on Mac OS X...
+  # But only on Mac OS X and via open(1) or write appropriate code
   d@      dict://%1
 
   imdb    http://www.imdb.com/
