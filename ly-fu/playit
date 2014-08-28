@@ -1,0 +1,33 @@
+#!/usr/bin/env zsh
+#
+# Wrapper thingy called from vi to preview and play lilypond music.
+
+set -e
+
+MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
+[[ -z $MRF ]] && {
+  echo >&2 "no *.ly found (or glf problem)"
+  exit 1
+}
+
+(
+  MRP=${MRF:s/\.ly/.pdf}
+
+  [[ $MRF -nt $MRP ]] && {
+    [[ -f $MRP ]] && chmod u+w $MRP
+    lilypond --silent -dno-point-and-click $MRF
+    [[ -f $MRP ]] && chmod -w $MRP
+  }
+
+  # play, but only if volume up, so can mute and just eye the black dots
+  # if do not want to listen
+  osascript -e 'get volume settings' \
+  | egrep -q '(^output volume:0|output muted:true)' \
+  || {
+     zmodload zsystem
+     zsystem flock -r -t 1 =playit && {
+       osascript -e 'tell app "Preview.app" to activate'
+       pianoteq --preset D4\ Player\ Clean --midi *.midi(om[1])
+     }
+  }
+) >/dev/null 2>&1 &
