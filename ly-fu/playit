@@ -24,10 +24,7 @@ MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
   osascript -e 'get volume settings' \
   | egrep -q '(^output volume:0|output muted:true)' \
   || {
-     zmodload zsystem
-     zsystem flock -r -t 1 =playit && {
-       osascript -e 'tell app "Preview.app" to activate'
-       pianoteq --preset D4\ Player\ Clean --midi *.midi(om[1])
-     }
+    osascript -e 'tell app "Preview.app" to activate'
+    pianoteq --preset D4\ Player\ Clean --midi *.midi(om[1])
   }
 ) >/dev/null 2>&1 &
