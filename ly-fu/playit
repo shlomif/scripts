@@ -16,6 +16,7 @@ MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
   [[ $MRF -nt $MRP ]] && {
     [[ -f $MRP ]] && chmod u+w $MRP
     lilypond --silent -dno-point-and-click $MRF
+    osascript -e 'tell app "Preview.app" to activate'
     [[ -f $MRP ]] && chmod -w $MRP
   }
 
@@ -24,7 +25,6 @@ MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
   osascript -e 'get volume settings' \
   | egrep -q '(^output volume:0|output muted:true)' \
   || {
-    osascript -e 'tell app "Preview.app" to activate'
     pianoteq --preset D4\ Player\ Clean --midi *.midi(om[1])
   }
 ) >/dev/null 2>&1 &
