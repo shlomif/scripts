@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Part of the "tl;dr" suite of tools to spare one from reading copious and
+# doubtless boring output from programs. The "dr" utility can be enabled
+# via a shell alias:
+#
+#   alias dr=:
+#
+# And then:
+#
+#   somenoisycommand | tl;dr   
+#
+# Advanced users may wish to implement these commands as "text logger" and
+# "database review" utilities, though that is more work.
+
+exec cat >/dev/null 2>&1
