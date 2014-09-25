@@ -1,10 +1,15 @@
 /*
  * Snips any ultimate linefeed chars (\r and \n) from the named files.
  *
- * This is mostly just silly programming practice; files on Unix often need
- * that ultimate newline, as otherwise shell 'while' loops might loose that
- * last line, and so forth. (Hence certain editors warning if the file lacks
- * a trailing newline.)
+ * This is silly programming practice; files on Unix often need that ultimate
+ * newline, as otherwise shell `while` loops and such loose that last line.
+ * Hence certain editors warning if the file lacks a trailing newline, or
+ * certain cron(8) implementations not running the last line of the file, etc.
+ *
+ *   % (echo hi; echo -n there) | while read line; do echo $line; done
+ *   hi
+ *   % 
+ *
  */
 
 #include <err.h>
