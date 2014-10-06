@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -45,12 +46,12 @@ int main(int argc, char *argv[])
     /* calloc() zeros the fields; this is not a problem for the day of the
      * month on the rash assumption that localtime() properly gave *now some
      * sensible (non-zero) value. */
-    if ((before = calloc(1, sizeof(struct tm))) == NULL)
+    if ((before = calloc((size_t) 1, sizeof(struct tm))) == NULL)
         err(EX_OSERR, "calloc() failed");
     *before = *now;
     before->tm_mon -= 1;
 
-    if ((after = calloc(1, sizeof(struct tm))) == NULL)
+    if ((after = calloc((size_t) 1, sizeof(struct tm))) == NULL)
         err(EX_OSERR, "calloc() failed");
     *after = *now;
     after->tm_mon += 1;
@@ -86,15 +87,16 @@ void whatmonth(struct tm *date)
         err(EX_OSERR, "could not fork()");
 
     } else if (pid == 0) {      // child
-        if (strftime((char *) &monthnum, 3, "%m", date) < 1)
+        if (strftime((char *) &monthnum, (size_t) 3, "%m", date) < 1)
             errx(EX_OSERR, "could not strftime() month");
-        if (strftime((char *) &yearnum, 5, "%Y", date) < 1)
+        if (strftime((char *) &yearnum, (size_t) 5, "%Y", date) < 1)
             errx(EX_OSERR, "could not strftime() year");
 
         if (execlp("cal", "cal", &monthnum, &yearnum, (char *) 0) == -1)
             err(EX_OSERR, "could not execlp() cal");
 
     } else {                    // parent
-        wait(NULL);
+        if (wait(NULL) == -1)
+            err(EX_OSERR, "wait() error");
     }
 }
