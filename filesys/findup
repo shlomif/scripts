@@ -29,12 +29,12 @@ while getopts qH OPT; do
     ;;
   esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 SEARCH_FOR=$1
 if [ -z "$SEARCH_FOR" ]; then
   echo "Usage: `basename $0` [-q] [-H] filename" >&2
-  exit 64
+  exit 1
 fi
 
 EXIT_STATUS=1
@@ -48,13 +48,13 @@ while [ 1 ]; do
 
   # TODO option to supply the test (e.g. -d or -f or etc?) -- might have
   # some security or run-random-program concerns...
-  if [ -e "$SEARCH_FOR" ]; then
+  if [ -r "$SEARCH_FOR" ]; then
     [ $QUIET -eq 0 ] && echo $CURRENT_DIR
     EXIT_STATUS=0
     break
   fi
 
-  if [ "$CURRENT_DIR" == "$PREVIOUS_DIR" ]; then
+  if [ "$CURRENT_DIR" = "$PREVIOUS_DIR" ]; then
     break
   fi
 
