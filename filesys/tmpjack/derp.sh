@@ -7,7 +7,7 @@
 # do need to use a temporary file, well, there's mktemp(1) and related.
 LOCKFILE=sym
 
-if [ -e $LOCKFILE ]; then
+if [ -r $LOCKFILE ]; then
   exit 1
 fi
 

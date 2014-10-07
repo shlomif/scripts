@@ -4,7 +4,7 @@
 
 DOM=example.edu
 KEY=/etc/nsuk.key
-TIMEOUT=7
+MAXWAITSECS=7
 
 [ $# -ne 2 ] && {
   echo >&2 "usage: $0 existinghost cname"
@@ -21,6 +21,11 @@ echo $2 | grep $DOM && {
   exit 65
 }
 
+[ -r $KEY ] || {
+  echo >&2 "$0: cannot read nsupdate keyfile $KEY"
+  exit 65
+}
+
 # could do 'yxdomain' but that assumes 'A' or 'AAAA' exists;
 # 'prereq yxrrset' again falls into 'A' vs. 'AAAA' trap, so
 # just make an agnostic DNS lookup...
@@ -29,7 +34,7 @@ host $1.$DOM >/dev/null || {
   exit 68
 }
 
-nsupdate -k $KEY -t $TIMEOUT <<EOF
+nsupdate -k $KEY -t $MAXWAITSECS <<EOF
 prereq nxdomain $2.$DOM
 update add $2.$DOM 3600 CNAME $1.$DOM
 send

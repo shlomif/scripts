@@ -41,7 +41,4 @@ if [ -z "$NUMBER" ]; then
   fi
 fi
 
-RESULT=`expr $NUMBER % $MODULUS`
-#echo "$NUMBER % $MODULUS = $RESULT"
-
-echo $RESULT
+exec expr $NUMBER % $MODULUS

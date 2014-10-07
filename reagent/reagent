@@ -1,8 +1,9 @@
 #!/bin/sh
 #
-# Starts and configures the OpenSSH ssh-agent(1) utility. Kills ssh-
-# agent if found running already. Uses my allsh utility to reconfigure
-# any running shells with the new ssh-agent details.
+# Starts and configures the OpenSSH ssh-agent(1) utility. Kills ssh-agent if
+# found running already. Uses my allsh utility to reconfigure any running
+# shells with the new ssh-agent details. (Unused for years, as modern OpenSSH
+# on OpenBSD are good about this sort of thing.)
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.

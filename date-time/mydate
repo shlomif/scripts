@@ -1,6 +1,8 @@
 #!/bin/sh
 #
-# Prints the date in a format to the liking of the author.
+# Prints the date in a format to the liking of the author (in hindsight, it
+# would probably have been more sensible to simply create a `date` alias with
+# just the strftime format to that, and none of the options fuss).
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
@@ -10,7 +12,6 @@ DOTIME=no
 DOTIME_ZONE=no
 QUERY=
 
-# process arguments
 OPT=
 while getopts dtz OPT; do
   case $OPT in
@@ -27,24 +28,11 @@ while getopts dtz OPT; do
 done
 shift `expr $OPTIND - 1`
 
-# custom arguments for custom formats
+# for RPM .spec changelog foo, of which thankfully very little I now do
 if [ "$1" = "rpm" ]; then
   [ -z "$MY_REALNAME" ] && MY_REALNAME=`whoami`
   [ -z "$MY_EMAIL" ] && MY_EMAIL="`whoami`@`hostname`"
   date "+* %a %b %d %Y $MY_REALNAME <$MY_EMAIL>"
-  exit
-fi
-if [ "$1" = "dns" ]; then
-  if [ -z "$2" ]; then
-    SERIAL=00
-  else
-    SERIAL=$2
-  fi
-  date "+%Y%m%d$SERIAL"
-  exit
-fi
-if [ "$1" = "rits" ]; then
-  date +%d-%b-%Y
   exit
 fi
 

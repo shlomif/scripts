@@ -1,18 +1,25 @@
 #!/bin/sh
 #
-# Prints intials/date in standard format I use when commenting files.
+# Prints intials/date in standard format I use when commenting files. Now
+# wrapped by a ZSH shell function to copy to the clipboard (which will need to
+# vary by OS due to differing clipboard commands):
+#
+#   function tagit {
+#     =tagit -id | pbcopy
+#   }
 #
 # The author disclaims all copyrights and releases this script into the
 # public domain.
 
-# use username, as easier to correlate
+# use username instead of initials, as easier to query these e.g. with
+# `getent passwd ...` or the like.
 INITIALS=`id -un`@
 DATE=`date +%Y-%m-%d`
 
 DOINITIALS=no
 DODATE=no
 DONEWLINE=no
-ONLINE=no
+DOMESSAGE=no
 OUTPUT=
 
 tagit () {
@@ -27,8 +34,7 @@ tagit () {
   fi
 }
 
-mungeit () {
-  # KLUGE this will stall script if no STDIN
+custommsg () {
   DATA=`cat`
   if echo $DATA | grep '^#' > /dev/null ; then
     echo $DATA | sed "s/^#[ ]*/# $OUTPUT\ /"
@@ -50,7 +56,7 @@ while getopts vidn OPT; do
       DONEWLINE=yes
     ;;
     v)
-      ONLINE=yes
+      DOMESSAGE=yes
     ;;
   esac
 done
@@ -59,10 +65,10 @@ shift `expr $OPTIND - 1`
 # form up $OUTPUT with date, initials, etc.
 tagit
 
-if test $ONLINE = yes ; then
-  mungeit
+if test $DOMESSAGE = yes ; then
+  custommsg
 else
-  echo -n $OUTPUT
+  echo $OUTPUT | tr -d '\n'
   if test $DONEWLINE = yes ; then
     echo
   fi

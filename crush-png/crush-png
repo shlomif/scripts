@@ -12,9 +12,12 @@ fi
 
 for file in "$@"; do
   TMPFILE=`mktemp .crush-png-tmp.XXXXXXXXXX` || exit 1
-  pngcrush -brute -fix -reduce "$file" "$TMPFILE" 1>/dev/null || exit 1
+  pngcrush -brute -fix -reduce "$file" $TMPFILE 1>/dev/null || {
+    rm $TMPFILE
+    exit 1
+  }
   chmod a+r "$TMPFILE"
-  mv "$TMPFILE" "$file"
+  mv $TMPFILE "$file"
   
   # Undo name breakage Omnigraffle (v.4 and earlier) applies to PNG
   if echo "$file" | grep '\.gnp$' >/dev/null; then

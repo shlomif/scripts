@@ -4,7 +4,7 @@
 
 DOM=example.edu
 KEY=/etc/nsuk.key
-TIMEOUT=7
+MAXWAITSECS=7
 
 [ $# -lt 1 -o $# -gt 2 ] && {
   echo >&2 "usage: $0 host [ipaddr]"
@@ -16,11 +16,16 @@ echo $1 | grep $DOM && {
   exit 65
 }
 
+[ -r $KEY ] || {
+  echo >&2 "$0: cannot read nsupdate keyfile $KEY"
+  exit 65
+}
+
 IP=
 if [ $# -eq 2 ]; then
   IP=$2
 else
-  for hostip in $(dig +short -t A $1.$DOM); do
+  for hostip in `dig +short -t A $1.$DOM`; do
     [ $IP ] && {
       echo >&2 "$0: multiple A records for '$1', do not know which to delete"
       exit 65
@@ -34,7 +39,7 @@ else
   }
 fi
 
-nsupdate -k $KEY -t $TIMEOUT <<EOF
+nsupdate -k $KEY -t $MAXWAITSECS <<EOF
 prereq yxrrset $1.$DOM A
 update delete $1.$DOM A
 send
@@ -44,9 +49,9 @@ STATUS=$?
 if [ $STATUS -ne 0 ]; then
   echo >&2 "$0: non-zero exit from nsupdate (on delete A)"
 else
-  REV=$( perl -e 'print join ".", reverse split /[.]/, shift' $IP )
+  REV=`perl -e 'print join ".", reverse split /[.]/, shift' $IP`
 
-  nsupdate -k $KEY -t $TIMEOUT <<EOF_REV
+  nsupdate -k $KEY -t $MAXWAITSECS <<EOF_REV
 prereq yxrrset $REV.in-addr.arpa. PTR
 update delete $REV.in-addr.arpa. PTR
 send

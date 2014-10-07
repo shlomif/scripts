@@ -48,9 +48,9 @@ fi
 # KLUGE just clobber a known file, which will cause problems if multiple
 # 'allsh' are run or if multiple users are involve somehow.
 if [ "$1" = '-' ]; then
-  cat > ~/.sh-sourceall
+  cat > $HOME/.sh-sourceall
 else
-  echo "$@" > ~/.sh-sourceall
+  echo "$@" > $HOME/.sh-sourceall
 fi
 
 # KLUGE this signal is dependent on how the shell shows itself via the

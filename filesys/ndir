@@ -48,30 +48,30 @@ for f in "$@"; do
       continue
     fi
 
-    if [ ! -e $part ]; then
-      mkdir -- $part
+    if [ ! -d "$part" ]; then
+      mkdir -- "$part"
       if [ $? -ne 0 ]; then
-        echo "error: could not create $part of $f" >&2
+        echo "error: could not create '$part' of $f" >&2
         exit 1
       fi
     elif [ -d $part ]; then
       # fall through to CVS tests below
       :
     else
-      echo "error: $part of $f not a directory" >&2
+      echo "error: '$part' of '$f' not a directory" >&2
       exit 1
     fi
 
     # add dir to CVS automagically if CVS available
     if [ -f CVS/Root -a ! -f "$part/CVS/Root" ]; then
       if test $VERBOSE = yes ; then
-        echo "notice: adding $part to CVS" >&2
+        echo "notice: adding '$part' to CVS" >&2
       fi
-      cvs add -- $part >/dev/null
+      cvs add -- "$part" >/dev/null
       STATUS=$?
       if [ $STATUS -ne 0 ]; then
         IFS=$OLDIFS
-        echo "error: could not add $part of $f to CVS" >&2
+        echo "error: could not add '$part' of '$f' to CVS" >&2
         exit $STATUS
       fi
     fi
@@ -81,22 +81,22 @@ for f in "$@"; do
     # in-subversion-and-new directory to save on svn calls
     if [ -f .svn/entries -a ! -f "$part/.svn/entries" ]; then
       if test $VERBOSE = yes ; then
-        echo "notice: adding $part to subversion" >&2
+        echo "notice: adding '$part' to subversion" >&2
       fi
-      svn add -- $part >/dev/null
+      svn add -- "$part" >/dev/null
       STATUS=$?
       if [ $STATUS -ne 0 ]; then
         IFS=$OLDIFS
-        echo "error: could not add $part of $f to Subversion" >&2
+        echo "error: could not add '$part' of '$f' to Subversion" >&2
         exit $STATUS
       fi
     fi
 
-    cd -- $part
+    cd -- "$part"
     STATUS=$?
     if [ $STATUS -ne 0 ]; then
       IFS=$OLDIFS
-      echo "error: could not chdir to $part of $f" >&2
+      echo "error: could not chdir to '$part' of '$f'" >&2
       exit $STATUS
     fi
   done

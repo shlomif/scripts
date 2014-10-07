@@ -6,17 +6,24 @@
 # The author disclaims all copyrights and releases this script into
 # the public domain.
 
+STATUS=0
+
 for f in "$@"; do
-  if [ ! -e $f ]; then
-    echo "warning: no such file: $f" >&2
+  if [ ! -r $f ]; then
+    echo "warning: cannot read file: $f" >&2
+    STATUS=1
   elif [ -f $f ]; then
     cp -p -f $f $f.orig
     RETURN=$?
     if [ $RETURN -ne 0 ]; then
       echo "warning: non-zero exit from cp: $RETURN" >&2
+      STATUS=1
     fi
 # TODO write handlers for directories, Mac OS X HFS+ infested files?
   else
     echo "warning: no handle method for: $f" >&2
+    STATUS=1
   fi
 done
+
+exit $STATUS

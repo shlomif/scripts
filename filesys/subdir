@@ -35,6 +35,7 @@ while getopts q OPT; do
     ;;
   esac
 done
+shift `expr $OPTIND - 1`
 
 if [ $# -eq 0 ]; then
   scandir
@@ -42,8 +43,7 @@ else
   for dir in "$@"; do
     if [ -d "$dir" ]; then
     (
-      cd "$dir"
-      scandir
+      cd "$dir" && scandir
     )
     else
       if [ $QUIET -eq 1 ]; then

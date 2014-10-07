@@ -15,4 +15,4 @@
 #
 # perl -le 'print map chr, 0x1B,0x5D,0x32,0x3B,0x48,0x69,0x07' >> thatlog
 
-tail "$@" | perl -ple 's/([^ -~])/sprintf "%%%02x", ord($1)/eg'
+exec tail "$@" | perl -ple 's/([^ -~])/sprintf "%%%02x", ord($1)/eg'

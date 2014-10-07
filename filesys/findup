@@ -34,7 +34,7 @@ shift `expr $OPTIND - 1`
 SEARCH_FOR=$1
 if [ -z "$SEARCH_FOR" ]; then
   echo "Usage: `basename $0` [-q] [-H] filename" >&2
-  exit 1
+  exit 64
 fi
 
 EXIT_STATUS=1

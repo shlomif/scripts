@@ -9,7 +9,8 @@
 # well, good luck.
 
 if [ -z "$1" ]; then
-  echo >&2 Usage: $0 domain.tld
+  echo >&2 "Usage: $0 domain.tld"
+  exit 64
 fi
 OUT=`dig +short -t DNAME -q "$1" 2>&1`
 if [ -z "$OUT" ]; then

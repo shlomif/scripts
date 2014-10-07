@@ -5,4 +5,4 @@
 # check-pop3 -connect mail.example.org:995
 # check-pop3 -starttls pop3 -connect mail.example.org:110
 
-echo QUIT | openssl s_client $@ 2>&1
+echo QUIT | openssl s_client "$@" 2>&1
