@@ -1,0 +1,70 @@
+.Dd $Mdocdate: October  7 2014 $
+.Dt PERMCHECK 1
+.nh
+.Os
+.Sh NAME
+.Nm permcheck
+.Nd check permissions under a file system tree
+.Sh SYNOPSIS
+.Nm permcheck
+.Bk -words
+.Op Fl X
+.Op Fl u Ar user
+.Op Fl g Ar group
+.Op Fl v
+.Op Fl Rwx
+.Ar file
+.Op Ar file1 ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+iterates the specified file(s) and checks permissions recursively; any failures are printed to standard out. Options:
+.Bl -tag -width -indent
+.It Fl X
+Prevents recursion into directories on different device numbers than that of the starting
+.Ar file .
+Note the possible confusion with the
+.Fl x
+flag.
+.It Fl u Ar user
+Username or user ID number to use for the permissions checks. Probably
+requires root; the default is to use the real user of the resulting process.
+.It Fl g Ar grp
+Group name or ID number to use for the permissions checks. Defaults to the
+primary group of the user if the
+.Fl u
+flag is given, though
+.Fl g
+will always override that.
+.It Fl v
+Be verbose. At present, this merely enables additional messages about cycles in
+the filesystem and broken symlinks.
+.It Fl R
+Disables the read permissions test, such otherwise being the default.
+.It Fl w
+Check for write permissions on files. (And also read permissions, without the
+.Fl R
+flag.)
+.It Fl x
+Check for execute permissions on files (and also read permissions by default).
+Note the possible confusion with the
+.Fl X
+flag.
+.El
+.Pp
+Only unix file permissions are tested; exotic ACLs or file system encryption or
+other curiosities (apparmor, selinux) are not checked (unless
+.Xr access 2
+somehow knows about those).
+.Sh EXIT STATUS
+.Ex -std permcheck
+.Pp
+In particular, any file permissions problem will cause a non-zero exit, as will
+invalid arguments and so forth.
+.Sh SEE ALSO
+.Xr access 2 ,
+.Xr find 1 ,
+.Xr fts 3 ,
+.Xr parsepath 1
+.Sh AUTHOR
+.An Jeremy Mates
