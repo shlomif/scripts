@@ -37,7 +37,6 @@ mungeit () {
   fi
 }
 
-# handle command line options
 OPT=
 while getopts vidn OPT; do
   case $OPT in
@@ -55,7 +54,7 @@ while getopts vidn OPT; do
     ;;
   esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 # form up $OUTPUT with date, initials, etc.
 tagit

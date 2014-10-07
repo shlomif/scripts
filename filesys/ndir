@@ -23,7 +23,6 @@ if [ -z "$1" ]; then
   exit 64
 fi
 
-# process arguments
 OPT=
 while getopts v OPT; do
   case $OPT in
@@ -32,7 +31,7 @@ while getopts v OPT; do
     ;;
   esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 for f in "$@"; do
 (
