@@ -1,7 +1,9 @@
 /*
  * Tries (a lot) to make a symlink, mainly as test for feasibility of /tmp
- * symlink exploits, which would not be a concern if a) folks put their PID
- * files or whatnot in a tmp dir or b) instead used mktemp(3) properly.
+ * symlink exploits (quite feasible!); these exploits would be much less of a
+ * thing if a) folks simply did not write files to such directories or b)
+ * instead used mktemp(3) or equivalent instead. Alas, learning from history
+ * is not something we do.
  */
 
 #include <err.h>
