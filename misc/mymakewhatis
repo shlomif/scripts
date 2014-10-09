@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# Maintain whatis database on man directories (typically ~/perl5/man and
+# ~/share/man and ~/usr/share/man). $@ for pass-through of, say, the -v
+# flag on OpenBSD.
+
+exec /usr/libexec/makewhatis "$@" $HOME/*/man $HOME/*/*/man
