@@ -41,7 +41,7 @@ if test $DODATE = yes ; then
   QUERY='%Y-%m-%d'
 fi
 if test $DOTIME = yes ; then
-  QUERY="${QUERY:+$QUERY }%H:%M:%S"
+  QUERY="${QUERY:+$QUERY }%H:%M"
 fi
 if test $DOTIME_ZONE = yes ; then
   QUERY=${QUERY:+$QUERY}%z
