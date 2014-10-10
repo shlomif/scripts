@@ -1,26 +1,21 @@
 /*
- * Checks and reports on access permissions via fts(3) and access(2). Only unix
- * permissions are considered; exotic ACLs or file system encryption or other
- * curiosities (apparmor, selinux) are not checked (unless access(2) somehow
- * knows about those).
+ * Checks and reports on access permissions via fts(3). Only unix permissions
+ * are considered; exotic ACLs or file system encryption or other curiosities
+ * (apparmor, selinux) are not checked.
  *
  * See also parsepath(1) for a different (and older) take on this task; this
  * utility was motivated by the need to investigate a fairly large directory
  * tree for permissions problems for an arbitrary user, where the file
- * permissions policy was unspecified, so there was a need to see what files
- * were set wrong and why, without the bother of having to screen out all the
- * files with no permissions problems. A better approach in most cases is to
- * specify and enforce some permissions policy; however, this tool might help
- * in figuring out what is broken while trying to devise such a policy.
+ * permissions policy was unspecified, so there was a need to determine which
+ * files were set wrong. A better approach in most cases is to specify and
+ * enforce some permissions policy; however, this tool might help in figuring
+ * out what is broken while trying to devise such a policy. (And really as an
+ * excuse to code something up using fts(3).
  *
- * access(2) while handy probably needs replacement with custom code that only
- * checks the given of individual FTSENT items, e.g. r+x for directories and
- * whatever -Rwx is required for other files, as this will avoid repeated
- * checks that access(2) is stated to make on parent directories (that is, to
- * only check / once, /foo once, and then the individual file permissions on
- * /foo/{bar,baz,...} once). Though, as a start-up task would then need to
- * check the parent directories of any starting paths, e.g. / and /foo for a
- * /foo/bar argument, which access(2) does check (often many times?).
+ * access(2) while attractive is not used as it according to the docs by
+ * default checks the parent directories for each file it is called on; when
+ * recursing with fts(3), these should only be checked once. Hence the custom
+ * permission checking code (and corresponding risk of stupid bugs therein).
  */
 
 #include <sys/types.h>
@@ -30,6 +25,7 @@
 #include <errno.h>
 #include <fts.h>
 #include <grp.h>
+#include <libgen.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -38,21 +34,39 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+/* Catch-all exit code for "something awry during fts(3) search" (or during the
+ * pre-fts(3) parent directory permissions tests). */
+#define EX_PERMS_ERR 1
+
 const char *Program_Name;
 
 gid_t Flag_Group_ID;            // -g groupname|gid
+bool Flag_No_Lookups;           // -n
+bool Flag_Prune_Dirs;           // -p
 uid_t Flag_User_ID;             // -u username|uid
 bool Flag_Verbose;              // -v
 
+gid_t *User_Groups;
+unsigned int User_Group_Count;
+#define MAX_GROUP_COUNT 640
+
+enum { FAIL_USER, FAIL_GROUP, FAIL_OTHER };     // for ugo indication
+
 void emit_help(void);
-void showstat(struct stat *sb);
+/* The 'amode' is something like R_OK|X_OK (for directories) that is tested
+ * against each of the user, group, and other fields as necessary. */
+unsigned int file_access(struct stat *sb, unsigned int amode, int *ugo);
+void report_fail(struct stat *sb, char *filepath, unsigned int amode, int ugo);
 
 int main(int argc, char *argv[])
 {
+    char *username = NULL;
     FTS *filetree;
     FTSENT *filedat;
-    int access_mode = R_OK;
+    unsigned int access_mode = R_OK;
     int ch;
+    unsigned int failmodes;
+    int failugo;
     int fts_options = FTS_LOGICAL;
     int ret = EXIT_SUCCESS;     // optimistic
     struct group *gr;
@@ -60,7 +74,11 @@ int main(int argc, char *argv[])
 
     Program_Name = *argv;
 
-    while ((ch = getopt(argc, argv, "g:h?Ru:vwxX")) != -1) {
+    /* Without -u or -g, permissions default to user running this code. */
+    Flag_User_ID = getuid();
+    Flag_Group_ID = getgid();
+
+    while ((ch = getopt(argc, argv, "g:h?npRu:vwxX")) != -1) {
         switch (ch) {
         case 'g':
             if (sscanf(optarg, "%u", &Flag_Group_ID) != 1) {
@@ -72,6 +90,14 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 'n':
+            Flag_No_Lookups = true;
+            break;
+
+        case 'p':
+            Flag_Prune_Dirs = true;
+            break;
+
         case 'R':
             access_mode ^= R_OK;
             break;
@@ -79,6 +105,7 @@ int main(int argc, char *argv[])
         case 'u':
             if (sscanf(optarg, "%u", &Flag_User_ID) != 1) {
                 if ((pw = getpwnam(optarg)) != NULL) {
+                    username = pw->pw_name;
                     Flag_User_ID = pw->pw_uid;
                     // implicit default-group-of-user if not already set
                     if (Flag_Group_ID == 0)
@@ -115,28 +142,103 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc == 0)
+    if (argc == 0) {
+        warnx("specify files or directories to check");
         emit_help();
+    }
     if (access_mode == 0) {
         warnx("-R without -w or -x makes little sense?");
         emit_help();
     }
 
-    if (Flag_User_ID != 0 && Flag_User_ID != getuid())
-        if (setreuid(Flag_User_ID, (uid_t) - 1) == -1)
-            err(EX_OSERR, "could not setreuid() to %u", Flag_User_ID);
-    if (Flag_Group_ID != 0 && Flag_Group_ID != getgid())
-        if (setregid(Flag_Group_ID, (uid_t) - 1) == -1)
-            err(EX_OSERR, "could not setregid() to %u", Flag_Group_ID);
+    /* The username will have been filled in if -u specified, but always need
+     * it for the getgrouplist(3) work that in turn is necessary for the
+     * permissions checks. */
+    if (username == NULL) {
+        if ((pw = getpwuid(Flag_User_ID)) != NULL) {
+            username = pw->pw_name;
+        } else {
+            err(EX_NOUSER, "could not lookup username for uid %lu",
+                (unsigned long) Flag_User_ID);
+        }
+    }
 
-    if ((filetree = fts_open(argv, fts_options, NULL)) == NULL)
+    User_Group_Count = 16;
+    if ((User_Groups =
+         calloc((size_t) User_Group_Count, sizeof(gid_t))) == NULL)
+        err(EX_OSERR, "could not calloc() group ID list");
+
+    /* Portability note - getgrouplist(3) on Slackware 3.10.17 uses 'gid_t'
+     * while Mac OS X 10.9.5 and OpenBSD 5.5 use 'int' for various group ID
+     * fields. :( */
+    while (getgrouplist
+           (username, Flag_Group_ID, User_Groups, &User_Group_Count) == -1) {
+        User_Group_Count <<= 1;
+        if (User_Group_Count > MAX_GROUP_COUNT)
+            errx(1, "group ID list too large");
+        if (realloc(User_Groups, (size_t) User_Group_Count) == NULL)
+            err(EX_OSERR, "could not realloc group ID list");
+    }
+
+    /* User-supplied paths for fts(3) must be made sane (and exist), and parent
+     * directories checked for permissions problems, as running fts(3) over
+     * /home/jdoe is a waste of time if /home is the source of the problem. */
+    char **argp, **pathlist, **plp;
+    if ((pathlist = calloc((size_t) argc + 1, sizeof(char *))) == NULL)
+        err(EX_OSERR, "could not calloc() path list");
+    plp = pathlist;
+    argp = argv;
+    while (*argp) {
+        char *dirtoken, *parentdir, *realp;
+
+        if ((realp = realpath(*argp, NULL)) == NULL)
+            err(EX_IOERR, "realpath() failed on '%s'", *argp);
+
+        /* fts(3) should check the starting inode, so we only need to cover
+         * directories above that. */
+        if ((parentdir = dirname(realp)) == NULL)
+            err(EX_IOERR, "dirname() failed on '%s' from '%s'", realp, *argp);
+
+        parentdir++;            // skip presumed leading root / dir
+
+        bool skipdir = false;
+        char *pathportion = (char *) "";
+        while ((dirtoken = strsep(&parentdir, "/")) != NULL) {
+            struct stat statbuf;
+            if (asprintf(&pathportion, "%s/%s", pathportion, dirtoken) == -1)
+                err(EX_OSERR, "could not asprintf() path portion");
+            if (stat(pathportion, &statbuf) == -1)
+                err(EX_IOERR, "could not stat '%s'", pathportion);
+
+            if ((failmodes = file_access(&statbuf, R_OK | X_OK, &failugo)) != 0) {
+                ret = EX_PERMS_ERR;
+                report_fail(&statbuf, pathportion, failmodes, failugo);
+
+                if (Flag_Prune_Dirs) {
+                    skipdir = true;
+                    break;
+                }
+            }
+        }
+
+        if (!skipdir)
+            *plp++ = realp;
+
+        argp++;
+    }
+    *plp = (char *) 0;
+
+    if ((filetree = fts_open(pathlist, fts_options, NULL)) == NULL)
         err(EX_OSERR, "could not fts_open()");
 
     while ((filedat = fts_read(filetree)) != NULL) {
         switch (filedat->fts_info) {
         case FTS_DC:
+            /* A symlink loop lists the symlink twice; ln(1) and link(2) fail
+             * to create a hard link on Mac OS X. TODO test on other OS. What
+             * is it with OS disallowing hard linked directories? I mean, what
+             * could possibly go wrong?? */
             if (Flag_Verbose) {
-                ret = 1;
                 printf("filesystem cycle from '%s' to '%s'\n",
                        filedat->fts_accpath, filedat->fts_cycle->fts_accpath);
             }
@@ -144,44 +246,64 @@ int main(int argc, char *argv[])
 
         case FTS_SLNONE:
             if (Flag_Verbose) {
-                ret = 1;
                 printf("broken symlink '%s'\n", filedat->fts_accpath);
             }
             break;
 
+        case FTS_NS:
+            ret = EX_PERMS_ERR;
+            printf("could not stat '%s'\n", filedat->fts_accpath);
+            break;
+
         case FTS_DNR:
         case FTS_ERR:
-        case FTS_NS:
-            ret = 1;
-            printf("error reading '%s' ", filedat->fts_accpath);
-            if (filedat->fts_statp)
-                showstat(filedat->fts_statp);
-            putchar('\n');
+            ret = EX_PERMS_ERR;
+            if ((failmodes =
+                 file_access(filedat->fts_statp, access_mode, &failugo)) != 0) {
+                report_fail(filedat->fts_statp, filedat->fts_accpath, failmodes,
+                            failugo);
+            }
+            /* Report should provide more detail than "Permission denied",
+             * though do show the errno if it is not "Permission denied". */
+            if (filedat->fts_errno != EACCES) {
+                fprintf(stderr, "error reading '%s': %s\n",
+                        filedat->fts_accpath, strerror(filedat->fts_errno));
+            }
+            break;
+
+        case FTS_D:
+            if ((failmodes =
+                 file_access(filedat->fts_statp, R_OK | X_OK, &failugo)) != 0) {
+                ret = EX_PERMS_ERR;
+                report_fail(filedat->fts_statp, filedat->fts_accpath, failmodes,
+                            failugo);
+
+                if (Flag_Prune_Dirs)
+                    fts_set(filetree, filedat, FTS_SKIP);
+            }
             break;
 
         case FTS_DEFAULT:
         case FTS_F:
         case FTS_SL:
-            if (access(filedat->fts_accpath, access_mode) == -1) {
-                ret = 1;
-                printf("no access '%s' ", filedat->fts_accpath);
-                if (filedat->fts_statp)
-                    showstat(filedat->fts_statp);
-                putchar('\n');
+            if ((failmodes =
+                 file_access(filedat->fts_statp, access_mode, &failugo)) != 0) {
+                ret = EX_PERMS_ERR;
+                report_fail(filedat->fts_statp, filedat->fts_accpath, failmodes,
+                            failugo);
             }
             break;
+
+        default:
+            /* Silence a warning; everything relevant should be handled by the
+             * above. If not, see fts(3). */
+            ;
         }
     }
     if (errno != 0)
         err(EX_OSERR, "fts_read() error");
 
     exit(ret);
-}
-
-void showstat(struct stat *sb)
-{
-    printf("mode %04o owner %u:%u", sb->st_mode & 07777, sb->st_uid,
-           sb->st_gid);
 }
 
 void emit_help(void)
@@ -193,8 +315,102 @@ void emit_help(void)
         shortname = Program_Name;
 
     fprintf(stderr,
-            "Usage: %s [-X] [-u user] [-g group] [-v] [-Rwx] file [file1 ..]\n",
-            shortname);
+            "Usage: %s "
+            "[-g group] [-n] [-p] [-Rwx] [-u user] [-v] [-X] "
+            "file [file1 ..]\n", shortname);
 
     exit(EX_USAGE);
+}
+
+/* Checks the permissions on the given stat, returns 0 if access is allowed, or
+ * some positive value on failure (the bits that failed the permissions test);
+ * amode is something like R_OK|X_OK that is applied to the user, group, and
+ * other, in turn. */
+unsigned int file_access(struct stat *sb, unsigned int amode, int *ugo)
+{
+    if (Flag_User_ID == 0)
+        return 0;
+
+    /* Unix, once gets match on user or group, stops looking at subsequent
+     * (Stevens, APUE, ch 4, section 5 (p.81 1st edition; p.94 2nd edition)).
+     * This can be confirmed by owning a directory but giving it 0007 modes;
+     * the owner should fail read attempts. */
+    unsigned int tmode = amode << 6;
+    if (sb->st_uid == Flag_User_ID) {
+        if ((sb->st_mode & tmode) == tmode) {
+            return 0;
+        } else {
+            *ugo = FAIL_USER;
+            return amode;
+        }
+    }
+
+    tmode = amode << 3;
+    for (unsigned int i = 0; i < User_Group_Count; i++) {
+        if (sb->st_gid == (gid_t) User_Groups[i]) {
+            if ((sb->st_mode & tmode) == tmode) {
+                return 0;
+            } else {
+                *ugo = FAIL_GROUP;
+                return amode;
+            }
+        }
+    }
+
+    if ((sb->st_mode & amode) == amode) {
+        return 0;
+    } else {
+        *ugo = FAIL_OTHER;
+        return amode;
+    }
+}
+
+void report_fail(struct stat *sb, char *filepath, unsigned int amode, int ugo)
+{
+    char filetype = 'd';
+    char modestr[4] = "   ";
+    char *mp;
+    char ustr = 'o';
+
+    if (!S_ISDIR(sb->st_mode))
+        filetype = 'f';
+
+    if (ugo == FAIL_USER) {
+        ustr = 'u';
+    } else if (ugo == FAIL_GROUP) {
+        ustr = 'g';
+    }
+
+    mp = modestr;
+    if ((amode & R_OK) == R_OK)
+        *mp++ = 'r';
+    if ((amode & W_OK) == W_OK)
+        *mp++ = 'w';
+    if ((amode & X_OK) == X_OK)
+        *mp++ = 'x';
+
+    if (Flag_No_Lookups) {
+        printf("! %c+%s fails: %c %04o %d:%d %s\n", ustr, modestr, filetype,
+               sb->st_mode & 07777, sb->st_uid, sb->st_gid, filepath);
+    } else {
+        char *groupname, *username;
+        struct group *gr;
+        struct passwd *pw;
+
+        if ((gr = getgrgid(sb->st_gid)) != NULL) {
+            groupname = gr->gr_name;
+        } else {
+            if (asprintf(&groupname, "%lu", (unsigned long) sb->st_gid) == -1)
+                err(EX_OSERR, "could not asprintf() gid %d", sb->st_gid);
+        }
+        if ((pw = getpwuid(sb->st_uid)) != NULL) {
+            username = pw->pw_name;
+        } else {
+            if (asprintf(&username, "%lu", (unsigned long) sb->st_uid) == -1)
+                err(EX_OSERR, "could not asprintf() uid %d", sb->st_uid);
+        }
+
+        printf("! %c+%s fails: %c %04o %s:%s %s\n", ustr, modestr, filetype,
+               sb->st_mode & 07777, username, groupname, filepath);
+    }
 }

@@ -1,4 +1,4 @@
-.Dd $Mdocdate: October  7 2014 $
+.Dd $Mdocdate: October 10 2014 $
 .Dt PERMCHECK 1
 .nh
 .Os
@@ -8,62 +8,89 @@
 .Sh SYNOPSIS
 .Nm permcheck
 .Bk -words
-.Op Fl X
-.Op Fl u Ar user
 .Op Fl g Ar group
-.Op Fl v
+.Op Fl n
+.Op Fl p
 .Op Fl Rwx
+.Op Fl u Ar user
+.Op Fl v
+.Op Fl X
 .Ar file
 .Op Ar file1 ..
 .Ek
 .Sh DESCRIPTION
 .Nm
-iterates the specified file(s) and checks permissions recursively; any failures are printed to standard out. Options:
+iterates the specified file(s) and checks permissions recursively; any failures are printed to standard out. By default, read permissions are tested for, along with read and execute on directories. Options:
 .Bl -tag -width -indent
+.It Fl g Ar grp
+Group name or ID number to use for the permissions checks. Defaults to the real
+group of the process (via the
+.Xr getgid 2
+system call).
+.It Fl n
+Do not perform username and groupname lookups for files that fail access
+permissions.
+.It Fl p
+Prunes directories that fail the permissions test. This happens naturally if
+the process does not have access to a directory, though may be useful when
+running as root with the
+.Fl u
+flag to only find the shallowest directories that the user does not have access
+to. By default, the entire tree is searched. Note that with the
+.Fl p
+flag, 
+.Xr fts 3
+may not be called if a parent directory to the
+.Ar file
+fails the directory permssions check.
+.It Fl R
+Disables the read permissions test, such otherwise being the default on non-
+directory files. Directories are always tested for read and execute. This flag
+probably should be specified alongside one or both of
+.Fl w
+and
+.Fl x .
+.It Fl u Ar user
+Username or user ID number to use for the permissions checks. The default is to
+use the real user of the process (via the
+.Xr getuid 2 
+system call). Probably should be specified when running the script as root, as
+unix filesystem permissions do not apply to root.
+.It Fl v
+Be verbose. At present, this merely enables additional messages about cycles in
+the filesystem and broken symlinks.
+.It Fl w
+Check for write permissions on non-directory files. (And also read permissions
+by default).
+.It Fl x
+Check for execute permissions on non-directory files (and also read permissions
+by default).
 .It Fl X
 Prevents recursion into directories on different device numbers than that of the starting
 .Ar file .
 Note the possible confusion with the
 .Fl x
 flag.
-.It Fl u Ar user
-Username or user ID number to use for the permissions checks. Probably
-requires root; the default is to use the real user of the resulting process.
-.It Fl g Ar grp
-Group name or ID number to use for the permissions checks. Defaults to the
-primary group of the user if the
-.Fl u
-flag is given, though
-.Fl g
-will always override that.
-.It Fl v
-Be verbose. At present, this merely enables additional messages about cycles in
-the filesystem and broken symlinks.
-.It Fl R
-Disables the read permissions test, such otherwise being the default.
-.It Fl w
-Check for write permissions on files. (And also read permissions, without the
-.Fl R
-flag.)
-.It Fl x
-Check for execute permissions on files (and also read permissions by default).
-Note the possible confusion with the
-.Fl X
-flag.
 .El
 .Pp
-Only unix file permissions are tested; exotic ACLs or file system encryption or
-other curiosities (apparmor, selinux) are not checked (unless
-.Xr access 2
-somehow knows about those).
+Only unix file permissions are tested; exotic ACLs or or other curiosities
+(apparmor, selinux) are not considered. If running the script as root, the
+.Fl u
+and possibly
+.Fl g
+flags should be used, as root normally has full access regardless the
+filesystem permissions, and would only be blocked by software unknown to this
+code (such file system entities though should cause
+.Xr fts 3
+to trigger an error, say due to NFS root squash or AFS or a user-encrypted
+home directory being encountered).
 .Sh EXIT STATUS
 .Ex -std permcheck
 .Pp
-In particular, any file permissions problem will cause a non-zero exit, as will
-invalid arguments and so forth.
+In particular, any file permissions problem will cause a non-zero exit (and
+output on standard out), as will invalid arguments or other errors (with
+corresponding output to standard error).
 .Sh SEE ALSO
-.Xr access 2 ,
-.Xr find 1 ,
 .Xr fts 3 ,
 .Xr parsepath 1
 .Sh AUTHOR

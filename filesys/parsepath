@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 #
-# Prints information about file paths, or checks for Unix permissions
-# problems. Run perldoc(1) on this script for additional documentation.
+# Prints information about file paths, or checks for Unix permissions problems.
+# Run perldoc(1) on this script for additional documentation. See also
+# permcheck.c for a recursing version.
 #
 # NOTE A better approach to maintaining file system permissions is to
 #      instead to use Configuration Management software, such that the
@@ -379,7 +380,7 @@ sub check_access {
       }
 
       # Unix, once gets match on user or group, stops looking at subsequent
-      # (Stevens, APUE, ch 4, section 6).
+      # (Stevens, APUE, ch 4, section 5 (p.81 1st edition)).
       return;
     }
   }
