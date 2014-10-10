@@ -16,7 +16,18 @@
  * default checks the parent directories for each file it is called on; when
  * recursing with fts(3), these should only be checked once. Hence the custom
  * permission checking code (and corresponding risk of stupid bugs therein).
+ *
+ *   CFLAGS=-std=c99 make permcheck
+ *
+ * Should build the code on something modernish (Mac OS X 10.9, OpenBSD 5.5,
+ * and Slackware 3.10.17 thus far in my limited testing).
  */
+
+#ifdef __linux__
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+#include <getopt.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -71,6 +82,7 @@ int main(int argc, char *argv[])
     int ret = EXIT_SUCCESS;     // optimistic
     struct group *gr;
     struct passwd *pw;
+    struct stat statbuf;
 
     Program_Name = *argv;
 
@@ -158,8 +170,8 @@ int main(int argc, char *argv[])
         if ((pw = getpwuid(Flag_User_ID)) != NULL) {
             username = pw->pw_name;
         } else {
-            err(EX_NOUSER, "could not lookup username for uid %lu",
-                (unsigned long) Flag_User_ID);
+            errx(EX_NOUSER, "could not lookup username for uid %lu",
+                 (unsigned long) Flag_User_ID);
         }
     }
 
@@ -180,6 +192,18 @@ int main(int argc, char *argv[])
             err(EX_OSERR, "could not realloc group ID list");
     }
 
+    /* Unlikely awry but gotta check / for sanity ... */
+    if (Flag_User_ID != 0) {
+        if (stat("/", &statbuf) == -1)
+            err(EX_IOERR, "could not stat '/' ??");
+
+        if ((failmodes = file_access(&statbuf, R_OK | X_OK, &failugo)) != 0) {
+            report_fail(&statbuf, (char *) "/", failmodes, failugo);
+            if (Flag_Prune_Dirs)
+                exit(ret);
+        }
+    }
+
     /* User-supplied paths for fts(3) must be made sane (and exist), and parent
      * directories checked for permissions problems, as running fts(3) over
      * /home/jdoe is a waste of time if /home is the source of the problem. */
@@ -189,14 +213,17 @@ int main(int argc, char *argv[])
     plp = pathlist;
     argp = argv;
     while (*argp) {
-        char *dirtoken, *parentdir, *realp;
+        char *dirtoken, *parentdir, *realp, *realerp;
 
         if ((realp = realpath(*argp, NULL)) == NULL)
             err(EX_IOERR, "realpath() failed on '%s'", *argp);
 
         /* fts(3) should check the starting inode, so we only need to cover
-         * directories above that. */
-        if ((parentdir = dirname(realp)) == NULL)
+         * directories above that. Alas, Linux screws around with the realp, so
+         * must make a copy and dirname() that. */
+        if (asprintf(&realerp, "%s", realp) == -1)
+            err(EX_OSERR, "could not asprintf() real path");
+        if ((parentdir = dirname(realerp)) == NULL)
             err(EX_IOERR, "dirname() failed on '%s' from '%s'", realp, *argp);
 
         parentdir++;            // skip presumed leading root / dir
@@ -204,7 +231,6 @@ int main(int argc, char *argv[])
         bool skipdir = false;
         char *pathportion = (char *) "";
         while ((dirtoken = strsep(&parentdir, "/")) != NULL) {
-            struct stat statbuf;
             if (asprintf(&pathportion, "%s/%s", pathportion, dirtoken) == -1)
                 err(EX_OSERR, "could not asprintf() path portion");
             if (stat(pathportion, &statbuf) == -1)
