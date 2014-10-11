@@ -28,8 +28,10 @@ group of the process (via the
 .Xr getgid 2
 system call).
 .It Fl n
-Do not perform username and groupname lookups for files that fail access
-permissions.
+Do not perform username and groupname lookups on files that fail access
+permissions; output will list only uid and gid numbers. This flag is unrelated
+to the necessary step of looking up the username to determine what groups that
+user belongs to for the permissions test, though.
 .It Fl p
 Prunes directories that fail the permissions test. This happens naturally if
 the process does not have access to a directory, though may be useful when
@@ -42,11 +44,11 @@ flag,
 .Xr fts 3
 may not be called if a parent directory to the
 .Ar file
-fails the directory permssions check.
+fails the directory permissions check.
 .It Fl R
-Disables the read permissions test, such otherwise being the default on non-
-directory files. Directories are always tested for read and execute. This flag
-probably should be specified alongside one or both of
+Disables the read permissions test, the default test for non-directory files.
+Directories are always tested for read and execute. This flag probably should
+be specified alongside one or both of
 .Fl w
 and
 .Fl x .

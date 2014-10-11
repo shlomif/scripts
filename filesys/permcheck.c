@@ -165,35 +165,37 @@ int main(int argc, char *argv[])
 
     /* The username will have been filled in if -u specified, but always need
      * it for the getgrouplist(3) work that in turn is necessary for the
-     * permissions checks. */
-    if (username == NULL) {
-        if ((pw = getpwuid(Flag_User_ID)) != NULL) {
-            username = pw->pw_name;
-        } else {
-            errx(EX_NOUSER, "could not lookup username for uid %lu",
-                 (unsigned long) Flag_User_ID);
-        }
-    }
-
-    User_Group_Count = 16;
-    if ((User_Groups =
-         calloc((size_t) User_Group_Count, sizeof(gid_t))) == NULL)
-        err(EX_OSERR, "could not calloc() group ID list");
-
-    /* Portability note - getgrouplist(3) on Slackware 3.10.17 uses 'gid_t'
-     * while Mac OS X 10.9.5 and OpenBSD 5.5 use 'int' for various group ID
-     * fields. :( */
-    while (getgrouplist
-           (username, Flag_Group_ID, User_Groups, &User_Group_Count) == -1) {
-        User_Group_Count <<= 1;
-        if (User_Group_Count > MAX_GROUP_COUNT)
-            errx(1, "group ID list too large");
-        if (realloc(User_Groups, (size_t) User_Group_Count) == NULL)
-            err(EX_OSERR, "could not realloc group ID list");
-    }
-
-    /* Unlikely awry but gotta check / for sanity ... */
+     * permissions checks. Well, unless the user is root, in which case the
+     * groups do not apply. */
     if (Flag_User_ID != 0) {
+        if (username == NULL) {
+            if ((pw = getpwuid(Flag_User_ID)) != NULL) {
+                username = pw->pw_name;
+            } else {
+                errx(EX_NOUSER, "could not lookup username for uid %lu",
+                     (unsigned long) Flag_User_ID);
+            }
+        }
+
+        User_Group_Count = 16;
+        if ((User_Groups =
+             calloc((size_t) User_Group_Count, sizeof(gid_t))) == NULL)
+            err(EX_OSERR, "could not calloc() group ID list");
+
+        /* Portability note - getgrouplist(3) on Slackware 3.10.17 uses 'gid_t'
+         * while Mac OS X 10.9.5 and OpenBSD 5.5 use 'int' for various group ID
+         * fields. :( */
+        while (getgrouplist
+               (username, Flag_Group_ID, User_Groups,
+                &User_Group_Count) == -1) {
+            User_Group_Count <<= 1;
+            if (User_Group_Count > MAX_GROUP_COUNT)
+                errx(1, "group ID list too large");
+            if (realloc(User_Groups, (size_t) User_Group_Count) == NULL)
+                err(EX_OSERR, "could not realloc group ID list");
+        }
+
+        /* Unlikely awry but gotta check / for sanity ... */
         if (stat("/", &statbuf) == -1)
             err(EX_IOERR, "could not stat '/' ??");
 
