@@ -15,7 +15,9 @@
 # The directory used to hold temporary sources and the executable can be
 # set by altering the TMPDIR environment variable:
 #
-# TMPDIR=/var/tmp c-fu ...
+#   env TMPDIR=$HOME/tmp c-fu ...
+#
+# in the event /tmp is mounted 'noexec' as is only right and proper to do.
 
 use strict;
 use warnings;
@@ -35,7 +37,7 @@ my $dry_run     = 0;
 my $exit_status = 0;
 
 my ( $code_fh, $code_fname, $bin_fname );
-my ( @defines, $c_template );
+my ( @defines );
 
 my $main_args = 'int argc, const char *argv[]';
 
@@ -74,7 +76,7 @@ if ("@ARGV" !~ m/arg[cv]/) {
   $main_args = 'void';
 }
 
-# PID only in filename as otherwise src and obj would only be related by
+# PID is in filename as otherwise src and obj would only be related by
 # perhaps the filesystem mtime
 ( $code_fh, $code_fname ) = tempfile(
   "$BASENAME.src-$$.XXXXXXXXXX",
@@ -87,27 +89,36 @@ if ("@ARGV" !~ m/arg[cv]/) {
   UNLINK => 0
 );
 
-$c_template = <<"END_TMPL";
+# Used mostly on Unix or BSD (Mac OS X, OpenBSD), less so on Linux.
+my $c_template = <<"END_TMPL";
+
+#ifdef __linux__
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+#include <linux/limits.h>
+#include <getopt.h>
+#else
+#include <sys/syslimits.h>
+#endif
 
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
-#ifdef __linux__
-#include <linux/limits.h>
-#else
-#include <sys/syslimits.h>
-#endif
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fts.h>
+#include <grp.h>
 #include <libgen.h>
 #include <limits.h>
 #include <math.h>
+#include <pwd.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
