@@ -45,7 +45,7 @@ else
     # instead?)
     for backup_suffix in .orig .old; do
       if [ -f "$input$backup_suffix" ]; then
-        diff "$input$backup_suffix" "$input"
+        diff -u -- "$input$backup_suffix" "$input"
         break
       fi
     done
