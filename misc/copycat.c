@@ -5,12 +5,17 @@
  *
  *   mkfifo asdf
  *
+ * And then:
+ *
  *   $CLIPBOARD < asdf &
  *   tee asdf
  *
  * Assuming that the FIFO can be properly created, etc. Otherwise mostly
- * motivated by :...!pbcopy in vi annoyingly filtering out the thus copied
+ * motivated by :%!pbcopy in vi annoyingly filtering out the thus copied
  * data, and the code is otherwise mostly lifted from APUE.
+ *
+ * See the copycat.1 file for additional documentation (or copy that file
+ * to a man1 directory and then `man copycat`).
  */
 
 #include <sys/wait.h>
@@ -23,6 +28,8 @@
 #include <unistd.h>
 
 #define BUFSIZE 4096
+/* This is for Mac OS X; see the man page for details on creating a platform
+ * specific wrapper as necessary for xsel or the like. */
 #define CLIPBOARD "pbcopy"
 
 int main(void)

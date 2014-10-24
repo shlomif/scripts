@@ -1,4 +1,4 @@
-.Dd $Mdocdate: July  9 2014 $
+.Dd $Mdocdate: October 23 2014 $
 .Dt COPYCAT 1
 .nh
 .Os
@@ -9,13 +9,23 @@
 .Nm copycat
 .Sh DESCRIPTION
 .Nm
-copies any data passed on STDIN to both STDOUT and to the command mentioned in the CLIPBOARD environment variable (or to
+copies any data passed on standard input to both standard output and to the command mentioned in the
+.Ev CLIPBOARD
+environment variable (or to
 .Xr pbcopy 1
-if CLIPBOARD is not set).
+if
+.Ev CLIPBOARD
+is not set).
 .Pp
 If using
 .Xr tmux 1
 via MacPorts on Mac OS X, the tmux-pasteboard MacPorts package may be of service.
+.Pp
+In hindsight,
+.Xr xclip 1
+does have a
+.Fl filter
+flag, but that would not help on Mac OS X.
 .Sh EXAMPLES
 How I configure OpenBSD (the xclip port must be installed):
 .Pp
@@ -26,7 +36,7 @@ How I configure OpenBSD (the xclip port must be installed):
 .Dl $ chmod +x $HOME/libexec/pbcopy
 .Pp
 .Xr xsel 1x
-is another option, though also must be used with a wrapper
+is another option, though also must be used with a wrapper:
 .Pp
 .Dl #!/bin/sh
 .Dl exec xsel --input
@@ -38,16 +48,39 @@ guesses incorrectly on what to do when used under
 .Pp
 Then, in
 .Xr vi 1
-one may then use a filter via some range to copy the desired lines to the clipboard while also to not destroy that data in
-.Xr vi 1 :
+one may then use a filter via some range to copy the desired lines to the clipboard while also to not destroy that data:
 .Pp
-.Dl :...!copycat
+.Bl -item -offset indent
+.It
+.Ic :%!copycat
+.El
 .Pp
-In hindsight,
-.Xr xclip 1
-does have a
-.Fl filter
-flag, but that would not help on Mac OS X.
+to copy the entire document to the clipboard, or arbitrary data using arbitrary range statements:
+.Pp
+.Bl -item -offset indent
+.It
+.Ic :.,+4!copycat
+.It
+.Ic makkkkk:.,'a!copycat
+.El
+.Pp
+for the present line and following four, or to set a mark, move up some lines, then filter from the current line to that mark. If one moves down, the filter will need to be from the mark to the current line:
+.Pp
+.Bl -item -offset indent
+.It
+.Ic majjjjj:'a,.!copycat
+.El
+.Pp
+Though this is all best practiced and made automatic via motor memory.
+.Pp
+In
+.Xr vim 1 ,
+the keepmark statement will be necessary to preserve any marks through the filter:
+.Pp
+.Bl -item -offset indent
+.It
+.Ic :keepmark %!copycat
+.El
 .Sh EXIT STATUS
 .Ex -std copycat
 .Sh SEE ALSO
