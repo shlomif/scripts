@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 const char *Program_Name;
+int Return_Value = EXIT_SUCCESS;
 
 void emit_help(void);
 
@@ -33,7 +34,7 @@ int main(int argc, char *argv[])
 
 
 
-    exit(EXIT_SUCCESS);
+    exit(Return_Value);
 }
 
 void emit_help(void)

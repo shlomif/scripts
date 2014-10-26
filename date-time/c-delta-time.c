@@ -24,7 +24,7 @@ int main(void)
      * advanced, a concern tied up with what time sync protocol is being used,
      * whether that protocol is operating correct, and etc. */
     delta_t = after.tv_sec - before.tv_sec;
-    delta_t += (after.tv_usec - before.tv_usec) / USEC_IN_SEC;
+    delta_t += (after.tv_usec - before.tv_usec) / (double) USEC_IN_SEC;
     fprintf(stderr, "delta %.3f\n", delta_t);
 
     /* for compat with -fstack-protector-all, cannot just return */

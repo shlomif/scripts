@@ -1,42 +1,46 @@
-Various Perl and Shell and C Scripts, doubtless in no way suitable for
-any sort of use whatsoever. See also https://github.com/thrig/zsh-compdef
-which may have ZSH completions for some of the utilities herein. Which,
-again, should not be used, except as a warning to the next ten generations.
+Various Perl and C and Shell scripts, doubtless in no way suitable for any sort
+of use whatsoever. See also https://github.com/thrig/zsh-compdef which may have
+ZSH completions for some of the utilities herein. Which, again, should not be
+used, except as a warning to the next ten generations.
+
+The C code is aimed at *BSD, Mac OS X and OpenBSD in particular, and probably
+assumes that at least -std=c99 is set e.g. in $CFLAGS. Much less effort is made
+towards porting the C code to work on, say, Linux. Searching around though for
+__linux__ may point to code that has been coaxed into compiling on Linux.
 
 Philosophy
 ----------
 
- 1. Code must include a brief "what this code does" comment at the top,
-    along with quick usage notes, if relevant. This helps ground the
-    reader unfamiliar (or remembering what the code was for).
- 2. There should be a reference to where more documentation may be found,
-    if relevant (e.g. perldoc, man page).
- 3. Minimize or eliminate copyright spam. A page full of GNU member-
-    waving is annoying at best, and does not answer the immediate
-    questions of someone trying to learn what the code does.
- 4. I split the code and documentation into distinct sections, e.g.
-    after __END__ in Perl programs, or separate foo.1 man pages for C.
-    This allows for easy refactoring, and avoids the need for
-    complicated $EDITOR folding or wasting time on every s///gc to see
-    if the hit is in the code or the perldocs.
- 5. Phases: editing code, writing tests, editing documentation, speling
-    fixes on code and documentation. These can be mixed, but best to
-    concentrate on doing one well.
+ 1. Code must include a brief "what this code does" comment at the top, along
+    with quick usage notes, if relevant. This helps ground the reader
+    unfamiliar (or remembering what the code was for).
+ 2. There should be a reference to where more documentation may be found, if
+    relevant (e.g. perldoc, man page).
+ 3. Minimize or eliminate copyright spam. A page full of GNU member-waving is
+    annoying at best, and does not answer the immediate questions of someone
+    trying to learn what the code does.
+ 4. I split the code and documentation into distinct sections, e.g. after
+    __END__ in Perl programs, or separate foo.1 man pages for C. This allows
+    for easy refactoring, and avoids the need for complicated $EDITOR
+    folding or wasting time on every s///gc to see if the hit is in the code
+    or the perldocs.
+ 5. Phases: editing code, writing tests, editing documentation, speling fixes
+    on code and documentation. These can be mixed, but best to concentrate on
+    doing one well.
 
 Achtung, Minen
 --------------
 
-Things may well be moved or deleted without notice. If this is a
-concern, copy the bits somewhere else. Or back away, slowly.
+Things may well be moved or deleted without notice. If this is a concern, copy
+the bits somewhere else. Or back away. Slowly.
 
 A Historical Missive
 --------------------
 
-This ragged bundle of bits began as a CVS repository, not less than a
-few years ago. At one point, it was briefly migrated to Subversion, but
-that ended in disaster when the Subversion database wedged--something
-about BDB and Mac OS X, who knows. One can find traces of this event in
-the history. Anyways, it was back to CVS for a while longer, until
-eventually I moved to git, that being the fashionable thing for Perl
-folks to do, or so I hear. git has yet to blow up on me, which I
-suppose is nice.
+This ragged bundle of bits began as a CVS repository, not less than a few years
+ago. At one point, it was briefly migrated to Subversion, but that ended in
+disaster when the Subversion database wedged--something about BDB and Mac OS X,
+who knows. One can find traces of this event in the history. Anyways, it was
+back to CVS for a while longer, until eventually I moved to git, that being the
+fashionable thing for Perl folks to do, or so I hear. git has yet to blow up on
+me, which I suppose is nice.
