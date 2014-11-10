@@ -23,36 +23,15 @@
 /* global mostly for the free zeroing of all the various struct fields */
 struct itimerval iTimer;
 
-const char *Program_Name;
-int Return_Value = EXIT_SUCCESS;
-
 uint8_t Rand, Whence;
 #define ROLLOVER 8
 
-void emit_help(void);
 void handle_alarm(int sig);
 
-int main(int argc, char *argv[])
+int main(void)
 {
-    int ch;
-    char buf[BUFSIZ];
     char tmp_filename[] = "/tmp/jbsmall.XXXXXXXXXX";
     struct pollfd pfd[1];
-
-    Program_Name = *argv;
-
-    while ((ch = getopt(argc, argv, "h?")) != -1) {
-        switch (ch) {
-
-        case 'h':
-        case '?':
-        default:
-            emit_help();
-            /* NOTREACHED */
-        }
-    }
-    argc -= optind;
-    argv += optind;
 
     setlinebuf(stdout);
 
@@ -81,23 +60,11 @@ int main(int argc, char *argv[])
     }
     pfd[0].events = POLLPRI;
     for (;;) {
-        int nfds = poll(pfd, 1, 60 * 10000);
+        poll(pfd, 1, 60 * 10000);
     }
 
-    exit(Return_Value);
-}
-
-void emit_help(void)
-{
-    const char *shortname;
-    if ((shortname = strrchr(Program_Name, '/')) != NULL)
-        shortname++;
-    else
-        shortname = Program_Name;
-
-    fprintf(stderr, "Usage: %s\n", shortname);
-
-    exit(EX_USAGE);
+    /* NOTREACHED */
+    exit(1);
 }
 
 void handle_alarm(int sig)
