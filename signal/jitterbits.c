@@ -7,6 +7,8 @@
  *   ... (wait a while to collect data, then pkill the jitterbits)
  *
  *   cat $TMPDIR/jbout.* | r-fu equichisq
+ *
+ * Though this method may not be portable, will need testing, etc.
  */
 
 #include <sys/time.h>

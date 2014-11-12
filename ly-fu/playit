@@ -13,7 +13,7 @@ MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
 (
   MRP=${MRF:s/\.ly/.pdf}
 
-  [[ $MRF -nt $MRP ]] && {
+  [[ ! -e $MRP || $MRF -nt $MRP ]] && {
     [[ -f $MRP ]] && chmod u+w $MRP
     lilypond --silent -dno-point-and-click $MRF
     osascript -e 'tell app "Preview.app" to activate'
