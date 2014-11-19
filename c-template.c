@@ -17,7 +17,12 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch;
+#ifdef __OpenBSD__
+    // since OpenBSD 5.4
+    Program_Name = getprogname();
+#else
     Program_Name = *argv;
+#endif
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
@@ -40,10 +45,14 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     const char *shortname;
+#ifdef __OpenBSD__
+    shortname = Program_Name;
+#else
     if ((shortname = strrchr(Program_Name, '/')) != NULL)
         shortname++;
     else
         shortname = Program_Name;
+#endif
 
     fprintf(stderr, "Usage: %s TODO\n", shortname);
 
