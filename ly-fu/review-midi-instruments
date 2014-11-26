@@ -1,0 +1,216 @@
+#!/usr/bin/env perl
+#
+# Brute-force method to review what MIDI instruments sound like by running
+# various instrument names through lilypond to produce out.*.midi files for
+# each instrument in the current working directory. Uses sample lilypond data,
+# or such can be passed via standard input or read from the specified file:
+#
+#   ... | review-midi-instruments -
+#   review-midi-instruments foo.ly
+#
+# This lilypond will need to template the midi instrument via:
+#
+#   \set Staff.midiInstrument = #"<: $instrument :>"
+#
+# See the DATA block, below, for the sample lilypond data.
+
+use strict;
+use warnings;
+
+use Text::Xslate ();
+
+my @Ly_Cmd = qw(lilypond --silent);
+
+my $template;
+
+if ( !@ARGV ) {
+  $template = do { local $/; readline DATA };
+} else {
+  if ( $ARGV[0] eq '-' ) {
+    $template = do { local $/; readline STDIN };
+  } else {
+    open my $fh, '<', $ARGV[0] or die "could not open '$ARGV[0]': $!\n";
+    $template = do { local $/; readline $fh };
+  }
+}
+
+# Taken from some lilypond source file at some point.
+my @instruments = (
+  "accordion",
+  "acoustic bass",
+  "acoustic grand",
+  "acoustic guitar (nylon)",
+  "acoustic guitar (steel)",
+  "agogo",
+  "alto sax",
+  "bagpipe",
+  "banjo",
+  "baritone sax",
+  "bassoon",
+  "blown bottle",
+  "brass section",
+  "bright acoustic",
+  "celesta",
+  "cello",
+  "choir aahs",
+  "church organ",
+  "clarinet",
+  "clav",
+  "concertina",
+  "contrabass",
+  "distorted guitar",
+  "drawbar organ",
+  "dulcimer",
+  "electric bass (finger)",
+  "electric bass (pick)",
+  "electric grand",
+  "electric guitar (clean)",
+  "electric guitar (jazz)",
+  "electric guitar (muted)",
+  "electric piano 1",
+  "electric piano 2",
+  "english horn",
+  "fiddle",
+  "flute",
+  "french horn",
+  "fretless bass",
+  "fx 1 (rain)",
+  "fx 2 (soundtrack)",
+  "fx 3 (crystal)",
+  "fx 4 (atmosphere)",
+  "fx 5 (brightness)",
+  "fx 6 (goblins)",
+  "fx 7 (echoes)",
+  "fx 8 (sci-fi)",
+  "glockenspiel",
+  "guitar harmonics",
+  "harmonica",
+  "harpsichord",
+  "honky-tonk",
+  "kalimba",
+  "koto",
+  "lead 1 (square)",
+  "lead 2 (sawtooth)",
+  "lead 3 (calliope)",
+  "lead 4 (chiff)",
+  "lead 5 (charang)",
+  "lead 6 (voice)",
+  "lead 7 (fifths)",
+  "lead 8 (bass+lead)",
+  "marimba",
+  "melodic tom",
+  "music box",
+  "muted trumpet",
+  "oboe",
+  "ocarina",
+  "orchestra hit",
+  "orchestral harp",
+  "overdriven guitar",
+  "pad 1 (new age)",
+  "pad 2 (warm)",
+  "pad 3 (polysynth)",
+  "pad 4 (choir)",
+  "pad 5 (bowed)",
+  "pad 6 (metallic)",
+  "pad 7 (halo)",
+  "pad 8 (sweep)",
+  "pan flute",
+  "percussive organ",
+  "piccolo",
+  "pizzicato strings",
+  "recorder",
+  "reed organ",
+  "rock organ",
+  "shakuhachi",
+  "shamisen",
+  "shanai",
+  "sitar",
+  "slap bass 1",
+  "slap bass 2",
+  "soprano sax",
+  "steel drums",
+  "string ensemble 1",
+  "string ensemble 2",
+  "synth bass 1",
+  "synth bass 2",
+  "synth voice",
+  "synthbrass 1",
+  "synthbrass 2",
+  "synthstrings 1",
+  "synthstrings 2",
+  "taiko drum",
+  "tenor sax",
+  "timpani",
+  "tinkle bell",
+  "tremolo strings",
+  "trombone",
+  "trumpet",
+  "tuba",
+  "tubular bells",
+  "vibraphone",
+  "viola",
+  "violin",
+  "whistle",
+  "woodblock",
+  "xylophone",
+);
+
+my $tx = Text::Xslate->new();
+my %vars;
+
+for my $i (@instruments) {
+  $vars{instrument} = $i;
+  ( my $fs_name = $i ) =~ s/[^A-Za-z0-9]+//g;
+
+  open my $lypipe, '|-', @Ly_Cmd, "--output=out.$fs_name", "-"
+    or die "could not exec lilypond: $!\n";
+  print $lypipe $tx->render_string( $template, \%vars );
+}
+
+# Harmonic sequence practice; this might well be extended to include arps,
+# quick dotted notes vs. sustains, etc.
+__DATA__
+\version "2.18.2"
+\include "articulate.ly"
+
+sop = \relative d'' {
+  d2 e e d c c d d
+}
+alt = \relative a' {
+  a2 a b b a g b a
+}
+ten = \relative f' {
+  f2 e g fis f e d f
+}
+bas = \relative d {
+  d2 a' e b' f c' g d
+}
+
+themusic = {
+<<
+  \new StaffGroup <<
+    \set Score.midiChannelMapping = #'staff
+    \new Staff <<
+      \set Staff.midiInstrument = #"<: $instrument :>"
+      \sop
+    >>
+    \new Staff <<
+      \set Staff.midiInstrument = #"<: $instrument :>"
+      \alt
+    >>
+    \new Staff <<
+      \set Staff.midiInstrument = #"<: $instrument :>"
+      \ten
+    >>
+    \new Staff <<
+      \set Staff.midiInstrument = #"<: $instrument :>"
+      \bas
+    >>
+  >>
+>>
+}
+
+\score {
+  \articulate { \themusic }
+  \midi { }
+}
