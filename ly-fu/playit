@@ -14,17 +14,23 @@ MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
   MRP=${MRF:s/\.ly/.pdf}
 
   [[ ! -e $MRP || $MRF -nt $MRP ]] && {
+    # Permissions kluge due to Preview.app on Mac OS X taking stray clicks as
+    # excuses to edit the document, which then leads to force-quitting of that
+    # app as it really, really wants to save the thus edited document. Sigh.
     [[ -f $MRP ]] && chmod u+w $MRP
-    lilypond --silent -dno-point-and-click $MRF
+    lilypond -dno-point-and-click $MRF > ~/var/log/lilypond.log 2>&1
     osascript -e 'tell app "Preview.app" to activate'
     [[ -f $MRP ]] && chmod -w $MRP
   }
+
+  #cp *.midi(om[1]) ~/Desktop/
 
   # play, but only if volume up, so can mute and just eye the black dots
   # if do not want to listen
   osascript -e 'get volume settings' \
   | egrep -q '(^output volume:0|output muted:true)' \
   || {
+    #tlymidity *.midi(om[1])
     pianoteq --preset D4\ Player\ Clean --midi *.midi(om[1])
   }
 ) >/dev/null 2>&1 &
