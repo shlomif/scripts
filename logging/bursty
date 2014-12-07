@@ -1,0 +1,265 @@
+#!/usr/bin/env perl
+#
+# Detects bursts or clumps in date-tagged data. Run perldoc(1) on this file for
+# additional documentation.
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the same terms as Perl itself.
+
+use strict;
+use warnings;
+
+use Getopt::Long qw(GetOptions);
+use Scalar::Util qw(looks_like_number);
+
+##############################################################################
+#
+# KNOBS
+
+# Data gap detection optimization, resets collection of input if new value
+# exceeds this delta from the previous. Set to zero or below to disable.
+my $Interval_Threshold = 5;
+
+# How many lines to consider when doing stats. Probably should be kept small,
+# though not too small.
+my $Buf_Size = 5;
+
+# Variance below which entries will be reported on (variance is used to avoid a
+# sqrt() call on such to obtain the standard deviation).
+my $Variance_Threshold = 25;
+
+# Z squared threshold for individual lines (means to exclude outliers if
+# $Interval_Threshold has been set large enough to let such through).
+my $Z_Sq_Threshold = 25;
+
+GetOptions(
+  "Vthresh=f" => \$Variance_Threshold,
+  "Zthresh=f" => \$Z_Sq_Threshold,
+  "ithresh=f" => \$Interval_Threshold,
+  "bufsize=i" => \$Buf_Size,
+  "stats" => \my $Flag_Stats,
+  "verbose|v" => \my $Flag_Verbose,
+) or die "$0: error parsing options\n";
+
+die "$0: bufsize value '$Buf_Size' is too small\n" if $Buf_Size < 3;
+
+if ($Flag_Stats) {
+  $Flag_Verbose = 1;
+  $Interval_Threshold = 0;
+  $Variance_Threshold = 0;
+  $Z_Sq_Threshold = 0;
+}
+
+$Variance_Threshold = ~0 if $Variance_Threshold == 0;
+$Z_Sq_Threshold     = ~0 if $Z_Sq_Threshold == 0;
+
+##############################################################################
+#
+# MAIN
+
+# for moving average over the input
+my $Current_Sum = 0;
+
+# LoL, entries consist of [0] epoch [1] rest of line
+my @Buffer;
+
+# necessary to track what lines have been printed already (though very fiddly
+# and perhaps buggy)
+my $Line_Idx  = 0;
+my $Print_Idx = -1;
+
+LINE: while (<>) {
+  chomp;
+  my ( $epoch, $rest ) = split ' ', $_, 2;
+
+  die "$0: not a number '$epoch' at $ARGV:$.\n" if !looks_like_number $epoch;
+  $rest //= '';
+
+  # Here one could filter out false positives, local networks, anything that
+  # should not be considered and might hide the signal being looked for.
+  # This could also be done to the data prior to it being passed...
+  #next if $rest eq ...
+
+  push @Buffer, [ $epoch, $rest ];
+  $Current_Sum += $epoch;
+
+  if ( @Buffer == $Buf_Size ) {
+    # Optimization: if the most recent value is nowhere near the previous one,
+    # toss out all the previous data points. This skips the stats calcs across
+    # gaps of the said interval in the input data. (Though will mean that N <
+    # $Buf_Size clumps in the log will be ignored if they are followed by a
+    # suitable gap. However, disabling this flag will mean that some outliers
+    # may be printed with the clumps, unless the z_sq filter excludes these.)
+    if ( $Interval_Threshold > 0
+      && abs( $Buffer[-1][0] - $Buffer[-2][0] ) > $Interval_Threshold ) {
+      $Current_Sum = $Buffer[-1][0];
+      splice @Buffer, 0, $#Buffer;
+      $Line_Idx  = 0;
+      $Print_Idx = -1;
+      next LINE;
+    }
+
+    my $mean = $Current_Sum / $Buf_Size;
+    my $vsum = 0;
+    for my $i ( 0 .. $#Buffer ) {
+      $Buffer[$i][2] = ( $Buffer[$i][0] - $mean )**2;
+      $vsum += $Buffer[$i][2];
+    }
+    my $variance = $vsum / $Buf_Size;
+
+    if ( $variance <= $Variance_Threshold ) {
+      my $range = $Line_Idx - $Print_Idx - 1;
+      $range = $#Buffer if $range > $#Buffer;
+      for my $bval ( @Buffer[ ( $#Buffer - $range ) .. $#Buffer ] ) {
+        my $z_sq = ( $variance != 0 ) ? ( $bval->[2] - $variance )**2 / $variance : 0;
+        if ( $z_sq < $Z_Sq_Threshold ) {
+          printf "m=%.2f v=%.2f zsq=%.2f ", $mean, $variance, $z_sq if $Flag_Verbose;
+          print "$bval->[0] $bval->[1]\n";
+        }
+      }
+      $Line_Idx = $Print_Idx;
+    }
+    $Current_Sum -= ( shift @Buffer )->[0];
+  }
+} continue {
+  $Line_Idx++;
+}
+
+exit 0;
+
+__END__
+
+##############################################################################
+#
+# DOCUMENTATION
+
+=head1 NAME
+
+bursty - detects bursts or clumps in date-tagged data
+
+=head1 SYNOPSIS
+
+  epochal -y -f '%b %d %H:%M:%S' /var/log/maillog | bursty
+
+=head1 DESCRIPTION
+
+C<bursty> detects bursts or clumps in date-tagged data, presumably from syslog
+or the like. The idea is to look for sequential sets of timed entries that have
+a standard deviation (okay, variance, to spare C<sqrt()> calls) below a
+particular threshold. This can detect e.g. spammers, who like to, well, spam
+servers with multiple simultaneous connections, or other misbehaving software
+applications that are hammering something in bunches--say, a set of cron jobs
+that all fire at the same time (most often at the top of the hour, given the
+all too common lack of imagination in scheduling such things).
+
+Input (from named files or stdin) is expected to have an epoch (really any
+number) in the first column, and optional data in the second column. There are
+various flags available to tune the various thresholds that detect bursts.
+
+(Or L<POSIX::strptime> and C<mktime> could have been used to parse the
+timestamps in Perl, though there are politics around C<strptime()> being
+properly added to L<POSIX>, sigh. Hence all the examples instead mentioning my
+L<epochal(1)> utility to convert syslog data to use epoch timestamps.)
+
+This code will not suit busy logfiles where the amount of traffic renders the
+statistical tests useless, for example where there are multiple hits per second
+and only second resolution from the log timestamp. Tuning the various knobs to
+suit the log data will also take work, and may run afoul edge cases such as
+legitimate increased future traffic levels. That is to say: use the results
+with caution, YMMV, etc.
+
+=head1 USAGE
+
+  $ bursty [options] file [file1 ..]
+  $ ... | bursty [options]
+
+This program supports the following command line switches:
+
+=over 4
+
+=item B<--Vthresh>=I<float>
+
+Variance threshold (standard deviation squared, to avoid C<sqrt()> calls),
+which if the set of lines in the buffer has a lower value, those lines will
+likely be printed, unless some other threshold influences things.
+
+=item B<--Zthresh>=I<float>
+
+Z squared threshold for the variance data of individual lines. Can be used to
+exclude outliers if B<--ithresh> has been set high enough to allow such in
+the results.
+
+=item B<--ithresh>=I<float>
+
+Interval threshold; new values whose delta from the previous value exceedes
+this setting will cause all the previous values to be discarded. This
+optimization will reduce the amount of stats math necessary at the cost of
+perhaps missing clumps smaller than the buffer size.
+
+=item B<--bufsize>=I<integer>
+
+Set the buffer size of lines to perform the statistics on. Cannot be less than
+three, and probably should not be set too large.
+
+=item B<--stats>
+
+Shorthand for "turn on verbose and make all thresholds irrelevant" as seen in
+the L</"EXAMPLES"> section.
+
+=item B<--verbose> | B<-v>
+
+Be verbose. In particular, this prints out statistics prepended to each input
+line of data, which, when combined with certain other settings, may assist in
+tuning the various threshold flags.
+
+=back
+
+=head1 EXAMPLES
+
+Disable various threshold limits and use verbose mode to print the statistics
+for the clumps found. This output may then be studied and appropriate
+thresholds determined to match just the required data.
+
+  epochal -y -f '%b %d %H:%M:%S' /var/log/messages \
+  | bursty --Vthresh=0 --Zthresh=0 --ithresh=0 --verbose
+
+A shorthand for the prior is the following, though the prior long form may
+still be useful if one wishes to fiddle with any of the thresholds while
+experimenting.
+
+  epochal -y -f '%b %d %H:%M:%S' /var/log/messages | bursty --stats
+
+Also be sure to experiment with the B<--bufsize> setting to see whether other
+values better suit the data being searched for.
+
+=head1 BUGS
+
+Newer versions of this program may be available from:
+
+http://github.com/thrig/sial.org-scripts/tree/master
+
+If the bug is in the latest version, send a report to the author. Patches that
+fix problems or add new features are welcome.
+
+=head1 SEE ALSO
+
+L<epochal(1)>
+
+A good book on statistics (e.g. Grant Foster) or those Khan academy videos.
+
+=head1 AUTHOR
+
+thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
+
+=head1 HISTORY
+
+Given that it is held to be the end of history by some, I am really not sure
+why it is still being written. However, I now return you to your regularily
+scheduled documentation.
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+=cut
