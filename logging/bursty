@@ -37,17 +37,17 @@ GetOptions(
   "Zthresh=f" => \$Z_Sq_Threshold,
   "ithresh=f" => \$Interval_Threshold,
   "bufsize=i" => \$Buf_Size,
-  "stats" => \my $Flag_Stats,
+  "stats"     => \my $Flag_Stats,
   "verbose|v" => \my $Flag_Verbose,
 ) or die "$0: error parsing options\n";
 
 die "$0: bufsize value '$Buf_Size' is too small\n" if $Buf_Size < 3;
 
 if ($Flag_Stats) {
-  $Flag_Verbose = 1;
+  $Flag_Verbose       = 1;
   $Interval_Threshold = 0;
   $Variance_Threshold = 0;
-  $Z_Sq_Threshold = 0;
+  $Z_Sq_Threshold     = 0;
 }
 
 $Variance_Threshold = ~0 if $Variance_Threshold == 0;
@@ -245,7 +245,11 @@ fix problems or add new features are welcome.
 
 L<epochal(1)>
 
-A good book on statistics (e.g. Grant Foster) or those Khan academy videos.
+A good book on statistics or those Khan academy videos.
+
+L<http://www.lulu.com/shop/grant-foster/understanding-statistics-basic-theory-and-practice/paperback/product-20680689.html>
+
+L<https://www.khanacademy.org/math/probability>
 
 =head1 AUTHOR
 
