@@ -1,6 +1,6 @@
 /*
- * Parses timestamps via strptime(3) in data passed via standard input, and
- * emits the time data formatted via strftime(3) to standard out.
+ * Parses timestamps in the input data via strptime(3), and emits that data in
+ * epoch form (or with format as formatted by strftime(3)) to standard out.
  */
 
 /* ugh, linux */
@@ -38,19 +38,24 @@ bool Flag_Custom_Year;          /* -y or -Y YYYY custom year */
 /* for -[yY] supplied data and pre-filler for subsequent strptime results */
 struct tm Default_Tm;
 
+const char *File_Name = "-";    /* file name being read from */
+
 void emit_help(void);
 void parseline(char *line, const ssize_t linenum);
 
 int main(int argc, char *argv[])
 {
     FILE *fh;
-    int ret;
+    char *line = NULL;
+    int ch, ret;
+    size_t linesize = 0;
+    ssize_t linelen;
+    ssize_t linenum = 1;
     time_t now;
 
     if (!setlocale(LC_ALL, ""))
         errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
 
-    int ch;
     while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
         switch (ch) {
         case 'f':
@@ -109,20 +114,14 @@ int main(int argc, char *argv[])
     if (strncmp(Flag_Input_Format, "%s", (size_t) 2) == 0)
         errx(EX_DATAERR, "%%s is not supported as input format");
 
-    if (!Flag_Output_Format)
-        Flag_Output_Format = "%s";      // ignore warning about qual. discard
-
     if (argc == 0 || strncmp(*argv, "-", (size_t) 2) == 0) {
         fh = stdin;
     } else {
         if ((fh = fopen(*argv, "r")) == NULL)
             err(EX_IOERR, "could not open '%s'", *argv);
+        File_Name = *argv;
     }
 
-    char *line = NULL;
-    ssize_t linenum = 1;
-    size_t linesize = 0;
-    ssize_t linelen;
     while ((linelen = getline(&line, &linesize, fh)) != -1) {
         parseline(line, linenum);
         linenum++;
@@ -168,26 +167,29 @@ void parseline(char *line, const ssize_t linenum)
 
         if ((past_date_p = strptime(line, Flag_Input_Format, &when)) != NULL) {
             /* Uhh so yeah about that %s thing on Mac OS X. Guard for it.
-	     * This was reported in Apple Bug 15753871 maaaaaany months ago but
-	     * hey I guess there's more important things to deal with? */
+             * This was reported in Apple Bug 15753871 maaaaaany months ago but
+             * hey I guess there's more important things to deal with? */
             if (past_date_p - line < 1)
                 errx(EX_SOFTWARE, "error: zero-width timestamp parse");
 
-            while ((ret =
-                    strftime(outbuf, outbuf_len, Flag_Output_Format, &when))
-                   == 0) {
-                outbuf_len <<= 1;
-                if (outbuf_len > OUTBUF_LEN_MAX)
-                    errx(EX_SOFTWARE,
-                         "strftime() output too large for buffer %d at stdin:%ld",
-                         OUTBUF_LEN_MAX, linenum);
-                if ((outbuf = realloc(outbuf, outbuf_len)) == NULL)
-                    err(EX_OSERR,
-                        "realloc() could not resize output buffer to %ld",
-                        outbuf_len);
+            if (!Flag_Output_Format) {
+                printf("%ld", (long) mktime(&when));
+            } else {
+                while ((ret =
+                        strftime(outbuf, outbuf_len, Flag_Output_Format, &when))
+                       == 0) {
+                    outbuf_len <<= 1;
+                    if (outbuf_len > OUTBUF_LEN_MAX)
+                        errx(EX_SOFTWARE,
+                             "strftime() output too large for buffer %d at %s:%ld",
+                             OUTBUF_LEN_MAX, File_Name, linenum);
+                    if ((outbuf = realloc(outbuf, outbuf_len)) == NULL)
+                        err(EX_OSERR,
+                            "realloc() could not resize output buffer to %ld",
+                            outbuf_len);
+                }
+                fwrite(outbuf, ret, (size_t) 1, stdout);
             }
-
-            fwrite(outbuf, ret, (size_t) 1, stdout);
 
             if (!Flag_Global) {
                 if (Flag_Suppress) {

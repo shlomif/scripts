@@ -1,4 +1,4 @@
-.Dd $Mdocdate: July  7 2014 $
+.Dd $Mdocdate: December  6 2014 $
 .Dt EPOCHAL 1
 .nh
 .Os
@@ -17,7 +17,7 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility (tries to) convert timestamps in standard input via a user-supplied
+utility attempts to convert timestamps in standard input via a user-supplied
 .Xr strptime 3
 function to an output format (epoch by default, or customized via the
 .Fl o
@@ -38,7 +38,7 @@ Multiple timestamps will be searched for and replaced on a line, instead of just
 .It Fl o Ar output-format
 Output format (default is epoch time via the
 .Qq Dv %s
-conversion specification). This format is safe for output, but not as an input format.
+conversion specification). This format is safe for output, but not as an input format due to a stupid bug on Mac OS X (Bug 15753871).
 .It Fl s
 Non-timestamp data will be omitted from the output.
 .It Fl y
@@ -73,10 +73,12 @@ subsequent awk/perl munging of the data.
 .Sh CAVEATS
 The various 
 .Xr strftime 3
-conversion specifications may not be portable, especially to more eldritch flavors of Unix. Non-UTC timezones have not been tested. Daylight Saving Time has not been tested for (stop using such horrid timezones!). There may be other unknown gotchas, depending on the implementation of the system functions involved or the locale involved.
+conversion specifications may not be portable, especially to more eldritch flavors of Unix. They may even be buggy on older (e.g. OpenBSD had a UTC related segfault when data followed
+.Qq Dv %Z )
+or as yet unfixed implementations. Non-UTC timezones have not been tested. Daylight Savings Time has not been tested for (stop using such horrid timezones!). There may be other unknown gotchas, depending on the implementation of the system functions involved or the locale involved.
 .Pp
 .Qq Dv %s
-as mentioned above should not be used with the 
+as mentioned above may not be used with the 
 .Fl f Ar input-format
 flag.
 .Pp
