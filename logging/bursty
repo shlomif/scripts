@@ -101,9 +101,8 @@ LINE: while (<>) {
 
     my $mean = $Current_Sum / $Buf_Size;
     my $vsum = 0;
-    for my $i ( 0 .. $#Buffer ) {
-      $Buffer[$i][2] = ( $Buffer[$i][0] - $mean )**2;
-      $vsum += $Buffer[$i][2];
+    for my $bval (@Buffer) {
+      $vsum += $bval->[2] = ( $bval->[0] - $mean )**2;
     }
     my $variance = $vsum / $Buf_Size;
 
