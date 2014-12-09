@@ -60,7 +60,8 @@ $Z_Sq_Threshold     = ~0 if $Z_Sq_Threshold == 0;
 # for moving average over the input
 my $Current_Sum = 0;
 
-# LoL, entries consist of [0] epoch [1] rest of line
+# LoL, entries consist of [0] epoch [1] rest of line (and sometimes [2] for
+# variance)
 my @Buffer;
 
 # necessary to track what lines have been printed already (though very fiddly
@@ -91,7 +92,7 @@ LINE: while (<>) {
     # suitable gap. However, disabling this flag will mean that some outliers
     # may be printed with the clumps, unless the z_sq filter excludes these.)
     if ( $Interval_Threshold > 0
-      && abs( $Buffer[-1][0] - $Buffer[-2][0] ) > $Interval_Threshold ) {
+      and abs( $Buffer[-1][0] - $Buffer[-2][0] ) > $Interval_Threshold ) {
       $Current_Sum = $Buffer[-1][0];
       splice @Buffer, 0, $#Buffer;
       $Line_Idx  = 0;
