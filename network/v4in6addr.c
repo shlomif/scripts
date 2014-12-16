@@ -39,28 +39,33 @@ struct in_addr v4addr;
 /* default v6 template and -t flag argument */
 struct in6_addr v6addr;
 
-int Flag_Prefix = 96;           /* -p prefix length */
+long Flag_Prefix = 96;          /* -p prefix length */
 
 void emit_help(void);
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int ch, ret;
+    char *ep;
 
     while ((ch = getopt(argc, argv, "hp:t:")) != -1) {
         switch (ch) {
         case 'p':
-            if (sscanf(optarg, "%d", &Flag_Prefix) != 1)
+            Flag_Prefix = strtol(optarg, &ep, 10);
+            if (optarg[0] == '\0' || *ep != '\0')
                 errx(EX_DATAERR, "could not parse -p prefixlen flag");
+            if (Flag_Prefix < 32 || Flag_Prefix > 96)
+                errx(EX_DATAERR, "option -p must be one of 32 40 48 56 64 96");
 
             break;
         case 't':
             if ((ret = inet_pton(AF_INET6, optarg, &v6addr)) != 1) {
                 if (ret == -1)
-                    err(EX_DATAERR, "inet_pton() could not parse -t '%s'", optarg);
+                    err(EX_DATAERR, "inet_pton() could not parse -t '%s'",
+                        optarg);
                 else
-                    errx(EX_DATAERR, "inet_pton() could not parse -t '%s'", optarg);
+                    errx(EX_DATAERR, "inet_pton() could not parse -t '%s'",
+                         optarg);
             }
             break;
         case 'h':
@@ -152,11 +157,11 @@ main(int argc, char *argv[])
 
         break;
     default:
-        warnx("unknown prefix length '%d' (must be one of 32 40 48 56 64 96)", Flag_Prefix);
-        emit_help();
+        errx(EX_DATAERR,
+             "unknown prefix length, must be one of 32 40 48 56 64 96",
+             Flag_Prefix);
     }
 
-    /* emit v6 address */
     for (int i = 0; i < S6ADDR_MAX; i++) {
         printf("%02x", v6addr.s6_addr[i]);
         if (i < S6ADDR_MAX - 1 && i % 2 == 1)
@@ -167,8 +172,7 @@ main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-void
-emit_help(void)
+void emit_help(void)
 {
     fprintf(stderr, "Usage: [-p prefixlen] [-t v6addr] ipv4-address\n");
     exit(EX_USAGE);

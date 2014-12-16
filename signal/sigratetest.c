@@ -28,6 +28,7 @@ void handle(int sig);
 int main(int argc, char *argv[])
 {
     int ch;
+    char *ep;
     pid_t pid;
     long nsecs;
 
@@ -46,12 +47,13 @@ int main(int argc, char *argv[])
     if (argc != 1)
         emit_help();
 
-    if (sscanf(*argv, "%li", &nsecs) != 1) {
-        fprintf(stderr, "could not parse delay number\n");
+    nsecs = strtol(*argv, &ep, 10);
+    if (argv[0][0] == '\0' || *ep != '\0') {
+        fprintf(stderr, "could not parse delay nanoseconds\n");
         emit_help();
     }
-    if (nsecs < 0 || nsecs > 999999999)
-        errx(EX_DATAERR, "delay is out of bounds\n");
+    if (nsecs < 1 || nsecs > 999999999)
+        errx(EX_DATAERR, "delay is out of bounds for nanoseconds\n");
 
     fork_wait.tv_sec = 1;
     fork_wait.tv_nsec = 0;

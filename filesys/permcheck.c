@@ -10,7 +10,7 @@
  * files were set wrong. A better approach in most cases is to specify and
  * enforce some permissions policy; however, this tool might help in figuring
  * out what is broken while trying to devise such a policy. (And really as an
- * excuse to code something up using fts(3).
+ * excuse to code something up using fts(3).)
  *
  * access(2) while attractive is not used as it according to the docs by
  * default checks the parent directories for each file it is called on; when
@@ -37,6 +37,7 @@
 #include <fts.h>
 #include <grp.h>
 #include <libgen.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -72,14 +73,18 @@ void report_fail(struct stat *sb, char *filepath, unsigned int amode, int ugo);
 int main(int argc, char *argv[])
 {
     char *username = NULL;
+    char *epu, *epg;
     FTS *filetree;
     FTSENT *filedat;
     unsigned int access_mode = R_OK;
     int ch;
+    long ugid;
     unsigned int failmodes;
     int failugo;
     int fts_options = FTS_LOGICAL;
+
     int ret = EXIT_SUCCESS;     // optimistic
+
     struct group *gr;
     struct passwd *pw;
     struct stat statbuf;
@@ -93,13 +98,20 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "g:h?npRu:vwxX")) != -1) {
         switch (ch) {
         case 'g':
-            if (sscanf(optarg, "%u", &Flag_Group_ID) != 1) {
+            ugid = strtol(optarg, &epg, 10);
+            if (*epg != '\0') {
                 if ((gr = getgrnam(optarg)) != NULL) {
                     Flag_Group_ID = gr->gr_gid;
                 } else {
-                    errx(EX_USAGE, "could not parse -g '%s' option", optarg);
+                    errx(EX_USAGE,
+                         "could not parse -g '%s' option (no such group or gid?)",
+                         optarg);
                 }
+                break;
             }
+            if (ugid < 0 || ugid > INT_MAX)
+                errx(EX_USAGE, "group id via -g is out of range");
+            Flag_Group_ID = (int) ugid;
             break;
 
         case 'n':
@@ -115,17 +127,22 @@ int main(int argc, char *argv[])
             break;
 
         case 'u':
-            if (sscanf(optarg, "%u", &Flag_User_ID) != 1) {
+            ugid = strtol(optarg, &epu, 10);
+            if (*epu != '\0') {
                 if ((pw = getpwnam(optarg)) != NULL) {
                     username = pw->pw_name;
                     Flag_User_ID = pw->pw_uid;
                     // implicit default-group-of-user if not already set
                     if (Flag_Group_ID == 0)
                         Flag_Group_ID = pw->pw_gid;
+		    break;
                 } else {
                     errx(EX_USAGE, "could not parse -u '%s' option", optarg);
                 }
-            }
+	    }
+            if (ugid < 0 || ugid > INT_MAX)
+                errx(EX_USAGE, "user id via -u is out of range");
+            Flag_User_ID = (int) ugid;
             break;
 
         case 'v':
@@ -356,6 +373,7 @@ void emit_help(void)
  * other, in turn. */
 unsigned int file_access(struct stat *sb, unsigned int amode, int *ugo)
 {
+    unsigned int tmode;
     if (Flag_User_ID == 0)
         return 0;
 
@@ -363,7 +381,7 @@ unsigned int file_access(struct stat *sb, unsigned int amode, int *ugo)
      * (Stevens, APUE, ch 4, section 5 (p.81 1st edition; p.94 2nd edition)).
      * This can be confirmed by owning a directory but giving it 0007 modes;
      * the owner should fail read attempts. */
-    unsigned int tmode = amode << 6;
+    tmode = amode << 6;
     if (sb->st_uid == Flag_User_ID) {
         if ((sb->st_mode & tmode) == tmode) {
             return 0;

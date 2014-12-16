@@ -67,6 +67,7 @@ main(int argc, char *argv[])
 {
     int ch;
     char *mstrp = mac48tmpl;
+    char *ep;
     uint8_t *mp;
 
     while ((ch = getopt(argc, argv, "6B:Lh?mp")) != -1) {
@@ -78,8 +79,11 @@ main(int argc, char *argv[])
 	/* TODO auto-scan string for X and hexchars to figure out size so can
 	 * then remove this option. */
         case 'B':
-            if (sscanf(optarg, "%lu", &mac_bytes) != 1)
+	    mac_bytes = strtoul(optarg, &ep, 10);
+	    if (optarg[0] == '\0' || *ep != '\0')
                 errx(EX_DATAERR, "could not parse -B bytes flag");
+	    if (mac_bytes < 1 || mac_bytes > 64)
+                errx(EX_DATAERR, "option -B out of range");
             break;
 
         case 'L':
@@ -103,10 +107,6 @@ main(int argc, char *argv[])
     }
     argc -= optind;
     argv += optind;
-
-    /* sanity limit; hopefully I'll be retired or out of computing */
-    if (mac_bytes >= 64)
-        errx(EX_DATAERR, "too many bytes for my blood");
 
     mp = calloc(mac_bytes, sizeof(uint8_t));
     if (!mp)

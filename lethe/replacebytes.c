@@ -24,6 +24,7 @@
 #include <sys/types.h>
 
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -43,6 +44,7 @@ int main(int argc, char *argv[])
 {
     int ch, fd;
     char *bufp = NULL;
+    char *epo, *ept;
     int buf_len = 0;
     off_t seek_len;
     int write_len;
@@ -50,7 +52,7 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "h?f:m:O:t:")) != -1) {
         switch (ch) {
         case 'f':
-            if ((Flag_Srcfile = strndup(optarg, PATH_MAX)) == NULL)
+            if ((Flag_Srcfile = strndup(optarg, (size_t) PATH_MAX)) == NULL)
                 err(EX_SOFTWARE, "could not copy the -f flag");
             break;
 
@@ -60,13 +62,21 @@ int main(int argc, char *argv[])
             break;
 
         case 'O':
-            if (sscanf(optarg, "%li", &Flag_Offset) != 1)
+            errno = 0;
+            Flag_Offset = strtoul(optarg, &epo, 10);
+            if (optarg[0] == '\0' || *epo != '\0')
                 errx(EX_DATAERR, "could not parse -O offset option");
+            if (errno == ERANGE && Flag_Offset == ULONG_MAX)
+                errx(EX_DATAERR, "option -O out of range");
             break;
 
         case 't':
-            if (sscanf(optarg, "%li", &Flag_Trunc) != 1)
+            errno = 0;
+            Flag_Trunc = strtoul(optarg, &ept, 10);
+            if (optarg[0] == '\0' || *ept != '\0')
                 errx(EX_DATAERR, "could not parse -t truncate option");
+            if (errno == ERANGE && Flag_Trunc == ULONG_MAX)
+                errx(EX_DATAERR, "option -t out of range");
             break;
 
         case 'h':
@@ -98,7 +108,7 @@ int main(int argc, char *argv[])
         if ((fd = open(Flag_Srcfile, O_RDONLY)) == -1)
             err(EX_IOERR, "could not open() -f '%s'", Flag_Srcfile);
 
-        if ((seek_len = lseek(fd, 0, SEEK_END)) == -1)
+        if ((seek_len = lseek(fd, (off_t) 0, SEEK_END)) == -1)
             err(EX_IOERR, "could not lseek() to end -f '%s'", Flag_Srcfile);
         if (seek_len < 1)
             errx(EX_DATAERR, "no data in -f '%s'", Flag_Srcfile);
@@ -113,7 +123,8 @@ int main(int argc, char *argv[])
         /* PORTABILITY same concerns as write(2) below, but since a fixed
          * header size is mandatory, do want to fail if cannot read
          * exactly that. */
-        if ((buf_len = (int) pread(fd, bufp, (size_t) seek_len, 0)) != seek_len) {
+        if ((buf_len =
+             (int) pread(fd, bufp, (size_t) seek_len, (off_t) 0)) != seek_len) {
             if (buf_len > -1) {
                 errx(EX_IOERR,
                      "could not read %lld from -f '%s': got instead %d",

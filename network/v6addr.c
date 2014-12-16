@@ -8,7 +8,6 @@
  * issues present in this code.
  */
 
-/* ugh, linux */
 #if defined(linux) || defined(__linux) || defined(__linux__)
 extern char *optarg;
 extern int optind, opterr, optopt;
@@ -52,7 +51,7 @@ uint16_t addr[QUADS];
 
 int main(int argc, char *argv[])
 {
-    char *ap;
+    char *ap, *ep;
     char tmpstr[5];             /* buffer for parsed segments */
     int ch;
     int curquad = 0;
@@ -98,22 +97,22 @@ int main(int argc, char *argv[])
                 /* hex data, convert */
                 unsigned long val;
                 errno = 0;
-                val = strtoul(tmpstr, NULL, 16);
-                if ((val == 0 && errno == EINVAL) || val > UINT16_MAX) {
-                    /* should not happen? EINVAL maybe UNPORTABLE */
+                val = strtoul(tmpstr, &ep, 16);
+                if (*ep != '\0')
+                    emit_unparsable(*argv, input_offset,
+                                    "could not parse hex value");
+                if ((val == 0 && errno == EINVAL) || val > UINT16_MAX)
                     emit_unparsable(*argv, input_offset, "value out of range");
-                } else {
-                    addr[curquad++] = (uint16_t) val;
 
-                    if (curquad > QUADS) {
-                        emit_unparsable(*argv, input_offset,
-                                        "address is too long");
-                    }
-                    ap += advance;
-                    input_offset += advance;
-                    state = STATE_WANTCOLON;
-                    continue;
+                addr[curquad++] = (uint16_t) val;
+
+                if (curquad > QUADS) {
+                    emit_unparsable(*argv, input_offset, "address is too long");
                 }
+                ap += advance;
+                input_offset += advance;
+                state = STATE_WANTCOLON;
+                continue;
             }
         }
         if (state == STATE_START || state == STATE_WANTCOLON) {

@@ -207,24 +207,28 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, fd;
-    char buf[PRIME_MAX], tmp;
+    char buf[PRIME_MAX], *epo, *eps, tmp;
     ssize_t byte_count, written;
     unsigned int i;
 
     while ((ch = getopt(argc, argv, "o:s:")) != -1) {
         switch (ch) {
         case 'o':
-            if (sscanf(optarg, "%li", &Flag_Offset) != 1)
+	    Flag_Offset = strtol(optarg, &epo, 10);
+	    if (optarg[0] == '\0' || *epo != '\0')
                 errx(EX_DATAERR, "could not parse -o offset");
             if (Flag_Offset < 0 || Flag_Offset > INT_MAX)
                 errx(EX_DATAERR, "option -o out of range");
             break;
+
         case 's':
-            if (sscanf(optarg, "%li", &Flag_Buf_Size) != 1)
+	    Flag_Buf_Size = strtol(optarg, &eps, 10);
+	    if (optarg[0] == '\0' || *eps != '\0')
                 errx(EX_DATAERR, "could not parse -s size");
-            if (Flag_Buf_Size < 0 || Flag_Buf_Size > PRIME_MAX)
+            if (Flag_Buf_Size < 0 || Flag_Buf_Size > INT_MAX)
                 errx(EX_DATAERR, "option -s out of range");
             break;
+
         default:
             ;
         }

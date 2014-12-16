@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
     errno = 0;
     iters = strtoul(argv[2], &ep, 10);
-    if (*ep != '\0')
+    if (argv[2][0] == '\0' || *ep != '\0')
         errx(EX_USAGE, "iterations not a number");
     if ((errno == ERANGE && iters == ULONG_MAX) || iters == 0)
         errx(EX_USAGE, "iterations out of range");
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
     }
 
     for (i = 0; i < iters; i++) {
-        if ((lseek(fd, 0, SEEK_END)) == -1)
+        if ((lseek(fd, (size_t) 0, SEEK_END)) == -1)
             err(EX_IOERR, "could not seek");
 
         /* NOTE should be race condition here - another way to test would be to

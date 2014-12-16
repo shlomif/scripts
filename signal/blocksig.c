@@ -16,20 +16,25 @@
  */
 
 #include <err.h>
+#include <ctype.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
 
 /* TODO might use _NSIG - 1 but that would need portability research */
-#define SIG_MAX 32
+#define MAX_SIG 32
+
+bool Seen_Sig[MAX_SIG];
 
 void emit_help(void);
 
 int main(int argc, char *argv[])
 {
-    int advance, ch, sig_num;
+    int advance = 0;
+    int ch, sig_num;
     sigset_t block;
 
     /* C-c by default, unless -s flag */
@@ -40,15 +45,32 @@ int main(int argc, char *argv[])
         switch (ch) {
         case 's':
             sigemptyset(&block);
-            while (sscanf(optarg, "%d%*[^0-9]%n", &sig_num, &advance) == 1) {
+
+            if (!isdigit(*optarg))
+                errx(EX_DATAERR, "signals must be plain integers");
+
+            while (sscanf(optarg, "%2d%n", &sig_num, &advance) == 1) {
                 if (sig_num < 1)
                     errx(EX_DATAERR, "signal number must be positive integer");
-                else if (sig_num > SIG_MAX)
-                    errx(EX_DATAERR,
-                         "signal number out of range: %d exceeds max of %d",
-                         sig_num, SIG_MAX);
-                sigaddset(&block, sig_num);
+                else if (sig_num > MAX_SIG)
+                    errx(EX_DATAERR, "signal number exceeds max of %d",
+                         MAX_SIG);
+
+                if (!Seen_Sig[sig_num - 1]) {
+                    sigaddset(&block, sig_num);
+                    Seen_Sig[sig_num - 1] = true;
+                }
                 optarg += advance;
+
+                if (*optarg == '\0')
+                    break;
+
+                if (*optarg != ' ')
+                    errx(EX_DATAERR, "signals must be spaced apart");
+
+                optarg++;
+                if (!isdigit(*optarg))
+                    errx(EX_DATAERR, "signals must be plain integers");
             }
             break;
 
