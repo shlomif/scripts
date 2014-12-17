@@ -16,7 +16,6 @@
 #include <sys/types.h>
 
 #include <err.h>
-#include <errno.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
@@ -27,7 +26,7 @@
 
 void whine(int sig);
 
-int main()
+int main(void)
 {
     char buf[BUFSIZ];
     char tmp_filename[] = "/tmp/obd.XXXXXXXXXX";
@@ -93,5 +92,5 @@ int main()
 
 void whine(int sig)
 {
-    warnx("caught signal %d at %ld", sig, time(NULL));
+    warnx("caught signal %d at %ld", sig, (long) time(NULL));
 }

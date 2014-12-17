@@ -1,7 +1,6 @@
           /*   "Tap or untap target artifact, creature, or land."   */
 
 #include <err.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>

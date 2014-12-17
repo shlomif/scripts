@@ -23,7 +23,6 @@ extern int optind, opterr, optopt;
 
 #include <ctype.h>
 #include <err.h>
-#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -158,8 +157,7 @@ int main(int argc, char *argv[])
         break;
     default:
         errx(EX_DATAERR,
-             "unknown prefix length, must be one of 32 40 48 56 64 96",
-             Flag_Prefix);
+             "unknown prefix length, must be one of 32 40 48 56 64 96");
     }
 
     for (int i = 0; i < S6ADDR_MAX; i++) {
