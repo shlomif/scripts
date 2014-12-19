@@ -1,0 +1,39 @@
+#!/usr/bin/env zsh
+#
+# Wrapper thingy called from vi to preview and play lilypond music on OS X,
+# which is annoying, as Preview.app under 10.10 has taken to scrolling
+# down to the bottom of the (blank) page, hiding the new music, and forcing
+# one to scroll up to see that. mupdf on OpenBSD is vastly more sensible.
+
+set -e
+
+MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
+[[ -z $MRF ]] && {
+  echo >&2 "no *.ly found (or glf problem)"
+  exit 1
+}
+
+(
+  MRP=${MRF:s/\.ly/.pdf}
+
+  [[ ! -e $MRP || $MRF -nt $MRP ]] && {
+    # Permissions kluge due to Preview.app on Mac OS X taking stray clicks as
+    # excuses to edit the document, which then leads to force-quitting of that
+    # app as it really, really wants to save the thus edited document. Sigh.
+    [[ -f $MRP ]] && chmod u+w $MRP
+    lilypond -dno-point-and-click $MRF > ~/var/log/lilypond.log 2>&1
+    osascript -e 'tell app "Preview.app" to activate'
+    [[ -f $MRP ]] && chmod -w $MRP
+  }
+
+  #cp *.midi(om[1]) ~/Desktop/
+
+  # play, but only if volume up, so can mute and just eye the black dots
+  # if do not want to listen
+  osascript -e 'get volume settings' \
+  | egrep -q '(^output volume:0|output muted:true)' \
+  || {
+    #tlymidity *.midi(om[1])
+    pianoteq --preset D4\ Player\ Clean --midi *.midi(om[1])
+  }
+) >/dev/null 2>&1 &
