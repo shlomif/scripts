@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 {
     int ch;
     time_t epoch;
-    struct tm *before, *now, *after;
+    struct tm *when;
 
     Program_Name = *argv;
 
@@ -40,25 +40,23 @@ int main(int argc, char *argv[])
 
     if (time(&epoch) == (time_t) - 1)
         err(EX_OSERR, "time() failed");
-    if ((now = localtime(&epoch)) == NULL)
+    if ((when = localtime(&epoch)) == NULL)
         err(EX_OSERR, "localtime() failed");
 
-    /* calloc() zeros the fields; this is not a problem for the day of the
-     * month on the rash assumption that localtime() properly gave *now some
-     * sensible (non-zero) value. */
-    if ((before = calloc((size_t) 1, sizeof(struct tm))) == NULL)
-        err(EX_OSERR, "calloc() failed");
-    *before = *now;
-    before->tm_mon -= 1;
+    /* Ragged ends of months may cause wrap-around problems if run on 31st and
+     * whoops next month doesn't have that so bump to some other month, haha!
+     * Basically, datetime code without massive unit tests checking for these
+     * sorts of edge cases should not be trusted (or it should be of no great
+     * surprise when things do break).
+     */
+    when->tm_mday = 1;
 
-    if ((after = calloc((size_t) 1, sizeof(struct tm))) == NULL)
-        err(EX_OSERR, "calloc() failed");
-    *after = *now;
-    after->tm_mon += 1;
-
-    whatmonth(before);
-    whatmonth(now);
-    whatmonth(after);
+    when->tm_mon -= 1;
+    whatmonth(when);
+    when->tm_mon += 1;
+    whatmonth(when);
+    when->tm_mon += 1;
+    whatmonth(when);
 
     exit(EXIT_SUCCESS);
 }
@@ -80,9 +78,14 @@ void whatmonth(struct tm *date)
 {
     char monthnum[3];
     char yearnum[5];            // FIXME Y10K bug
+    pid_t pid;
+    time_t t;
 
-    pid_t pid = fork();
+    /* this dance to actually resolve the month increments */
+    t = mktime(date);
+    date = localtime(&t);
 
+    pid = fork();
     if (pid == -1) {
         err(EX_OSERR, "could not fork()");
 
