@@ -22,4 +22,4 @@ ps o pid,command | while read pid cmd cmdargs; do
   fi
 done
 
-$PDFREADER -- "$File" &|
+$PDFREADER -- "$File" 1>>~/var/log/pdf 2>&1 &|
