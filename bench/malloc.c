@@ -6,20 +6,26 @@
  *
  *   env CFLAGS="-g -std=c99 -Wall -pedantic -pipe -lpthread" make malloc
  *
- * And then try out various thread count and memory usage flags (and with a
- * suitable number of test runs to satisfy some semblance of stats):
+ * And then try out various thread count (-t) and memory usage (-m) values over
+ * a given number of test runs (-c):
  *
- *   ./malloc -c 100 -m $((2**31)) -t 4 > out
+ *   for t in 1 2 4 8; do
+ *     ./malloc -c 100 -m $((2**31)) -t $t > out.$t
+ *   done
  *
  * And then presumably do stats (in particular, mean and standard deviation) on
- * the second column of the output.
+ * the output, and compare the results for different number of threads, amounts
+ * of memory, etc. For example, with my r-fu wrapper around R:
  *
- * This test is perhaps of interest on multiprocessor systems; a 64 "cpu" AMD
- * (four physical CPU with 16 cores each) shows the best numbers at 16 or 32
- * threads running in parallel, and worse times before and beyond that. A 16
- * "cpu" Intel system shows similar numbers, with 4 or 8 threads ideal.
- * However, this is something of a contrived test, YMMV, ideally test the
- * actual application, etc.
+ *   for t in 1 2 4 8; do echo -n "$t "; r-fu msdevreduce out.$t; done > stat
+ *   R
+ *   > x=read.table("stat")
+ *   > plot(x$V1,x$V2,type='h',log='y',lwd=2,bty='n',ylab="Memset (seconds)",xlab="Thread Count")
+ *
+ * This test is perhaps of interest on multiprocessor systems with large
+ * amounts of memory, as for the test runs I've done performance will
+ * improve, bottom out, and then worsen as the total number of "CPUs" on the
+ * system is reached by the thread count.
  *
  * On OpenBSD, limits in login.conf(5) will doubtless need to be raised, and
  * other systems or hardware may set various limits, depending.
@@ -91,7 +97,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'm':
-            Flag_Memory = flagtoul(ch, optarg, 32UL, LONG_MAX);
+            Flag_Memory = flagtoul(ch, optarg, 1UL, LONG_MAX);
             break;
 
         case 't':
@@ -203,7 +209,7 @@ void *worker(void *unused)
                                               before.tv_usec) /
             (double) USEC_IN_SEC;
         //delta_t = (after.tv_sec - before.tv_sec) + (after.tv_nsec - before.tv_nsec) / (double) NSEC_IN_SEC;
-        printf("%lu %.6f\n", Flag_Memory, delta_t);
+        printf("%.6f\n", delta_t);
     }
 
     pthread_mutex_lock(&Lock);
