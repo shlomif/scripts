@@ -11,13 +11,13 @@ MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
   exit 1
 }
 
-#(
-  MRP=${MRF:s/\.ly/.pdf}
+MRP=${MRF:s/\.ly/.pdf}
 
-  [[ ! -e $MRP || $MRF -nt $MRP ]] && {
-    lilypond --silent -dno-point-and-click $MRF
-    open $MRP
-  }
+[[ ! -e $MRP || $MRF -nt $MRP ]] && {
+  lilypond --silent -dno-point-and-click $MRF
+  open $MRP
+}
 
+[[ `mixerctl -n outputs.hp_mute` == "off" ]] && {
   tlymidity *.midi(om[1])
-#) >/dev/null 2>&1 &
+}
