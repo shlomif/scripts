@@ -122,10 +122,12 @@ int main(int argc, char *argv[])
 
     Mem_Size = (size_t) Flag_Memory / Flag_Threads;
 
+    pthread_mutex_lock(&Lock);
     for (i = 0; i < Flag_Threads; i++) {
         if (pthread_create(&tids[i], NULL, worker, NULL) != 0)
             err(EX_OSERR, "could not pthread_create() thread %lu", i);
     }
+    pthread_mutex_unlock(&Lock);
 
     for (;;) {
         pthread_mutex_lock(&Lock);
