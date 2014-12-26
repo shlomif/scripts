@@ -18,6 +18,7 @@ my $PHI = 1.6180339887498948482;
 
 my %ability = (
   basic       => { handle => \&handle_basic, },
+  bisect      => { handle => \&handle_bisect, },
   C           => { handle => \&handle_C, },
   derivative  => { handle => \&handle_derivative, },
   dist        => { handle => \&handle_distribution, },
@@ -144,15 +145,20 @@ sub handle_basic {
   return unless @array;
 
   $results{count} = @array;
-  $results{mean} = mean( \@array, $results{sum} );
+  $results{mean}  = mean( \@array, $results{sum} );
   $results{range} = $results{max} - $results{min};
-  $results{sdev} = standard_deviation( \@array, $results{mean} );
+  $results{sdev}  = standard_deviation( \@array, $results{mean} );
   $results{ssdev} = sample_standard_deviation( \@array, $results{mean} );
 
   print map {
     $_ . " "
       . ( $results{$_} =~ /\./ ? numbertidy( $results{$_} ) : $results{$_} ) . "\n"
   } sort keys %results;
+}
+
+sub handle_bisect {
+  my ( $lo, $hi ) = @ARGV;
+  print int( ( $lo + $hi ) / 2 ), "\n";
 }
 
 sub handle_C {
@@ -164,7 +170,7 @@ sub handle_C {
 }
 
 sub factorial {
-  my $x = Math::BigInt->new($_[0]);
+  my $x = Math::BigInt->new( $_[0] );
   $x->bfac();
 }
 
