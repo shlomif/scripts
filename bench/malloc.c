@@ -13,7 +13,12 @@
  *     ./malloc -c 100 -m $((2**31)) -t $t > out.$t
  *   done
  *
- * And then presumably do stats (in particular, mean and standard deviation) on
+ * NOTE that the -c count is per thread, so for equality between varied runs of
+ * threads, -c will need to change proportionally to the thread count. The
+ * downside of such is that low thread-count tests may take that much longer
+ * to get through those extra tests.
+ *
+ * Then, presumably do stats (in particular, mean and standard deviation) on
  * the output, and compare the results for different number of threads, amounts
  * of memory, etc. For example, with my r-fu wrapper around R:
  *
@@ -23,9 +28,10 @@
  *   > plot(x$V1,x$V2,type='h',log='y',lwd=2,bty='n',ylab="Memset (seconds)",xlab="Thread Count")
  *
  * This test is perhaps of interest on multiprocessor systems with large
- * amounts of memory, as for the test runs I've done performance will
- * improve, bottom out, and then worsen as the total number of "CPUs" on the
- * system is reached by the thread count.
+ * amounts of memory, as for the test runs I've done performance will improve,
+ * bottom out, and then worsen as the total number of "CPUs" on the system is
+ * reached by the thread count (assuming a large enough amount of memory is
+ * consumed).
  *
  * On OpenBSD, limits in login.conf(5) will doubtless need to be raised, and
  * other systems or hardware may set various limits, depending.
@@ -60,6 +66,8 @@ unsigned long Flag_Count;       // -c
 unsigned long Flag_Memory;      // -m
 unsigned long Flag_Threads;     // -t
 
+unsigned long Threads_Completed;
+
 size_t Mem_Size;
 
 pthread_mutex_t Lock = PTHREAD_MUTEX_INITIALIZER;
@@ -76,6 +84,7 @@ int main(int argc, char *argv[])
 {
     int ch;
     pthread_t *tids;
+    struct timespec wait;
     unsigned long i;
 
 #ifdef __OpenBSD__
@@ -122,18 +131,19 @@ int main(int argc, char *argv[])
 
     Mem_Size = (size_t) Flag_Memory / Flag_Threads;
 
-    pthread_mutex_lock(&Lock);
     for (i = 0; i < Flag_Threads; i++) {
         if (pthread_create(&tids[i], NULL, worker, NULL) != 0)
             err(EX_OSERR, "could not pthread_create() thread %lu", i);
     }
-    pthread_mutex_unlock(&Lock);
+
+    wait.tv_sec = 7;
+    wait.tv_nsec = 0;
 
     for (;;) {
         pthread_mutex_lock(&Lock);
-        if (Flag_Threads == 0)
+        if (Threads_Completed == Flag_Threads)
             break;
-        pthread_cond_wait(&Job_Done, &Lock);
+        pthread_cond_timedwait(&Job_Done, &Lock, &wait);
         pthread_mutex_unlock(&Lock);
     }
 
@@ -215,7 +225,7 @@ void *worker(void *unused)
     }
 
     pthread_mutex_lock(&Lock);
-    Flag_Threads--;
+    Threads_Completed++;
     pthread_mutex_unlock(&Lock);
     pthread_cond_signal(&Job_Done);
 
