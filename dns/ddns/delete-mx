@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Deletes all MX records for a host
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+MAXWAITSECS=7
+
+[ $# -lt 1 -o $# -gt 2 ] && {
+  echo >&2 "usage: $0 host  (deletes all MX)"
+  exit 64
+}
+
+echo $1 | grep $DOM && {
+  echo >&2 "$0: use short host names"
+  exit 65
+}
+
+nsupdate -k $KEY -t $MAXWAITSECS <<EOF
+prereq yxrrset $1.$DOM MX
+update delete $1.$DOM MX
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate (on delete MX)"
+fi
+
+exit $STATUS

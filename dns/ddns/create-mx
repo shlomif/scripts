@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# Create a MX record.
+
+DOM=example.edu
+KEY=/etc/nsuk.key
+MAXWAITSECS=7
+
+[ $# -ne 2 -a $# -ne 3 ] && {
+  echo >&2 "usage: $0 host mxhost.dom. [priority]"
+  exit 1 
+}
+
+echo $1 | grep $DOM && {
+  echo >&2 "$0: use short host name"
+  exit 1
+}
+
+PRIORITY=0
+[ $# -eq 3 ] && PRIORITY=$3
+
+nsupdate -k $KEY -t $MAXWAITSECS <<EOF
+update add $1.$DOM 86400 MX $PRIORITY $2
+send
+EOF
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo >&2 "$0: non-zero exit from nsupdate (MX not created)"
+fi
+
+exit $STATUS
