@@ -40,7 +40,7 @@ sub parse_ly {
 
   open my $lyfh, '<', $filename or die "could not open $filename: $!\n";
   while (<$lyfh>) {
-    if (m/^%\s+timidity\s+(.*)/) {
+    if (m/^%\s+timidity\s+([^%]+)/) {
       push @argv_additions, split ' ', $1;
       last;
     }

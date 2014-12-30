@@ -22,4 +22,6 @@ ps o pid,command | while read pid cmd cmdargs; do
   fi
 done
 
-$PDFREADER -- "$File" 1>>~/var/log/pdf 2>&1 &|
+# setsid (elsewhere under scripts repo) necessary as otherwise control+z
+# in vi causes PDF window to not redraw itself.
+setsid $PDFREADER -- "$File" 1>>~/var/log/pdf 2>&1 &|
