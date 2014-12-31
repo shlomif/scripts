@@ -4,9 +4,6 @@
 # this seems relevant (by various file tests), or attempts regular diff
 # if possible. Requires 'findup', which is available elsewhere under the
 # sial.org scripts repository. See also 'ketchup' and 'commit'.
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
 
 PROG_NAME=`basename $0`
 

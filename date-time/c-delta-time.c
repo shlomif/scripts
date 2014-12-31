@@ -2,30 +2,37 @@
 
 #include <sys/time.h>
 
-#include <assert.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sysexits.h>
+#include <time.h>
 #include <unistd.h>
 
-#define USEC_IN_SEC 1000000
+#define NSEC_IN_SEC 1000000000
 
 int main(void)
 {
-    struct timeval before, after;
-    double delta_t;
+    struct timespec before, after;
+    long double delta_t;
 
-    assert(gettimeofday(&before, NULL) != -1);
+    if (clock_gettime(CLOCK_REALTIME, &before) == -1)
+        err(EX_OSERR, "clock_gettime() failed");
 
     sleep(3);                   // real code here
 
-    assert(gettimeofday(&after, NULL) != -1);
+    if (clock_gettime(CLOCK_REALTIME, &after) == -1)
+        err(EX_OSERR, "clock_gettime() failed");
 
     /* One handy sanity check might be to confirm that time has actually
      * advanced, a concern tied up with what time sync protocol is being used,
-     * whether that protocol is operating correct, and etc. */
-    delta_t = after.tv_sec - before.tv_sec;
-    delta_t += (after.tv_usec - before.tv_usec) / (double) USEC_IN_SEC;
-    fprintf(stderr, "delta %.3f\n", delta_t);
+     * whether that protocol is operating correct, and etc. See also
+     * CLOCK_MONOTONIC in clock_gettime(2), etc. */
+    delta_t =
+        (after.tv_sec - before.tv_sec) + (after.tv_nsec -
+                                          before.tv_nsec) /
+        (long double) NSEC_IN_SEC;
+    fprintf(stderr, "delta %.6Lf\n", delta_t);
 
     /* for compat with -fstack-protector-all, cannot just return */
     exit(EXIT_SUCCESS);

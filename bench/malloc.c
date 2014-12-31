@@ -60,7 +60,6 @@
 #define MAX_THREADS 640UL
 
 #define NSEC_IN_SEC 1000000000
-#define USEC_IN_SEC 1000000
 
 unsigned long Flag_Count;       // -c
 unsigned long Flag_Memory;      // -m
@@ -194,34 +193,30 @@ unsigned long flagtoul(const int flag, const char *flagarg,
 void *worker(void *unused)
 {
     int *x;
-    double delta_t;
-    struct timeval before, after;
-    //struct timespec before, after;
+    long double delta_t;
+    struct timespec before, after;
     unsigned long c;
 
     for (c = 0; c < Flag_Count; c++) {
-        /* these two appear equivalent on OpenBSD, though clock_gettime does
-         * offer alternate clocks... */
-        gettimeofday(&before, NULL);
-        //clock_gettime(CLOCK_REALTIME, &before);
+        if (clock_gettime(CLOCK_REALTIME, &before) == -1)
+            err(EX_OSERR, "clock_gettime() failed");
 
         if ((x = malloc(Mem_Size)) == NULL)
             err(EX_OSERR, "could not malloc() list in thread");
         memset(x, 'y', Mem_Size);
         free(x);
 
-        gettimeofday(&after, NULL);
-        //clock_gettime(CLOCK_REALTIME, &after);
+        if (clock_gettime(CLOCK_REALTIME, &after) == -1)
+            err(EX_OSERR, "clock_gettime() failed");
 
         /* hopefully close enough via double conversion; the alternative would
          * be to trade off timer resolution against the total time thereby
          * possible to measure, which I have not looked into. */
         delta_t =
-            (after.tv_sec - before.tv_sec) + (after.tv_usec -
-                                              before.tv_usec) /
-            (double) USEC_IN_SEC;
-        //delta_t = (after.tv_sec - before.tv_sec) + (after.tv_nsec - before.tv_nsec) / (double) NSEC_IN_SEC;
-        printf("%.6f\n", delta_t);
+            (after.tv_sec - before.tv_sec) + (after.tv_nsec -
+                                              before.tv_nsec) /
+            (long double) NSEC_IN_SEC;
+        printf("%.6Lf\n", delta_t);
     }
 
     pthread_mutex_lock(&Lock);

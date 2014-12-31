@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Simplistic TCP traffic replay: replays TCP sessions recorded by
 # tcpdump by sending the previous client request data payloads to the
@@ -27,9 +27,6 @@
 #
 # Where SERVERIP is the address the desired TCP traffic is going to, and
 # REPLAYSERVERIP the test server the TCP payloads should be resent to.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

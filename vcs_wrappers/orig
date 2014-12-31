@@ -2,9 +2,6 @@
 #
 # Creates original copies of the specified file(s). TODO probably should
 # learn how to use git better...
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
 
 STATUS=0
 

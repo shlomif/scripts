@@ -1,9 +1,6 @@
-#!/usr/bin/perl -l
+#!/usr/bin/env perl
 #
 # Twiddles case.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use Getopt::Std;
 my %opts;
@@ -21,4 +18,5 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 
 for (@ARGV) {
   print $opts{l} ? lc : uc;
+  print "\n";
 }

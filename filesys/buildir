@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Like 'mkdir -p', but does 'cvs add' if under CVS sandboxes, or other
 # extensible actions. Prints directories created when run with -p
@@ -10,9 +10,6 @@
 #   [ $? -ne 0 ] && exit $?
 #   builtin cd "$NDIR"
 # }
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

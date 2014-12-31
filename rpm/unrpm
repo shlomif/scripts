@@ -5,9 +5,6 @@
 # custom build area, consult the "Maximum RPM" documentation online for
 # instructions on creating a ~/.rpmmacros file and the required
 # directory structure.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 RPM_MACROS=$HOME/.rpmmacros
 RPM_TOPDIR=/usr/src/redhat

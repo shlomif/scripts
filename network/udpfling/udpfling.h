@@ -22,6 +22,7 @@
 #define MS_IN_SEC 1000		/* milliseconds */
 #define USEC_IN_MS 1000000
 #define USEC_IN_SEC 10000000
+#define NSEC_IN_SEC 1000000000
 
 #define DEFAULT_STATS_INTERVAL 10000	/* how often to print stats */
 

@@ -7,9 +7,6 @@
 #   function tagit {
 #     =tagit -id | pbcopy
 #   }
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 # use username instead of initials, as easier to query these e.g. with
 # `getent passwd ...` or the like.

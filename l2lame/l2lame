@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Converts a *.wav to *.mp3 using IDv3 tags gleaned from a lilypond
 # input file. (To avoid double specifying the tags in both a *.ly and

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Get latest file in a directory by mtime, optionally limiting the files
 # to those that match a particular regular expression, or also
@@ -17,9 +17,6 @@
 # depending on whether STDIN is connected to a terminal. Therefore, if
 # glf is run from cron, the full arguments should always be supplied, to
 # ensure that glf does not try to read from STDIN.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;
@@ -196,11 +193,24 @@ prelretut(1), perlre(1)
 
 =head1 AUTHOR
 
-Jeremy Mates
+thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
 
 =head1 COPYRIGHT
 
-The author disclaims all copyrights and releases this script into the
-public domain.
+Copyright (c) 2015 Jeremy Mates
+
+     Permission to use, copy, modify, and/or distribute this software for
+     any purpose with or without fee is hereby granted, provided that the
+     above copyright notice and this permission notice appear in all
+     copies.
+
+     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
+     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+     PERFORMANCE OF THIS SOFTWARE.
 
 =cut

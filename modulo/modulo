@@ -16,9 +16,6 @@
 #
 #   $ modulo 2 node001
 #   1
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` what-to-modulo-by value-to-modulo" >&2

@@ -13,9 +13,6 @@
 # by untrusted users, e.g. via untrusted code injection into the file
 # in question, especially if ~/.sh-sourceall is on an insecure network
 # file system.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 # routine to signal a process matching an expression with a
 # specified signal.

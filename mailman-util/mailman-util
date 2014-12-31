@@ -1,11 +1,8 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Utility routines to interact with the mailman mailing list manager.
 #
 # TODO Mailman 2.0.5 lacks "disable reminder" support? Ugh.
-#
-# The author disclaims all copyrights and releases this document into
-# the public domain.
 
 use strict;
 use warnings;

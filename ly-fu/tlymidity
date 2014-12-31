@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Wrap timidity, reading *.ly files for extra command line arguments.
 # This is mostly to allow the use of custom soundfont files without
@@ -13,7 +13,7 @@
 use strict;
 use warnings;
 
-use File::Basename ();
+use File::Basename qw(fileparse);
 use File::Spec     ();
 
 die "Usage: $0 midifile\n" if @ARGV != 1;
@@ -40,10 +40,14 @@ sub parse_ly {
 
   open my $lyfh, '<', $filename or die "could not open $filename: $!\n";
   while (<$lyfh>) {
+    # which I disable when needed with a %% prefix...
     if (m/^%\s+timidity\s+([^%]+)/) {
       push @argv_additions, split ' ', $1;
       last;
     }
+  }
+  for my $extra (@argv_additions) {
+    $extra =~ s{file=(?![./])}{file=$path/};
   }
   return @argv_additions;
 }

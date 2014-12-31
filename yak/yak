@@ -7,9 +7,6 @@
 # delivery agent call filters or external scripts.
 #
 # Output is saved to a temporary file under /tmp by default.
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
 
 shortname=`basename $0`
 shortname=${shortname:=yak}

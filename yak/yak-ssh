@@ -17,9 +17,6 @@
 #
 # Note that software may already support limited access via ssh, e.g.
 # git via git-shell(1).
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
 
 shortname=`basename $0`
 shortname=${shortname:=ssh-yak}

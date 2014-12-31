@@ -1,13 +1,10 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Performs various mathematical and statistical operations on input data. (Also
 # known as me being too lazy to use R, or for when I want something quick to
 # mess about with on the CLI, since I am terrible at doing math in my head.)
 # Not for any sort of unattended or non-interactive use, due to lack of input
 # sanity checking, etc.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use Math::BigInt;
 use Getopt::Std;

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Wrapper for the Text::Autoformat Perl module. Can be called via a vi
 # .exrc entry such as:
@@ -11,9 +11,6 @@
 #
 # And then Text::Autoformat options added there after if needed, such as
 # 'right=>72' or similar.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use Text::Autoformat;
 

@@ -1,11 +1,8 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Lists maximum length possible of data encrypted with varying RSA key
 # lengths and padding options, along with size of ciphertext (binary
 # format) and the ciphertext encoded in base64 format.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;

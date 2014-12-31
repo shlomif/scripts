@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Adds the specified IP addresses to the <badhosts> table in a Packet
 # Filter (pf) firewall, then finds and removes state entries involving
@@ -13,9 +13,6 @@
 #
 # Warning: either ensure that blocked hosts are remove automatically
 # after some period of time, or that good hosts cannot be blocked.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 unless (@ARGV) {
   warn "usage: $0 [-t table] [ [ip] [ip2 ..] | - ]\n";

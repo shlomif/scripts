@@ -1,10 +1,7 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Converts IPv4 addresses and hostnames (input to Socket::inet_aton) to
 # hex format.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

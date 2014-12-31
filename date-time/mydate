@@ -3,9 +3,6 @@
 # Prints the date in a format to the liking of the author (in hindsight, it
 # would probably have been more sensible to simply create a `date` alias with
 # just the strftime format to that, and none of the options fuss).
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 DODATE=no
 DOTIME=no

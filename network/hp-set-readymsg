@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Set the "ready message" on a HP printer. Mostly for the lols.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -l
+#!/usr/bin/env perl
 #
 # Periodic ping, without output annoyances of default ping(1) on Unix, etc.
 
@@ -21,6 +21,7 @@ while (1) {
   my $is_okay = $p->ping($host);
   print strftime( $dfmt, localtime ), " ", $host, " ",
     ( $is_okay ? "up" : "down" );
+  print "\n";
   die "could not reach $host\n" if $die_if_down and !$is_okay;
   sleep $sleep;
 }

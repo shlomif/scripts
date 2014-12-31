@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Runs a command with specified priority, like nice, but handles
 # negative priorities with sudo. Forks to avoid running the named
@@ -8,9 +8,6 @@
 #
 # On Mac OS X launches "Descent2 X" and renices it to the default
 # priority.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

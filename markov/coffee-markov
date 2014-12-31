@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Example 2nd order markov (with fallback to first) for a model citizen
 # before lunch (see DATA, below). Consider instead: http://hailo.org/

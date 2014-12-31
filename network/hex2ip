@@ -1,9 +1,6 @@
-#!/usr/bin/perl -l
+#!/usr/bin/env perl
 #
 # Converts hex format IP address into IPv4 address humans like.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)
@@ -17,4 +14,5 @@ chomp(@ARGV = <STDIN>) unless @ARGV;
 
 for my $input (@ARGV) {
   print join ".", unpack "C4", pack "H*", $input;
+  print "\n";
 }

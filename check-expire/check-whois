@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Script to parse domain whois information for expiration dates. Returns
 # key=value data about each domain mentioned on the command line.

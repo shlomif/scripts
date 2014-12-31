@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # "Human" sort that should emulate behavior of Finder (as of Mac OS X
 # 10.2). Sorts numeric values so 10 appears after 2, and compares in case-
@@ -13,9 +13,6 @@
 #
 # hsort file1 file2 file3
 # ls | hsort
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)

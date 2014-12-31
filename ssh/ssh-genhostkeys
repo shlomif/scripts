@@ -13,9 +13,6 @@
 # NOTE Debian may lack `ssh-keygen -A`; try:
 #   rm /etc/ssh/ssh_host_*
 #   dpkg-reconfigure openssh-server
-#
-# The author disclaims all copyrights and releases this script into
-# the public domain.
 
 keydir=/etc/ssh
 

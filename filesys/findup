@@ -7,9 +7,6 @@
 # repository.
 #
 # Example usage: findup -H .git
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 # Whether to make less noise
 QUIET=0

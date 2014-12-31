@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # rlytest - test mail host for third-party relay
 # (see POD documentation at end)

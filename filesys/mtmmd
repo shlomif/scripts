@@ -15,9 +15,6 @@
 #   _shared_rc
 #
 # And appropriate use of some form of mkdir.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 set_ftarget () {
   echo export FTARGET=`pwd` > $HOME/.zsh/sighandle/USR1/set-ftarget

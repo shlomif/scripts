@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <time.h>
 #include <unistd.h>
 
 /* global mostly for the free zeroing of all the various struct fields */
@@ -28,7 +29,7 @@ struct itimerval iTimer;
 uint8_t Rand, Whence;
 #define ROLLOVER 8
 
-void handle_alarm(int sig);
+void handle_alarm(int unused);
 
 int main(void)
 {
@@ -69,11 +70,12 @@ int main(void)
     exit(1);
 }
 
-void handle_alarm(int sig)
+void handle_alarm(int unused)
 {
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    Rand ^= (now.tv_usec & 1) << Whence++;
+    struct timespec now;
+    if (clock_gettime(CLOCK_REALTIME, &now) == -1)
+        err(EX_OSERR, "clock_gettime() failed");
+    Rand ^= (now.tv_nsec & 1) << Whence++;
     if (Whence >= ROLLOVER) {
         Whence = 0;
         printf("%u\n", Rand);

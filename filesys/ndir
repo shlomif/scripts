@@ -12,9 +12,6 @@
 #   [[ $? -ne 0 ]] && exit $?
 #   builtin cd "$NDIR"
 # }
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 VERBOSE=no
 

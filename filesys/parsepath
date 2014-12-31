@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Prints information about file paths, or checks for Unix permissions problems.
 # Run perldoc(1) on this script for additional documentation. See also
@@ -11,9 +11,6 @@
 #      done, this program may offer handy debugging information. It will
 #      not, however, fix the root cause of permissions errors stemming
 #      from hand-managed permissions, though.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;
@@ -559,9 +556,22 @@ chmod(2), perl(1), stat(2)
 
 =head1 AUTHOR
 
-Jeremy Mates
+thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
 
 =head1 COPYRIGHT
 
-The author disclaims all copyrights and releases this script into the
-public domain.
+Copyright (c) 2015 Jeremy Mates
+
+     Permission to use, copy, modify, and/or distribute this software for
+     any purpose with or without fee is hereby granted, provided that the
+     above copyright notice and this permission notice appear in all
+     copies.
+
+     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
+     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+     PERFORMANCE OF THIS SOFTWARE.

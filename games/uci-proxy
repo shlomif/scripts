@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # uci-proxy - proxy requests between a GUI and an engine via the
 # Universal Chess Interface (UCI).

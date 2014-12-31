@@ -6,9 +6,6 @@
 #
 # Used to be called 'up' but that conflicts with a tool from OpenAFS.
 # See also 'di' and 'commit'.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 EXIT_STATUS=0
 

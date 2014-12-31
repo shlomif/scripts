@@ -1,9 +1,6 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Utility to perform various MIME packing and unpacking operations.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

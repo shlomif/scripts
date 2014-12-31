@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Search 389-ds access logs for a search term or if possible conn=(\d+)
 # entries that then will also be searched on. (See also the logconv.pl

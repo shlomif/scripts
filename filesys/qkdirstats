@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Shows quick directory statistics and other summary information. Add as
 # a chpwd function under zsh(1) for an overview on interactive cd:
@@ -6,9 +6,6 @@
 # function chpwd {
 #   [[ "$PWD" == "$HOME" ]] || qkdirstats
 # }
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

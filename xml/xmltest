@@ -2,9 +2,6 @@
 #
 # Tests XML files for validity via xmllint. Probably should just be a
 # shell function?
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` xmlfile" >&2

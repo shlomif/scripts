@@ -11,9 +11,6 @@
 # while pbcopy on Mac OS X only converts standard input to the
 # clipboard. Ergo, running 'sgrax pbcopy $URL' properly gets the URL
 # into the clipboard.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 if [ -z "$1" ]; then
   echo "Usage: `basename $0` command standard input ..."

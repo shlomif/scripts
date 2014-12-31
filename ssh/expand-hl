@@ -1,10 +1,7 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Expands hostnames: lists variations on name for use in SSH
 # known_hosts data.
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 use strict;
 use warnings;

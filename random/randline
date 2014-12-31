@@ -1,9 +1,6 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Returns random line from input.  perldoc -q 'random line'
-#
-# The author disclaims all copyrights and releases this script into the
-# public domain.
 
 END {
   print $line;
