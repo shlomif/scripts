@@ -35,8 +35,9 @@ char *Flag_Output_Format;       /* -o for strftime */
 bool Flag_Suppress;             /* -s suppress other output */
 bool Flag_Custom_Year;          /* -y or -Y YYYY custom year */
 
-/* for -[yY] supplied data and pre-filler for subsequent strptime results */
-struct tm Default_Tm;
+/* This gets filled in by CLI defaults (if any) and then clobbered by each
+ * strptime call. I suspect this will be fine for most cases. */
+struct tm When;
 
 const char *File_Name = "-";    /* file name being read from */
 
@@ -55,6 +56,10 @@ int main(int argc, char *argv[])
 
     if (!setlocale(LC_ALL, ""))
         errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
+
+    /* As otherwise the default of 0 could cause time formats that do not
+     * include the date to skip back to a date in the previous month. */
+    When.tm_mday = 1;
 
     while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
         switch (ch) {
@@ -84,13 +89,13 @@ int main(int argc, char *argv[])
         case 'y':
             if (time(&now) == (time_t) - 1)
                 errx(EX_OSERR, "time(3) could not obtain current time??");
-            if (localtime_r(&now, &Default_Tm) == NULL)
+            if (localtime_r(&now, &When) == NULL)
                 errx(EX_OSERR, "localtime_r(3) failed??");
             Flag_Custom_Year = true;
             break;
 
         case 'Y':
-            if (!strptime(optarg, "%Y", &Default_Tm))
+            if (!strptime(optarg, "%Y", &When))
                 errx(EX_USAGE, "strptime(3) could not parse year from -Y flag");
             Flag_Custom_Year = true;
             break;
@@ -146,18 +151,10 @@ void parseline(char *line, const ssize_t linenum)
     size_t ret;
     static char *outbuf;
     static size_t outbuf_len = OUTBUF_LEN_MIN;
-    static struct tm when;
 
     if (!outbuf)
         if ((outbuf = malloc(outbuf_len)) == NULL)
             err(EX_OSERR, "malloc() failed to create output buffer");
-
-    /* Pre-fill with zeros or what -[yY] or other flags set; this may cause
-     * problems if strptime resets fields expected to be set to what a flag
-     * set, but otherwise need to set something to avoid gibberish values.
-     * However, since current flags are for things the input data lacks, will
-     * let strptime results take priority over the global defaults. */
-    when = Default_Tm;
 
     while (*line != '\0') {
         if (*line == '\n') {
@@ -165,7 +162,7 @@ void parseline(char *line, const ssize_t linenum)
             break;
         }
 
-        if ((past_date_p = strptime(line, Flag_Input_Format, &when)) != NULL) {
+        if ((past_date_p = strptime(line, Flag_Input_Format, &When)) != NULL) {
             /* Uhh so yeah about that %s thing on Mac OS X. Guard for it.
              * This was reported in Apple Bug 15753871 maaaaaany months ago but
              * hey I guess there's more important things to deal with? */
@@ -173,10 +170,10 @@ void parseline(char *line, const ssize_t linenum)
                 errx(EX_SOFTWARE, "error: zero-width timestamp parse");
 
             if (!Flag_Output_Format) {
-                printf("%ld", (long) mktime(&when));
+                printf("%ld", (long) mktime(&When));
             } else {
                 while ((ret =
-                        strftime(outbuf, outbuf_len, Flag_Output_Format, &when))
+                        strftime(outbuf, outbuf_len, Flag_Output_Format, &When))
                        == 0) {
                     outbuf_len <<= 1;
                     if (outbuf_len > OUTBUF_LEN_MAX)
@@ -207,7 +204,6 @@ void parseline(char *line, const ssize_t linenum)
                     putchar(' ');
             }
 
-            when = Default_Tm;
             line = past_date_p;
         } else {
             /* charwise until strptime finds something, or not */
