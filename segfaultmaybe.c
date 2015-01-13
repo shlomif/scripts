@@ -7,16 +7,30 @@
  * out the deliberate segfault):
  *
 
-env CFLAGS="-g -std=c99" make segfaultmaybe
+env CC="afl-gcc" CFLAGS="-g -std=c99" make segfaultmaybe
 echo 2038-01-02 | ./segfaultmaybe
 
 mkdir inputs findings
-perl -le 'for (1..100) { printf "%4d-%02d-%02d\n", 1900 + rand(100), 1+rand(12), 1+rand(28) }' > inputs/dates
-afl-fuzz -i inputs -o findings -n -d ./segfaultmaybe
+echo > inputs/dates <<EOF
+1938-09-06
+2018-09-05
+1977-02-14
+1948-05-23
+1957-10-26
+1926-07-02
+1992-11-12
+1951-08-15
+1986-05-24
+EOF
+afl-fuzz -i inputs -o findings ./segfaultmaybe
 
  * Though the specific bug this code contains would be better found by
  * intelligent input, e.g. what happens with years from 0000..9999 or beyond,
  * for example, and especially at boundary conditions around, say, year 2038.
+ *
+ * Result of analysis: desktop system at work overheated, crashed, and no
+ * segfault was found in something like a week of chugging away. Maybe on some
+ * server class hardware less shoddily built?
  *
  */
 

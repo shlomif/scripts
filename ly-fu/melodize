@@ -1,0 +1,183 @@
+#!/usr/bin/env perl
+#
+# Abuse walker alias method to pick notes in a particular mode to thereby abuse
+# the ears of any listeners of the resulting noise. Example use with
+# App::MusicTools and Math::Random::Discrete installed might run like:
+#
+#   melodize --transpose=66 --mode=minor --maxleap=5 --factor=3 --dedupdepth=3 | atonal-util pitch2ly --mode=absolute | ly-fu --open --absolute
+#
+# This version places the notes mostly above the starting pitch (0 or given by
+# the --transpose option), and limits by what (few) leaps are possible.
+#
+# Though, lacking a harmonic skeleton or goal of any sort, the results do tend
+# to wander around aimlessly, and the modulations are at best, well, random,
+# and the motifs clumsy and only happen when the factor is set high enough to
+# mostly always remain in key (in which case they repeat too much).
+
+use 5.010000;
+use strict;
+use warnings;
+
+use Getopt::Long qw(GetOptions);
+use List::Util qw(any);
+use Music::AtonalUtil 1.10;
+use Math::Random::Discrete ();
+
+# From "Krumhansl, C. L., and E. J. Kessler. 1982. Tracing the dynamic changes
+# in perceived tonal organization in a spatial representation of musical keys"
+# by way of "Music and Probabiliy" by David Temperley.
+my $major_odds =
+  [ 6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88 ];
+my $minor_odds =
+  [ 6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17 ];
+
+my $Flag_Modulate = 1;
+
+GetOptions(
+  'dedupdepth=i' => \my $Flag_Dedup_Depth,
+  'factor=f'     => \my $Flag_Factor,
+  'length=i'     => \my $Flag_Length,
+  'maxleap=i'    => \my $Flag_Max_Leap,
+  'mode=s'       => \my $Flag_Mode,
+  'modulate!'    => $Flag_Modulate,
+  'transpose=i'  => \my $Flag_Transpose,
+) or die "error parsing options\n";
+
+$Flag_Dedup_Depth //= 0;
+$Flag_Length ||= 16;
+$Flag_Max_Leap  //= ~0;
+$Flag_Mode      //= 'major';
+$Flag_Transpose //= 0;
+
+# A higher factor will more heavily weight notes "in the mode" at the expense
+# of less likely chromatics, e.g. c e g in major, or c ees g in minor. 0 will
+# disable, 1 will weight all notes equally. Something like 6 or 7 will stay
+# "in the mode" a lot.
+my %modes = (
+  major => Math::Random::Discrete->new(
+    [ map { $Flag_Factor ? $Flag_Factor**$_ : $_ } @$major_odds ],
+    [ 0 .. 11 ],
+  ),
+  minor => Math::Random::Discrete->new(
+    [ map { $Flag_Factor ? $Flag_Factor**$_ : $_ } @$minor_odds ],
+    [ 0 .. 11 ],
+  ),
+);
+
+die "no such mode '$Flag_Mode' (", join( ' ', sort keys %modes ), ")\n"
+  if !exists $modes{$Flag_Mode};
+
+my $atu = Music::AtonalUtil->new;
+
+# "notes" are members of 0..11, while "pitches" are moreso the actual
+# frequencies passed on downstream, and have modulation and transpositions
+# applied. (Deduplication therefore needs to look at pitches, while harmonic
+# modulation needs to consider logically the notes.)
+my @pitches;
+
+# Modulation related needs, if have wandered off into some new key (how much to
+# modulate by, restrictions on modulating too often, etc).
+my $modulate = 0;
+my %modlock;
+my $moddir = 0;
+my %mod_record;
+# how many notes to prevent other modulations over
+my $modlock_over = 4;
+
+# One might instead "set the key" here with a I-V-I motion or suchlike
+#push @pitches, map { $Flag_Transpose + $modulate + $_ } qw/0 7/;
+#my $note_prev = $modes{$Flag_Mode}->rand;
+my $note_prev = $modes{$Flag_Mode}->rand;
+push @pitches, $Flag_Transpose + $modulate + $note_prev;
+
+$modlock{ int( $#pitches / $modlock_over ) } = 1;
+
+# So can vary the de-dup depth, e.g. after modulation.
+my $ddd     = $Flag_Dedup_Depth;
+my $maxleap = $Flag_Max_Leap;
+
+# Depending on how pathological the settings are, this program can indeed
+# become quite
+my $stuck = 0;
+
+# Or could instead "generate like forever (a lie)" or "for so long until a
+# certain condition see" e.g. return to home key and cadence, though that is
+# probably easier to get by running the code a few times and then fiddling with
+# the ends as necessary.
+while ( @pitches < $Flag_Length ) {
+  my $note_new  = $modes{$Flag_Mode}->rand;
+  my $local_mod = 0;
+
+  # (sometimes) allow for leading tone below where we are transposing to
+  $local_mod = -12 if $note_new == 11 and $note_prev < 5 and rand() > 0.5;
+
+  my $new_pitch = $Flag_Transpose + $modulate + $local_mod + $note_new;
+
+  # this most often happens if the max leap is set to 3, which permits only
+  # motion by seconds and minor thirds, and can wedge things near the limits of
+  # the range the music is allowed in
+  $maxleap++    if $stuck++ > 100;
+  $ddd--        if $stuck > 1000;
+  die "sorry\n" if $stuck > 10000;    # eh.
+
+  next if $new_pitch < $Flag_Transpose - 1;
+  next if $ddd and any { $new_pitch == $_ } $atu->lastn( \@pitches, $ddd );
+
+  next if abs( $new_pitch - $pitches[-1] ) > $Flag_Max_Leap;
+
+  push @pitches, $new_pitch;
+  $stuck = 0;
+
+  # Variety of modulations based on half-step pairs e.g. F sharp plus G meaning
+  # a possible move to the Dominant, etc. This seems to work out better than I
+  # expected it would.
+  if ( $Flag_Modulate and !$modlock{ int( $#pitches / $modlock_over ) } ) {
+    my $didmod = 0;
+    if ( $note_new + $note_prev % 12 == 6 + 7 and rand() > 0.5 + $moddir / 5 ) {
+      $modulate = ( $modulate + 7 ) % 12;
+      $moddir++;
+      $didmod = 1;
+      $mod_record{$#pitches} = 'V';
+
+    } elsif ( $note_new + $note_prev == 4 + 5 and rand() > 0.5 - $moddir / 5 ) {
+      $modulate = ( $modulate + 5 ) % 12;
+      $moddir--;
+      $didmod = 1;
+      $mod_record{$#pitches} = 'IV';
+
+    } elsif ( $note_new + $note_prev == 7 + 8 and rand() > 0.5 - $moddir / 5 ) {
+      $modulate = ( $modulate + 8 ) % 12;
+      $moddir--;
+      $didmod = 1;
+      $mod_record{$#pitches} = 'bVI';
+
+    } elsif ( $note_new + $note_prev == 2 + 3 and rand() > 0.5 + $moddir / 5 ) {
+      $Flag_Mode = 'major' if rand() > 0.5;
+
+      $modulate = ( $modulate + 3 ) % 12;
+      $moddir++;
+      $didmod = 1;
+      $mod_record{$#pitches} = 'bIII';
+
+    } elsif ( $note_new + $note_prev == 8 + 9 and rand() > 0.5 - $moddir / 5 ) {
+      $Flag_Mode = 'minor' if rand() > 0.5;
+
+      $modulate = ( $modulate + 9 ) % 12;
+      $moddir--;
+      $didmod = 1;
+      $mod_record{$#pitches} = 'VI';
+    }
+
+    if ($didmod) {
+      $ddd = 1;
+      $modlock{ int( $#pitches / $modlock_over ) } = 1;
+    }
+  } else {
+    $ddd     = $Flag_Dedup_Depth;
+    $maxleap = $Flag_Max_Leap;
+  }
+
+  $note_prev = $note_new;
+}
+
+print join( ' ', @pitches ), "\n";
