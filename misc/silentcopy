@@ -1,0 +1,25 @@
+#!/usr/bin/env zsh
+#
+# Puts data into X11 clipboard without it being echo'd, mostly for case where
+# one does not want to type the password in over some network connection where
+# it might be subject to as yet defended against network timing attacks. Or
+# otherwise get text unseen into the clipboard.
+
+OPT=
+NO_NEW_LINE=0
+while getopts n OPT; do
+  case $OPT in
+    n)
+      NO_NEW_LINE=1
+    ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+read -rs BLAH
+
+if [[ $NO_NEW_LINE -eq 1 ]]; then
+  echo $BLAH | tr -d '\n' | xclip -in
+else
+  echo $BLAH | xclip -in
+fi
