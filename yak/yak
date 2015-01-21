@@ -1,28 +1,35 @@
 #!/bin/sh
 #
-# Unix diagnostic tool that saves various invocation details such as
-# arguments, environment settings, and standard input to a temporary
-# file for debugging.  Uses include seeing how and with what settings
-# applications such as the LPRng print spooler or the Procmail mail
-# delivery agent call filters or external scripts.
+# Unix diagnostic tool that saves various invocation details such as arguments,
+# environment settings, and standard input to a temporary file for debugging.
+# Uses include seeing how and with what settings applications such as the LPRng
+# print spooler or the Procmail mail delivery agent call filters or external
+# scripts. (Which may date this script's origins to a particular era, though it
+# does remain handy for debugging now other things.)
 #
 # Output is saved to a temporary file under /tmp by default.
 
 shortname=`basename $0`
 shortname=${shortname:=yak}
 
-#OUTPUT=/dev/null
-OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXXX`
-if [ $? -ne 0 ]; then
-  OUTPUT=/tmp/${shortname}.$$
-fi
+#YAK_OUTPUT=/dev/null
+YAK_OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXXX` || {
+  echo >&2 "mktemp failed to create /tmp file"
+  exit 1
+}
 
-#logger -t $shortname "saving output to $OUTPUT"
+# in the event env contains anything sensitive (or change the tmp dir path)
+chmod go-r $YAK_OUTPUT
+
+#logger -t $shortname "saving output to $YAK_OUTPUT"
 
 (
 if [ $# -gt 0 ]; then
   echo ARGS::BEGIN
-  echo "$0 $@"
+  echo $0
+  for YAK_ARG in "$@"; do
+    echo $YAK_ARG
+  done
   echo ARGS::END
 else
   echo ARGS::NONE
@@ -32,8 +39,8 @@ echo
 echo UNIX::BEGIN
 echo pid=$$
 
-# may need to fiddle with this or use other utilities to get the real
-# vs. effective user and group settings
+# NOTE may need to fiddle with this or use other utilities to get the real vs.
+# effective user and group settings
 id
 
 echo UNIX::END
@@ -53,11 +60,11 @@ set
 echo ENV::END
 echo
 
-# this will stall the script on command line waiting for input
+# NOTE this will stall the script on command line waiting for input
 echo STDIN::BEGIN
 cat
 echo STDIN::END
 
-) >> $OUTPUT
+) >> $YAK_OUTPUT
 
 exit 0

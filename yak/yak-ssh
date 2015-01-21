@@ -7,7 +7,7 @@
 #
 #   command="/path/to/yak-ssh" ssh-rsa AAAA...
 #
-# Then use SSH, inspect the ssh-yak.* output files for the command and
+# Then use SSH, inspect the ssh-yak.* YAK_OUTPUT files for the command and
 # env gleanings. A shorter version less concerned with the env and tmp
 # security needs might run something like:
 #
@@ -21,11 +21,14 @@
 shortname=`basename $0`
 shortname=${shortname:=ssh-yak}
 
-#OUTPUT=/dev/null
-OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXXX`
-if [ $? -ne 0 ]; then
-  OUTPUT=/tmp/${shortname}.$$
-fi
+#YAK_OUTPUT=/dev/null
+YAK_OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXXX` || {
+  echo >&2 "mktemp failed to create /tmp file"
+  exit 1
+}
+
+# in the event env contains anything sensitive (or change the tmp dir path)
+chmod go-r $YAK_OUTPUT
 
 #logger -i -t $shortname "ssh-command is $SSH_ORIGINAL_COMMAND"
 
@@ -52,7 +55,7 @@ set
 echo ENV::END
 echo
 
-) >> $OUTPUT
+) >> $YAK_OUTPUT
 
 # but need eval not exec to deal with shell quoting and whatnot in the
 # env var...
