@@ -31,13 +31,17 @@
 
 #define BUFSIZE 4096
 /* This is for Mac OS X; see the man page for details on creating a platform
- * specific wrapper as necessary for xsel or the like. */
+ * specific wrapper as necessary for xsel or the like. Or, adjust the execlp
+ * call below to call the appropriate program directly, though bear in mind
+ * xsel(1) may do the Wrong Thing if called directly under vi(1). */
 #define CLIPBOARD "pbcopy"
 
 int main(void)
 {
+    char buf[BUFSIZE], *clippy, *shortname;
     int fd[2];
     pid_t pid;
+    ssize_t howmuch;
 
     if (pipe(fd) == -1)
         err(EX_OSERR, "pipe() failed");
@@ -48,8 +52,6 @@ int main(void)
     } else if (pid > 0) {       /* parent */
         close(fd[0]);
 
-        char buf[BUFSIZE];
-        ssize_t howmuch;
         while (1) {
             if ((howmuch = read(STDIN_FILENO, &buf, (size_t) BUFSIZE)) < 0) {
                 err(EX_IOERR, "read() failed");
@@ -74,7 +76,6 @@ int main(void)
             close(fd[0]);
         }
 
-        char *clippy, *shortname;
         if ((clippy = getenv("CLIPBOARD")) == NULL)
             clippy = CLIPBOARD;
         if ((shortname = strrchr(clippy, '/')) != NULL)

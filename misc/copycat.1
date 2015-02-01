@@ -22,12 +22,16 @@ If using
 via MacPorts on Mac OS X, the tmux-pasteboard MacPorts package may be of service.
 .Pp
 In hindsight,
-.Xr xclip 1
+.Xr xclip 1x
 does have a
 .Fl filter
-flag, but that would not help on Mac OS X.
+flag, but that would not help on Mac OS X, and 
+.Xr xsel 1x
+is still required if one needs to clear the clipboard.
 .Sh EXAMPLES
-How I configure OpenBSD (the xclip port must be installed):
+Using 
+.Xr xclip 1x ,
+via a wrapper script.
 .Pp
 .Dl $ export CLIPBOARD=$HOME/libexec/pbcopy
 .Dl $ cat $HOME/libexec/pbcopy
@@ -36,7 +40,7 @@ How I configure OpenBSD (the xclip port must be installed):
 .Dl $ chmod +x $HOME/libexec/pbcopy
 .Pp
 .Xr xsel 1x
-is another option, though also must be used with a wrapper:
+is another option, also with a wrapper:
 .Pp
 .Dl #!/bin/sh
 .Dl exec xsel --input
@@ -81,7 +85,7 @@ the keepmark statement will be necessary to preserve any marks through the filte
 .It
 .Ic :keepmark %!copycat
 .El
-.Sh SEE ALSO
+.Pp
 With the X11-enabled version of
 .Xr vim 1
 the special star register should obviate the need for this script, e.g.
@@ -99,5 +103,10 @@ to yank to the X11 clipboard.
 .Xr vim 1 ,
 .Xr xclip 1x ,
 .Xr xsel 1x
-.Sh AUTHOR
+.Rs
+.%A Drew Neil
+.%D 2012
+.%B Practical Vim
+.Re
+.Sh AUTHORS
 .An Jeremy Mates
