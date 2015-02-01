@@ -11,11 +11,13 @@
  *   tee asdf
  *
  * Assuming that the FIFO can be properly created, etc. Otherwise mostly
- * motivated by :%!pbcopy in vi annoyingly filtering out the thus copied
- * data, and the code is otherwise mostly lifted from APUE.
+ * motivated by :%!pbcopy in vi annoyingly filtering out the thus copied data,
+ * and the code is otherwise mostly lifted from APUE.
  *
- * See the copycat.1 file for additional documentation (or copy that file
- * to a man1 directory and then `man copycat`).
+ * See the copycat.1 file for additional documentation (or copy that file to a
+ * man1 directory and then `man copycat`). X11-enabled vim users could instead
+ * just use the ":%y *" or equivalent to interact with the X11 clipboard via
+ * the special * register.
  */
 
 #include <sys/wait.h>
