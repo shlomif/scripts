@@ -4,6 +4,10 @@
 # one does not want to type the password in over some network connection where
 # it might be subject to as yet defended against network timing attacks. Or
 # otherwise get text unseen into the clipboard.
+#
+# However, one then has perhaps sensitive data in various memory locations,
+# though chasing down how to clear the X11 clipboard memory lead to a fire
+# swamp, so probably best to reboot system often?
 
 OPT=
 NO_NEW_LINE=0
