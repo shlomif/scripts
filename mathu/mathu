@@ -17,11 +17,13 @@ my %ability = (
   basic       => { handle => \&handle_basic, },
   bisect      => { handle => \&handle_bisect, },
   C           => { handle => \&handle_C, },
+  c2f         => { handle => \&handle_c2f, },
   derivative  => { handle => \&handle_derivative, },
   dist        => { handle => \&handle_distribution, },
   divisibleby => { handle => \&handle_divisibleby, },
   empirical   => { handle => \&handle_empirical, },
   expo        => { handle => \&handle_expo, },
+  f2c         => { handle => \&handle_f2c, },
   golden      => { handle => \&handle_golden, },
   max         => { handle => \&handle_max, },
   mean        => { handle => \&handle_mean, },
@@ -54,72 +56,52 @@ $format = $opts{f} if exists $opts{f};
 
 $ability{$action}->{handle}->();
 
-sub handle_sum {
-  my $result;
-  while (<STDIN>) {
-    chomp;
-    next if $_ eq q{};
-    $result += $_;
+exit 0;
+
+##############################################################################
+#
+# SUBROUTINES
+
+sub do_dist {
+  my $array = shift;
+  my $bref  = shift;
+
+  die "not enough buckets\n" unless @$bref > 1;
+
+  # TODO support for different output modes (counts, literal
+  # values in each bucket, percents of total)
+  my $i     = 0;
+  my $count = 0;
+  for my $v (@$array) {
+
+    # print "CUR: ", $v, " at $j and ", $bref->[$i], "\n";
+    if ( $v > $bref->[$i] ) {
+      dist_print( $bref->[$i], $count );
+      $count = 0;
+      $i++;
+      while ( $v > $bref->[$i] ) {
+
+        #print "EMPTY: ", $v, " at $j and ", $bref->[$i], "\n";
+        dist_print( $bref->[$i], $count );
+        $i++;
+      }
+    }
+    $count++;
   }
-  $result = numbertidy($result) if $result =~ /\./;
-  print $result, "\n";
+  dist_print( $bref->[$i], $count );
 }
 
-sub handle_mean {
-  my @array;
-  while (<STDIN>) {
-    chomp;
-    next if $_ eq q{};
-    push @array, $_;
-  }
-  my $result = mean( \@array );
-  $result = numbertidy($result) if $result =~ /\./;
-  print $result, "\n";
+sub dist_print {
+  my $bucket = shift;
+  my $count  = shift;
+
+  $bucket =~ s/\.\d+//;
+  print "$bucket $count\n";
 }
 
-sub handle_sdev {
-  my @array;
-  while (<STDIN>) {
-    chomp;
-    next if $_ eq q{};
-    push @array, $_;
-  }
-  my $result = standard_deviation( \@array, mean( \@array ) );
-  $result = numbertidy($result) if $result =~ /\./;
-  print $result, "\n";
-}
-
-sub handle_percent {
-  printf "$format%%\n", $ARGV[0] / $ARGV[1] * 100;
-}
-
-sub handle_ratio {
-  printf "$format\n", $ARGV[0] * $ARGV[1] / $ARGV[2];
-}
-
-sub handle_max {
-  my $result;
-  while (<STDIN>) {
-    chomp;
-    next if $_ eq q{};
-    $result = $_ unless defined $result;
-    $result = $_ if $_ > $result;
-  }
-  $result = numbertidy($result) if $result =~ /\./;
-  print $result, "\n";
-}
-
-sub handle_min {
-  my $result;
-  while (<STDIN>) {
-    chomp;
-    next if $_ eq q{};
-
-    $result = $_ unless defined $result;
-    $result = $_ if $_ < $result;
-  }
-  $result = numbertidy($result) if $result =~ /\./;
-  print $result, "\n";
+sub factorial {
+  my $x = Math::BigInt->new( $_[0] );
+  $x->bfac();
 }
 
 sub handle_basic {
@@ -166,9 +148,11 @@ sub handle_C {
   printf "%d\n", factorial($n) / ( factorial($r) * factorial( $n - $r ) );
 }
 
-sub factorial {
-  my $x = Math::BigInt->new( $_[0] );
-  $x->bfac();
+# because can never spel things right for units(1) and using the web is too
+# annoying and slow
+sub handle_c2f {
+  my ($c) = @ARGV;
+  printf "$format\n", 9 / 5 * $c + 32;
 }
 
 # Output (from single-column input) can then be plotted in R via:
@@ -270,33 +254,6 @@ sub handle_distribution {
   }
 }
 
-# Various calculations on a+b for the Golden Ratio
-# http://en.wikipedia.org/wiki/Golden_ratio
-sub handle_golden {
-  my $value = shift @ARGV;
-
-  # Assume value supplied is a+b and calc a, b lengths:
-  my $segment_long  = $value / $PHI;
-  my $segment_short = $value - $segment_long;
-
-  printf( "if $value is a+b: a=$format,   b=$format\n",
-    $segment_long, $segment_short );
-
-  # Assume value supplied is a, calc b, a+b
-  $segment_short = $value / $PHI;
-  my $line_length = $value + $segment_short;
-
-  printf( "if $value is a:   b=$format, a+b=$format\n",
-    $segment_short, $line_length );
-
-  # Assume value supplied is b, calc a, a+b
-  $segment_long = $value * $PHI;
-  $line_length  = $value + $segment_long;
-
-  printf( "if $value is b:   a=$format, a+b=$format\n",
-    $segment_long, $line_length );
-}
-
 sub handle_divisibleby {
   my $max_test = int( max(@ARGV) / 2 );
   $max_test = 2 if $max_test < 2;
@@ -328,10 +285,79 @@ sub handle_expo {
   printf "$format\n", $principal * exp( $rate * $time );
 }
 
-sub handle_zscore {
-  my ( $mean, $sdev, $score ) = @ARGV;
-  die "mean sdev score\n" unless @ARGV == 3;
-  printf "%.03f\n", ( $score - $mean ) / $sdev;
+# because can never spel things right for units(1) and using the web is too
+# annoying and slow
+sub handle_f2c {
+  my ($f) = @ARGV;
+  printf "$format\n", 5 / 9 * ( $f - 32 );
+}
+
+# Various calculations on a+b for the Golden Ratio
+# http://en.wikipedia.org/wiki/Golden_ratio
+sub handle_golden {
+  my $value = shift @ARGV;
+
+  # Assume value supplied is a+b and calc a, b lengths:
+  my $segment_long  = $value / $PHI;
+  my $segment_short = $value - $segment_long;
+
+  printf( "if $value is a+b: a=$format,   b=$format\n",
+    $segment_long, $segment_short );
+
+  # Assume value supplied is a, calc b, a+b
+  $segment_short = $value / $PHI;
+  my $line_length = $value + $segment_short;
+
+  printf( "if $value is a:   b=$format, a+b=$format\n",
+    $segment_short, $line_length );
+
+  # Assume value supplied is b, calc a, a+b
+  $segment_long = $value * $PHI;
+  $line_length  = $value + $segment_long;
+
+  printf( "if $value is b:   a=$format, a+b=$format\n",
+    $segment_long, $line_length );
+}
+
+sub handle_max {
+  my $result;
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq q{};
+    $result = $_ unless defined $result;
+    $result = $_ if $_ > $result;
+  }
+  $result = numbertidy($result) if $result =~ /\./;
+  print $result, "\n";
+}
+
+sub handle_mean {
+  my @array;
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq q{};
+    push @array, $_;
+  }
+  my $result = mean( \@array );
+  $result = numbertidy($result) if $result =~ /\./;
+  print $result, "\n";
+}
+
+sub handle_min {
+  my $result;
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq q{};
+
+    $result = $_ unless defined $result;
+    $result = $_ if $_ < $result;
+  }
+  $result = numbertidy($result) if $result =~ /\./;
+  print $result, "\n";
+}
+
+sub handle_percent {
+  printf "$format%%\n", $ARGV[0] / $ARGV[1] * 100;
 }
 
 sub handle_polyfactor {
@@ -350,51 +376,37 @@ sub handle_polyfactor {
   }
 }
 
-sub do_dist {
-  my $array = shift;
-  my $bref  = shift;
+sub handle_ratio {
+  printf "$format\n", $ARGV[0] * $ARGV[1] / $ARGV[2];
+}
 
-  die "not enough buckets\n" unless @$bref > 1;
-
-  # TODO support for different output modes (counts, literal
-  # values in each bucket, percents of total)
-  my $i     = 0;
-  my $count = 0;
-  for my $v (@$array) {
-
-    # print "CUR: ", $v, " at $j and ", $bref->[$i], "\n";
-    if ( $v > $bref->[$i] ) {
-      dist_print( $bref->[$i], $count );
-      $count = 0;
-      $i++;
-      while ( $v > $bref->[$i] ) {
-
-        #print "EMPTY: ", $v, " at $j and ", $bref->[$i], "\n";
-        dist_print( $bref->[$i], $count );
-        $i++;
-      }
-    }
-    $count++;
+sub handle_sdev {
+  my @array;
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq q{};
+    push @array, $_;
   }
-  dist_print( $bref->[$i], $count );
+  my $result = standard_deviation( \@array, mean( \@array ) );
+  $result = numbertidy($result) if $result =~ /\./;
+  print $result, "\n";
 }
 
-sub dist_print {
-  my $bucket = shift;
-  my $count  = shift;
-
-  $bucket =~ s/\.\d+//;
-  print "$bucket $count\n";
+sub handle_sum {
+  my $result;
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq q{};
+    $result += $_;
+  }
+  $result = numbertidy($result) if $result =~ /\./;
+  print $result, "\n";
 }
 
-sub numbertidy {
-  my @tidyied = map {
-    $_ = sprintf "$format", $_;
-    s/0+$//;
-    $_;
-  } @_;
-
-  return wantarray ? @tidyied : $tidyied[0];
+sub handle_zscore {
+  my ( $mean, $sdev, $score ) = @ARGV;
+  die "mean sdev score\n" unless @ARGV == 3;
+  printf "%.03f\n", ( $score - $mean ) / $sdev;
 }
 
 # $mean = mean(\@array) computes the mean of an array of numbers.
@@ -410,13 +422,14 @@ sub mean {
   return $sum / $n;
 }
 
-# $sd = standard_deviation_data(\@array) computes the standard
-# deviation of an array of numbers.
-sub standard_deviation {
-  my $arrayref = shift;
-  my $mean     = shift;
+sub numbertidy {
+  my @tidyied = map {
+    $_ = sprintf "$format", $_;
+    s/0+$//;
+    $_;
+  } @_;
 
-  return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ] ) );
+  return wantarray ? @tidyied : $tidyied[0];
 }
 
 sub sample_standard_deviation {
@@ -424,6 +437,15 @@ sub sample_standard_deviation {
   my $mean     = shift;
 
   return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ], undef, 1 ) );
+}
+
+# $sd = standard_deviation_data(\@array) computes the standard
+# deviation of an array of numbers.
+sub standard_deviation {
+  my $arrayref = shift;
+  my $mean     = shift;
+
+  return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ] ) );
 }
 
 END {
