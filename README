@@ -13,6 +13,15 @@ Achtung, Minen
 Things may well be moved or deleted without notice. If this is a concern, copy
 the bits somewhere else. Or back away. Slowly.
 
+Porting
+-------
+
+I strongly advise against using systems that use bash, especially where /bin/sh
+is actually bash, in which case setting LC_COLLATE=C and such may be mandatory
+in various shell scripts, or to just not use shell scripts.
+
+http://utcc.utoronto.ca/~cks/space/blog/linux/BashLocaleScriptDestruction
+
 A Historical Missive
 --------------------
 
