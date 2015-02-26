@@ -96,6 +96,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: orb-of-fire [-t trials] -a attacks [odds]\n");
+    fprintf(stderr, "Usage: orb-of-fire [-a attacks] [-o odds] [-t trials]\n");
     exit(EX_USAGE);
 }
