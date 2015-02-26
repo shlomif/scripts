@@ -1,16 +1,17 @@
 #!/usr/bin/env perl
 #
-# Wrapper for the Text::Autoformat Perl module. Can be called via a vi
+# Wrapper for the Text::Autoformat Perl module. Can be called via a vi(1)
 # .exrc entry such as:
 #
-# map T !Gautoformat
+#   map T !Gautoformat
 #
-# Or vim 6.3+ .vimrc entry:
+# Or via a vim 6.3+ .vimrc entry, using leader (by default \) to avoid
+# taking over pre-defined vim keys:
 #
-# map T :keepmark .,$!autoformat
+#   map <Leader>a :keepmark .,$!autoformat
 #
-# And then Text::Autoformat options added there after if needed, such as
-# 'right=>72' or similar.
+# So then type \a and then hit enter to run the command, or add
+# Text::Autoformat options, such as  justify=>"center"
 
 use Text::Autoformat;
 
@@ -23,7 +24,7 @@ END {
 }
 
 # these are the default preferences
-$default = { right => 79, squeeze => 1, all => 0 };
+$default = { right => 72, squeeze => 1, all => 0 };
 
 # merge in user prefs from command line
 $input = '$user = {' . $ARGV[0] . '};';
@@ -34,7 +35,7 @@ $options = { %$default, %$user };
 
 $out = autoformat $options;
 
-# KLUGE standardize trailing newline behavior
+# standardize trailing newline behavior, e.g. strip it.
 chomp $out;
 
 print $out;
