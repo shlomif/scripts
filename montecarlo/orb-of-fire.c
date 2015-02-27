@@ -15,8 +15,6 @@
 
 #define ATTACK_ODDS 0.9
 
-#define TRIALS 1000000UL
-
 // to limit nothings in output when attack number grows large
 #define PROB_MIN 0.5
 

@@ -1,5 +1,5 @@
 /* Argument handling utility routine headers and to hide the boilerplate
- * include spam somewhere out of the way. */
+ * include and other such spam somewhere out of the way. */
 
 #include <err.h>
 #include <errno.h>
@@ -12,6 +12,8 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
+
+#define TRIALS 1000000UL
 
 void emit_help(void);
 float flagtof(const int flag, const char *flagarg,
