@@ -1,0 +1,38 @@
+.Dd $Mdocdate: March  4 2015 $
+.Dt V4ADDR 1
+.nh
+.Os
+.Sh NAME
+.Nm v4addr
+.Nd IPv4 address parser
+.Sh SYNOPSIS
+.Nm v4addr
+.Bk -words
+.Op Fl frq
+.Ar ipv4-address
+.Ek
+.Sh DESCRIPTION
+.Nm
+by default (or with
+.Fl f )
+parses and prints the supplied IPv4 address, or with
+.Fl r
+prints the address in reverse DNS form. Note that the truncated 127.1 form
+that some software accepts is not supported.
+.Pp
+The
+.Fl q
+flag will supress diagnostic output should the address fail to parse.
+.Pp
+.Sh EXAMPLES
+.Dl v4addr 127.0.0.1
+.Dl v4addr -f 127.0.0.1
+.Pp
+.Dl v4addr -r 127.0.0.1
+.Sh EXIT STATUS
+.Ex -std v4addr
+.Sh SEE ALSO
+.Xr inet_pton 3 ,
+.Xr v6addr 1
+.Sh AUTHOR
+.An Jeremy Mates

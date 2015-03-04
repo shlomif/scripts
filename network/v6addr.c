@@ -40,6 +40,7 @@ void emit_unparsable(const char *str, const int idx, const char *err_str);
 
 bool Flag_Forward = true;
 bool Flag_Reverse = false;
+bool Flag_Quiet = false;
 
 enum {
     STATE_START,
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
     int ret = 0;
     struct in6_addr v6addr;
 
-    while ((ch = getopt(argc, argv, "fhr")) != -1) {
+    while ((ch = getopt(argc, argv, "fhrq")) != -1) {
         switch (ch) {
             /* last of these mentioned wins, in event shell aliases involved */
         case 'f':
@@ -73,6 +74,10 @@ int main(int argc, char *argv[])
         case 'r':
             Flag_Reverse = true;
             Flag_Forward = false;
+            break;
+
+        case 'q':
+            Flag_Quiet = true;
             break;
 
         case 'h':
@@ -224,11 +229,13 @@ void emit_help(void)
 
 void emit_unparsable(const char *str, const int idx, const char *err_str)
 {
-    if (err_str) {
-        warnx("error: could not parse ipv6-address: %s", err_str);
-    } else {
-        warnx("error: could not parse ipv6-address");
+    if (!Flag_Quiet) {
+        if (err_str) {
+            warnx("could not parse ipv6-address: %s", err_str);
+        } else {
+            warnx("could not parse ipv6-address");
+        }
+        fprintf(stderr, "        %s\n        %*c\n", str, idx + 1, '^');
     }
-    fprintf(stderr, "        %s\n        %*c\n", str, idx + 1, '^');
     exit(EX_DATAERR);
 }

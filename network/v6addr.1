@@ -1,4 +1,4 @@
-.Dd $Mdocdate: July  9 2014 $
+.Dd $Mdocdate: March  4 2015 $
 .Dt V6ADDR 1
 .nh
 .Os
@@ -8,17 +8,21 @@
 .Sh SYNOPSIS
 .Nm v6addr
 .Bk -words
-.Op Fl fr
-.Ar ipv6-addr
+.Op Fl frq
+.Ar ipv6-address
 .Ek
 .Sh DESCRIPTION
 .Nm
 by default (or with
 .Fl f )
-fully qualifies IPv6 addresses, or with
+fully qualifies the supplied IPv6 address, or with
 .Fl r
 prints the address in reverse DNS ip6.arpa form, one that is likely simpler to use than by having to parse the output from
 .Xr sipcalc 1 .
+.Pp
+The
+.Fl q
+flag will supress diagnostic output should the address fail to parse.
 .Pp
 .Sh EXAMPLES
 .Dl v6addr ::1
@@ -29,6 +33,7 @@ prints the address in reverse DNS ip6.arpa form, one that is likely simpler to u
 .Ex -std v6addr
 .Sh SEE ALSO
 .Xr inet_pton 3 ,
-.Xr sipcalc 1
+.Xr sipcalc 1 ,
+.Xr v4addr 1
 .Sh AUTHOR
 .An Jeremy Mates
