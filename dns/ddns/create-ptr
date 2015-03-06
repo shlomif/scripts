@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# Creates a PTR, though accepts it in the form of "host ipaddr" and then
+# figures out the proper reverse form of such. Usually `create-host`
+# would instead be used, as that script tries to create both the forward
+# and reverse DNS records in one go.
+#
+# NOTE this script does not require that the host exist, though if
+# desired that could be added as a prereq.
+
+DOM=example.net
+KEY=/etc/nsuk.key
+DNS_TTL=3593
+
+# e.g. for testing, or if running local to the master DNS server anyways;
+# otherwise perhaps better to let nsupdate figure out where the request
+# needs to go.
+SERVER=127.0.0.1
+
+MAXWAITSECS=7
+PROG_NAME=`basename $0`
+
+[ $# -ne 2 ] && {
+  echo >&2 "usage: $PROG_NAME host ipaddress"
+  exit 64
+}
+
+echo $1 | fgrep $DOM >/dev/null && {
+  echo >&2 "$PROG_NAME: use short host name"
+  exit 65
+}
+
+[ -r $KEY ] || {
+  echo >&2 "$PROG_NAME: cannot read nsupdate keyfile $KEY"
+  exit 65
+}
+
+REV=`v4addr -q -r $2`
+if [ -z $REV ]; then
+  REV=`v6addr -q -r $2`
+  if [ -z $REV ]; then
+    echo >&2 "$PROG_NAME: could not parse v4 or v6 address from $2"
+    exit 65
+  fi
+fi
+
+(
+  if [ ! -z $SERVER ]; then
+    echo server $SERVER
+  fi
+  cat <<EOF
+prereq nxrrset $REV PTR
+update add $REV $DNS_TTL PTR $1.$DOM.
+send
+EOF
+) | nsupdate -k $KEY -t $MAXWAITSECS
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo "$PROG_NAME: failed to update add $REV $DNS_TTL PTR $1.$DOM."
+fi
+exit $STATUS

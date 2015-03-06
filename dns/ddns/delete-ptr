@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Deletes a CNAME.
+# Deletes PTR for a given ip address.
 
 DOM=example.net
 KEY=/etc/nsuk.key
@@ -15,13 +15,8 @@ MAXWAITSECS=7
 PROG_NAME=`basename $0`
 
 [ $# -ne 1 ] && {
-  echo >&2 "usage: $PROG_NAME cname"
+  echo >&2 "usage: $PROG_NAME ipaddr"
   exit 64
-}
-
-echo $1 | fgrep $DOM >/dev/null && {
-  echo >&2 "$PROG_NAME: use short host name"
-  exit 65
 }
 
 [ -r $KEY ] || {
@@ -29,19 +24,28 @@ echo $1 | fgrep $DOM >/dev/null && {
   exit 65
 }
 
+REV=`v4addr -q -r $1`
+if [ -z $REV ]; then
+  REV=`v6addr -q -r $1`
+  if [ -z $REV ]; then
+    echo >&2 "$PROG_NAME: could not parse v4 or v6 address from $1"
+    exit 65
+  fi
+fi
+
 (
   if [ ! -z $SERVER ]; then
     echo server $SERVER
   fi
   cat <<EOF
-prereq yxrrset $1.$DOM. CNAME
-update delete $1.$DOM. CNAME
+prereq yxrrset $REV PTR
+update delete $REV PTR
 send
 EOF
 ) | nsupdate -k $KEY -t $MAXWAITSECS
 
 STATUS=$?
 if [ $STATUS -ne 0 ]; then
-  echo "$PROG_NAME: failed to update delete $1.$DOM. CNAME"
+  echo "$PROG_NAME: failed to delete $REV PTR"
 fi
 exit $STATUS

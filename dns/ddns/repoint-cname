@@ -1,44 +1,49 @@
 #!/bin/sh
 #
-# Updates a CNAME.
+# Updates a CNAME to point to a new host.
 
-DOM=example.edu
+DOM=example.net
 KEY=/etc/nsuk.key
+DNS_TTL=3593
+
+# e.g. for testing, or if running local to the master DNS server anyways;
+# otherwise perhaps better to let nsupdate figure out where the request
+# needs to go.
+SERVER=127.0.0.1
+
 MAXWAITSECS=7
+PROG_NAME=`basename $0`
 
 [ $# -ne 2 ] && {
-  echo >&2 "usage: $0 existinghost cname"
+  echo >&2 "usage: $PROG_NAME existinghost cname"
   exit 64
 }
 
-echo $1 $2 | grep $DOM && {
-  echo >&2 "$0: use short host names"
+echo $1 $2 | fgrep $DOM >/dev/null && {
+  echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }
 
 [ -r $KEY ] || {
-  echo >&2 "$0: cannot read nsupdate keyfile $KEY"
+  echo >&2 "$PROG_NAME: cannot read nsupdate keyfile $KEY"
   exit 65
 }
 
-# could do 'yxdomain' but that assumes 'A' or 'AAAA' exists;
-# 'prereq yxrrset' again falls into 'A' vs. 'AAAA' trap, so
-# just make an agnostic DNS lookup...
-host $1.$DOM >/dev/null || {
-  echo >&2 "$0: existinghost does not resolve"
-  exit 68
-}
-
-nsupdate -k $KEY -t $MAXWAITSECS <<EOF
-prereq yxrrset $2.$DOM CNAME
-update delete $2.$DOM CNAME
-update add $2.$DOM 3600 CNAME $1.$DOM
+(
+  if [ ! -z $SERVER ]; then
+    echo server $SERVER
+  fi
+  cat <<EOF
+prereq yxrrset $2.$DOM. CNAME
+prereq yxdomain $1.$DOM.
+update delete $2.$DOM. CNAME
+update add $2.$DOM. $DNS_TTL CNAME $1.$DOM.
 send
 EOF
+) | nsupdate -k $KEY -t $MAXWAITSECS
 
 STATUS=$?
 if [ $STATUS -ne 0 ]; then
-  echo >&2 "$0: non-zero exit from nsupdate"
+  echo "$PROG_NAME: failed to add $2.$DOM. $DNS_TTL CNAME $1.$DOM."
 fi
-
 exit $STATUS

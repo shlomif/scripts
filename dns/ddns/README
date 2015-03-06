@@ -1,2 +1,21 @@
-Sample scripts for applying IPv4 DNS changes via nsupdate(1). Use at own risk,
-etc etc etc
+Sample scripts for applying DNS changes via nsupdate(1). Use at own
+risk, etc. Not a complete solution; for more extensive changes I usually
+end up freezing the zones and updating the zone data directly. This
+obviously will suit sites where only a few people are making infrequent
+DNS changes; more complicated needs would perhaps need a more
+complicated solution.
+
+ * Supports both IPv4 and IPV6 addresses.
+ * Relies on v4addr and v6addr scripts that can be found over in the
+   ../../network directory for reverse DNS calculation or IP address
+   input validation.
+ * The scripts will need customization, e.g. to set the default domain.
+ * Output is to stderr for errors, though 'failed to' results will be
+   sent to stdout, allowing for easy capture of any problems over a
+   list of hosts:
+
+     while read host ip; do create-host $host $ip; done < input > output
+
+   And then `grep "failed to" output` if there were any errors.
+ * More scripts will need to be written to support other record types,
+   for sites that cannot freeze the domains for whatever reason.
