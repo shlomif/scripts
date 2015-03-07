@@ -1,13 +1,8 @@
 #!/bin/sh
 #
-# Updates a CNAME to point to a new host.
+# Create an arbitrary DNS record.
 #
-#   create-host newblah ...
-#   repoint-cname newblah pointertoblah
-#
-# A common user request, thus best handled by a script that checks that
-# everything is in order and does the switch in one request, instead of
-# a `delete-cname ...; create-cname ...` shuffle.
+#   create-record _VLMCS._tcp IN SRV 0 100 1688 mskms.example.net
 
 DOM=example.net
 KEY=/etc/nsuk.key
@@ -21,12 +16,15 @@ SERVER=127.0.0.1
 MAXWAITSECS=7
 PROG_NAME=`basename $0`
 
-[ $# -ne 2 ] && {
-  echo >&2 "usage: $PROG_NAME existinghost cname"
+[ $# -eq 0 ] && {
+  echo >&2 "usage: $PROG_NAME host x [y z]"
   exit 64
 }
 
-echo $1 | fgrep $DOM >/dev/null && {
+HOST=$1
+shift
+
+echo $HOST | fgrep $DOM >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }
@@ -41,16 +39,13 @@ echo $1 | fgrep $DOM >/dev/null && {
     echo server $SERVER
   fi
   cat <<EOF
-prereq yxrrset $2.$DOM. CNAME
-prereq yxdomain $1.$DOM.
-update delete $2.$DOM. CNAME
-update add $2.$DOM. $DNS_TTL CNAME $1.$DOM.
+update add $HOST.$DOM. $DNS_TTL $@
 send
 EOF
 ) | nsupdate -k $KEY -t $MAXWAITSECS
 
 STATUS=$?
 if [ $STATUS -ne 0 ]; then
-  echo "$PROG_NAME: failed to add $2.$DOM. $DNS_TTL CNAME $1.$DOM."
+  echo "$PROG_NAME: failed to update add $1.$DOM. $DNS_TTL $@"
 fi
 exit $STATUS

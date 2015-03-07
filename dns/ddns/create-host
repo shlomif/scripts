@@ -1,11 +1,14 @@
 #!/bin/sh
 #
-# Create A (or AAAA) host (and PTR if possible). Reverse ownership might
-# be tricky to figure out. This is why this script creates the reverse
-# in a subsequent step, and does not rollback the forward record if the
-# reverse creation fails. (Business logic to check what the NS are and
-# then to vary the action taken depending on those results would greatly
-# complicate this code, so...)
+# Create forward and reverse record(s) for the given hostname.
+#
+#   create-host blah 192.0.2.42 2001:db8::c000:22a
+#
+# Reverse ownership might be tricky to figure out. This is why this
+# script creates the reverse in a subsequent step, and does not rollback
+# the forward record if the reverse creation fails. (Business logic to
+# check what the NS are and then to vary the action taken depending on
+# those results would greatly complicate this code, so...)
 
 DOM=example.net
 KEY=/etc/nsuk.key

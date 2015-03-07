@@ -2,6 +2,9 @@
 #
 # Create a CNAME.
 #
+#   create-host blah 192.0.2.42 2001:db8::c000:22a
+#   create-cname blah pointertoblah
+#
 # NOTE there must exist some record for the target of the CNAME, though
 # this could be a MX or TXT or some other not-A or not-AAAA record.
 # There does not appear to be any way to specify that either an A or an
@@ -25,12 +28,7 @@ PROG_NAME=`basename $0`
   exit 64
 }
 
-echo $1 | fgrep $DOM >/dev/null && {
-  echo >&2 "$PROG_NAME: use short host name"
-  exit 65
-}
-
-echo $2 | fgrep $DOM >/dev/null && {
+echo $1 $2 | fgrep $DOM >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }

@@ -2,11 +2,17 @@
 #
 # Deletes MX records for a host, all of them if none are specified. When
 # specifying MX, both the priority and the fully qualified MX hostname
-# must be supplied.
+# must be supplied:
+#
+#   create-host blah 192.0.2.42 2001:db8::c000:22a
+#   create-mx blah blah.example.net 12
+#   delete-mx blah 12 blah.example.net
+#
+# The create-mx reversed order is because the priority is optional, and
+# a default priority used if none is specified.
 
 DOM=example.net
 KEY=/etc/nsuk.key
-DNS_TTL=3593
 
 # e.g. for testing, or if running local to the master DNS server anyways;
 # otherwise perhaps better to let nsupdate figure out where the request

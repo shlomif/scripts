@@ -3,10 +3,11 @@
 # Deletes *all* records for a host, and possibly associated PTR records,
 # if IP addresses are also supplied. Will *not* delete hosts that have
 # an associated NS record, to help avoid accidental NS accidents.
+#
+#   delete-host mailhost
 
 DOM=example.net
 KEY=/etc/nsuk.key
-DNS_TTL=3593
 
 # e.g. for testing, or if running local to the master DNS server anyways;
 # otherwise perhaps better to let nsupdate figure out where the request

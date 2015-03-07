@@ -1,10 +1,15 @@
 #!/bin/sh
 #
-# Deletes PTR for a given ip address.
+# Deletes PTR for a given ip address. The correct reverse form will
+# be calculated by the code, so do not use the in-addr.arpa or
+# ip6.arpa form.
+#
+#   create-host blah 192.0.2.42 2001:db8::c000:22a
+#   delete-ptr 192.0.2.42
+#   delete-ptr 2001:db8::c000:22a
 
 DOM=example.net
 KEY=/etc/nsuk.key
-DNS_TTL=3593
 
 # e.g. for testing, or if running local to the master DNS server anyways;
 # otherwise perhaps better to let nsupdate figure out where the request

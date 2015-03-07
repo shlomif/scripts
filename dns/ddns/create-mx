@@ -1,8 +1,13 @@
 #!/bin/sh
 #
-# Create a MX record. NOTE that some DNS servers (and moreover certain
-# Mail Transport Agents) are rather picky about what MX point to, e.g.
-# if a CNAME is improperly made the target of a MX record.
+# Create a MX record.
+#
+#   create-host mailhost 192.0.2.25
+#   create-mx mailhost mailhost.example.net
+#
+# NOTE that some DNS servers (and moreover certain Mail Transport
+# Agents) are rather picky about what MX point to, e.g. if a CNAME is
+# improperly made the target of a MX record.
 #
 # This script requires that some other record exists for both the host
 # the MX is being added for, e.g. an A record, and that the MX target
