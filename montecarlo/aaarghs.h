@@ -13,6 +13,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+// usually associated with the -c trialcount option
 #define TRIALS 1000000UL
 
 void emit_help(void);

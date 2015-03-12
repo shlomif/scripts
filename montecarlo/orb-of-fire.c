@@ -20,7 +20,7 @@
 
 unsigned long Flag_Attacks;     // -a number of attacks
 float Flag_Odds = NAN;          // -o odds of attack
-unsigned long Flag_Trials;      // -t number of trials to run
+unsigned long Flag_Trials;      // -c number of trials to run
 
 int main(int argc, char *argv[])
 {
@@ -28,19 +28,19 @@ int main(int argc, char *argv[])
     unsigned long mutates, *odds;
     float anyprob, prob;
 
-    while ((ch = getopt(argc, argv, "a:o:t:")) != -1) {
+    while ((ch = getopt(argc, argv, "a:c:o:")) != -1) {
         switch (ch) {
 
         case 'a':
             Flag_Attacks = flagtoul(ch, optarg, ATTACKS_MIN, ATTACKS_MAX);
             break;
 
-        case 'o':
-            Flag_Odds = flagtof(ch, optarg, 0.0, 1.0);
+        case 'c':
+            Flag_Trials = flagtoul(ch, optarg, 1UL, LONG_MAX);
             break;
 
-        case 't':
-            Flag_Trials = flagtoul(ch, optarg, 1UL, LONG_MAX);
+        case 'o':
+            Flag_Odds = flagtof(ch, optarg, 0.0, 1.0);
             break;
 
         case 'h':
@@ -94,6 +94,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: orb-of-fire [-a attacks] [-o odds] [-t trials]\n");
+    fprintf(stderr, "Usage: orb-of-fire [-a attacks] [-c trials] [-o odds]\n");
     exit(EX_USAGE);
 }

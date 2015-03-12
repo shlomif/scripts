@@ -11,7 +11,7 @@
 #define MINBIRDS 2UL
 
 unsigned long Flag_Birds;       // -n
-unsigned long Flag_Trials;      // -t
+unsigned long Flag_Trials;      // -c
 
 unsigned long neighbor(const unsigned long idx, const double *locs,
                        const unsigned long locsmax);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: birds [-n numbirds] [-t trials]\n");
+    fprintf(stderr, "Usage: birds [-c trials] [-n numbirds]\n");
     exit(EX_USAGE);
 }
 
