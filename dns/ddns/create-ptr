@@ -30,6 +30,9 @@ PROG_NAME=`basename $0`
   exit 64
 }
 
+# Though "foreign" computers on a network can still be added by
+#   create-ptr host.other.dom ...
+# while "local" computers must use "host" or "host.sub" under $DOM.
 echo $1 | fgrep $DOM >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
