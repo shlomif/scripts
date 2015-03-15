@@ -1,0 +1,87 @@
+#!/usr/bin/env perl
+#
+# Not running a modern web browser (save firefox on some virt when some
+# interaction with a javascript application is necessary) does mean that
+# alternative means of viewing webcomics must be made.
+#
+# Usage:
+#
+#   xkcdget
+#   xkcdget 123
+
+use 5.014;
+use File::HomeDir ();
+use File::Slurp::Tiny qw(write_file);
+use File::Spec ();
+use File::stat qw(stat);
+use HTTP::Tiny    ();
+use JSON::MaybeXS ();
+use List::UtilsBy qw( max_by );
+use URI ();
+
+my $agent = HTTP::Tiny->new( timeout => 7, max_size => 1234577 );
+my $img_dir = File::Spec->catfile( File::HomeDir->my_home, 'imgs/xkcd' );
+
+my $img_viewer = 'feh';
+
+my $comic_num = shift // 0;
+die "comic number must be a number (or omit)\n" if !is_comicnum($comic_num);
+
+chdir $img_dir or die "could not chdir to $img_dir: $!\n";
+
+my $extension = 'png';
+my $comic_file = join '.', $comic_num, $extension;
+
+if ( !-e $comic_file ) {
+  my $url =
+    'http://xkcd.com/' . ( $comic_num > 0 ? "$comic_num/" : '' ) . 'info.0.json';
+
+  my $resp = $agent->get($url);
+  if ( $resp->{success} ) {
+    # KLUGE on the perhaps rash assumption that XKCD uses UTF-8
+    my $json = JSON::MaybeXS->new( utf8 => 1 );
+    my $dat = $json->decode( $resp->{content} );
+
+    $comic_num = $dat->{num} // '';
+    die "unexpected comic number '$comic_num' from XKCD\n"
+      if !is_comicnum($comic_num);
+
+    if ( !-e $comic_file ) {
+      my $json_file = join '.', "info", $comic_num, "json";
+      write_file( $json_file, $resp->{content}, binmode => ':encoding(UTF-8)' );
+
+      my $img_url = URI->new( $dat->{img} );
+      if ( $img_url->host !~ m/(?i)xkcd\.com$/ ) {
+        die "unexpected image host '" . $dat->{img} . "' from XKCD\n";
+      }
+
+      my $path = $img_url->path;
+      if ( $path =~ m/\.([a-z]{1,4})$/ ) {
+        $extension = $1;
+      }
+      $comic_file = join '.', $comic_num, $extension;
+
+      my $img = $agent->get( $dat->{img} );
+      write_file( $comic_file, $img->{content}, binmode => ':raw' );
+    }
+  } else {
+    # Am not on the Internet or network connectivity failed; try to show
+    # the latest from the cache
+    opendir my $dh, '.' or die "could not opendir '.': $!\n";
+    $comic_file =
+      max_by { stat($_)->mtime } grep { m/^\d{1,5}\.[a-z]{1,4}/ } readdir $dh;
+
+    if ( !defined $comic_file ) {
+      die "could not connect to xkcd: $resp->{status} $resp->{reason}\n";
+    } else {
+      warn "notice: could not connect to xkcd: $resp->{status} $resp->{reason}\n";
+      sleep 1;
+    }
+  }
+}
+
+exec $img_viewer, $comic_file;
+
+sub is_comicnum {
+  $_[0] =~ m/^\d{1,5}$/a;
+}
