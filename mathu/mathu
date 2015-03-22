@@ -18,6 +18,7 @@ my %ability = (
   bisect      => { handle => \&handle_bisect, },
   C           => { handle => \&handle_C, },
   c2f         => { handle => \&handle_c2f, },
+  dec2bin     => { handle => \&handle_dec2bin, },
   derivative  => { handle => \&handle_derivative, },
   dist        => { handle => \&handle_distribution, },
   divisibleby => { handle => \&handle_divisibleby, },
@@ -39,9 +40,12 @@ my %ability = (
 # how to format output numbers with printf
 my $format = '%.2f';
 
+# width for binary stuff
+my $width = 32;
+
 # parse command-line options
 my %opts;
-getopts( 'lf:', \%opts );
+getopts( 'lf:w:', \%opts );
 
 # lists abilities, good for tab completion systems to query
 if ( exists $opts{l} ) {
@@ -53,6 +57,7 @@ my $action = shift;
 die "error: no such action: $action\n" unless exists $ability{$action};
 
 $format = $opts{f} if exists $opts{f};
+$width = $opts{w} if exists $opts{w};
 
 $ability{$action}->{handle}->();
 
@@ -153,6 +158,13 @@ sub handle_C {
 sub handle_c2f {
   my ($c) = @ARGV;
   printf "$format\n", 9 / 5 * $c + 32;
+}
+
+sub handle_dec2bin {
+  chomp(@ARGV=<STDIN>) unless @ARGV;
+  for my $dec (@ARGV) {
+    printf "%0*b\n", $width, $dec;
+  }
 }
 
 # Output (from single-column input) can then be plotted in R via:
