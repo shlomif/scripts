@@ -1,0 +1,19 @@
+#!/usr/bin/env perl
+#
+# Audio conversion utility via ffmpeg, mostly for easy batch conversion
+# of WAV (from timitidy) or AIF (from Apple) to MP3 (for mpg123).
+
+use strict;
+use warnings;
+use File::Basename qw(basename);
+
+my $prog = basename $0;
+my ( $from, $to ) = $prog =~ m/(.+)2(.+)/;
+die "program must be named foo2bar" if !defined $from or !defined $to;
+
+for my $file (@ARGV) {
+  if ( $file =~ m/^(.+)\.$from$/ ) {
+    my $out_file = "$1.$to";
+    system qw(ffmpeg -loglevel warning -i), $file, $out_file;
+  }
+}
