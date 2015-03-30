@@ -1,0 +1,62 @@
+#!/usr/bin/env perl
+#
+#   "poor darkedom hear, being would you are?"
+#
+# Nth order approximation after Shannon of whatever is input as
+# characters, where N is set in a particular variable that probably
+# should be made an option, or such. The results are generated using
+# orders from but not necessarily the given value, as there is fallback
+# (and even loop abortion) in the event a tail with nothing that
+# followes is found. I suppose one might also add in the odds from
+# shorter orders at perhaps a lower weighting to enrich the output
+# options, though this mostly needlessly Chaucers the prose.
+
+use strict;
+use warnings;
+use feature qw(say);
+use Math::Random::Discrete;
+
+my $order = 3;
+
+# to fill a standard terminal(TM) with results. Err, noise. Whatever.
+my $output_lines = 23;
+my $line_len     = 78;
+
+my ( %freq, %odds );
+
+while (<>) {
+  s/[\n\r]//g;
+  m/(.{1,$order})(.)(?{ $freq{$1}->{$2}++ })^/;
+}
+
+my @start = keys %freq;
+
+for ( 1 .. $output_lines ) {
+  my $prose = $start[ rand @start ];
+RESORT: while ( length $prose < $line_len ) {
+    my $token = '';
+    my $len   = -$order;
+    while ( !exists $freq{$token} ) {
+      $token = substr $prose, $len++;
+      last RESORT if $len >= 0;
+    }
+    if ( !exists $odds{$token} ) {
+      my @keys   = keys %{ $freq{$token} };
+      my @values = values %{ $freq{$token} };
+      # "enrich" output with lower-order tokens (at lower-order
+      # weights on the odds) -- hmm, really need to adjust the weights
+      # so that they are no more than X% of the higher-order total, as
+      # they really can screw with the results, even at what I think
+      # are low odds...
+      #     for my $len (1..length($token)-1) {
+      #       my $lot = substr $token, -$len;
+      #       push @keys, keys %{ $freq{$lot} };
+      #       push @values, map { $_/200**(length($token)-length($lot)) } values %{ $freq{$lot} };
+      #     }
+      $odds{$token} = Math::Random::Discrete->new( \@values, \@keys );
+    }
+    my $choice = $odds{$token}->rand;
+    $prose .= $choice;
+  }
+  say $prose;
+}
