@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+#
+# The current directory, minus the home directory (which may vary for a user
+# between different systems) so that e.g. scp or rsync commands can be used
+# along the lines of (assuming parallel directory structures on the two hosts
+# involved):
+#
+#   cd ~/...
+#   scp ... otherhost:`here`
+
+use strict;
+use warnings;
+
+use Cwd qw(getcwd);
+use File::HomeDir ();
+
+my $dir = @ARGV ? shift : getcwd;
+my $home = File::HomeDir->my_home;
+
+$dir =~ s{$home/}{};
+
+print "$dir\n";
