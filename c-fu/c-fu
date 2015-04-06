@@ -111,6 +111,7 @@ my $c_template = <<"END_TMPL";
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <float.h>
 #include <fts.h>
 #include <grp.h>
 #include <libgen.h>
