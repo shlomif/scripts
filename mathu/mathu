@@ -31,6 +31,7 @@ my %ability = (
   min         => { handle => \&handle_min, },
   percent     => { handle => \&handle_percent, },
   polyfactor  => { handle => \&handle_polyfactor, },
+  range       => { handle => \&handle_range, },
   ratio       => { handle => \&handle_ratio, },
   sdev        => { handle => \&handle_sdev, },
   sum         => { handle => \&handle_sum, },
@@ -57,7 +58,7 @@ my $action = shift;
 die "error: no such action: $action\n" unless exists $ability{$action};
 
 $format = $opts{f} if exists $opts{f};
-$width = $opts{w} if exists $opts{w};
+$width  = $opts{w} if exists $opts{w};
 
 $ability{$action}->{handle}->();
 
@@ -161,7 +162,7 @@ sub handle_c2f {
 }
 
 sub handle_dec2bin {
-  chomp(@ARGV=<STDIN>) unless @ARGV;
+  chomp( @ARGV = <STDIN> ) unless @ARGV;
   for my $dec (@ARGV) {
     printf "%0*b\n", $width, $dec;
   }
@@ -386,6 +387,23 @@ sub handle_polyfactor {
     next if $seen{ join "", sort { $a <=> $b } $f1, $f2 }++;
     print "$f1 $f2\n" if $f1 + $f2 == $B and $f1 * $f2 == $A * $C;
   }
+}
+
+sub handle_range {
+  my ( $min, $max );
+
+  while (<STDIN>) {
+    chomp;
+    next if $_ eq q{} or !looks_like_number($_);
+
+    $min = $_ unless defined $min;
+    $min = $_ if $_ < $min;
+    $max = $_ unless defined $max;
+    $max = $_ if $_ > $max;
+  }
+  exit 1 unless defined $min;
+
+  printf "$format\n", $max - $min;
 }
 
 sub handle_ratio {
