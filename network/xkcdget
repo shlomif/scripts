@@ -14,6 +14,7 @@ use File::HomeDir ();
 use File::Slurp::Tiny qw(write_file);
 use File::Spec ();
 use File::stat qw(stat);
+use Getopt::Long qw(GetOptions);
 use HTTP::Tiny    ();
 use JSON::MaybeXS ();
 use List::UtilsBy qw( max_by );
@@ -23,6 +24,9 @@ my $agent = HTTP::Tiny->new( timeout => 7, max_size => 1234577 );
 my $img_dir = File::Spec->catfile( File::HomeDir->my_home, 'imgs/xkcd' );
 
 my $img_viewer = 'feh';
+
+GetOptions( 'preview|n' => \my $Flag_Preview )
+  or die "could not parse options\n";
 
 my $comic_num = shift // 0;
 die "comic number must be a number (or omit)\n" if !is_comicnum($comic_num);
@@ -80,7 +84,9 @@ if ( !-e $comic_file ) {
   }
 }
 
-exec $img_viewer, $comic_file;
+if ( !$Flag_Preview ) {
+  exec $img_viewer, $comic_file;
+}
 
 sub is_comicnum {
   $_[0] =~ m/^\d{1,5}$/a;
