@@ -54,11 +54,12 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc == 0)
+    if (argc == 0 || *argv == NULL)
         emit_help();
 
     // nix any %blah interface bit that might be riding in e.g. on a fe80
     // copy/paste from ifconfig (as that bit screws up inet_pton())
+    ap = argv;
     *ap = strsep(argv, "%");
 
     if ((ret = inet_pton(AF_INET6, *ap, &v6addr)) != 1) {
