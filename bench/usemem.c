@@ -4,22 +4,36 @@
  * of threads.
  *
  * On OpenBSD, limits in login.conf(5) will doubtless need to be raised,
- * and other systems or hardware may set various limits, depending.
+ * and other systems or hardware may set various limits, depending, or
+ * launch multiple instances of this program, e.g. via
+ *
+ *   for i in ...; do ./usemem -M -t 8 & done
+ *
+ * To let get process get the most memory possible (the Linux OOM killer
+ * will step in, though) and with a thread count suitable to the number
+ * of CPUs, or whatever.
  */
 
 #ifdef __linux__
 #define _BSD_SOURCE
 #define _GNU_SOURCE
+#include <fcntl.h>
 #include <getopt.h>
+#endif
+
+#ifdef __DARWIN__
+#include <fcntl.h>
 #endif
 
 #include <sys/time.h>
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,8 +47,7 @@
 
 #define MOSTMEMPOSSIBLE ( (ULONG_MAX < SIZE_MAX) ? ULONG_MAX : SIZE_MAX )
 
-#define NSEC_IN_SEC 1000000000
-
+bool Flag_Auto_Mem;             // -M
 unsigned long Flag_Memory;      // -m
 unsigned long Flag_Threads;     // -t
 
@@ -68,8 +81,12 @@ int main(int argc, char *argv[])
     struct timespec wait;
     unsigned long i;
 
-    while ((ch = getopt(argc, argv, "h?m:t:")) != -1) {
+    while ((ch = getopt(argc, argv, "h?Mm:t:")) != -1) {
         switch (ch) {
+
+        case 'M':
+            Flag_Auto_Mem = true;
+            break;
 
         case 'm':
             Flag_Memory = flagtoul(ch, optarg, 1UL, MOSTMEMPOSSIBLE);
@@ -89,7 +106,7 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (Flag_Memory == 0 || Flag_Threads == 0)
+    if ((Flag_Memory == 0 && !Flag_Auto_Mem) || Flag_Threads == 0)
         emit_help();
 
     jkiss_init();
@@ -97,8 +114,28 @@ int main(int argc, char *argv[])
     if ((tids = calloc(sizeof(pthread_t), Flag_Threads)) == NULL)
         err(EX_OSERR, "could not calloc() threads list");
 
-    if ((Memory = calloc((size_t) Flag_Memory, sizeof(int))) == NULL)
-        err(EX_OSERR, "could not calloc() %lu ints memory", Flag_Memory);
+    if (Flag_Auto_Mem) {
+        bool gotmem = false;
+        Flag_Memory = SIZE_MAX;
+        while (Flag_Memory) {
+            if ((Memory = calloc((size_t) Flag_Memory, sizeof(int))) == NULL) {
+                Flag_Memory >>= 1;
+            } else {
+                gotmem = true;
+                break;
+            }
+        }
+        if (gotmem) {
+            fprintf(stderr, "info: alloc %lu bytes\n", Flag_Memory);
+        } else {
+            errx(EX_OSERR, "could not auto-calloc() memory");
+        }
+    } else {
+        if ((Memory = calloc((size_t) Flag_Memory, sizeof(int))) == NULL)
+            err(EX_OSERR, "could not calloc() %lu ints memory", Flag_Memory);
+    }
+
+    memset(Memory, 1, Flag_Memory);
 
     for (i = 0; i < Flag_Threads; i++) {
         if (pthread_create(&tids[i], NULL, worker, NULL) != 0)
@@ -120,7 +157,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: usemem -m memory -t threads\n");
+    fprintf(stderr, "Usage: usemem [-M|-m memory] -t threads\n");
     exit(EX_USAGE);
 }
 
@@ -132,7 +169,7 @@ void jkiss_init(void)
 #elif defined __linux__ || defined __DARWIN__
     int fd = open("/dev/random", O_RDONLY);
     if (fd == -1)
-        err(EX_OSRR, "could not open() /dev/random");
+        err(EX_OSERR, "could not open() /dev/random");
 
     if (read(fd, &jkiss_seedX, sizeof(jkiss_seedX)) != sizeof(jkiss_seedX))
         err(EX_OSERR, "incomplete read() from /dev/random");
