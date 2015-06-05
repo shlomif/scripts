@@ -12,6 +12,21 @@
  * To let get process get the most memory possible (the Linux OOM killer
  * will step in, though) and with a thread count suitable to the number
  * of CPUs, or whatever.
+ *
+ * The original intent of this code was to try to trigger a race condition:
+ *
+ *   alarm(...);
+ *   somethingthatblocks();
+ *   alarm(0);
+ *     (paraphrased from Stevens, APUE (1st edition), p. 286.
+ *
+ * whereby the system is made busy enough that the SIGALRM happens before
+ * the somethingthatblocks() call can be started, but after the alarm(...)
+ * is established. It is far more likely that the system will be rendered
+ * unusable (and monitoring notice this) than the system hit this unlikely
+ * edge case; if a system has been inordinately busy or slow, a reboot might
+ * be in order anyways, which would certainly clear anything thus stuck (and
+ * unmonitored).
  */
 
 #ifdef __linux__
