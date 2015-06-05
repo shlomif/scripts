@@ -38,15 +38,17 @@
 unsigned long Flag_Memory;      // -m
 unsigned long Flag_Threads;     // -t
 
-/* Custom RNG as might be dealing with >32 bits of allocated memory, and
- * outside of OpenBSD system RNG functions generally sucking; these are
- * shared by the various threads, which may or may not be a problem. */
+/* Custom RNG as might be dealing with >32 bits of allocated memory,
+ * and outside of OpenBSD system RNG functions generally sucking; these
+ * vars are shared by the various threads, which may or may not be a
+ * problem. (The randomness is to hopefully thwart any CPU cache
+ * prediction algos.) */
 uint64_t jkiss_seedX;
 uint64_t jkiss_seedY;
-uint32_t jkiss_seedC1;
-uint32_t jkiss_seedC2;
-uint32_t jkiss_seedZ1;
-uint32_t jkiss_seedZ2;
+uint32_t jkiss_seedC1 = 6543217;
+uint32_t jkiss_seedC2 = 1732654;
+uint32_t jkiss_seedZ1 = 43219876;
+uint32_t jkiss_seedZ2 = 21987643;
 
 int *Memory;
 
@@ -54,6 +56,7 @@ pthread_mutex_t Lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t Job_Done = PTHREAD_COND_INITIALIZER;
 
 void emit_help(void);
+void jkiss_init(void);
 uint64_t jkiss_rand64(void);
 unsigned long jkiss_randof(const unsigned long max);
 void *worker(void *unused);
@@ -89,6 +92,8 @@ int main(int argc, char *argv[])
     if (Flag_Memory == 0 || Flag_Threads == 0)
         emit_help();
 
+    jkiss_init();
+
     if ((tids = calloc(sizeof(pthread_t), Flag_Threads)) == NULL)
         err(EX_OSERR, "could not calloc() threads list");
 
@@ -117,6 +122,28 @@ void emit_help(void)
 {
     fprintf(stderr, "Usage: usemem -m memory -t threads\n");
     exit(EX_USAGE);
+}
+
+void jkiss_init(void)
+{
+#ifdef __OpenBSD__
+    jkiss_seedX = arc4random() | ((uint64_t) arc4random() << 32);
+    jkiss_seedY = arc4random() | ((uint64_t) arc4random() << 32);
+#elif defined __linux__ || defined __DARWIN__
+    int fd = open("/dev/random", O_RDONLY);
+    if (fd == -1)
+        err(EX_OSRR, "could not open() /dev/random");
+
+    if (read(fd, &jkiss_seedX, sizeof(jkiss_seedX)) != sizeof(jkiss_seedX))
+        err(EX_OSERR, "incomplete read() from /dev/random");
+
+    if (read(fd, &jkiss_seedY, sizeof(jkiss_seedY)) != sizeof(jkiss_seedY))
+        err(EX_OSERR, "incomplete read() from /dev/random");
+
+    close(fd);
+#else
+    errx(1, "jkiss_init() unimplemented on this platform");
+#endif
 }
 
 // JLKISS64 RNG borrowed from public domain code in "Good Practice in (Pseudo)
