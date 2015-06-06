@@ -1,33 +1,60 @@
 /*
- * (Ab)uses memory, perhaps for benchmarking or other such purposes, via
- * random reads and writes in a pool of memory with a specified number
- * of threads.
+ * (Ab)uses memory via the allocation of a block of memory, with a given
+ * number of worker threads that then read and write values randomly
+ * within that space. This code was motivated by the fact that while
+ * `perl -e '1 while 1' &` can run up the CPU, one is more likely to run
+ * into fork limits than CPU bottlenecks on modern multi-processor
+ * systems. This code better exercises a system. Basically, it offers a
+ * means to bog a system down, presumably for testing purposes, race
+ * condition exploration, or to annoy the local sysadmin.
  *
- * On OpenBSD, limits in login.conf(5) will doubtless need to be raised,
- * and other systems or hardware may set various limits, depending, or
- * launch multiple instances of this program, e.g. via
+ * System resource limits may need to be adjusted; see login.conf(5) on
+ * OpenBSD, for example. There may also be per-process limitations. A
+ * good way to bog the system down is to run something like:
  *
  *   for i in ...; do ./usemem -M -t 8 & done
  *
- * To let get process get the most memory possible (the Linux OOM killer
- * will step in, though) and with a thread count suitable to the number
- * of CPUs, or whatever.
+ * Where the thread count is suitable to the number of CPUs or desired
+ * level of insanity. A timed pkill(1) or easy access to reset the test
+ * system should be arranged for, given that too many instances of this
+ * program may render a system quite inoperative--a desktop linux system
+ * `vmstat 1` recorded 12 million context switches in an entry,
+ * presumably over some time period longer than a second, given how
+ * poorly that system was performing at that point. Shortly thereafter,
+ * the display froze up, and the system had to be power cycled (I could
+ * still ping the box).
  *
- * The original intent of this code was to try to trigger a race condition:
+ * The original intent of this code was to try to trigger a race
+ * condition:
  *
  *   alarm(...);
  *   somethingthatblocks();
  *   alarm(0);
- *     (paraphrased from Stevens, APUE (1st edition), p. 286.
+ *     // -- paraphrased from Stevens, APUE (1st edition), p. 286.
  *
- * whereby the system is made busy enough that the SIGALRM happens before
- * the somethingthatblocks() call can be started, but after the alarm(...)
- * is established. It is far more likely that the system will be rendered
- * unusable (and monitoring notice this) than the system hit this unlikely
- * edge case; if a system has been inordinately busy or slow, a reboot might
- * be in order anyways, which would certainly clear anything thus stuck (and
- * unmonitored).
+ * whereby the system is made busy enough that the SIGALRM happens
+ * before the somethingthatblocks() call can be started, but after
+ * the alarm(...) is established, so that the process then blocks
+ * forever. It is perhaps far more likely that the system will be
+ * rendered unusable (and monitoring notice this) than to hit this
+ * unlikely edge case. If a system has been inordinately busy or
+ * slow, a reboot may well be in order as soon as is practical. This
+ * will eliminate the possiblilty than any race condition has been
+ * tickled by said overload.
+ *
+ * Improvements may be to malloc() multiple blocks instead of just one,
+ * at the cost of complicating this code. Another option would be for
+ * thread sleep, so the workers could stall from time to time, and the
+ * OS perhaps swap out the thus idle process. With multiple processes
+ * running actively, the Linux out-of-memory killer just starts blasting
+ * away. Idled processes could induce swapping, which would be
+ * especially slow on systems with slow disk. (This idleness could be
+ * implemented via external SIG{STOP,CONT} signals, I'd wager.)
  */
+
+#ifdef __DARWIN__
+#include <fcntl.h>
+#endif
 
 #ifdef __linux__
 #define _BSD_SOURCE
@@ -35,12 +62,6 @@
 #include <fcntl.h>
 #include <getopt.h>
 #endif
-
-#ifdef __DARWIN__
-#include <fcntl.h>
-#endif
-
-#include <sys/time.h>
 
 #include <err.h>
 #include <errno.h>
@@ -53,7 +74,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "../montecarlo/aaarghs.h"
@@ -63,7 +83,7 @@
 #define MOSTMEMPOSSIBLE ( (ULONG_MAX < SIZE_MAX) ? ULONG_MAX : SIZE_MAX )
 
 bool Flag_Auto_Mem;             // -M
-unsigned long Flag_Memory;      // -m
+unsigned long Flag_Memory;      // -m (amount, though internally # of ints)
 unsigned long Flag_Threads;     // -t
 
 /* Custom RNG as might be dealing with >32 bits of allocated memory,
@@ -81,7 +101,8 @@ uint32_t jkiss_seedZ2 = 21987643;
 int *Memory;
 
 pthread_mutex_t Lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t Job_Done = PTHREAD_COND_INITIALIZER;
+pthread_cond_t Done_Malloc = PTHREAD_COND_INITIALIZER;
+pthread_cond_t Never_Happens = PTHREAD_COND_INITIALIZER;
 
 void emit_help(void);
 void jkiss_init(void);
@@ -93,8 +114,6 @@ int main(int argc, char *argv[])
 {
     int ch;
     pthread_t *tids;
-    struct timespec wait;
-    unsigned long i;
 
     while ((ch = getopt(argc, argv, "h?Mm:t:")) != -1) {
         switch (ch) {
@@ -124,47 +143,50 @@ int main(int argc, char *argv[])
     if ((Flag_Memory == 0 && !Flag_Auto_Mem) || Flag_Threads == 0)
         emit_help();
 
+    /* Ahh gee em. Complicated. See, if you malloc() the most memory
+     * possible, then there is no space for the threads. So must spin
+     * the threads up first, and then malloc(). Also cannot (easily)
+     * maximize the memory used, as that leads to complicated state
+     * depending on whether the subsequent increased memory size fails
+     * to malloc or not. So just downsize, and run with the first
+     * malloc() that passes. Presumably other instances of this program
+     * or other processes will be run to eat up any remaining memory on
+     * the system.
+     */
+
     jkiss_init();
 
     if ((tids = calloc(sizeof(pthread_t), Flag_Threads)) == NULL)
         err(EX_OSERR, "could not calloc() threads list");
 
-    if (Flag_Auto_Mem) {
-        bool gotmem = false;
-        Flag_Memory = SIZE_MAX;
-        while (Flag_Memory) {
-            if ((Memory = calloc((size_t) Flag_Memory, sizeof(int))) == NULL) {
-                Flag_Memory >>= 1;
-            } else {
-                gotmem = true;
-                break;
-            }
-        }
-        if (gotmem) {
-            fprintf(stderr, "info: alloc %lu bytes\n", Flag_Memory);
-        } else {
-            errx(EX_OSERR, "could not auto-calloc() memory");
-        }
-    } else {
-        if ((Memory = calloc((size_t) Flag_Memory, sizeof(int))) == NULL)
-            err(EX_OSERR, "could not calloc() %lu ints memory", Flag_Memory);
-    }
-
-    memset(Memory, 1, Flag_Memory);
-
-    for (i = 0; i < Flag_Threads; i++) {
+    for (unsigned long i = 0; i < Flag_Threads; i++) {
         if (pthread_create(&tids[i], NULL, worker, NULL) != 0)
             err(EX_OSERR, "could not pthread_create() thread %lu", i);
     }
 
-    wait.tv_sec = 7;
-    wait.tv_nsec = 0;
+    if (Flag_Auto_Mem) {
+        Flag_Memory = MOSTMEMPOSSIBLE / sizeof(int);
 
-    for (;;) {
-        pthread_mutex_lock(&Lock);
-        pthread_cond_timedwait(&Job_Done, &Lock, &wait);
-        pthread_mutex_unlock(&Lock);
+        for (;;) {
+            if ((Memory = malloc(Flag_Memory * sizeof(int))) == NULL)
+                Flag_Memory >>= 1;
+            else
+                break;
+        }
+        fprintf(stderr, "info: auto-alloc picks %lu ints\n", Flag_Memory);
+    } else {
+        Flag_Memory /= sizeof(int);
+        if ((Memory = malloc(Flag_Memory * sizeof(int))) == NULL)
+            err(EX_OSERR, "could not malloc() %lu ints\n", Flag_Memory);
     }
+
+    memset(Memory, 1, Flag_Memory * sizeof(int));
+
+    pthread_cond_broadcast(&Done_Malloc);
+
+    pthread_mutex_lock(&Lock);
+    pthread_cond_wait(&Never_Happens, &Lock);
+    pthread_mutex_unlock(&Lock);
 
     /* NOTREACHED */
     exit(1);
@@ -220,16 +242,21 @@ uint64_t jkiss_rand64(void)
 
 unsigned long jkiss_randof(const unsigned long max)
 {
-    uint64_t r = jkiss_rand64();
-    while (r > (uint64_t) max - 1) {
-        r = jkiss_rand64();
-    }
-    return (unsigned long) r;
+    /* Do not much care about modulo bias, as most malloc()d spaces
+     * doubtless well below SIZE_MAX, and any bias probably isn't enough
+     * for any CPU cache code to optimize for.
+     */
+    return (unsigned long) jkiss_rand64() % max + 1;
 }
 
 void *worker(void *unused)
 {
     unsigned long idx;
+
+    pthread_mutex_lock(&Lock);
+    pthread_cond_wait(&Done_Malloc, &Lock);
+    pthread_mutex_unlock(&Lock);
+
     for (;;) {
         idx = jkiss_randof(Flag_Memory);
         Memory[idx] = (idx % 2 == 1)
