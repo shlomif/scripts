@@ -42,22 +42,20 @@
  # possiblilty that any process remains stuck on some rare edge case
  # such as the above.
  #
- # Improvements may be to malloc() multiple blocks instead of just one,
- # at the cost of complicating this code (instead, simply launch
- # multiple instances of this script). Another option would be for
- # thread sleep, so the workers could stall from time to time, and the
- # OS thus perhaps swaps out the idle process. With multiple processes
- # running actively, the Linux out-of-memory killer just starts blasting
- # away. Idled processes brought back into memory could induce swapping,
- # which would be especially slow on systems with slow disk. (This could
- # be implemented via external SIG{STOP,CONT} signals against a list of
- # instances of this code, I'd wager.)
+ # Portability: -M does sensible things on OpenBSD; on Linux and Mac OS
+ # X it runs afoul various amounts of stupidity or insanity that may
+ # require `-M -m upperlimit` to set the maximum allowed allocation.
+ # This will help prevent the OOM killer from blasting away or the
+ # kernel optimistically trying to allocate 17,592,186,044,416 integers
+ # and then somehow getting bogged down.
  #
- # Portability: -M does sensible things on Linux and OpenBSD. On Mac OS
- # X, it allocates a large number, well more than the physical memory
- # available, and then the kernel thrashes around trying to allocate all
- # that. So, on Mac OS X, use -m and specify the amount of memory to
- # allocate.
+ # The code used to try to realloc() the array upwards, if possible,
+ # though that on Linux ran afoul the OOM killer. Since dead processes
+ # do not much tax a system, only downsizes are done. Launch more
+ # instances of this script to use up the remaining memory.
+ #
+ # Swapping might be induced by starting an instance, then sending it
+ # the CONT signal, then starting more instances? Need to test this.
  */
 
 #ifdef __linux__
@@ -165,25 +163,28 @@ int main(int argc, char *argv[])
     }
 
     if (Flag_Auto_Mem) {
-        size_t lo = 1;
-        size_t hi = MOSTMEMPOSSIBLE / sizeof(int);
-        int *mem = NULL;
+        if (!Flag_Memory)
+            Flag_Memory = MOSTMEMPOSSIBLE;
 
-        while (lo <= hi) {
-            size_t mid = lo + (hi - lo) / 2;
-            if ((mem = realloc(mem, mid * sizeof(int))) == NULL) {
-                hi = mid - 1;
+        Flag_Memory /= sizeof(int);
+
+        while (Flag_Memory) {
+            if ((Memory = malloc(Flag_Memory * sizeof(int))) == NULL) {
+                Flag_Memory >>= 1;
             } else {
-                lo = mid + 1;
-                Flag_Memory = mid;
-                Memory = mem;
+                break;
             }
         }
-        fprintf(stderr, "info: auto-alloc picks %lu ints\n", Flag_Memory);
+
+        if (Memory) {
+            fprintf(stderr, "info: auto-alloc picks %lu ints\n", Flag_Memory);
+        } else {
+            err(EX_OSERR, "could not auto-malloc() %lu ints", Flag_Memory);
+        }
     } else {
         Flag_Memory /= sizeof(int);
         if ((Memory = malloc(Flag_Memory * sizeof(int))) == NULL)
-            err(EX_OSERR, "could not malloc() %lu ints\n", Flag_Memory);
+            err(EX_OSERR, "could not malloc() %lu ints", Flag_Memory);
     }
 
     memset(Memory, 1, Flag_Memory * sizeof(int));
@@ -200,7 +201,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: usemem [-M|-m memory] -t threads\n");
+    fprintf(stderr, "Usage: usemem [-M|-m memory|-M -m mem] -t threads\n");
     exit(EX_USAGE);
 }
 
@@ -223,7 +224,8 @@ void jkiss_init(void)
     close(fd);
 #else
     // TODO clang on Mac OS X doesn't see the __DARWIN__ thing??
-    warnx("jkiss_init() unimplemented on this platform");
+    warnx("jkiss_init() unimplemented on this platform at %s:%u", __FILE__,
+          __LINE__);
     jkiss_seedX = 123456789123ULL;
     jkiss_seedY = 987654321987ULL;
 #endif
