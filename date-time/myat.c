@@ -3,7 +3,7 @@
  * which I otherwise use and reading the manual page for at(1) every
  * time I need to use it isn't fun. (Figuring out the strftime(3) magic
  * to avoid the 'garbled time' error from at(1) was annoying enough, but
- * less annoying than using a webform for some Google calendar.)
+ * less annoying than using some JavaScript app on Google.)
  */
 
 #include <err.h>

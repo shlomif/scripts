@@ -39,6 +39,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 long Flag_OffA;                 /* -a */
 long Flag_OffB;                 /* -b */
 
@@ -47,39 +50,36 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, fd;
-    char byte_a, byte_b, *ep;
+    char byte_a, byte_b;
     ssize_t bytes_read, bytes_written;
 
     while ((ch = getopt(argc, argv, "a:b:h")) != -1) {
         switch (ch) {
         case 'a':
-	    Flag_OffA = strtol(optarg, &ep, 10);
-	    if (optarg[0] == '\0' || *ep != '\0')
-                errx(EX_DATAERR, "could not parse -a offset");
-            if (Flag_OffA < 0 || Flag_OffA > INT_MAX - 1)
-                errx(EX_DATAERR, "option -a out of range");
+            Flag_OffA =
+                (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX - 1);
             break;
 
         case 'b':
-	    Flag_OffB = strtol(optarg, &ep, 10);
-	    if (optarg[0] == '\0' || *ep != '\0')
-                errx(EX_DATAERR, "could not parse -b offset");
-            if (Flag_OffB < 0 || Flag_OffB > INT_MAX - 1)
-                errx(EX_DATAERR, "option -b out of range");
+            Flag_OffB =
+                (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX - 1);
             break;
 
         case 'h':
         case '?':
         default:
             emit_help();
-	    /* NOTREACHED */
+            /* NOTREACHED */
         }
     }
     argc -= optind;
     argv += optind;
 
-    if (argc == 0 || (Flag_OffA == Flag_OffB))
-      emit_help();
+    if (argc == 0)
+        emit_help();
+
+    if (Flag_OffA == Flag_OffB)
+        errx(EX_DATAERR, "-a equals -b, nothing to do!");
 
     while (*argv) {
         if ((fd = open(*argv, O_RDWR)) == -1)

@@ -1,7 +1,8 @@
+CFLAGS += `pkg-config --cflags --libs goptfoo`
+
 all: showip udp-sender udp-sink
 
 showip: showip.c
-	$(CC) $(CFLAGS) -o showip showip.c
 
 udp-sender: udp-sender.c getopts.c udpfling.h
 	$(CC) $(CFLAGS) -o udp-sender getopts.c udp-sender.c

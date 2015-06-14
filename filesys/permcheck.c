@@ -23,12 +23,6 @@
  * and Slackware 3.10.17 thus far in my limited testing).
  */
 
-#ifdef __linux__
-#define _BSD_SOURCE
-#define _GNU_SOURCE
-#include <getopt.h>
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 

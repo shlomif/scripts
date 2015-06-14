@@ -20,6 +20,11 @@
  * Also, use arc4random() and family instead of srandomdev/random anyways.
  */
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#include <sys/types.h>
+#include <time.h>
+#endif
+
 #include <err.h>
 #include <limits.h>
 #include <stdio.h>
@@ -27,10 +32,8 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#include <sys/types.h>
-#include <time.h>
-#endif
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 /* NOTE assumes RAND_MAX 2147483647 */
 #define RAND_MAX_BITS 31
@@ -49,7 +52,7 @@ void emit_usage(void);
 int main(int argc, char *argv[])
 {
     int ch, plus = 0;
-    char *epc, *epp, *epr;
+//    char *epc, *epp, *epr;
     unsigned int bits, bits_mask, randrange, randsrc_idx;
     unsigned long count, i, randsrc, randval;
     register unsigned int t, tt;        // temporaries for log2 of int
@@ -60,27 +63,19 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "h?c:p:r:")) != -1) {
         switch (ch) {
         case 'c':
-            count = strtoul(optarg, &epc, 10);
-            if (optarg[0] == '\0' || *epc != '\0')
-                errx(EX_DATAERR, "could not parse -c count flag");
-            if (count < 1 || count > INT_MAX)
-                errx(EX_DATAERR, "option -c out of range");
+            count = flagtoul(ch, optarg, 1UL, (unsigned long) INT_MAX);
             break;
 
         case 'p':
-            plus = strtol(optarg, &epp, 10);
-            if (optarg[0] == '\0' || *epp != '\0')
-                errx(EX_DATAERR, "could not parse -p value flag");
-            if (plus < INT_MIN || plus > INT_MAX)
-                errx(EX_DATAERR, "option -p out of range");
+            plus =
+                (int) flagtoll(ch, optarg, (long long) INT_MIN,
+                               (long long) INT_MAX);
             break;
 
         case 'r':
-            randrange = strtoul(optarg, &epr, 10);
-            if (optarg[0] == '\0' || *epr != '\0')
-                errx(EX_DATAERR, "could not parse -r range flag");
-            if (randrange < 2 || randrange > RAND_MAX)
-                errx(EX_DATAERR, "option -p out of range");
+            randrange =
+                (unsigned int) flagtoul(ch, optarg, 2UL,
+                                        (unsigned long) RAND_MAX);
             break;
 
         case 'h':

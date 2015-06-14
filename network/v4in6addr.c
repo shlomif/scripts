@@ -32,6 +32,9 @@ extern int optind, opterr, optopt;
 #include <sysexits.h>
 #include <unistd.h>
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 #define S6ADDR_MAX 16
 
 struct in_addr v4addr;
@@ -45,18 +48,15 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, ret;
-    char *ep;
 
     while ((ch = getopt(argc, argv, "hp:t:")) != -1) {
         switch (ch) {
         case 'p':
-            Flag_Prefix = strtol(optarg, &ep, 10);
-            if (optarg[0] == '\0' || *ep != '\0')
-                errx(EX_DATAERR, "could not parse -p prefixlen flag");
+            Flag_Prefix = (long) flagtoul(ch, optarg, 0UL, LONG_MAX);
             if (Flag_Prefix < 32 || Flag_Prefix > 96)
                 errx(EX_DATAERR, "option -p must be one of 32 40 48 56 64 96");
-
             break;
+
         case 't':
             if ((ret = inet_pton(AF_INET6, optarg, &v6addr)) != 1) {
                 if (ret == -1)
@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
                          optarg);
             }
             break;
+
         case 'h':
         default:
             emit_help();

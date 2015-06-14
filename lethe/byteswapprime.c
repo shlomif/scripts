@@ -16,6 +16,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 #define PRIME_COUNT 1900
 #define PRIME_MAX 16381
 
@@ -207,34 +210,32 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, fd;
-    char buf[PRIME_MAX], *epo, *eps, tmp;
+    char buf[PRIME_MAX], tmp;
     ssize_t byte_count, written;
     unsigned int i;
 
-    while ((ch = getopt(argc, argv, "o:s:")) != -1) {
+    while ((ch = getopt(argc, argv, "h?o:s:")) != -1) {
         switch (ch) {
         case 'o':
-	    Flag_Offset = strtol(optarg, &epo, 10);
-	    if (optarg[0] == '\0' || *epo != '\0')
-                errx(EX_DATAERR, "could not parse -o offset");
-            if (Flag_Offset < 0 || Flag_Offset > INT_MAX)
-                errx(EX_DATAERR, "option -o out of range");
+	    Flag_Offset = (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX);
             break;
 
         case 's':
-	    Flag_Buf_Size = strtol(optarg, &eps, 10);
-	    if (optarg[0] == '\0' || *eps != '\0')
-                errx(EX_DATAERR, "could not parse -s size");
-            if (Flag_Buf_Size < 0 || Flag_Buf_Size > INT_MAX)
-                errx(EX_DATAERR, "option -s out of range");
+	    Flag_Buf_Size = (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX);
             break;
 
+        case 'h':
+        case '?':
         default:
-            ;
+            emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
     argv += optind;
+
+    if (argc == 0)
+        emit_help();
 
     while (*argv) {
         if ((fd = open(*argv, O_RDWR)) == -1)

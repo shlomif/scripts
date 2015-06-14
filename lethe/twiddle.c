@@ -8,6 +8,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 long Flag_Offset;               /* -o */
 int Flag_Bit;                   /* -b */
 
@@ -16,25 +19,19 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, fd;
-    char buf, *epb, *epo;
+    char buf;
     ssize_t bytes_read, bytes_written;
 
     while ((ch = getopt(argc, argv, "b:h?o:")) != -1) {
         switch (ch) {
         case 'b':
-            Flag_Bit = strtol(optarg, &epb, 10);
-            if (optarg[0] == '\0' || *epb != '\0')
-                errx(EX_DATAERR, "could not parse -b bit to twiddle");
-            if (Flag_Bit < 0 || Flag_Bit >= CHAR_BIT)
-                errx(EX_DATAERR, "option -b out of range");
+            Flag_Bit =
+                (int) flagtoul(ch, optarg, 0UL, (unsigned long) CHAR_BIT);
             break;
 
         case 'o':
-            Flag_Offset = strtol(optarg, &epo, 10);
-            if (optarg[0] == '\0' || *epo != '\0')
-                errx(EX_DATAERR, "could not parse -o offset value");
-            if (Flag_Offset < 0 || Flag_Offset > INT_MAX)
-                errx(EX_DATAERR, "option -o out of range");
+            Flag_Offset =
+                (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX);
             break;
 
         case 'h':

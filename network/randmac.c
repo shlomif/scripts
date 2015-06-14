@@ -41,6 +41,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 #include "macutil.h"
 
 /* http://tools.ietf.org/html/rfc2373 - section 2.5.1 - 2 or 0010 for
@@ -67,7 +70,6 @@ main(int argc, char *argv[])
 {
     int ch;
     char *mstrp = mac48tmpl;
-    char *ep;
     uint8_t *mp;
 
     while ((ch = getopt(argc, argv, "6B:Lh?mp")) != -1) {
@@ -79,11 +81,7 @@ main(int argc, char *argv[])
 	/* TODO auto-scan string for X and hexchars to figure out size so can
 	 * then remove this option. */
         case 'B':
-	    mac_bytes = strtoul(optarg, &ep, 10);
-	    if (optarg[0] == '\0' || *ep != '\0')
-                errx(EX_DATAERR, "could not parse -B bytes flag");
-	    if (mac_bytes < 1 || mac_bytes > 64)
-                errx(EX_DATAERR, "option -B out of range");
+	    mac_bytes = (size_t) flagtoul(ch, optarg, 1UL, 64UL);
             break;
 
         case 'L':

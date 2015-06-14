@@ -24,7 +24,6 @@
 #include <sys/types.h>
 
 #include <err.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -33,6 +32,9 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
+
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 void emit_help(void);
 
@@ -44,7 +46,6 @@ int main(int argc, char *argv[])
 {
     int ch, fd;
     char *bufp = NULL;
-    char *epo, *ept;
     int buf_len = 0;
     off_t seek_len;
     int write_len;
@@ -62,21 +63,11 @@ int main(int argc, char *argv[])
             break;
 
         case 'O':
-            errno = 0;
-            Flag_Offset = strtoul(optarg, &epo, 10);
-            if (optarg[0] == '\0' || *epo != '\0')
-                errx(EX_DATAERR, "could not parse -O offset option");
-            if (errno == ERANGE && Flag_Offset == ULONG_MAX)
-                errx(EX_DATAERR, "option -O out of range");
+            Flag_Offset = flagtoul(ch, optarg, 0UL, ULONG_MAX);
             break;
 
         case 't':
-            errno = 0;
-            Flag_Trunc = strtoul(optarg, &ept, 10);
-            if (optarg[0] == '\0' || *ept != '\0')
-                errx(EX_DATAERR, "could not parse -t truncate option");
-            if (errno == ERANGE && Flag_Trunc == ULONG_MAX)
-                errx(EX_DATAERR, "option -t out of range");
+            Flag_Trunc = flagtoul(ch, optarg, 0UL, ULONG_MAX);
             break;
 
         case 'h':
