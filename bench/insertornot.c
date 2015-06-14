@@ -30,6 +30,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 #define NSEC_IN_SEC 1000000000
 
 #define DEFAULT_COUNT 10
@@ -40,8 +43,6 @@ unsigned long Flag_Trials;      // -t
 
 int compare(const void *x, const void *y);
 void emit_help(void);
-unsigned long flagtoul(const int flag, const char *flagarg,
-                       const unsigned long min, const unsigned long max);
 void insertion_sort(uint32_t * list);
 
 int main(int argc, char *argv[])
@@ -142,29 +143,6 @@ void emit_help(void)
 {
     fprintf(stderr, "Usage: insertornot\n");
     exit(EX_USAGE);
-}
-
-unsigned long flagtoul(const int flag, const char *flagarg,
-                       const unsigned long min, const unsigned long max)
-{
-    char *ep;
-    unsigned long val;
-
-    errno = 0;
-    val = strtoul(optarg, &ep, 10);
-    if (flagarg[0] == '\0' || *ep != '\0')
-        errx(EX_DATAERR, "could not parse unsigned long from -%c '%s'", flag,
-             flagarg);
-    if (errno == ERANGE && val == ULONG_MAX)
-        errx(EX_DATAERR, "value for -%c '%s' exceeds ULONG_MAX %lu", flag,
-             flagarg, ULONG_MAX);
-    if (min != 0 && val < min)
-        errx(EX_DATAERR, "value for -%c '%s' is below min %lu", flag, flagarg,
-             min);
-    if (max != ULONG_MAX && val > max)
-        errx(EX_DATAERR, "value for -%c '%s' exceeds max %lu", flag, flagarg,
-             max);
-    return val;
 }
 
 void insertion_sort(uint32_t * list)

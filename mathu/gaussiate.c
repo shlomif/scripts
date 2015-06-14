@@ -17,7 +17,8 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
-#include "../montecarlo/aaarghs.h"
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 #define DEFAULT_COUNT 10000UL
 #define DEFAULT_SIGMA 1.0
@@ -32,10 +33,10 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, fd;
-    gsl_rng *gsl_rng;
+    gsl_rng *gsl_rand;
     uint32_t seed;
 
-    if ((gsl_rng = gsl_rng_alloc(gsl_rng_taus2)) == NULL)
+    if ((gsl_rand = gsl_rng_alloc(gsl_rng_taus2)) == NULL)
         err(EX_SOFTWARE, "could not gsl_rng_alloc()");
 
 #ifdef __OpenBSD__
@@ -81,10 +82,10 @@ int main(int argc, char *argv[])
     if (!isnormal(Flag_Sigma))
         Flag_Sigma = DEFAULT_SIGMA;
 
-    gsl_rng_set(gsl_rng, seed);
+    gsl_rng_set(gsl_rand, seed);
 
     for (unsigned long n = 0; n < Flag_Count; n++)
-        printf("%.6f\n", gsl_ran_gaussian(gsl_rng, Flag_Sigma));
+        printf("%.6f\n", gsl_ran_gaussian(gsl_rand, Flag_Sigma));
 
     exit(EXIT_SUCCESS);
 }

@@ -8,6 +8,9 @@
  * GSL and seed the RNG from urandom, or the JKISS RNG, etc.
  */
 
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
+
 #include "aaarghs.h"
 
 #define ATTACKS_MIN 2UL

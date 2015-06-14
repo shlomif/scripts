@@ -77,7 +77,8 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "../montecarlo/aaarghs.h"
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 #define MAX_THREADS 640UL
 

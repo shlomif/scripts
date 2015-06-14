@@ -1,8 +1,12 @@
-birds: aaarghs.c birds.c
-	$(CC) $(CFLAGS) -o birds aaarghs.c birds.c
+CFLAGS += `pkg-config --libs --cflags goptfoo`
+# to make warnings fatal and thus searchable with :make :cnext in vim; requires
+#   set makeprg=make\ %:r
+# set in vim.
+#CFLAGS += -Werror
 
-orb-of-fire: aaarghs.c orb-of-fire.c
-	$(CC) $(CFLAGS) -o orb-of-fire aaarghs.c orb-of-fire.c
+birds: birds.c
+
+orb-of-fire: orb-of-fire.c
 
 clean:
 	@-rm -f birds orb-of-fire *.core >/dev/null 2>&1

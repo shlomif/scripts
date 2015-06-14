@@ -19,7 +19,8 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "../montecarlo/aaarghs.h"
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 #define MOSTMEMPOSSIBLE ( (ULONG_MAX < SIZE_MAX) ? ULONG_MAX : SIZE_MAX )
 

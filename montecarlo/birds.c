@@ -2,8 +2,11 @@
  * A "Digital Dice" by Paul Nahin problem, originally birds looking at one
  * another but carified by Nahin so I'm going back to the birds.
  *
- *           I only got 2/3rds of the way through the problem, though.
+ *       ... I only got 2/3rds of the way through the problem, though.
  */
+
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 #include "aaarghs.h"
 

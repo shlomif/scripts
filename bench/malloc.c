@@ -37,12 +37,6 @@
  * other systems or hardware may set various limits, depending.
  */
 
-#ifdef __linux__
-#define _BSD_SOURCE
-#define _GNU_SOURCE
-#include <getopt.h>
-#endif
-
 #include <sys/time.h>
 
 #include <err.h>
@@ -56,6 +50,9 @@
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
+
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
 #define MAX_THREADS 640UL
 
@@ -75,8 +72,6 @@ pthread_cond_t Job_Done = PTHREAD_COND_INITIALIZER;
 const char *Program_Name;
 
 void emit_help(void);
-unsigned long flagtoul(const int flag, const char *flagarg,
-                       const unsigned long min, const unsigned long max);
 void *worker(void *unused);
 
 int main(int argc, char *argv[])
@@ -165,29 +160,6 @@ void emit_help(void)
             shortname);
 
     exit(EX_USAGE);
-}
-
-unsigned long flagtoul(const int flag, const char *flagarg,
-                       const unsigned long min, const unsigned long max)
-{
-    char *ep;
-    unsigned long val;
-
-    errno = 0;
-    val = strtoul(optarg, &ep, 10);
-    if (flagarg[0] == '\0' || *ep != '\0')
-        errx(EX_DATAERR, "could not parse unsigned long from -%c '%s'", flag,
-             flagarg);
-    if (errno == ERANGE && val == ULONG_MAX)
-        errx(EX_DATAERR, "value for -%c '%s' exceeds ULONG_MAX %lu", flag,
-             flagarg, ULONG_MAX);
-    if (min != 0 && val < min)
-        errx(EX_DATAERR, "value for -%c '%s' is below min %lu", flag, flagarg,
-             min);
-    if (max != ULONG_MAX && val > max)
-        errx(EX_DATAERR, "value for -%c '%s' exceeds max %lu", flag, flagarg,
-             max);
-    return val;
 }
 
 void *worker(void *unused)

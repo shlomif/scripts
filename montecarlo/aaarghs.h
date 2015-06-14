@@ -1,6 +1,3 @@
-/* Argument handling utility routine headers and to hide the boilerplate
- * include and other such spam somewhere out of the way. */
-
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -17,7 +14,3 @@
 #define TRIALS 1000000UL
 
 void emit_help(void);
-float flagtof(const int flag, const char *flagarg,
-              const float min, const float max);
-unsigned long flagtoul(const int flag, const char *flagarg,
-                       const unsigned long min, const unsigned long max);
