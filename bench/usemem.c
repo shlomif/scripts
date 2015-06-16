@@ -210,7 +210,9 @@ void jkiss_init(void)
 {
 #ifdef __OpenBSD__
     jkiss_seedX = arc4random() | ((uint64_t) arc4random() << 32);
-    jkiss_seedY = arc4random() | ((uint64_t) arc4random() << 32);
+    while (jkiss_seedY == 0) {
+        jkiss_seedY = arc4random() | ((uint64_t) arc4random() << 32);
+    }
 #elif defined(__DARWIN__) || defined(__linux__)
     int fd = open("/dev/random", O_RDONLY);
     if (fd == -1)
