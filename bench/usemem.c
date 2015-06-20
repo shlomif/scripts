@@ -80,25 +80,14 @@
 // https://github.com/thrig/goptfoo
 #include <goptfoo.h>
 
-#define MAX_THREADS 640UL
+// https://github.com/thrig/libjkiss
+#include <jkiss.h>
 
 #define MOSTMEMPOSSIBLE ( (ULONG_MAX < SIZE_MAX) ? ULONG_MAX : SIZE_MAX )
 
 bool Flag_Auto_Mem;             // -M
 unsigned long Flag_Memory;      // -m (amount, though internally # of ints)
 unsigned long Flag_Threads;     // -t
-
-/* Custom RNG as might be dealing with >32 bits of allocated memory,
- * and outside of OpenBSD system RNG functions generally sucking; these
- * vars are shared by the various threads, which may or may not be a
- * problem. (The randomness is to hopefully thwart any CPU cache
- * prediction algos.) */
-uint64_t jkiss_seedX;
-uint64_t jkiss_seedY;
-uint32_t jkiss_seedC1 = 6543217;
-uint32_t jkiss_seedC2 = 1732654;
-uint32_t jkiss_seedZ1 = 43219876;
-uint32_t jkiss_seedZ2 = 21987643;
 
 int *Memory;
 
@@ -107,15 +96,14 @@ pthread_cond_t Done_Malloc = PTHREAD_COND_INITIALIZER;
 pthread_cond_t Never_Happens = PTHREAD_COND_INITIALIZER;
 
 void emit_help(void);
-void jkiss_init(void);
-uint64_t jkiss_rand64(void);
-unsigned long jkiss_randof(const unsigned long max);
 void *worker(void *unused);
 
 int main(int argc, char *argv[])
 {
     int ch;
     pthread_t *tids;
+
+    jkiss64_init(NULL);
 
     while ((ch = getopt(argc, argv, "h?Mm:t:")) != -1) {
         switch (ch) {
@@ -129,7 +117,7 @@ int main(int argc, char *argv[])
             break;
 
         case 't':
-            Flag_Threads = flagtoul(ch, optarg, 1UL, MAX_THREADS);
+            Flag_Threads = flagtoul(ch, optarg, 1UL, ULONG_MAX);
             break;
 
         case 'h':
@@ -152,8 +140,6 @@ int main(int argc, char *argv[])
      * program or other processes will be run to eat up any remaining
      * memory on the system.
      */
-
-    jkiss_init();
 
     if ((tids = calloc(sizeof(pthread_t), Flag_Threads)) == NULL)
         err(EX_OSERR, "could not calloc() threads list");
@@ -206,63 +192,6 @@ void emit_help(void)
     exit(EX_USAGE);
 }
 
-void jkiss_init(void)
-{
-#ifdef __OpenBSD__
-    jkiss_seedX = arc4random() | ((uint64_t) arc4random() << 32);
-    while (jkiss_seedY == 0) {
-        jkiss_seedY = arc4random() | ((uint64_t) arc4random() << 32);
-    }
-#elif defined(__DARWIN__) || defined(__linux__)
-    int fd = open("/dev/random", O_RDONLY);
-    if (fd == -1)
-        err(EX_OSERR, "could not open() /dev/random");
-
-    if (read(fd, &jkiss_seedX, sizeof(jkiss_seedX)) != sizeof(jkiss_seedX))
-        err(EX_OSERR, "incomplete read() from /dev/random");
-
-    if (read(fd, &jkiss_seedY, sizeof(jkiss_seedY)) != sizeof(jkiss_seedY))
-        err(EX_OSERR, "incomplete read() from /dev/random");
-
-    close(fd);
-#else
-    // TODO clang on Mac OS X doesn't see the __DARWIN__ thing??
-    warnx("jkiss_init() unimplemented on this platform at %s:%u", __FILE__,
-          __LINE__);
-    jkiss_seedX = 123456789123ULL;
-    jkiss_seedY = 987654321987ULL;
-#endif
-}
-
-// JLKISS64 RNG borrowed from public domain code in "Good Practice in (Pseudo)
-// Random Number Generation for Bioinformatics Applications" by David Jones
-// (Last revision May 7th 2010).
-uint64_t jkiss_rand64(void)
-{
-    uint64_t t;
-    jkiss_seedX = 1490024343005336237ULL * jkiss_seedX + 123456789;
-    jkiss_seedY ^= jkiss_seedY << 21;
-    jkiss_seedY ^= jkiss_seedY >> 17;
-    jkiss_seedY ^= jkiss_seedY << 30;
-    t = 4294584393ULL * jkiss_seedZ1 + jkiss_seedC1;
-    jkiss_seedC1 = t >> 32;
-    jkiss_seedZ1 = (uint32_t) t;
-    t = 4246477509ULL * jkiss_seedZ2 + jkiss_seedC2;
-    jkiss_seedC2 = t >> 32;
-    jkiss_seedZ2 = (uint32_t) t;
-    return jkiss_seedX + jkiss_seedY + jkiss_seedZ1 +
-        ((uint64_t) jkiss_seedZ2 << 32);
-}
-
-unsigned long jkiss_randof(const unsigned long max)
-{
-    /* Do not much care about modulo bias, as most malloc()d spaces are
-     * doubtless well below SIZE_MAX, and if there were any bias it
-     * probably isn't anything the CPU cache code could optimize for.
-     */
-    return (unsigned long) jkiss_rand64() % max;
-}
-
 void *worker(void *unused)
 {
     unsigned long idx;
@@ -272,9 +201,11 @@ void *worker(void *unused)
     pthread_mutex_unlock(&Lock);
 
     for (;;) {
-        idx = jkiss_randof(Flag_Memory);
+        // do not (much) care about modulo bias as most memory amounts will
+        // be vastly less than UINT64_MAX
+        idx = jkiss64_rand() % Flag_Memory;
         Memory[idx] = (idx % 2 == 1)
-            ? Memory[jkiss_randof(Flag_Memory)]
+            ? Memory[jkiss64_rand() % Flag_Memory]
             : rand();
     }
 

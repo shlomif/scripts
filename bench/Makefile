@@ -1,4 +1,4 @@
-CFLAGS += `pkg-config --cflags --libs goptfoo`
+CFLAGS += `pkg-config --cflags --libs goptfoo jkiss`
 
 # (debug -g flag to help avoid compiler optimizing away memory foo being done)
 CFLAGS += -g
