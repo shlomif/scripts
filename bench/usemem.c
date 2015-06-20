@@ -58,12 +58,6 @@
  # the CONT signal, then starting more instances? Need to test this.
  */
 
-#ifdef __linux__
-#define _BSD_SOURCE
-#define _GNU_SOURCE
-#include <getopt.h>
-#endif
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
