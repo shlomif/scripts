@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+#
+# In-memory transposition of a list of values arranged into a particular number
+# of columns. (Based on "Figure 1.4" of Schneier, Bruce (2008-05-05). Applied
+# Cryptography: Protocols, Algorithms, and Source Code in C (Kindle Location
+# 816). Wiley. Kindle Edition.)
+#
+# Potential musical applications can be explored, e.g. via
+#
+#   transpose --columns=8 e e f g g f e d c c d e e d d | ly-fu --open -
+
+use strict;
+use warnings;
+
+use Getopt::Long qw/GetOptions/;
+
+GetOptions( 'columns|c=i' => \my $Flag_Columns )
+  or die "could not parse options\n";
+$Flag_Columns ||= 8;
+
+chomp( @ARGV = <STDIN> ) unless @ARGV;
+
+my @aoa;
+my $ref;
+
+for my $i ( 0 .. $#ARGV ) {
+  if ( $i % $Flag_Columns == 0 ) {
+    push @aoa, [];
+    $ref = $aoa[-1];
+  }
+  push @{$ref}, $ARGV[$i];
+}
+
+for my $i ( 0 .. $Flag_Columns - 1 ) {
+  for my $j ( 0 .. $#aoa ) {
+    print $aoa[$j][$i], " " if defined $aoa[$j][$i];
+  }
+}
+print "\n";
