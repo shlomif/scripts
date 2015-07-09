@@ -1,0 +1,30 @@
+#!/usr/bin/env perl
+#
+# Correct the curious column-driven output of `yum list installed` to
+# something slightly more consumable by subsequent programs, e.g. awk or
+# the like.
+#
+# Usage:
+#   yum list installed | yuminstrectifimabobber | ...
+#
+# Note that subsequent parsing may be complicated by the "Loaded
+# plugins" and other such noise that yum for some reason includes by
+# default with the package information on standard out.
+
+use strict;
+use warnings;
+
+my $have_seen_a_line = 0;
+
+while ( my $line = readline ) {
+  chomp $line;
+
+  print "\n" if $have_seen_a_line and $line =~ m/^\S/;
+
+  $line =~ s/\s+/ /g;
+
+  print $line;
+
+  $have_seen_a_line = 1;
+}
+print "\n";
