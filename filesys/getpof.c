@@ -96,8 +96,7 @@ int main(int argc, char *argv[])
                 err(EX_OSERR, "could not asprintf() file path");
 
             if (stat(filep, &statbuf) == 0) {
-                write(STDOUT_FILENO, filedat->fts_path, filedat->fts_pathlen);
-                putchar('\n');
+                printf("%s\n", filedat->fts_path);
                 if (!Flag_Recurse)
                     fts_set(filetree, filedat, FTS_SKIP);
             } else {
