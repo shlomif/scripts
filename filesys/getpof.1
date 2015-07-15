@@ -1,0 +1,60 @@
+.Dd $Mdocdate: July 14 2015 $
+.Dt GETPOF 1
+.nh
+.Os
+.Sh NAME
+.Nm getpof
+.Nd list parent directories that contain a file
+.Sh SYNOPSIS
+.Nm getpof
+.Bk -words
+.Op Fl q
+.Op Fl r
+.Op Fl x
+.Ar filename
+.Op Ar dir
+.Op Ar ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+searches the specified directories (or the current directory if none are
+specified) for the given
+.Ar filename
+and prints any directories that
+.Pa filename
+is found in. Options:
+.Bl -tag -width -indent
+.It Fl q
+Be quiet. The exit code can be inspected for errors, regardless.
+.It Fl r
+Recurse into directories the
+.Ar filename
+is found in. The default is to prune the search.
+.It Fl x
+Prevents recursion into directories on different device numbers.
+.El
+.Pp
+.Sh EXIT STATUS
+.Ex -std getpof
+.Sh EXAMPLES
+Find all
+.Pa .git
+repositories under the home directory:
+.Pp
+.Dl getpof -q .git $HOME
+.Pp
+Add the 
+.Fl r
+flag to find repositories that are located within other repositories.
+.Sh SEE ALSO
+.Xr find 1 ,
+.Xr findup 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+Duplicate error messages may be printed for parent directory permissions problems. This appears to be a 
+.Xr fts 3
+gotcha, as such directories are called for both
+.Dv FTS_D
+and
+.Dv FTS_DNR .
