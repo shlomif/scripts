@@ -69,7 +69,6 @@ int main(int argc, char *argv[])
         err(EX_OSERR, "could not calloc() path list");
     plp = pathlist;
     if (argc == 1) {
-        fprintf(stderr, "dbg search on .\n");
         *plp++ = (char *) ".";
     } else {
         // *argv contains the filename we're searching for
@@ -80,7 +79,6 @@ int main(int argc, char *argv[])
             if ((realp = realpath(*argp, NULL)) == NULL)
                 err(EX_IOERR, "realpath() failed on '%s'", *argp);
             *plp++ = realp;
-            fprintf(stderr, "dbg search in %s\n", realp);
             argp++;
         }
     }
