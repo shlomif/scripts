@@ -52,7 +52,7 @@ int main(void)
     unsigned int i, maxfail, nobias, randmax, testnum, trialnum;
     double sq;
 
-    //setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    //setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
 
     for (trialnum = 0; trialnum < TRIALS; trialnum++) {
         /* pseudorandom within pseudorandom, per Dune */

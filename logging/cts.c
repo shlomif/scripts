@@ -37,8 +37,16 @@ int main(int argc, char *argv[])
     struct pollfd fdwatch[NUMFDS];
     int fdready, readret;
 
-    while ((ch = getopt(argc, argv, "h?")) != -1) {
+    /* Unbuffered output by default (ts(1) does this) to minimize risk of
+     * log lossage should something crash. Use -l for line-buffered. */
+    setvbuf(stdout, (char *)NULL, _IONBF, (size_t) 0);
+
+    while ((ch = getopt(argc, argv, "h?l")) != -1) {
         switch (ch) {
+
+        case 'l':
+            setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+            break;
 
         case 'h':
         case '?':
@@ -98,6 +106,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ... | cts\n");
+    fprintf(stderr, "Usage: ... | cts [-l]\n");
     exit(EX_USAGE);
 }

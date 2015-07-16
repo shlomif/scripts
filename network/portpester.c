@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         errx(R_USAGE, "no port specified");
 
     /* play adequately with tee(1) */
-    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = family;

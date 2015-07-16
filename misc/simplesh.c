@@ -26,7 +26,7 @@ int main(void)
     pid_t pid;
     int status;
 
-    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, (size_t) 0);
 
     printf("shs%% ");
     while (fgets(buf, MAXLINE, stdin) != NULL) {

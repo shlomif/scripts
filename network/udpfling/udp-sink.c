@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     addr_size = sizeof client_addr;
 
     if (Flag_Line_Buf)
-        setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+        setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
 
     if (Flag_Delay) {
         time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
