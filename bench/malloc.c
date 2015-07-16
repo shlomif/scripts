@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'l':
-            setlinebuf(stdout);
+            setvbuf(stdout, (char *)NULL, _IOLBF, 0);
             break;
 
         case 'm':

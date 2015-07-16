@@ -36,7 +36,7 @@ int main(void)
     char tmp_filename[] = "/tmp/jbsmall.XXXXXXXXXX";
     struct pollfd pfd[1];
 
-    setlinebuf(stdout);
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
 
     if (signal(SIGALRM, handle_alarm) == SIG_ERR)
         err(EX_OSERR, "could not setup signal() handler");

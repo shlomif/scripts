@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
         errx(EX_IOERR, "could not bind to socket");
 
     if (Flag_Line_Buf)
-        setlinebuf(stdout);
+        setvbuf(stdout, (char *)NULL, _IOLBF, 0);
 
     time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
     time_units_to_usec = Flag_Nanoseconds ? 1 : USEC_IN_MS;

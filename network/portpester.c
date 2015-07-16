@@ -118,7 +118,8 @@ int main(int argc, char *argv[])
     if (!port)
         errx(R_USAGE, "no port specified");
 
-    setlinebuf(stdout);         /* play adequately with tee(1) */
+    /* play adequately with tee(1) */
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = family;
