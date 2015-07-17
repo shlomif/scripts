@@ -1,0 +1,135 @@
+#!/usr/bin/env perl
+#
+# Stitches input files together, something like join(1) except selecting
+# particular columns (all by default) and joining by line number. Example:
+#
+#   % <a
+#   a b c
+#   % <b
+#   1 2 3
+#   4 5 6
+#   7 8 9
+#   % stitch --ofs=\\t a:2 b:1,3
+#   b       1       3
+#           4       6
+#           7       9
+#
+# That is, column 2 from the first file, and columns 1 and 3 from the
+# second. The range operator .. may also be used to select a range of
+# columns, e.g. 1,4..6,8.
+
+use strict;
+use warnings;
+
+use Getopt::Long qw(GetOptions);
+
+GetOptions(
+  'autocol|ac' => \my $Flag_AutoCol,
+  'ofs=s'      => \my $Flag_OFS,
+  'rs=s'       => \my $Flag_RS,
+  'help|h|?'   => sub {
+    warn
+      "Usage: $0 [--autocol] [--ofs=s] [--rs=s] file[:colspec] file[:colspec] ...\n";
+    exit 64;
+  },
+) or exit 64;
+
+$Flag_OFS //= ' ';
+$Flag_RS  //= '\n';
+
+$Flag_OFS =~ s/(\\.)/qq!"$1"!/eeg;
+$Flag_RS =~ s/(\\.)/qq!"$1"!/eeg;
+
+my @fhs;
+
+for my $arg (@ARGV) {
+  # "file" (no spec) or "file:" (no spec but colon) or "file:spec"
+  # where no spec means "print all columns and do not preseve column
+  # positions as will not try to guess that"
+  my ( $file, $spec );
+  if ( $arg =~ m/^([^:]+)$/ ) {
+    $file = $1;
+  } elsif ( $arg =~ m/^(.+):([^:]*)$/ ) {
+    $file = $1;
+    $spec = $2;
+  }
+  die "could not parse file from '$arg'\n" if !defined $file;
+  open my $fh, '<', $file or die "could not open $file: $!\n";
+
+  push @fhs, [ $fh, defined $spec ? specify($spec) : undef ];
+}
+
+my $have_fhs = @fhs;
+while ($have_fhs) {
+  my $pad_col = 0;
+  for my $i ( 0 .. $#fhs ) {
+    if ( defined $fhs[$i]->[0] ) {
+      my $line = readline $fhs[$i]->[0];
+      if ( !defined $line ) {
+        # EOF on an input file
+        $fhs[$i]->[0] = undef;
+        $have_fhs--;
+        $pad_col += @{ $fhs[$i]->[1] } if defined $fhs[$i]->[1];
+        next;
+      }
+
+      # Complicated due to not wanting to print the empty columns if
+      # there's nothing else on the line to print (works around getting
+      # an ultimate blank line that messes up the shell prompt)
+      if ($pad_col) {
+        print( ($Flag_OFS) x $pad_col );
+        $pad_col = 0;
+      }
+
+      chomp $line;
+      my @fields = split ' ', $line;
+
+      # Assume field count from the first line of input
+      if ( $Flag_AutoCol and !defined $fhs[$i]->[1] ) {
+        $fhs[$i]->[1] = [ 0 .. $#fields ];
+      }
+
+      if ( defined $fhs[$i]->[1] ) {
+        print join( $Flag_OFS, @fields[ @{ $fhs[$i]->[1] } ] );
+      } else {
+        print join( $Flag_OFS, @fields );
+      }
+      print $Flag_OFS if $i != $#fhs;
+
+    } elsif ( defined $fhs[$i]->[1] ) {
+      $pad_col += @{ $fhs[$i]->[1] };
+    }
+  }
+  print $Flag_RS if $have_fhs;
+}
+
+exit 0;
+
+########################################################################
+#
+# SUBROUTINES
+
+# Parse 1,2,3,5..9 input into Perl array indices
+sub specify {
+  my $spec = shift;
+  my @indices;
+
+SPEC: {
+    if ( $spec =~ m/\G(\d+)\.\.(\d+)/gc ) {
+      push @indices, $1 .. $2;
+      redo SPEC;
+    }
+    if ( $spec =~ m/\G(\d+)/gc ) {
+      push @indices, $1;
+      redo SPEC;
+    }
+    # dunno, skip it
+    redo SPEC if $spec =~ m/\G./gc;
+  }
+
+  # Assume user will use awk- or cut-like column numbers from 1, shift
+  # these to perl count-from-zero internally.
+  $_-- for @indices;
+
+  return \@indices;
+}
