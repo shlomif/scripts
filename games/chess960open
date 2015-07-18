@@ -6,6 +6,7 @@
 use strict;
 use warnings;
 
+use 5.8.0;
 use utf8;
 use open IO => ':utf8';
 

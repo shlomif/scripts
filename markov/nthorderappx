@@ -11,6 +11,7 @@
 # shorter orders at perhaps a lower weighting to enrich the output
 # options, though this mostly needlessly Chaucers the prose.
 
+use 5.10.0;
 use strict;
 use warnings;
 use feature qw(say);

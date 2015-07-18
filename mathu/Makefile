@@ -1,5 +1,7 @@
 CFLAGS += `pkg-config --cflags --libs gsl goptfoo`
 
+chii: chii.c
+
 gaussiate: gaussiate.c
 
 clean:

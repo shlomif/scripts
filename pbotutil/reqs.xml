@@ -1,6 +1,0 @@
-<reqs>
-  <app><name>perl</name><version>5</version></app>
-  <cpan-module><name>URI</name></cpan-module>
-  <cpan-module><name>LWP::UserAgent</name></cpan-module>
-  <cpan-module><name>HTML::TokeParser</name></cpan-module>
-</reqs>

@@ -6,6 +6,7 @@
 # Not for any sort of unattended or non-interactive use, due to lack of input
 # sanity checking, etc.
 
+use 5.10.0;
 use Math::BigInt;
 use Getopt::Std;
 use List::Util qw(max sum);

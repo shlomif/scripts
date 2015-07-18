@@ -12,6 +12,7 @@
 #   inodenom 999999 a &
 #   inodenom 999999 b &
 
+use 5.10.0;
 use strict;
 use warnings;
 

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # uvi - edit a file (or files) without changing the access times
 
 die "Usage: uvi file [file2 ..]\n" if !@ARGV;

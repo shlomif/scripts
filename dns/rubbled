@@ -6,6 +6,7 @@
 # TODO no error from getaddrinfo() if off the Internet, so instead use Net::DNS
 # for those lookups?
 
+use 5.10.0;
 use strict;
 use warnings;
 use feature qw(say state);

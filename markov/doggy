@@ -3,6 +3,7 @@
 # Markov model of dog days (a discrete state dog). Consider instead:
 # http://hailo.org/
 
+use 5.10.0;
 use strict;
 use warnings;
 use feature qw(say);

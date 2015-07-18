@@ -2,7 +2,6 @@
 #
 # Means of prompting where human interaction required.
 
-require 5;
 use strict;
 use warnings;
 

@@ -25,7 +25,6 @@
 #   % pwd | tr -d '\n' | wc -c
 #   11320
 
-use 5.012;
 use strict;
 use warnings;
 

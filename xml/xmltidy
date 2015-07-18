@@ -5,6 +5,7 @@
 # arguments. Named files are currently operated on in-place, while
 # standard input is passed to standard out after the tidy is done.
 
+use 5.8.0;
 use strict;
 use warnings;
 

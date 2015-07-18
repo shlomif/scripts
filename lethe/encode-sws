@@ -8,6 +8,7 @@
 #
 # TODO test with say UTF-8 or other encodings of the message.
 
+use 5.10.0;
 use strict;
 use warnings;
 
