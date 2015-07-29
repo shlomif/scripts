@@ -1,0 +1,16 @@
+Some mathes related tools.
+
+Biased data for chisq tests taken from "Understanding Statistics: Basic
+Theory and Practice", Grant Foster, 2013, p. 275, who derives an
+q=167.7767 (X-squared) from that data:
+
+  % r-fu equichisq - < biased-d6 
+  [1] "elements 1236 unique 6"
+  
+          Chi-squared test for given probabilities
+  
+  data:  tab
+  X-squared = 167.7767, df = 5, p-value < 2.2e-16
+
+chii instead gives a p-value of 2.17476e-34, which I suppose *is* less
+than the 2.2e-16 value quoted by R...

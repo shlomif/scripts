@@ -1,20 +1,24 @@
 /*
- # CHIsq test integers belonging to a given range. C not R because a) a
- # second opinion is good and b) I'm too lazy to figure out how to make
- # R honor sparse input, where a particular bucket might have no values.
- # Otherwise, use the "chisq.test" in R or the "equichisq" arlet of my
- # r-fu script.
- #
- # The following should fail, as there are six buckets (implicit 0 for
- # minimum through 5, inclusive) and the perl only produces numbers for
- # five of those buckets (0..4):
- #
- #   perl -E 'for (1..1000) { say int rand 5}' | chii -M 5
- #
- # (It could also fail for reasons unrelated to the missing bucket, or
- # it could pass if there are not enough trials to reveal the lack.)
- */
+# CHIsq test integers belonging to a given contiguous range. C not R
+# because a) a second opinion is good and b) I'm too lazy to figure out
+# how to make R honor sparse input, where a particular bucket might have
+# no values. Otherwise, use the "chisq.test" in R or the "equichisq"
+# arlet of my r-fu script.
+#
+# The following should fail, as there are six buckets (implicit 0 for
+# minimum through 5, inclusive) and the perl only produces numbers for
+# five of those buckets (0..4):
+#
+#   perl -E 'for (1..1000) { say int rand 5}' | chii -M 5
+#
+# (It could also fail for reasons unrelated to the missing bucket, or it
+# could pass if there are not enough trials to reveal the lack.)
+#
+# Now, if you're actually testing the fitness of non-cryptographic hash
+# functions, consider instead the "smhasher" project.
+*/
 
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -41,10 +45,11 @@ int main(int argc, char *argv[])
 
     char *ep;
     long long count = 0;
-    long long delta, expected, *intstore, value;
-    double pvalue, sq;
+    long long delta, *intstore, value;
+    double expected, pvalue, sq;
 
     char *line = NULL;
+    char *lp;
     FILE *fh;
     size_t linesize = 0;
     ssize_t linelen;
@@ -94,11 +99,12 @@ int main(int argc, char *argv[])
 
     while ((linelen = getline(&line, &linesize, fh)) != -1) {
         // so can parse multiple numbers per line, assuming they are
-        // isspace(3) delimited
-        while (1) {
+        // isspace(3) delimited (downside: complicates the parsing)
+        lp = line;
+        while (*lp != '\0') {
             errno = 0;
-            value = strtoll(line, &ep, 10);
-            if (line[0] == '\0')
+            value = strtoll(lp, &ep, 10);
+            if (*lp == '\0')
                 errx(EX_DATAERR, "could not parse long long at line %ld",
                      lineno);
             if (errno == ERANGE && (value == LLONG_MIN || value == LLONG_MAX))
@@ -109,8 +115,16 @@ int main(int argc, char *argv[])
             intstore[value - Flag_Min]++;
             count++;
 
-            if (*ep == '\0' || *ep == '\n')
-                break;
+            // nom up not-strtoll() material so parser does not get wedged
+            // on trailing material such as `echo -n 0 1 2 3 4" "` 
+            while (*ep != '+' && *ep != '-' && !isdigit(*ep)) {
+                if (*ep == '\0' || *ep == '\n') {
+                    *ep = '\0';
+                    break;
+                }
+                ep++;
+            }
+            lp = ep;
         }
         lineno++;
     }
@@ -119,14 +133,15 @@ int main(int argc, char *argv[])
     if (ferror(fh))
         err(EX_IOERR, "ferror() reading input");
 
-    expected = count / delta;
+    // presume even distribution of values
+    expected = count / (double) delta;
 
     sq = 0.0;
-    for (long long i = 0; i < delta; i++) {
-        sq += pow((double) intstore[i] - expected, 2.0) / (double) expected;
+    for (long long v = 0; v < delta; v++) {
+        sq += pow(intstore[v] - expected, 2.0) / expected;
     }
-    pvalue = gsl_cdf_chisq_Q(sq, (double) expected - 1);
-    printf("p-value %.6f%s\n", pvalue, pvalue <= Flag_Fitness ? " *" : "");
+    pvalue = gsl_cdf_chisq_Q(sq, (double) delta - 1);
+    printf("p-value %.6g%s\n", pvalue, pvalue <= Flag_Fitness ? " *" : "");
 
     exit(EXIT_SUCCESS);
 }

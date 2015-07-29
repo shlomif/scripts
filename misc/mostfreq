@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# Tally the most frequent non-unique lines in the input, with -5 or -n 5 to
+# adjust the number of lines shown.
+
+if [ -z $1 ]; then
+  LINE_COUNT=10
+else
+  # KLUGE pretty fragile, e.g. if "-- -7" or the like supplied as input,
+  # or if a filename (that is not an integer) is run past whatever
+  # passes for test on the version of sh involved, etc.
+  if [ $1 -lt 0 ]; then
+    LINE_COUNT=`expr "$1" \* -1`
+  else
+    while getopts n: OPT; do
+      case $OPT in
+        n)
+          LINE_COUNT=$OPTARG
+        ;;
+      esac
+    done
+  fi
+fi
+
+sort | uniq -c | sort -nr | head -n "$LINE_COUNT"
