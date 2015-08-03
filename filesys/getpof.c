@@ -116,7 +116,8 @@ int main(int argc, char *argv[])
             break;
 
         case FTS_DC:
-            // TODO are such pruned automatically? at least warn if see one...
+            // `ln . foo` is one way (thanks to my users) that a filesystem
+            // loop can be created. So it is handy to warn about these...
             if (!Flag_Quiet)
                 fprintf(stderr, "filesystem cycle from '%s' to '%s'\n",
                         filedat->fts_accpath, filedat->fts_cycle->fts_accpath);

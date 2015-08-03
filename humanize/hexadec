@@ -1,0 +1,10 @@
+#!/usr/bin/env perl
+#
+# Converts hexadecimal values (e.g. 0xF00F or 0XF00F or even just F00F)
+# to decimal values.
+
+use strict;
+use warnings;
+
+chomp( @ARGV = <STDIN> ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
+for my $hv (@ARGV) { print( hex($hv), "\n" ) }

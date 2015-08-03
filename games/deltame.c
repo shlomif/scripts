@@ -32,6 +32,15 @@
 #   4
 #
 # Watchpoints to confirm suspicions will also be of use.
+#
+# A less involved test looks something like:
+#
+#   $ xxd a; xxd b
+#   0000000: 6361 7439 646f 670a                      cat9dog.
+#   0000000: 6361 7438 646f 670a                      cat8dog.
+#   $ ./deltame -d '-1 1' a b a 
+#   0003
+#   0003
 */
 
 #include <sys/stat.h>
@@ -48,33 +57,28 @@
 // https://github.com/thrig/goptfoo
 #include <goptfoo.h>
 
-/*
- # deltas are done by byte, so will be +/-0..255; this guard is for the deltas
- # list in the event that number of items does not properly match the number of
- # files provided (which is unknown until after option processing). Another
- # method would be to save the delta string, and parse that once the number of
- # files is known...
- */
-#define DELTA_EOL INT_MIN
-
-#define MAX_DELTAS 1024
+#define MAX_DELTAS 1024UL
 
 void emit_help(void);
 int *parse_deltas(const char *s);
 
 int main(int argc, char *argv[])
 {
-    int ch, *deltas, *fds;
     char **fbufs;
+    int ch, *fds;
+    long long *deltas;
     off_t fsize;
+    size_t deltacount;
     struct stat statbuf;
 
+    deltacount = 0;
     deltas = NULL;
+
     while ((ch = getopt(argc, argv, "h?d:")) != -1) {
         switch (ch) {
 
         case 'd':
-            deltas = parse_deltas(optarg);
+            flagtololls(ch, optarg, -255LL, 255LL, &deltas, &deltacount, 1UL, MAX_DELTAS);
             break;
 
         case 'h':
@@ -87,7 +91,7 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc <= 0 || !deltas)
+    if (argc <= 0 || deltacount == 0)
         emit_help();
 
     if ((fds = calloc((size_t) argc, sizeof(int))) == NULL)
@@ -104,6 +108,15 @@ int main(int argc, char *argv[])
     if (fsize > INT_MAX)
         errx(EX_DATAERR, "file '%s' is too large", *argv);
 
+    if (argc > (int) deltacount + 1) {
+        warnx("notice: more files than deltas");
+        argc = (int) deltacount + 1;
+    }
+
+    /* TODO could use less memory by only having two images in memory at
+     * once, or to improve the logic so deltas are done between all of
+     * the images or that the logic is applied across all the files, and
+     * not just for the two files and location in question. */
     for (int i = 0; i < argc; i++) {
         if ((fds[i] = open(argv[i], O_RDONLY)) == -1)
             err(EX_IOERR, "could not open '%s'", argv[i]);
@@ -115,8 +128,6 @@ int main(int argc, char *argv[])
     }
 
     for (int i = 0; i < argc - 1; i++) {
-        if (deltas[i] == DELTA_EOL)
-            errx(EX_DATAERR, "too few deltas for number of input files");
         for (off_t w = 0; w < fsize; w++) {
             if ((fbufs[i + 1][w] - fbufs[i][w]) == (int) deltas[i]) {
                 printf("%04X\n", (unsigned int) w);
@@ -131,52 +142,4 @@ void emit_help(void)
 {
     fprintf(stderr, "Usage: deltame -d 'd1 ...' file1 file2 ...\n");
     exit(EX_USAGE);
-}
-
-int *parse_deltas(const char *s)
-{
-    char *ep, *sp;
-    int cur_d, *deltas, max_d;
-    long long value;
-
-    if (!s || *s == '\0') {
-        warnx("could not parse deltas: empty option argument");
-        emit_help();
-    }
-
-    max_d = 8;
-    if ((deltas = calloc((size_t) max_d, sizeof(int))) == NULL)
-        err(EX_OSERR, "could not calloc() %d deltas", max_d);
-
-    cur_d = 0;
-    sp = (char *) s;
-    while (1) {
-        errno = 0;
-        value = strtoll(sp, &ep, 10);
-        if (s[0] == '\0')
-            errx(EX_DATAERR, "could not parse delta value");
-        if (errno == ERANGE && (value == LLONG_MIN || value == LLONG_MAX))
-            errx(EX_DATAERR, "delta value out of range");
-        if (value < -255 || value > 255)
-            errx(EX_DATAERR, "delta value beyond bounds");
-
-        deltas[cur_d++] = (int) value;
-
-        while (cur_d >= max_d) {
-            max_d <<= 1;
-            if ((deltas =
-                 realloc(deltas, (size_t) max_d * sizeof(int))) == NULL)
-                err(EX_OSERR, "could not realloc() %d deltas", max_d);
-            if (max_d > MAX_DELTAS)
-                errx(1, "will not allocate more than %d deltas", MAX_DELTAS);
-        }
-
-        if (*ep == '\0')
-            break;
-        else
-            sp = ep;
-    }
-
-    deltas[cur_d] = DELTA_EOL;
-    return deltas;
 }

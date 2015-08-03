@@ -1,0 +1,29 @@
+#!/usr/bin/env zsh
+#
+# Automates certain aspects of flailing around in C. Set the GDB_OPTIONS
+# env var to pass other options to gdb, e.g. -d to specify where sources
+# live, etc.
+
+CORE=
+
+if [[ $1 = *.core ]]; then
+  CORE=$1
+  PROG=$CORE:r
+elif [[ -n $1 ]]; then
+  PROG=$1
+  if [[ -e $PROG.core ]]; then
+    CORE=$PROG.core
+  fi
+else
+  CORE=(*.core(Nom[1]))
+  if [[ -z $CORE ]]; then
+    echo >&2 success: could not find a core file
+    # mayhap a random executable from the present directory will do?
+    PROG=(*(N*om[1]))
+    [[ -z $PROG ]] && exit 1
+  else
+    PROG=$CORE:r
+  fi
+fi
+
+exec gdb -q -tui $=GDB_OPTIONS -- $PROG $CORE
