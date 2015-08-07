@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+#
+# Send the contents of a file to standard output in segments. Each
+# segment is prefixed with the offset and length of subsequent data.
+#
+# An optional second argument is the offset at which to begin reading,
+# and the optional third argument is how many buffers to skip before
+# reading the next record. The BUFSIZE may be specified as the fourth
+# argument.
+#
+# In a hurry?
+#
+#   server$ nc -l 1234 | segrecv afile & \
+#           nc -l 1235 | segrecv afile & \
+#           nc -l 1236 | segrecv afile &
+#
+#   client$ segsend afile    0 3 | nc 127.0.0.1 1234 & \
+#           segsend afile 1024 3 | nc 127.0.0.1 1235 & \
+#           segsend afile 2048 3 | nc 127.0.0.1 1236 &
+#
+# A more illustrative example with BUFSIZE set to 6 and two segmenters
+# of the file:
+#
+#   $ xxd input
+#   0000000: 6e69 6262 6c31 6e69 6262 6c32 6e69 6262  nibbl1nibbl2nibb
+#   0000010: 6c33 6e69 6262 6c34 6e69 6262 6c35 6e69  l3nibbl4nibbl5ni
+#   0000020: 6262 6c36 6e69 6262 6c37 6e69 6262 6c38  bbl6nibbl7nibbl8
+#   0000030: 0a                                       .
+#   % ./segsend input 0 2 6 | xxd
+#   0000000: 0000 0000 0000 0006 6e69 6262 6c31 0000  ........nibbl1..
+#   0000010: 000c 0000 0006 6e69 6262 6c33 0000 0018  ......nibbl3....
+#   0000020: 0000 0006 6e69 6262 6c35 0000 0024 0000  ....nibbl5...$..
+#   0000030: 0006 6e69 6262 6c37 0000 0030 0000 0001  ..nibbl7...0....
+#   0000040: 0a                                       .
+#   % ./segsend input 6 2 6 | xxd
+#   0000000: 0000 0006 0000 0006 6e69 6262 6c32 0000  ........nibbl2..
+#   0000010: 0012 0000 0006 6e69 6262 6c34 0000 001e  ......nibbl4....
+#   0000020: 0000 0006 6e69 6262 6c36 0000 002a 0000  ....nibbl6...*..
+#   0000030: 0006 6e69 6262 6c38                      ..nibbl8
+#
+# Yes, this is for a hypothetical "need to transfer data off a system
+# with only rudimentary tools available and a flaky network" case.
+# `rsync` gets installed onto systems I maintain for a reason.
+
+$BUFSIZE = 1024;
+
+# TODO need offset if restarting, though "1/3" "2/3" "3/3" might
+# be a better way to indicate # clients and which is what; BUFSIZE
+# from env like for recv script.
+die "Usage: $0 file [offset] [modulus] [BUFSIZE]\n" unless @ARGV;
+
+open( FH, "< $ARGV[0]" ) || die "could not open $ARGV[0]: $!\n";
+binmode(FH)     || die "could not binmode $ARGV[0]: $!\n";
+binmode(STDOUT) || die "could not binmode STDOUT: $!\n";
+
+$modulus = 1;
+
+if ( $ARGV[1] ) {
+  die "offset must be >= 0\n" if $ARGV[1] < 0;
+  seek( FH, int( $ARGV[1] ), 0 )
+    || die "could not seek $ARGV[0]: $!\n";
+}
+$modulus = int $ARGV[2] if $ARGV[2];
+$BUFSIZE = int $ARGV[3] if $ARGV[3];
+
+$modulus = 1 if $modulus < 1;
+die "BUFSIZE must be >0\n" if $BUFSIZE < 1;
+
+$|++;
+
+$maxoffset = 0;
+
+while (1) {
+  $offset = tell(FH);
+  $ret = read( FH, $buf, $BUFSIZE );
+  die "could not read $ARGV[0] at $offset: $!\n" if !defined $ret;
+  exit(0) if $ret == 0;    #EOF
+
+  # However, much more important is what the server sees as to where to
+  # restart things when the network or system fails.
+  #warn "info: read $ARGV[0]:$offset\n";
+
+  print pack "NN/a*", $offset, $buf;
+
+  if ( $modulus > 1 ) {
+    seek( FH, $ret * ( $modulus - 1 ), 1 )
+      || die "could not seek $ARGV[0]: $!\n";
+  }
+}

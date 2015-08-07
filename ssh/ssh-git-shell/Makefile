@@ -1,5 +1,4 @@
 ssh-git-shell: ssh-git-shell.c
-	$(CC) $(CFLAGS) -o ssh-git-shell ssh-git-shell.c
 
 clean:
-	@-rm ssh-git-shell
+	@-rm -f ssh-git-shell *.core 2>/dev/null

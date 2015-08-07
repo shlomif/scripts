@@ -14,4 +14,4 @@ udp-sink: udp-sink.c getopts.o udpfling.h
 	$(CC) $(CFLAGS) -o udp-sink getopts.o udp-sink.c
 
 clean:
-	@-rm -f showip udp-sender udp-sink *.o 2>/dev/null
+	@-rm -f showip udp-sender udp-sink *.o *.core 2>/dev/null

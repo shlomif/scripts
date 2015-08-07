@@ -7,3 +7,6 @@ byteswapprime: byteswapprime.c
 replacebytes: replacebytes.c
 
 twiddle: twiddle.c
+
+clean:
+	@-rm -f byteswap byteswapprime replacebytes twiddle *.core 2>/dev/null

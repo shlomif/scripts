@@ -9,4 +9,4 @@ birds: birds.c
 orb-of-fire: orb-of-fire.c
 
 clean:
-	@-rm -f birds orb-of-fire *.core >/dev/null 2>&1
+	@-rm -f birds orb-of-fire *.core 2>/dev/null

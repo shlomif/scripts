@@ -15,4 +15,4 @@ malloc: malloc.c
 usemem: usemem.c
 
 clean:
-	@-rm -f insertornot lockalot malloc usemem
+	@-rm -f insertornot lockalot malloc usemem *.core 2>/dev/null

@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 // for res_* method
+#include <sys/param.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/nameser.h>
@@ -73,7 +74,7 @@ char *host;
     u_char answer[128] = "";
     unsigned char *p;
 
-    len = res_search(host, C_IN, T_A, answer, sizeof(answer));
+    len = res_search(host, C_IN, T_A, answer, (int) sizeof(answer));
     if (len == -1)
         errx(EX_NOHOST, "res_search failed: h_errno=%d, hstrerror=%s",
              h_errno, hstrerror(h_errno));
@@ -81,7 +82,7 @@ char *host;
     p = answer;
     p += 12;                    // skip over header [RFC 1035]
 
-    status = dn_expand(answer, answer + len, p, rhost, sizeof(rhost));
+    status = dn_expand(answer, answer + len, p, rhost, (int) sizeof(rhost));
     if (status < 0)
         errx(EX_NOHOST, "dn_expand failed");
 

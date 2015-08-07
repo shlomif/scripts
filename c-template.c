@@ -9,8 +9,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-int Return_Value = EXIT_SUCCESS;
-
 void emit_help(void);
 
 int main(int argc, char *argv[])
@@ -19,7 +17,6 @@ int main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
-
         case 'h':
         case '?':
         default:
@@ -32,11 +29,11 @@ int main(int argc, char *argv[])
 
 
 
-    exit(Return_Value);
+    exit(EXIT_SUCCESS);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: %s TODO\n", getprogname());
+    fprintf(stderr, "Usage: FIXME TODO\n");
     exit(EX_USAGE);
 }

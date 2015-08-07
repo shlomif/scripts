@@ -1,0 +1,30 @@
+Duct Tape & Bubblegum Data Transfer Solutions, Inc.
+
+Practice code for when rsync(1) or ssh(1) are not available (but, for some
+reason, nc(1) and possibly perl(1) are) and data is in need of transferance
+from server A to server B with the prototypical unreliable network thrown in
+for good measure.
+
+The simplest method might run something like:
+
+  server$ nc -l 1234 > out
+
+  client$ nc server 1234 < infile
+
+And then when the connection or client borks, restart with `tail -c +$size
+infile` based on how much has reached the server. Not all tail(1)
+implementations are perhaps so featureful, so older Unix may need to use
+split(1) or
+
+  perl -e 'open F, shift; seek F, shift, 0; binmode F; print while <F>' \
+    file seekoffset | nc ...
+
+Some nc(1) have a -S option to enable "RFC 2385 TCP MD5 signatures"
+which will help avoid the data being corrupted in transit, if the
+"unreliable network" swings that way. However, this flag passed to nc(1)
+as a client results in a non-zero exit (and no data sent) and passed to
+nc(1) as a server still allows for a netork corruptor (../diversion) to
+corrupt the packets.
+
+The code here is not so simple (as the above), nor complex enough (e.g. what
+rsync(1) provides) so thus should probably never be used.

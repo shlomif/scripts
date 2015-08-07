@@ -1,7 +1,9 @@
 #!/usr/bin/env perl
 #
 # Stitches input files together, something like join(1) except selecting
-# particular columns (all by default) and joining by line number.
+# particular columns (all by default) and joining by line number. May or
+# may not be faster than using paste(1) and then doing something with
+# those joined columns, elsewhere.
 #
 # Run perldoc(1) on this file for additional documentation.
 #

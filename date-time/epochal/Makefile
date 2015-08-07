@@ -1,5 +1,4 @@
 epochal: epochal.c
-	$(CC) $(CFLAGS) epochal.c -o epochal
 
 # requires App::Prove, Test::More, Test::Cmd perl modules installed
 test: epochal

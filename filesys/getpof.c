@@ -17,6 +17,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+bool Flag_Null;                 // -0
 bool Flag_Quiet;                // -q
 bool Flag_Recurse;              // -r
 
@@ -34,7 +35,7 @@ int main(int argc, char *argv[])
 
     int ret = EXIT_SUCCESS;     // optimistic
 
-    while ((ch = getopt(argc, argv, "h?qrx")) != -1) {
+    while ((ch = getopt(argc, argv, "h?qrx0")) != -1) {
         switch (ch) {
         case 'q':
             Flag_Quiet = true;
@@ -46,6 +47,10 @@ int main(int argc, char *argv[])
 
         case 'x':
             fts_options |= FTS_XDEV;
+            break;
+
+        case '0':
+            Flag_Null = true;
             break;
 
         case 'h':
@@ -96,7 +101,7 @@ int main(int argc, char *argv[])
                 err(EX_OSERR, "could not asprintf() file path");
 
             if (stat(filep, &statbuf) == 0) {
-                printf("%s\n", filedat->fts_path);
+                printf("%s%c", filedat->fts_path, Flag_Null ? '\0' : '\n');
                 if (!Flag_Recurse)
                     fts_set(filetree, filedat, FTS_SKIP);
             } else {
@@ -135,6 +140,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: getpof [-r] [-q] [-x] filename [dir ..]\n");
+    fprintf(stderr, "Usage: getpof [-0] [-r] [-q] [-x] filename [dir ..]\n");
     exit(EX_USAGE);
 }

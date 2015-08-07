@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+#
+# Undo what segsend does to an input file; data from segsend is read on
+# standard input, and written into the filename mentioned as the first
+# argument.
+#
+# Reconstructing multiple files merely requires using the same buffer
+# size as used in segsend; the order in which the segments are read does
+# not matter.
+#
+#   $ segsend input 0 2 6 > x0
+#   $ segsend input 6 2 6 > x1
+#   $ segrecv output 6 < x1
+#   $ segrecv output 6 < x0
+
+use Fcntl;
+
+$BUFSIZE = 1024;
+
+# TODO need to be able to read multiple files, so "outfile -" for stdin,
+# "outfile f1 f2..." otherwise; BUFSIZE must then be arg or env.
+die "Usage: ... | $0 outfile [BUFSIZE]\n" unless @ARGV;
+
+sysopen( FH, $ARGV[0], O_CREAT | O_RDWR )
+  || die "could not open $ARGV[0]: $!\n";
+binmode(FH);
+binmode(STDIN);
+
+$BUFSIZE = $ARGV[1] if $ARGV[1];
+
+$BUFSIZE += 8;    # for the NN offset,size prefix
+
+while (1) {
+  $ret = read( STDIN, $buf, $BUFSIZE );
+  die "could not read $ARGV[0] at $offset: $!\n" if !defined $ret;
+  exit(0) if $ret == 0;    #EOF
+
+  # NOTE that invalid offsets may result in an extremely large (and
+  # sparse) file. Negative offsets might happen if something is
+  # corrupted, which is easy to do with cat(1), or anything that adds
+  # any sort of data to the comunication channel (sshd motd was one such
+  # source, back in the day). These will throw an execption. Hashing to
+  # detect corruption would be critical...
+  ( $offset, $orig ) = unpack "NN/a", $buf;
+  sysseek( FH, $offset, 0 ) || die "could not seek $ARGV[0]: $!\n";
+  syswrite( FH, $orig );
+
+  warn "info: wrote offset $offset\n";
+}
