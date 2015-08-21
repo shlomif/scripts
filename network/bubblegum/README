@@ -23,7 +23,7 @@ Some nc(1) have a -S option to enable "RFC 2385 TCP MD5 signatures"
 which will help avoid the data being corrupted in transit, if the
 "unreliable network" swings that way. However, this flag passed to nc(1)
 as a client results in a non-zero exit (and no data sent) and passed to
-nc(1) as a server still allows for a netork corruptor (../diversion) to
+nc(1) as a server still allows for a netork corruptor (diversion) to
 corrupt the packets.
 
 The code here is not so simple (as the above), nor complex enough (e.g. what
