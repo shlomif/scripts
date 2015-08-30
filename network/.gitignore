@@ -1,4 +1,5 @@
 endian
+getsockname
 ip6tomac
 macutil
 portpester

@@ -1,16 +1,21 @@
-.Dd July 9, 2014
+.Dd August 31, 2015
 .Dt REPLACEBYTES 1
-.nh
-.Os
+.Ds
 .Sh NAME
 .Nm replacebytes
 .Nd alters files in-place with data from a source file
 .Sh SYNOPSIS
-.Nm replacebytes
-[ -f file | -m msg ] [-I offset] [ -s | -S size ] [-t size] [-O offset] file [..]
+.Nm
+.Bk -words
+.Op Fl f Ar file | Fl m Ar msg
+.Op Fl O Ar offset
+.Op Fl t Ar trunc
+.Ar file
+.Op Ar file2 ..
+.Ek
 .Sh DESCRIPTION
-Alters files in-place with the specified bytes from the source file at
-the specified offset in any files listed.
+Alters files in-place with the specified bytes from the source file (or
+with the given message) at the specified offset in any files listed.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
@@ -18,40 +23,17 @@ The options are as follows:
 Source file to read the replacement bytes from. Mandatory, or instead
 specify the data to write with the
 .Fl m
-flag. 
-.It Fl I Ar offset
-Offset at which to read from the
-.Fl f
-file. Zero by default.
+flag. The source file must have data in it.
 .It Fl m Ar message
-Data to write into file, instead of reading said data via the
-.Fl f
-flag. Will cause the size flags to be ignored.
-.It Fl O Ar offset
-Offset at which to write the data from the
-.Fl f
-file into the output file(s) listed. Zero by default.
-.It Fl s
-Read the entire source file (minus any
-.Fl I
-offset). Incompatible with the
-.Fl S
+Data to write into file. The message can be the empty string, presumably
+used in conjunction with the
+.Fl t
 flag.
-.It Fl S Ar size
-Size of the data to read from the
-.Fl f
-file. Incompatible with the
-.Fl s
-flag. One of
-.Fl s
-or
-.Fl S
-must be specified, along with one or more files to replace the data in.
-.It Fl t Ar offset
-Truncate (or extend) the files to the specified offset. This is done
-after the 
-.Xr pwrite 2
-system call.
+.It Op Fl O Ar offset
+Offset at which to write the data in the output files.
+.It Op Fl t Ar truncate
+Truncate (or extend!) the output file(s) to the specified offset. This
+is done after the replacement of bytes.
 .El
 .Sh CAVEATS
 The files will be altered in-place, without locking. Such edits are not

@@ -26,8 +26,6 @@
 #define OUTBUF_LEN_MIN 32
 #define OUTBUF_LEN_MAX 8192
 
-#define INPUT_FORMAT_MAXLEN 99
-
 /* Command Line Options */
 char *Flag_Input_Format;        /* -f for strptime - required */
 bool Flag_Global;               /* -g multiple times per line */
@@ -48,7 +46,7 @@ int main(int argc, char *argv[])
 {
     FILE *fh;
     char *line = NULL;
-    int ch, ret;
+    int ch;
     size_t linesize = 0;
     ssize_t linelen;
     ssize_t linenum = 1;
@@ -64,28 +62,17 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
         switch (ch) {
         case 'f':
-            if ((ret = asprintf(&Flag_Input_Format, "%s", optarg))
-                == -1)
-                err(EX_SOFTWARE, "asprintf(3) could not copy -f flag");
-            if (ret > INPUT_FORMAT_MAXLEN)
-                errx(EX_DATAERR, "-f flag longer than %d", INPUT_FORMAT_MAXLEN);
+            Flag_Input_Format = optarg;
             break;
-
         case 'g':
             Flag_Global = true;
             break;
-
         case 'o':
-            if ((ret = asprintf(&Flag_Output_Format, "%s", optarg)) == -1)
-                err(EX_SOFTWARE, "asprintf(3) could not copy -o flag");
-            if (ret > INPUT_FORMAT_MAXLEN)
-                errx(EX_DATAERR, "-o flag longer than %d", INPUT_FORMAT_MAXLEN);
+            Flag_Output_Format = optarg;
             break;
-
         case 's':
             Flag_Suppress = true;
             break;
-
         case 'y':
             if (time(&now) == (time_t) - 1)
                 errx(EX_OSERR, "time(3) could not obtain current time??");
@@ -93,13 +80,11 @@ int main(int argc, char *argv[])
                 errx(EX_OSERR, "localtime_r(3) failed??");
             Flag_Custom_Year = true;
             break;
-
         case 'Y':
             if (!strptime(optarg, "%Y", &When))
                 errx(EX_USAGE, "strptime(3) could not parse year from -Y flag");
             Flag_Custom_Year = true;
             break;
-
         case 'h':
         case '?':
         default:

@@ -2,6 +2,8 @@ CFLAGS += `pkg-config --cflags --libs goptfoo`
 
 endian: endian.c
 
+getsockname: getsockname.c
+
 ip6tomac: ip6tomac.c
 
 macutil: macutil.c
@@ -19,4 +21,4 @@ v4ispalindrome: v4ispalindrome.c
 
 
 clean:
-	@-rm -f endian ip6tomac macutil portpester randmac v4addr v4in6addr v4ispalindrome v6addr *.core 2>/dev/null
+	@-rm -f endian getsockname ip6tomac macutil portpester randmac v4addr v4in6addr v4ispalindrome v6addr *.core 2>/dev/null

@@ -1,24 +1,12 @@
 /************************************************************************
- * Quick (but dangerous?) method of overwriting arbitrary bytes in the
- * files specified with arbitrary data from a source file. The files are
- * modified in-place, which may not be the most sensible thing to do.
- * Atomicity would involve some combination of mktemp(3) and rename(2).
- * But that, in turn, might have complications should some fancy ACL or
- * security context only be associated with the now previous inode.
+ * Quick (but dangerous!) method of overwriting arbitrary bytes in the
+ * files specified with arbitrary data. The files are modified in-place,
+ * which may not be the most sensible thing to do. Atomicity would
+ * involve some combination of mktemp(3) and rename(2). But that, in
+ * turn, might have complications should some fancy ACL or security
+ * context only be associated with the now previous inode.
  *
- * Usage:
- *   replacebytes -S 1024 -f srcfile fixfile1 fixfile2 ..
- *   replacebytes -I 123 -O 456 -S 789 -f src fix
- *   replacebytes -s -f src2 fix2
- *   replacebytes -m 'the text' -O 1234 fix3
- *
- * Which would replace the first 1024 bytes of `fixfile*' with the first
- * 1024 bytes of `srcfile', or take 789 bytes from `src' at offset 123
- * and write it at offset 456 of `fix', or write the entire contents of
- * `src2' over the beginning of `fix2', or instead use the -m option to
- * specify the replacement text. See also dd(1), hexdump(1), the
- * File::ReplaceBytes Perl module, and your backups. Backups are nice.
- * You have backups, right?
+ * Probably more sensibly done with dd(1).
  */
 
 #include <sys/types.h>
@@ -26,7 +14,6 @@
 #include <err.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,38 +25,34 @@
 
 void emit_help(void);
 
-char *Flag_Srcfile;             /* -f */
-unsigned long Flag_Offset;      /* -O */
-unsigned long Flag_Trunc;       /* -t */
+char *Flag_Srcfile;             // -f
+unsigned long Flag_Offset;      // -O
+unsigned long Flag_Trunc;       // -t
+
+char *bufp;                     // -m or from -f srcfile
+int buf_len;
 
 int main(int argc, char *argv[])
 {
     int ch, fd;
-    char *bufp = NULL;
-    int buf_len = 0;
     off_t seek_len;
     int write_len;
 
-    while ((ch = getopt(argc, argv, "h?f:m:O:t:")) != -1) {
+    while ((ch = getopt(argc, argv, "f:m:O:t:h?")) != -1) {
         switch (ch) {
         case 'f':
-            if ((Flag_Srcfile = strndup(optarg, (size_t) PATH_MAX)) == NULL)
-                err(EX_SOFTWARE, "could not copy the -f flag");
+            Flag_Srcfile = optarg;
             break;
-
         case 'm':
-            if ((buf_len = asprintf(&bufp, "%s", optarg)) == -1)
-                err(EX_SOFTWARE, "could not copy the -m flag");
+            bufp = optarg;
+            buf_len = strnlen(optarg, (size_t) ARG_MAX);
             break;
-
         case 'O':
             Flag_Offset = flagtoul(ch, optarg, 0UL, ULONG_MAX);
             break;
-
         case 't':
             Flag_Trunc = flagtoul(ch, optarg, 0UL, ULONG_MAX);
             break;
-
         case 'h':
         case '?':
         default:
@@ -84,31 +67,30 @@ int main(int argc, char *argv[])
         warnx("cannot mix -m and -f flags");
         emit_help();
     }
+    if (!bufp && !Flag_Srcfile) {
+        warnx("need one of -m or -f flags");
+        emit_help();
+    }
     if (argc == 0) {
-        warnx("need files to operate on");
+        warnx("need a file (or files) to operate on");
         emit_help();
     }
 
-    /********************************************************************
-     *
-     * Read to buffer from the source (-f) file.
-     *
-     */
-
+    /* Read to buffer from the source (-f) file. */
     if (!bufp) {
         if ((fd = open(Flag_Srcfile, O_RDONLY)) == -1)
             err(EX_IOERR, "could not open() -f '%s'", Flag_Srcfile);
 
         if ((seek_len = lseek(fd, (off_t) 0, SEEK_END)) == -1)
-            err(EX_IOERR, "could not lseek() to end -f '%s'", Flag_Srcfile);
+            err(EX_IOERR, "could not lseek() to end of '%s'", Flag_Srcfile);
         if (seek_len < 1)
-            errx(EX_DATAERR, "no data in -f '%s'", Flag_Srcfile);
+            errx(EX_DATAERR, "no data in '%s'", Flag_Srcfile);
 
         if (seek_len >= INT_MAX)
             errx(EX_DATAERR, "too much data in -f '%s'", Flag_Srcfile);
 
         if ((bufp = malloc((size_t) seek_len)) == NULL)
-            err(EX_OSERR, "could not malloc() buffer for -f '%s' contents",
+            err(EX_OSERR, "could not malloc() buffer for contents of '%s'",
                 Flag_Srcfile);
 
         /* PORTABILITY same concerns as write(2) below, but since a fixed
@@ -128,12 +110,7 @@ int main(int argc, char *argv[])
         close(fd);
     }
 
-    /********************************************************************
-     *
-     * Write buffer to specified location in any files mentioned.
-     *
-     */
-
+    /* Write buffer to specified location in any files mentioned. */
     while (*argv) {
         if ((fd = open(*argv, O_WRONLY)) == -1)
             err(EX_IOERR, "could not open() output file '%s'", *argv);
@@ -141,15 +118,17 @@ int main(int argc, char *argv[])
         /* PORTABILITY "some platforms allow for nbytes to range between
          * SSIZE_MAX and SIZE_MAX -2" per OpenBSD write(2). Worry about
          * this if actually see it in the wild. */
-        if ((write_len =
-             (int) pwrite(fd, bufp, (size_t) buf_len,
-                          (off_t) Flag_Offset)) != buf_len) {
-            if (write_len > -1)
-                errx(EX_IOERR,
-                     "could not write %d to output file '%s': got instead %d",
-                     buf_len, *argv, write_len);
-            else
-                err(EX_IOERR, "error writing to output file '%s'", *argv);
+        if (buf_len > 0) {
+            if ((write_len =
+                 (int) pwrite(fd, bufp, (size_t) buf_len,
+                              (off_t) Flag_Offset)) != buf_len) {
+                if (write_len > -1)
+                    errx(EX_IOERR,
+                         "did not write %d to output file '%s': instead %d ??",
+                         buf_len, *argv, write_len);
+                else
+                    err(EX_IOERR, "error writing to output file '%s'", *argv);
+            }
         }
 
         if (Flag_Trunc > 0)
@@ -168,6 +147,6 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     fprintf(stderr,
-            "Usage: replacebytes [-f file|-m str] [-I offset] file [file2 ...]\n");
+            "Usage: replacebytes [-f file|-m str] [-O offset] [-t] file [file2 ...]\n");
     exit(EX_USAGE);
 }

@@ -1,16 +1,19 @@
+/***********************************************************************
+ *
+ * Option parsing for udpfling utils.
+ *
+ */
+
 // https://github.com/thrig/goptfoo
 #include <goptfoo.h>
 
 #include "udpfling.h"
-
-#define INPUT_FORMAT_MAXLEN 99
 
 int parse_opts(int argc, char *argv[])
 {
     int ch;
 
     bool fourandsix = false;
-    bool has_port = false;
     bool delayed_flood = false;
 
     Flag_AI_Family = AF_UNSPEC;
@@ -39,11 +42,11 @@ int parse_opts(int argc, char *argv[])
             break;
 
         case 'C':
-            Flag_Max_Send = flagtoul(ch, optarg, 0UL, (unsigned long)INT_MAX);
+            Flag_Max_Send = flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX);
             break;
 
         case 'c':
-            Flag_Count = flagtoul(ch, optarg, 0UL, (unsigned long)INT_MAX);
+            Flag_Count = flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX);
             break;
 
         case 'd':
@@ -51,7 +54,9 @@ int parse_opts(int argc, char *argv[])
                 warnx("cannot both delay and flood packets");
                 emit_usage();
             }
-            Flag_Delay = (unsigned int) flagtoul(ch, optarg, 0UL, (unsigned long)INT_MAX);
+            Flag_Delay =
+                (unsigned int) flagtoul(ch, optarg, 0UL,
+                                        (unsigned long) INT_MAX);
             Flag_Flood = 0;
             delayed_flood = true;
             break;
@@ -82,9 +87,7 @@ int parse_opts(int argc, char *argv[])
             break;
 
         case 'p':
-            if (asprintf(&Flag_Port, "%*s", INPUT_FORMAT_MAXLEN, optarg) == -1)
-                err(EX_DATAERR, "could not copy -p port option");
-            has_port = true;
+            Flag_Port = optarg;
             break;
 
         case 'h':
@@ -94,9 +97,10 @@ int parse_opts(int argc, char *argv[])
         }
     }
 
-    if (!has_port) {
+    if (!Flag_Port) {
         warnx("-p port option is mandatory");
         emit_usage();
     }
+
     return optind;
 }
