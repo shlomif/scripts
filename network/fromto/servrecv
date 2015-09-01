@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+#
+# Listen for incoming data and write that to STDOUT. (Sane equivalent:
+# `nc -l ...`) Add a "LocalHost => ..." constructor option to bind only
+# to a particular local address.
+
+use strict;
+use warnings;
+use IO::Socket::INET;
+
+die "Usage: $0 port > outfile\n" if @ARGV != 1;
+my $port = shift;
+
+my $sock = IO::Socket::INET->new(
+  Listen    => 1,
+  LocalPort => $port,
+  Proto     => 'tcp',
+  ReuseAddr => 1,
+) or die "$0: could not listen on *:$port: $@\n";
+
+my $reader = $sock->accept;
+die "$0: could not accept() socket\n" if !defined $reader;
+
+binmode $reader;
+binmode STDOUT;
+
+my $buf;
+while (1) {
+  my $buflen = sysread( $reader, $buf, 1440 );
+  die "sysread() failed: $!\n" if !defined $buflen;
+  last if $buflen == 0;    # EOF
+  syswrite STDOUT, $buf, $buflen;
+}
+
+exit 0;

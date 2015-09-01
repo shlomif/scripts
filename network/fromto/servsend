@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+#
+# Listen to a port and send standard input to whatever first thing
+# connects. (Add a "LocalHost => ..." constructor option to bind only to
+# a particular local address.)
+
+use strict;
+use warnings;
+use IO::Socket::INET;
+
+die "Usage: $0 port < infile\n" if @ARGV != 1;
+my $port = shift;
+
+my $sock = IO::Socket::INET->new(
+  Listen    => 1,
+  LocalPort => $port,
+  Proto     => 'tcp',
+  ReuseAddr => 1,
+) or die "$0: could not listen on *:$port: $@\n";
+
+my $writer = $sock->accept();
+die "$0: could not accept() socket\n" if !defined $writer;
+
+binmode STDIN;
+binmode $writer;
+
+my $buf;
+while (1) {
+  my $buflen = sysread( STDIN, $buf, 1440 );
+  die "sysread() failed: $!\n" if !defined $buflen;
+  last if $buflen == 0;    # EOF
+  syswrite $writer, $buf, $buflen;
+}
+
+exit 0;

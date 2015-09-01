@@ -175,7 +175,7 @@ if (@ARGV) {
 }
 
 sub handle_file {
-  @Stat_Buf = stat;
+  @Stat_Buf = lstat;
 
   if ( !-e _ ) {
     warn "Warning: skipping non-existent file: $_\n";
@@ -222,7 +222,7 @@ if ($report) {
 
 # File::Find subroutine that gets called for each file
 sub zapit {
-  @Stat_Buf = stat unless @Stat_Buf;
+  @Stat_Buf = lstat unless @Stat_Buf;
   my ( $cur_mode, $cur_uid, $cur_gid ) = @Stat_Buf[ 2, 4, 5 ];
 
   # remove type from mode, leaving permission
@@ -335,13 +335,19 @@ sub zapit {
         $badperms{$cur_uid}++ if $report;
       }
     }
-  } else {
+  } elsif ( -l _ ) {
     # NOTE: links are not supported; 4.4BSD symbolic links do not have
     #       modes, while those from SysV do (per the OpenBSD
     #       src/bin/chmod/chmod.c comments for the 'h' flag). Supporting
     #       SysV would likely require XS or similar to use the
     #       presumably different flavor of chmod(2) that influences the
     #       mode of symlinks.
+    #
+    # That being said, anything that is under the $parent directory
+    # should otherwise be found by recursion, and anything outside of
+    # that tree should not be found, under the principal of least
+    # surprise.
+  } else {
     warn "Notice: unsupported file type for chmod: $_\n";
   }
 
@@ -530,7 +536,8 @@ Files to operate on must be listed on the command line, or, failing
 that, be passed in on standard input (or, when the single non-option
 argument is C<->).
 
-Symbolic links are followed. See L<"Known Issues">.
+Symbolic links are ignored; changing permissions on the link itself is
+not a portable operation.
 
 =head1 OPTIONS
 
@@ -706,14 +713,6 @@ http://github.com/thrig/sial.org-scripts/tree/master
 
 If the bug is in the latest version, send a report to the author.
 Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-C<modefix> does not deal well or at all with symbolic links: chmod
-support on symbolic links varies by operating system, and would require
-delving into custom system calls on the systems that do support it.
-C<stat> calls are used by this code, which will resolve symbolic links.
-Hope that's okay!
 
 =head1 SEE ALSO
 
