@@ -1,6 +1,7 @@
-/* glibc 2.7+ password hash generator, e.g. for the kickstart rootpw line;
- * alternatives include `pwdhash` included with 389-ds or such. Not tested
- * on anything below Centos 7.
+/* glibc 2.7+ password hash generator, e.g. for the kickstart rootpw
+ * line; alternatives include `pwdhash` included with 389-ds or such.
+ * Should work on Centos 7 or equivalent; on RHEL6 the EPEL libsodium
+ * package lacks sodium_mlock so that will need to be updated.
  *
  * Usage:
  *   yum -y groupinstall 'Development tools'
