@@ -33,6 +33,7 @@
 #include <sodium.h>
 
 #define MIN_PASS_LEN 7
+#define MAX_PASS_LEN 67
 
 #define MAX_SALT 16U            // fixed length for all present fancier hashes
 #define SALT_LEN 4U + MAX_SALT
@@ -48,7 +49,7 @@ char Salt_Chars[] =
 
 int main(void)
 {
-    char *hash, *password, *verify;
+    char *hash, *password, *pp, *verify;
     char salt[SALT_LEN + 1], *sp;
     size_t len;
     ssize_t plen, vlen;
@@ -98,6 +99,19 @@ int main(void)
 
     sodium_memzero(verify, vlen);
     sodium_mlock(salt, SALT_LEN);
+
+    /* Additional sanity tests, on the assumption that the password must
+     * be typeable and thus reasonably short, and confined to a subset
+     * of ASCII. In addition to the traditional gets(3), both Apple and
+     * Google have had vulnerabilities from "too long" passwords. */
+    if (plen > MAX_PASS_LEN)
+        errx(EX_DATAERR, "password is too long");
+    pp = password;
+    while (*pp != '\0') {
+        if (*pp < 32 || *pp > 126)
+            errx(EX_DATAERR, "character in password out of range");
+        pp++;
+    }
 
     strncpy(salt, "$6$", 3);    // SHA512 indicator, again see crypt(3)
     sp = &salt[3];

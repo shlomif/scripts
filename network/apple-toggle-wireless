@@ -1,17 +1,25 @@
 #!/bin/sh
-#
-# Faster for me then fiddling around in system preferences.
 
-if `networksetup -getairportpower en1 | grep -qi On`; then
-  pkill -HUP ssh
-  apple-randomize-macaddr
-  networksetup -setairportpower en1 off
+WIF=en1
+
+if `networksetup -getairportpower $WIF | grep -qi On`; then
+  # Efforts to reset state and wipe out any prior DHCP leases; Mac OS X
+  # with a prior DHCP lease will ARP-spam the new network with the old
+  # IP address.
+  sudo arp -a -d
+  sudo ipconfig set $WIF NONE
+
+  pkill -u "$USER" -HUP ssh
+  apple-randomize-macaddr $WIF
+  networksetup -setairportpower $WIF off
   echo off
 else
-  # customized to turn off the Apple stuff and just be PF rules to block stuff
-  sudo pfctl -e -F all -f /etc/pf.conf >/dev/null
+  sudo ipconfig set $WIF DHCP
 
-  networksetup -setairportpower en1 on
-  apple-randomize-macaddr
+  # Customized to turn off the Apple stuff and just be PF rules to
+  # block stuff (including much Apple stuff, especially outgoing
+  # multicast spam).
+  sudo pfctl -e -F all -f /etc/pf.conf >/dev/null
+  networksetup -setairportpower $WIF on
   echo on
 fi

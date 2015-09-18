@@ -6,6 +6,14 @@
 #
 # (OS X 10.9 otherwise lacks the 'lladdr random' feature present on OpenBSD.)
 
-for iface in en0 en1; do
-  sudo ifconfig $iface lladdr `randmac -L 00:00:36:XX:XX:XX`
-done
+rAndOMizMAC() {
+  for iface in "$@"; do
+    echo sudo ifconfig $iface lladdr `randmac`
+  done
+}
+
+if [ -z "$1" ]; then
+  rAndOMizMAC en0 en1
+else
+  rAndOMizMAC "$@"
+fi
