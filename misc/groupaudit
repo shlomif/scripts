@@ -1,0 +1,67 @@
+#!/usr/bin/env perl
+#
+# Audits unix group membership (via a getgr* call) against a list of
+# input in file(s) or STDIN, on the off chance you have someone
+# requesting the addition of N number of users to a group only M of whom
+# have local accounts.
+#
+# For example, this shows that the 'kmem' group lacks 'otheruser', or
+# that 'root' is in the group but not the input:
+#
+#   % (echo root; echo otheruser) | groupaudit kmem
+#   -otheruser
+#   % </dev/null groupaudit kmem
+#   notice: no groups seen on input
+#   +root
+
+use strict;
+use warnings;
+
+my $group = shift // die "Usage: $0 group file|-\n";
+my $getgroup =
+  ( $group =~ m/^[0-9]+$/ ) ? sub { getgruid(shift) } : sub { getgrnam(shift) };
+
+my ( $grname, $members ) = ( $getgroup->($group) )[ 0, -1 ];
+die "$0: no such group '$group'\n"
+  if !defined $grname
+  or length $grname == 0;
+die "$0: no members for '$group'\n"
+  if !defined $members
+  or length $members == 0
+  or $members =~ m/^\s+$/;
+
+my %usercounts;
+for my $member ( split ' ', $members ) {
+  if ( exists $usercounts{$member} ) {
+    warn "notice: duplicate member in group [$group]: '$member'\n";
+    next;
+  }
+  $usercounts{$member}++;
+}
+
+my %seen;
+shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
+while ( my $line = readline() ) {
+  chomp $line;
+  for my $member ( split ' ', $line ) {
+    if ( exists $seen{$members} ) {
+      warn "notice: duplicate member in input: '$member'\n";
+      next;
+    }
+    if ( !exists $usercounts{$member} ) {
+      print "-$member\n";
+    } else {
+      $usercounts{$member}++;
+      $seen{$member} = 1;
+    }
+  }
+}
+if ( !keys %seen ) {
+  warn "notice: no groups seen on input\n";
+}
+
+for my $member ( keys %usercounts ) {
+  print "+$member\n" if $usercounts{$member} == 1;
+}
+
+exit 0;
