@@ -1,3 +1,4 @@
+CFLAGS += -std=c99
 CFLAGS += `pkg-config --cflags --libs goptfoo`
 
 endian: endian.c

@@ -29,7 +29,7 @@ for my $document (@ARGV) {
   # TODO URL lookup needs more error checking
   if ( $target->scheme ) {
     $file =
-      ( File::Temp::tempfile( "xquery.XXXXXXXXXX", DIR => File::Spec->tmpdir, ) )
+      ( File::Temp::tempfile( "xpquery.XXXXXXXXXX", DIR => File::Spec->tmpdir, ) )
       [1];
 
     my $ua =
