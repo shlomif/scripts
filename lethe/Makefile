@@ -1,4 +1,4 @@
-CFLAGS += `pkg-config --cflags --libs goptfoo`
+CFLAGS += `pkg-config --cflags --libs goptfoo jkiss`
 
 byteswap: byteswap.c
 

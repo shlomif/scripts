@@ -1,9 +1,10 @@
 /*
  * Swaps bytes in a file (or files) at offsets given by the -a and -b
- * options. May cause corruption (that likely being the point), or
- * perhaps fail halfway though (meh?), depending on what goes awry with
- * I/O. Backups, as always, may be more prudent than not. One way to see
- * what byte swaps can cause would work something like:
+ * options (or randomly, maybe, with -r). May cause corruption (that
+ * likely being the point), or perhaps fail halfway though (meh?),
+ * depending on what goes awry with I/O. Backups, as always, may be more
+ * prudent than not. One way to see what byte swaps can cause would work
+ * something like:
  * 
  *   #!/usr/bin/env zsh
  *
@@ -29,11 +30,18 @@
  *
  * The "Ship of Theseus" paradox likely applies to the thus reordered yet
  * unchanged sets of bytes.
+ *
+ * With -r [0..100] the offsets will be determined randomly, and the
+ * swap only done if a random number from 0..99 is less than the
+ * argument to -r. Thus `-r 100` will always swap two bytes (assuming
+ * the file is large enough to support that), while `-r 50` would do so
+ * only about half the time.
  */
 
 #include <err.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
@@ -42,8 +50,12 @@
 // https://github.com/thrig/goptfoo
 #include <goptfoo.h>
 
-long Flag_OffA;                 /* -a */
-long Flag_OffB;                 /* -b */
+// https://github.com/thrig/libjkiss
+#include <jkiss.h>
+
+long long Flag_OffA;            /* -a */
+long long Flag_OffB;            /* -b */
+unsigned long Flag_Rand;        /* -r */
 
 void emit_help(void);
 
@@ -52,17 +64,24 @@ int main(int argc, char *argv[])
     int ch, fd;
     char byte_a, byte_b;
     ssize_t bytes_read, bytes_written;
+    off_t filesize;
 
-    while ((ch = getopt(argc, argv, "a:b:h")) != -1) {
+    while ((ch = getopt(argc, argv, "a:b:hr:")) != -1) {
         switch (ch) {
         case 'a':
             Flag_OffA =
-                (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX - 1);
+                (long long) flagtoul(ch, optarg, 0UL,
+                                     (unsigned long) LLONG_MAX);
             break;
 
         case 'b':
             Flag_OffB =
-                (long) flagtoul(ch, optarg, 0UL, (unsigned long) INT_MAX - 1);
+                (long long) flagtoul(ch, optarg, 0UL,
+                                     (unsigned long) LLONG_MAX);
+            break;
+
+        case 'r':
+            Flag_Rand = flagtoul(ch, optarg, 0UL, 100UL);
             break;
 
         case 'h':
@@ -78,12 +97,33 @@ int main(int argc, char *argv[])
     if (argc == 0)
         emit_help();
 
-    if (Flag_OffA == Flag_OffB)
+    if (!Flag_Rand && Flag_OffA == Flag_OffB)
         errx(EX_DATAERR, "-a equals -b, nothing to do!");
+
+    jkiss64_init(NULL);
 
     while (*argv) {
         if ((fd = open(*argv, O_RDWR)) == -1)
-            err(EX_IOERR, "could not open '%s'", *argv);
+            err(EX_IOERR, "could not open '%s' for O_RDWR", *argv);
+
+        if (Flag_Rand > 0) {
+            if (jkiss64_uniform(100UL) < Flag_Rand) {
+                if ((filesize = lseek(fd, 0, SEEK_END)) == -1)
+                    err(EX_IOERR, "could not lseek '%s'", *argv);
+                if (filesize < 2)
+                    errx(EX_DATAERR, "file '%s' too small to swap bytes",
+                         *argv);
+                Flag_OffA = Flag_OffB =
+                    (off_t) jkiss64_uniform((uint64_t) filesize);
+                while (Flag_OffA == Flag_OffB) {
+                    Flag_OffB = (off_t) jkiss64_uniform((uint64_t) filesize);
+                }
+                fprintf(stderr, "dbg do swap %lld %lld (fs %lld)\n", Flag_OffA,
+                        Flag_OffB, filesize);
+            } else {
+                goto NEXTFILE;
+            }
+        }
 
         bytes_read = pread(fd, &byte_a, (size_t) 1, Flag_OffA);
         if (bytes_read == -1)
@@ -113,6 +153,7 @@ int main(int argc, char *argv[])
         else if (bytes_written != 1)
             errx(EX_IOERR, "B unequal pwrite() on '%s'", *argv);
 
+      NEXTFILE:
         if (close(fd) == -1)
             err(EX_IOERR, "problem closing '%s'", *argv);
 
@@ -124,6 +165,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: byteswap -a offsetn -b offsetm file [file1 ..]\n");
+    fprintf(stderr,
+            "Usage: byteswap [-a offsetn -b offsetm|-r odds] file [file1 ..]\n");
     exit(EX_USAGE);
 }
