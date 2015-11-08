@@ -1,0 +1,9 @@
+#!/bin/sh
+# for OpenBSD
+
+if [ `mixerctl outputs.master.mute` == outputs.master.mute=on ]; then
+  echo mute
+  exit
+else
+  exit 1
+fi
