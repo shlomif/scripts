@@ -1,0 +1,137 @@
+#!/usr/bin/env perl
+#
+# MIDI utility routines for the Perl MIDI suite.
+
+use strict;
+use warnings;
+use feature 'say';
+
+use MIDI                ();
+use Music::LilyPondUtil ();
+
+my %actions = (
+  'decompose'        => \&handle_decompose,
+  'dump'             => \&handle_dump,
+  'instrumentate'    => \&handle_instrumentate,
+  'nixcc'            => \&handle_nixcc,
+  'patch2instrument' => \&handle_patch2instrument,
+);
+my $EXIT_OK = 0;
+
+my $action = shift // die "Usage: $0 <action> <action-args ..>\n";
+die "error: no such action: $action\n" if !exists $actions{$action};
+exit $actions{$action}->(@ARGV);
+
+sub handle_decompose {
+  my $filename = shift // die "Usage: $0 decompose midi-file\n";
+
+  my $opus = MIDI::Opus->new(
+    { 'from_file'                => $filename,
+      'exclusive_event_callback' => sub {
+        # KLUGE this makes some possibly rash assumptions about the
+        # contents of the MIDI files...
+        if ( $_[0] eq 'note_on' ) {
+          print "note: ", $MIDI::number2note{ $_[3] }, " dtime $_[4]";
+        } elsif ( $_[0] eq 'note_off' ) {
+          print " note_off: $_[1]\n";
+        } else {
+          print "event: @_\n";
+        }
+      },
+      'include' => \@MIDI::Event::All_events
+    }
+  );
+
+  return $EXIT_OK;
+}
+
+sub handle_dump {
+  my $filename = shift // die "Usage: $0 decompose midi-file\n";
+
+  my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+  $opus->dump( { dump_tracks => 1 } );
+
+  return $EXIT_OK;
+}
+
+# Generates all variations on standard MIDI instruments, e.g. to review
+# what a particular sound font sounds like. (This is perhaps easier than
+# templating the lilypond and then...)
+sub handle_instrumentate {
+  my $filename = shift // die "Usage: $0 nixcc midi-file\n";
+
+  my $in_opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+
+  # TODO option to specify specific numbers or range; this is the
+  # instruments minus in particular sound effects.
+  for my $instrument ( 0 .. 119 ) {
+    my $out_opus = $in_opus->copy;
+    my $outfile  = "inst$instrument.midi";
+
+    my $tracks = $out_opus->tracks_r;
+    for my $track (@$tracks) {
+      my $events = $track->events_r;
+      my @nix_events;
+      for my $ei ( 0 .. $#$events ) {
+        # since will be changing the patch, don't then lie about the
+        # instrument name, if any
+        if ( $events->[$ei][0] eq 'instrument_name' ) {
+          unshift @nix_events, $ei;
+        }
+        if ( $events->[$ei][0] eq 'patch_change' ) {
+          $events->[$ei][3] = $instrument;
+        }
+      }
+      for my $ei (@nix_events) {
+        splice @$events, $ei, 1;
+      }
+      # and, regardless, prefix a patch change, to handle the case of a
+      # track without a patch change
+      unshift @$events, [ 'patch_change', 0, 0, $instrument ];
+    }
+
+    $out_opus->write_to_file($outfile);
+  }
+
+  return $EXIT_OK;
+}
+
+# Eliminates control_change from a MIDI file, in particular to remove
+# volume changes from lilypond MIDI output. (Handy if say writing an
+# organ work in which case there may be no volume change or pedal
+# effects.)
+sub handle_nixcc {
+  my $filename = shift // die "Usage: $0 nixcc midi-file [midi-file-out]\n";
+  my $outfile  = shift // $filename;
+
+  my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+  my $tracks = $opus->tracks_r;
+
+  for my $mtrk (@$tracks) {
+    my $events = $mtrk->events_r;
+    my @nix;
+    for my $i ( 0 .. $#$events ) {
+      if ( $events->[$i][0] eq 'control_change' ) {
+        unshift @nix, $i;
+      }
+    }
+    for my $i (@nix) {
+      splice @$events, $i, 1;
+    }
+  }
+
+  $opus->write_to_file($outfile);
+
+  return $EXIT_OK;
+}
+
+sub handle_patch2instrument {
+  chomp( @ARGV = <STDIN> ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
+
+  for my $patchnum (@ARGV) {
+    say( ( @ARGV > 1 ? "$patchnum " : '' ),
+      Music::LilyPondUtil->patch2instrument($patchnum) );
+  }
+
+  return $EXIT_OK;
+}
