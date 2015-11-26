@@ -3,6 +3,7 @@
  * STDOUT. Attempts to be smart about what device to read if none is
  * given, at least if on Mac OS X or OpenBSD. For more bells and
  * whistles, try minicom(1). Assuming you remembered to install that.
+ * (Or, pro tip(1): use cu(1) instead, given that tip(1) is gone now.)
  *
  * (Written mostly for serial practice, and to easily read output
  * from an Arduino.)
