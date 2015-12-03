@@ -1,0 +1,117 @@
+#!/usr/bin/env perl
+#
+# How much abuse can a MIDI device take? E.g. what is the maximum rate
+# of notes before something breaks, or there is distortion (and what
+# does that sound like?). Requires MIDI device to talk to, as provided
+# by OpenBSD (as of release 5.8). Portability untested to other OS.
+#
+# Also, use at your own risk; sending extreme rates of note on events
+# might tweak shoddy programming or hardware in ways unknown.
+
+use v5.14;
+use Carp qw(croak);
+use Getopt::Long qw(GetOptions);
+use Scalar::Util qw(looks_like_number);
+use Time::HiRes qw(nanosleep);
+
+# TODO untested on a big endian system
+my $NOTE_OFF       = 8 << 4;
+my $NOTE_ON        = 9 << 4;
+my $CONTROL_CHANGE = 11 << 4;
+my $PROGRAM_CHANGE = 12 << 4;
+
+my $ALL_SOUNDS_OFF = 120;
+my $ALL_NOTES_OFF  = 123;
+
+GetOptions(
+  'channel|c=i' => \my $Flag_Channel,
+  'delay|d=i'   => \my $Flag_Delay,
+  'help|h|?'    => sub {
+    warn "Usage: $0 [-n] [-d delay] [-r ros] [-s] [-v vol] [mididev]\n";
+    exit 64;
+  },
+  'nanoseconds|nanosec|n' => \my $Flag_NS,
+  'mode=s'                => \my $Flag_Mode,
+  'silence|s'             => \my $Flag_Silence,
+  'velocity|volume|v=i'   => \my $Flag_Velocity,
+  'verbose'               => \my $Flag_Verbose,
+  'mainvolume|V=i'        => \my $Flag_Main_Volume,
+) or exit 64;
+
+my $midi_dev = shift // '/dev/rmidi0';
+
+open my $midfh, '>', $midi_dev
+  or die "could not open MIDI device '$midi_dev': $!\n";
+binmode $midfh;
+$midfh->autoflush(1);
+
+$Flag_Channel //= 0;
+
+# Milliseconds by default
+$Flag_Delay //= 1000;
+$Flag_Delay *= 1_000_000 unless $Flag_NS;
+
+my %generate_note = (
+  note => sub { 60 },
+  run  => sub { state $n = -1; $n++; $n %= 128; return $n },
+  runp => sub {
+    state $p = 0;
+    state $x = 0;
+    # so "program change" ignored by my synth (maybe due to the mode set on it?)
+    printf $midfh "%c%c%c", $CONTROL_CHANGE | $Flag_Channel, 0,  63;    # MSB?
+    printf $midfh "%c%c%c", $CONTROL_CHANGE | $Flag_Channel, 32, 1;     # LSB?
+    printf $midfh "%c%c",   $PROGRAM_CHANGE | $Flag_Channel, $p++;
+    $p %= 128;
+    $x %= 128;
+    return 60;
+  },
+);
+$Flag_Mode //= 'note';
+die "unkown mode '$Flag_Mode'\n" if !exists $generate_note{$Flag_Mode};
+
+$Flag_Velocity = midi_value( $Flag_Velocity, 64 );
+
+# Try to ensure that synth is turned off (which may fail or be delayed
+# if the MIDI device has soaked up some buffer's worth of events to chew
+# through...)
+for my $s (qw/ALRM HUP INT PIPE QUIT TERM USR1 USR2/) {
+  $SIG{$s} = \&cleanup;
+}
+
+if ($Flag_Silence) {
+  silence();
+  sleep 3;
+}
+
+$Flag_Main_Volume //= 64;
+printf $midfh "%c%c%c", $CONTROL_CHANGE | $Flag_Channel, 7, $Flag_Main_Volume;
+
+my $x = 0;
+
+while (1) {
+  my $note = $generate_note{$Flag_Mode}->($x);
+  warn "$x $note\n" if $Flag_Verbose;
+  printf $midfh "%c%c%c", $NOTE_ON | $Flag_Channel, $note, $Flag_Velocity;
+  # though NOTE the warnings about timer resolution in Time::HiRes docs
+  nanosleep($Flag_Delay) unless $Flag_Delay <= 0;
+  $x++;
+}
+
+sub cleanup {
+  silence();
+  exit 1;
+}
+
+sub midi_value {
+  my ( $v, $default ) = @_;
+  $v = $default if !defined $v;
+  croak "not a number: $v\n" if !looks_like_number $v;
+  if    ( $v < 0 )   { $v = 0 }
+  elsif ( $v > 127 ) { $v = 127 }
+  return int $v;
+}
+
+sub silence {
+  printf $midfh "%c%c%c", $CONTROL_CHANGE | $Flag_Channel, $ALL_NOTES_OFF,  0;
+  printf $midfh "%c%c%c", $CONTROL_CHANGE | $Flag_Channel, $ALL_SOUNDS_OFF, 0;
+}

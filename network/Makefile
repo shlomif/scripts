@@ -7,6 +7,8 @@ getsockname: getsockname.c
 
 ip6tomac: ip6tomac.c
 
+ipvalid: ipvalid.c
+
 macutil: macutil.c
 
 portpester: portpester.c
@@ -22,4 +24,4 @@ v4ispalindrome: v4ispalindrome.c
 
 
 clean:
-	@-rm -f endian getsockname ip6tomac macutil portpester randmac v4addr v4in6addr v4ispalindrome v6addr *.core 2>/dev/null
+	@-rm -f endian getsockname ip6tomac ipvalid macutil portpester randmac v4addr v4in6addr v4ispalindrome v6addr *.core 2>/dev/null
