@@ -45,10 +45,14 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    if (argc == 0) emit_help();
+
     if (time(&epoch) == (time_t) - 1)
         err(EX_OSERR, "time() failed");
     if ((when = localtime(&epoch)) == NULL)
         err(EX_OSERR, "localtime() failed");
+
+    if (**argv == '+') ++*argv;
 
     /* limit of 2 here mostly because fermentation times rarely exceed a
      * small number of weeks, and also to prevent INT_MAX or such from
