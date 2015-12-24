@@ -20,16 +20,23 @@ use JSON::MaybeXS ();
 use List::UtilsBy qw( max_by );
 use URI ();
 
-my $agent = HTTP::Tiny->new( timeout => 7, max_size => 1234577 );
 my $img_dir = File::Spec->catfile( File::HomeDir->my_home, 'imgs/xkcd' );
 
 my $img_viewer = 'feh';
 
-GetOptions( 'preview|n' => \my $Flag_Preview )
+GetOptions( 'preview|n' => \my $Flag_Preview, 'timeout=i' => \my $Flag_Timeout )
   or die "could not parse options\n";
 
-my $comic_num = shift // 0;
-die "comic number must be a number (or omit)\n" if !is_comicnum($comic_num);
+$Flag_Timeout //= 7;
+
+my $comic_num = shift;
+my $show_comic_num = 0;
+if (!defined $comic_num) {
+  $show_comic_num = 1;
+  $comic_num = 0;
+} else {
+  die "comic number must be a number (or omit)\n" if !is_comicnum($comic_num);
+}
 
 chdir $img_dir or die "could not chdir to $img_dir: $!\n";
 
@@ -37,6 +44,7 @@ my $extension = 'png';
 my $comic_file = join '.', $comic_num, $extension;
 
 if ( !-e $comic_file ) {
+  my $agent = HTTP::Tiny->new( timeout => $Flag_Timeout, max_size => 1234577 );
   my $url =
     'http://xkcd.com/' . ( $comic_num > 0 ? "$comic_num/" : '' ) . 'info.0.json';
 
@@ -67,6 +75,7 @@ if ( !-e $comic_file ) {
 
       my $img = $agent->get( $dat->{img} );
       write_file( $comic_file, $img->{content}, binmode => ':raw' );
+      warn $comic_num, "\n" if $show_comic_num;
     }
   } else {
     # Am not on the Internet or network connectivity failed; try to show
