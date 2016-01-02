@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+#
+# So yeah when the synth gets stuck on some note because of a C-c or
+# whatever and you need to make it quiet...
+
+use v5.14;
+
+my $CONTROL_CHANGE = 11 << 4;
+
+my $ALL_SOUNDS_OFF = 120;
+my $ALL_NOTES_OFF  = 123;
+
+my $midi_dev = shift // '/dev/rmidi0';
+
+open my $midfh, '>', $midi_dev
+  or die "could not open MIDI device '$midi_dev': $!\n";
+binmode $midfh;
+$midfh->autoflush(1);
+
+for my $channel (0..15) {
+  printf $midfh "%c%c%c", $CONTROL_CHANGE | $channel, $ALL_NOTES_OFF,  0;
+  printf $midfh "%c%c%c", $CONTROL_CHANGE | $channel, $ALL_SOUNDS_OFF, 0;
+}
