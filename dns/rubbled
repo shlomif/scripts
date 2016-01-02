@@ -32,7 +32,7 @@ my %RBL_TYPES = (
 
 state %rblseen;
 
-chomp( @ARGV = <STDIN> ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
+chomp( @ARGV = readline *STDIN ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
 
 for my $entry (@ARGV) {
   for my $ret ( lookup($entry) ) {

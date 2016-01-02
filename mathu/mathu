@@ -115,7 +115,7 @@ sub handle_basic {
   my @array;
   my %results;
 
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{} or !looks_like_number($_);
 
@@ -165,7 +165,7 @@ sub handle_c2f {
 }
 
 sub handle_dec2bin {
-  chomp( @ARGV = <STDIN> ) unless @ARGV;
+  chomp( @ARGV = readline *STDIN ) unless @ARGV;
   for my $dec (@ARGV) {
     printf "%0*b\n", $width, $dec;
   }
@@ -218,7 +218,7 @@ sub handle_distribution {
   my $way    = shift @ARGV;
   my $output = shift @ARGV;
 
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{};
     $results{min} = $_ unless exists $results{min};
@@ -337,7 +337,7 @@ sub handle_golden {
 
 sub handle_max {
   my $result;
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{};
     $result = $_ unless defined $result;
@@ -349,7 +349,7 @@ sub handle_max {
 
 sub handle_mean {
   my @array;
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{};
     push @array, $_;
@@ -361,7 +361,7 @@ sub handle_mean {
 
 sub handle_min {
   my $result;
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{};
 
@@ -395,7 +395,7 @@ sub handle_polyfactor {
 sub handle_range {
   my ( $min, $max );
 
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{} or !looks_like_number($_);
 
@@ -415,7 +415,7 @@ sub handle_ratio {
 
 sub handle_sdev {
   my @array;
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{};
     push @array, $_;
@@ -427,7 +427,7 @@ sub handle_sdev {
 
 sub handle_sum {
   my $result;
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     next if $_ eq q{};
     $result += $_;

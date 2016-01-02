@@ -25,7 +25,7 @@ use Net::DNS;
 my $dns = Net::DNS::Resolver->new;
 $dns->defnames(0);  # do not search default domain
 
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp(@ARGV = readline *STDIN) unless @ARGV;
 
 for my $input (@ARGV) {
   my ($domain, $tld) = $input =~ / $domain_re \W* $ /x;

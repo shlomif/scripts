@@ -18,7 +18,7 @@ END {
 
 my ( $data, $cur_filesys, $cur_type );
 
-while (<STDIN>) {
+while (readline *STDIN) {
   chomp;
 
   # loose match on user/group list data

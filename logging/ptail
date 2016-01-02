@@ -60,7 +60,7 @@ die 'Preop failed: ', $@, if $@;
 
 # KLUGE read from standard input for filename of -
 if ( $filename eq '-' ) {
-  while (<STDIN>) {
+  while (readline *STDIN) {
     s/([^ -~\t\r\n])/sprintf "%%%%02x", ord($1)/eg if $opts{S};
 
     eval $expression;

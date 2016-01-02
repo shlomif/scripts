@@ -41,7 +41,7 @@ $base = 1024       if exists $opts{k};
 $regex = $opts{m} if exists $opts{m};
 $regex = '(' . $regex . ')' unless $regex =~ m/\(.+\)/;
 
-@ARGV = <STDIN> unless @ARGV;
+@ARGV = readline *STDIN unless @ARGV;
 
 for (@ARGV) {
   if ( exists $opts{r} ) {

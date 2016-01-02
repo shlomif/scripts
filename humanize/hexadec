@@ -6,5 +6,7 @@
 use strict;
 use warnings;
 
-chomp( @ARGV = <STDIN> ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
+chomp( @ARGV = readline *STDIN )
+  if !@ARGV
+  or ( @ARGV == 1 and $ARGV[0] eq '-' );
 for my $hv (@ARGV) { print( hex($hv), "\n" ) }

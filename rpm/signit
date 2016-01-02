@@ -17,7 +17,7 @@ print "Passphrase: ";
 
 use Term::ReadKey qw(ReadMode);
 ReadMode('noecho');
-my $phrase = <STDIN>;
+my $phrase = readline *STDIN;
 ReadMode('restore');
 print "\n";
 

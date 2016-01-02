@@ -50,7 +50,7 @@ sub dbunconv {
   # Accept SQL query that must return 1 or more game_id
   my $query = shift;
   if ( !defined $query or $query eq '' ) {
-    $query = do { local $/ = undef; <STDIN> };
+    $query = do { local $/ = undef; readline *STDIN };
   }
 
   my $db =

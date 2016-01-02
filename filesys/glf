@@ -40,7 +40,7 @@ if ( !defined $file_regex ) {
 # otherwise. See NOTE above if glf is run from cron (where STDIN will
 # not be connected to a terminal).
 if ( !defined $directory ) {
-  if ( -t STDIN ) {
+  if ( -t *STDIN ) {
     $directory = '.';
   } else {
     $directory = '-';
@@ -54,7 +54,7 @@ my $latest_mtime;
 my $latest_file;
 
 if ( $directory eq '-' ) {
-  while ( my $file = <STDIN> ) {
+  while ( my $file = readline *STDIN ) {
     chomp($file);
     warn "info: considering file $file\n" if $DEBUG;
     handle_file($file);

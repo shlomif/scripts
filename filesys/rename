@@ -51,7 +51,7 @@ my $exit_status = 0;
 
 if ( !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' ) ) {
   $/ = "\0" if $Flag_Null;
-  while ( readline STDIN ) {
+  while ( readline *STDIN ) {
     chomp unless $Flag_Null;
     handle_file();
   }

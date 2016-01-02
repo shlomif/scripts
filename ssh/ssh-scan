@@ -29,7 +29,7 @@ getopts('h?', \%opts);
 
 help() if exists $opts{h} or exists $opts{'?'};
 
-while (<STDIN>) {
+while (readline *STDIN) {
 
   # skip non-open/non-relevant data
   next unless m!$port/open/$protoname!o;

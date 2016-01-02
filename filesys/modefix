@@ -168,7 +168,7 @@ if (@ARGV) {
   handle_file() for @ARGV;
 } else {
   $/ = "\0" if exists $opts{'0'};
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp unless exists $opts{'0'};
     handle_file();
   }

@@ -2,7 +2,7 @@
 
 my $PREFIX = '/tftpboot/pxelinux.cfg/';
 
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp(@ARGV = readline *STDIN) unless @ARGV;
 
 for my $arg (@ARGV) {
   $arg =~ tr/A-F:/a-f-/;

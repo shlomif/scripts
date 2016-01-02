@@ -41,8 +41,7 @@ $reset_tail  = $opts{r} if exists $opts{r} and $opts{r} =~ /^-?\d+$/;
 
 $prefix = 1 if exists $opts{f};
 
-# read from STDIN if no args left
-chomp( @ARGV = <STDIN> ) unless @ARGV;
+chomp( @ARGV = readline *STDIN ) unless @ARGV;
 
 help() unless @ARGV;
 

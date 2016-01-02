@@ -32,8 +32,7 @@ getopts('h?', \%opts);
 
 help() if exists $opts{h} or exists $opts{'?'};
 
-# read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp(@ARGV = readline *STDIN) unless @ARGV;
 
 # and flag the help text if nothing from STDIN
 help() unless @ARGV;

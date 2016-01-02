@@ -56,7 +56,7 @@ my $command;
 if (@ARGV) {
   $command = @ARGV ? "@ARGV" : '';
 } elsif ( !-t ) {
-  $command = do { local $/; <STDIN> };
+  $command = do { local $/; readline *STDIN };
   chomp($command);
 }
 

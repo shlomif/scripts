@@ -65,7 +65,7 @@ if ( !grep { $_ eq '-x' } @CFLAGS ) {
 }
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
-  chomp( @ARGV = <STDIN> );
+  chomp( @ARGV = readline *STDIN );
 }
 
 for my $statement (@ARGV) {

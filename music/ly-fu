@@ -92,7 +92,7 @@ my $midi_fname  = $src_fname . $MIDI_SUFFIX;
 my $score_fname = $src_fname . $SCORE_SUFFIX;
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
-  chomp( @ARGV = <STDIN> );
+  chomp( @ARGV = readline *STDIN );
   s/\s+%\s.+$// for @ARGV;    # strip lilypond comments
 }
 

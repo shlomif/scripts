@@ -27,8 +27,7 @@ help() if exists $opts{h} or exists $opts{'?'};
 
 $verbose = 1 if exists $opts{v};
 
-# read from STDIN if no args left
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp(@ARGV = readline *STDIN) unless @ARGV;
 
 # and flag the help text if nothing from STDIN
 help() unless @ARGV;

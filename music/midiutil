@@ -126,7 +126,7 @@ sub handle_nixcc {
 }
 
 sub handle_patch2instrument {
-  chomp( @ARGV = <STDIN> ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
+  chomp( @ARGV = readline *STDIN ) if !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' );
 
   for my $patchnum (@ARGV) {
     say( ( @ARGV > 1 ? "$patchnum " : '' ),

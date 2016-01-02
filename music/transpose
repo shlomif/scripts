@@ -18,7 +18,7 @@ GetOptions( 'columns|c=i' => \my $Flag_Columns )
   or die "could not parse options\n";
 $Flag_Columns ||= 8;
 
-chomp( @ARGV = <STDIN> ) unless @ARGV;
+chomp( @ARGV = readline *STDIN ) unless @ARGV;
 
 my @aoa;
 my $ref;

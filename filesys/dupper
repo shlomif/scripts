@@ -49,8 +49,7 @@ unless ( exists $actions{ $defaults{action} } ) {
   exit 78;
 }
 
-# read from STDIN if no args left
-chomp( @ARGV = <STDIN> ) unless @ARGV;
+chomp( @ARGV = readline *STDIN ) unless @ARGV;
 
 # only deal with regular files or directories
 @ARGV = grep { -d $_ || -f _ } @ARGV;

@@ -44,11 +44,11 @@ if (@ARGV) {
   parse_line();
 
   # already have input if stdin closed to tty; read from there if so
-  unless (-t STDIN) {
-    parse_line() while <STDIN>;
+  unless (-t *STDIN) {
+    parse_line() while readline *STDIN;
   }
 } else {
-  parse_line() while <STDIN>;
+  parse_line() while readline *STDIN;
 }
 
 sub parse_line {

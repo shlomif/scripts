@@ -75,7 +75,7 @@ if ( exists $opts{'a'} ) {
 # read commands from STDIN if specified
 if ( exists $opts{'i'} ) {
   my @tmp;
-  chomp( @tmp = <STDIN> );
+  chomp( @tmp = readline *STDIN );
   push @ARGV, @tmp;
 }
 

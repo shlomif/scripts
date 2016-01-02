@@ -50,7 +50,7 @@ for my $fh ( \*STDIN, $log_fh, $read_fh, $write_fh, \*STDOUT ) {
 
 # Watch for input from GUI, engine, and pass messages between the two
 my %dispatch = (
-  fileno(STDIN)    => { output_fh => $write_fh, direction => '>>>' },
+  fileno(*STDIN)   => { output_fh => $write_fh, direction => '>>>' },
   fileno($read_fh) => { output_fh => \*STDOUT,  direction => '<<<' },
 );
 my $ios = IO::Select->new( \*STDIN, $read_fh );

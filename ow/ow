@@ -67,7 +67,7 @@ if ( exists $opts{d} ) {
   require Cwd;
 
   if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
-    chomp( @ARGV = <STDIN> );
+    chomp( @ARGV = readline *STDIN );
   }
 
   my @dir;
@@ -127,7 +127,7 @@ if (@ARGV) {
   parse_sc( [ \@ARGV ] );
 } else {
   my $scs;
-  while (<STDIN>) {
+  while (readline *STDIN) {
     chomp;
     push @$scs, [split];
   }

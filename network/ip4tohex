@@ -20,7 +20,7 @@ END {
   }
 }
 
-chomp(@ARGV = <STDIN>) unless @ARGV;
+chomp(@ARGV = readline *STDIN) unless @ARGV;
 
 for my $input (@ARGV) {
   my $sin = inet_aton $input;

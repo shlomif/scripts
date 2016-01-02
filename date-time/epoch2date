@@ -39,7 +39,7 @@ $timefunc = sub { gmtime $_[0] }
   if exists $opts{g};
 
 # but use xargs or the like if there is lots of input
-@ARGV = <STDIN> if $ARGV[0] eq '-';
+@ARGV = readline *STDIN if $ARGV[0] eq '-';
 
 for my $entry (@ARGV) {
   # negative epoch dubious? but why not

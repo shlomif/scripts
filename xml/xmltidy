@@ -34,7 +34,7 @@ my $error;
 unless (@ARGV) {
   my ( $fh, $tmpfile ) = tempfile();
   binmode( $fh, ':utf8' );
-  print $fh $_ while <STDIN>;
+  print $fh $_ while readline *STDIN;
 
   my $tfh = xmltidy($tmpfile);
   unless ($tfh) {
