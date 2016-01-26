@@ -1,0 +1,126 @@
+#!/usr/bin/perl
+#
+# Lobs PostScript at a LPD printer (see RFC 1179). Poorly. Use at own risk,
+
+use strict;
+use warnings;
+use Getopt::Long qw(GetOptions);
+use IO::Socket::INET;
+use Sys::Hostname qw(hostname);
+
+GetOptions(
+  'help|h|?' => sub {
+    warn <<"END_OF_HELP";
+Usage $0 [options] printer[:port] [file|-]
+
+Options include:
+
+  --format=, -f  RFC 1179 control file character
+    o - input is PostScript (default)
+    f - plain text file
+    l - plain text, leaving control characters
+    ...
+  --queue=, -q   Select the LPD queue to use.
+
+END_OF_HELP
+    exit 64;
+  },
+  'format|f=s' => \my $Flag_Format,
+  'queue|q=s'  => \my $Flag_Queue,
+) or exit 64;
+
+if ( !defined $Flag_Format ) {
+  $Flag_Format = 'o';
+} else {
+  $Flag_Format = substr $Flag_Format, 0, 1;
+}
+
+$Flag_Queue = '' if !defined $Flag_Queue;
+
+my $printer_addr = shift or die "Usage: $0 host[:port] [file|-]\n";
+my $file = shift;
+
+my $client_host = substr hostname(), 0, 31;    # 31 is per the RFC
+my $user        = substr username(), 0, 31;
+
+my $jobnum = sprintf "%03d", rand 1000;
+
+my $sock = IO::Socket::INET->new(
+  # if server mandates this, client will need to be run as root,
+  # or Linux capabilities delved into
+  #   LocalPort => 721,                    # RFC 1179 sec 3.1
+  PeerAddr => $printer_addr,
+  ( $printer_addr =~ m/:[0-9]+$/ ) ? () : ( PeerPort => 515 ),
+  Proto     => 'tcp',
+  ReuseAddr => 1,
+) or die "$0: could not connect to $printer_addr: $@\n";
+
+my $control_file = <<"END_CONTROL_FILE";
+H$client_host
+P$user
+${Flag_Format}dfA$jobnum$client_host
+UdfA$jobnum$client_host
+END_CONTROL_FILE
+my $control_file_size = length $control_file;
+
+my ( $data_file_size, $fh );
+if ( defined $file and $file ne '-' ) {
+  open $fh, '<', $file or die "$0: could not open '$file': $!\n";
+  $data_file_size = -s $file;
+} else {
+  $fh             = \*STDIN;
+  $data_file_size = 0;
+}
+
+sendcmd( sprintf "%c%s\n", 0x02, $Flag_Queue );
+
+sendcmd( sprintf "%c%u %s\n",
+  0x02, $control_file_size, "cfA$jobnum$client_host" );
+$control_file .= "\0";    # must pad message
+sendcmd($control_file);
+
+sendcmd( sprintf "%c%u %s\n", 0x03, $data_file_size, "dfA$jobnum$client_host" );
+
+binmode $fh;
+my $buf;
+while (1) {
+  my $buflen = sysread $fh, $buf, 4096;
+  die "sysread() failed: $!\n" if !defined $buflen;
+  last if $buflen == 0;    # EOF
+  syswrite $sock, $buf, $buflen;
+}
+
+# does not seem necessary, and disabling it avoids dangling 0 if piping
+# plaintext to a HP printer
+#syswrite $sock, 0x00, 1 if $data_file_size == 0;
+
+# meh, blocks program when input from STDIN
+#my $resp;
+#sysread $sock, $resp, 1;
+#
+#syswrite $sock, 0x00, 1;
+
+exit(0);
+
+sub sendcmd {
+  my $cmd = shift;
+  my $response;
+  syswrite $sock, $cmd, length $cmd;
+  sysread $sock, $response, 1;
+  chomp $cmd;
+  die "$0: unexpected lack of response to '$cmd'\n"
+    if !defined $response;
+  die sprintf "$0: not-zero response to '$cmd': %vx\n", $response
+    if $response ne "\0";
+}
+
+sub username {
+  my $user = ( getpwuid($<) )[0];
+  if ( !defined $user or length $user == 0 ) {
+    $user = $ENV{USER};
+    if ( !defined $user or length $user == 0 ) {
+      die "could not lookup current username??";
+    }
+  }
+  return $user;
+}
