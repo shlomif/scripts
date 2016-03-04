@@ -1,0 +1,146 @@
+#!/usr/bin/env expect
+#
+# Runs a given list of shell commands on a given list of hosts. One host
+# and one command at a time, so has obvious scaling limits.
+
+if {[llength $argv] == 0} {
+  puts stderr "Usage: $argv0 hostlist commandlist-file"
+  exit 1
+}
+
+# All hosts assumed to have and match these "remote shell" (rs) vars
+set rs_command "PS1=\"CONSERVATIVE\$ \" /bin/sh"
+set rs_prompt  "CONSERVATIVE\$ "
+set rs_logout  "exit\r"
+
+set exit_status 0
+
+# If slowing things down is necessary, set to 1
+set force_conservative 0
+if {$force_conservative} {
+  set send_slow {1 .1}
+  proc send {ignore arg} {
+    sleep .1
+    exp_send -s -- $arg
+  }
+}
+
+proc getapass {prompt} {
+  stty -echo
+  send_user -- $prompt
+  expect_user -re "(.*)\n"
+  send_user "\n"
+  stty echo
+  return $expect_out(1,string)
+}
+
+set timeout 60
+# If public key auth or kerberos used (and no password-requiring
+# commands are listed), just hit return for this.
+set pass [getapass "password: "]
+# assume these are the same, for now
+set sudo_pass $pass
+
+proc clearpass {} {
+  global pass sudo_pass
+  regsub -all "." $pass "x" pass
+  regsub -all "." $sudo_pass "x" sudo_pass
+  set pass ""
+  set sudo_pass ""
+}
+
+# NOTE commands file must be seekable, so shell tricks like <(echo who)
+# or similar to supply the commands will not fly. (The host list can
+# come from such a fancy descriptor.)
+set host_fd     [open [lindex $argv 0]]
+set commands_fd [open [lindex $argv 1]]
+
+# Prevent stray control+c from nuking whole process. OTOH may complicate
+# hasty exit should things go awry(TM).
+trap SIG_IGN {INT}
+# And for awryness we allow control+\ only without the usual core file.
+# (Also disabling coredumps helps avoid making core file that might
+# contain raw passwords, which might be bad.)
+trap {
+  clearpass
+  send_user "\nQUIT\n";
+  exit 1
+} SIGQUIT
+
+while {[gets $host_fd host] >= 0} {
+  send_user "\nCONNECT-HOST $host\n"
+  set timeout 8
+  # NOTE this disables agent, X11, and all other forwadings, though may
+  # use ControlMaster, which may be a problem if a duplicate connection
+  # is opened to a host manually while this code has a master connection
+  # open (as that connection would hold this expect-opened connection
+  # open until it exits).
+  spawn -noecho ssh -e none -ax -o ClearAllForwardings=yes \
+    -o ConnectTimeout=7 \
+    -o StrictHostKeyChecking=yes \
+    -tt $host $rs_command
+  expect {
+    timeout {
+      send_user "\nSSH $host FAILED timed out\n"
+      set exit_status 1
+      continue;
+    }
+    eof {
+      send_user "\nSSH $host FAILED eof\n"
+      set exit_status 1
+      continue;
+    }
+    "strict checking" {
+      send_user "\nSSH $host FAILED host key unknown\n"
+      set exit_status 1
+      continue;
+    }
+    "password" {
+      send -- "$pass\r"
+    }
+    $rs_prompt
+  }
+
+  set timeout -1
+  match_max 100000
+  set unexpected_eof 0
+
+  seek $commands_fd 0
+  while {[gets $commands_fd command] >= 0} {
+    if [regexp "^sudo " $command] {
+      send -- "$command\r"
+      expect {
+        eof {
+          send_user "\nSSH $host FAILED eof during COMMAND $command\n"
+          set exit_status 1
+          set unexpected_eof 1
+          break
+        }
+        "password" { send -- "$sudo_pass\r" }
+        $rs_prompt
+      }
+    } else {
+      send -- "$command\r"
+      expect {
+        eof {
+          send_user "\nSSH $host FAILED eof during COMMAND $command\n"
+          set exit_status 1
+          set unexpected_eof 1
+          break
+        }
+        $rs_prompt
+      }
+    }
+  }
+
+  # KLUGE workaround connection already being closed, TODO is there a
+  # better way to detect the state of the spawn?
+  if { $unexpected_eof != 1 } {
+    set timeout 8
+    send -- $rs_logout
+    expect eof
+  }
+}
+
+clearpass
+exit $exit_status
