@@ -26,11 +26,16 @@ REPO_NAME=$REPO_PATH:t
 REPO_PARENT_DIR=$REPO_PATH:h
 # de/blah, for bare clones to a not-blah directory structure
 REPO_SUBPATH=${${REPO_PARENT_DIR#$HOME/}#*/}
+# top-level complication
+if [[ ! $REPO_SUBPATH =~ / ]]; then
+  REPO_SUBPATH=
+fi
 
 #echo "R  $REPO_PATH"
 #echo "RN $REPO_NAME"
 #echo "RP $REPO_PARENT_DIR"
 #echo "RS $REPO_SUBPATH"
+#exit 1
 
 if [[ $WHERE == linode ]]; then
   REMOTE_PARENT_DIR=share/$REPO_SUBPATH
