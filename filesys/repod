@@ -1,0 +1,57 @@
+#!/usr/bin/env zsh
+#
+# Repository duplicatorator: branch for github (named "github"), bare
+# clones to a remote virt (linode, pushed and pulled from), and assumed-
+# existing-and-checked-out-trees on other named host systems (pulled
+# from, e.g. when have done work on some other system).
+#
+#   repod github
+#   repod linode
+#   repod host thatotherhost
+
+set -e
+
+WHERE=$1
+shift
+
+# /home/jdoe/blah/de/blah/bob
+REPO_PATH=`findup .git`
+if [[ -z $REPO_PATH ]]; then
+  echo >&2 could not find a git repo above `pwd`
+  exit 64
+fi
+# "bob"
+REPO_NAME=$REPO_PATH:t
+# /home/jdoe/blah/de/blah
+REPO_PARENT_DIR=$REPO_PATH:h
+# de/blah, for bare clones to a not-blah directory structure
+REPO_SUBPATH=${${REPO_PARENT_DIR#$HOME/}#*/}
+
+#echo "R  $REPO_PATH"
+#echo "RN $REPO_NAME"
+#echo "RP $REPO_PARENT_DIR"
+#echo "RS $REPO_SUBPATH"
+
+if [[ $WHERE == linode ]]; then
+  REMOTE_PARENT_DIR=share/$REPO_SUBPATH
+  RESULT=`ssh gh "test -d $REMOTE_PARENT_DIR/$REPO_NAME.git || echo nodir; mkdir -p $REMOTE_PARENT_DIR"`
+  if [[ $RESULT == nodir ]]; then
+    [ -d $REPO_PATH.git ] || git clone --bare $REPO_PATH $REPO_PATH.git
+    scp -r $REPO_PATH.git gh:$REMOTE_PARENT_DIR
+    rm -rf $REPO_PATH.git
+  fi
+  git remote add linode gh:$REMOTE_PARENT_DIR/$REPO_NAME.git
+elif [[ $WHERE == host ]]; then
+  HOST=$1
+  # $HOME hijinks due to Apple using /Users while everything else /home
+  git remote add $HOST ssh://$HOST/~/${REPO_PATH#$HOME/}
+elif [[ $WHERE == github ]]; then
+  GIT_USER=`git config --get github.user`
+  git remote add github git@github.com:$GIT_USER/$REPO_NAME
+else
+  echo >&2 unknown target $WHERE
+  echo >&2 "Usage: $0 [github|host hostname|linode]"
+  exit 64
+fi
+
+exit 0
