@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+#
+# Replays terminal foo, with undo of encoding done by `termsplain`.
+
+use 5.14.0;
+use warnings;
+use Time::HiRes qw(sleep);
+
+my $ttydev = shift // die "Usage: tty-dev ...\n";
+open my $fh, '>', $ttydev or die "could not open '$ttydev': $!\n";
+$fh->autoflush(1);
+
+while (<>) {
+  my $orig = $_;
+  chomp;
+  s/\\e/\e/g;
+  s/\\a/\a/g;
+  print $fh $_;
+  print $orig;
+  sleep .1;
+}
