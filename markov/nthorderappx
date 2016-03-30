@@ -11,10 +11,8 @@
 # shorter orders at perhaps a lower weighting to enrich the output
 # options, though this mostly needlessly Chaucers the prose.
 
-use 5.10.0;
-use strict;
+use 5.14.0;
 use warnings;
-use feature qw(say);
 use Math::Random::Discrete;
 
 my $order = 3;
@@ -26,7 +24,7 @@ my $line_len     = 78;
 my ( %freq, %odds );
 
 while (<>) {
-  s/[\n\r]//g;
+  s/\R//g;
   m/(.{1,$order})(.)(?{ $freq{$1}->{$2}++ })^/;
 }
 
