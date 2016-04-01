@@ -1,5 +1,6 @@
 /*
- * Testing purposes?
+ * Testing purposes? Also handy to disassociate mupdf from vim session so
+ * backgrounding vim doesn't then stall out the mupdf display...
  */
 
 #include <err.h>
@@ -13,6 +14,7 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch;
+    pid_t pid;
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
@@ -27,11 +29,19 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (setsid() == -1)
-        err(EX_OSERR, "could not setsid()");
+    pid = fork();
 
-    if (execvp(*argv, argv) == -1)
-        err(EX_OSERR, "could not exec %s", *argv);
+    if (pid == 0) {             /* child */
+        if (setsid() == -1)
+            err(EX_OSERR, "could not setsid()");
+        if (execvp(*argv, argv) == -1)
+            err(EX_OSERR, "could not exec %s", *argv);
+
+    } else if (pid > 0) {       /* parent */
+        exit(0);
+    } else {
+        err(EX_OSERR, "could not fork()");
+    }
 
     exit(1);                    /* NOTREACHED */
 }
