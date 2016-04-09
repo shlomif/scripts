@@ -7,6 +7,8 @@ CFLAGS += -g
 # for some of the progs
 CFLAGS += -lpthread
 
+alloct: alloct.c
+
 insertornot: insertornot.c
 
 lockalot: lockalot.c
