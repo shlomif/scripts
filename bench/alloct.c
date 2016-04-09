@@ -28,7 +28,15 @@ int main(int argc, char *argv[])
 {
     int ch;
     int *foop;
+    // this is what is at risk of not being zero'd; things passed through
+    // malloc are on modern OS (Mac OS X 10.11.4, OpenBSD 5.9, etc)
+    int bar[999999];
     unsigned long i;
+
+    for (i = 0; i < 999999; i++) {
+        if (bar[i] != 0)
+            abort();
+    }
 
     while ((ch = getopt(argc, argv, "h?m:")) != -1) {
         switch (ch) {
@@ -45,6 +53,7 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    /*
     if (memsize == 0)
         memsize = MOSTMEMPOSSIBLE / sizeof(int);
 
@@ -67,6 +76,7 @@ int main(int argc, char *argv[])
         if (*foop++ != 0)
             abort();
     }
+    */
 
     exit(EXIT_SUCCESS);
 }
