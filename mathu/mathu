@@ -23,6 +23,7 @@ my %ability = (
   derivative  => { handle => \&handle_derivative, },
   dist        => { handle => \&handle_distribution, },
   divisibleby => { handle => \&handle_divisibleby, },
+  dtv         => { handle => \&handle_dtv, },
   empirical   => { handle => \&handle_empirical, },
   expo        => { handle => \&handle_expo, },
   f2c         => { handle => \&handle_f2c, },
@@ -281,6 +282,18 @@ sub handle_divisibleby {
     if ( @result == @ARGV ) {
       print $i, "\n";
     }
+  }
+}
+
+# delta time value
+sub handle_dtv {
+  my $prev;
+  while (readline *STDIN) {
+    my $firstcol = (split)[0];
+    if (defined $prev) {
+      printf "$format\n", $firstcol - $prev;
+    }
+    $prev = $firstcol;
   }
 }
 
