@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# This use-case comes up from time to time. Opposite of this is
+#   sed '1d;$d'
+
+if [ $# -eq 0 ]; then
+    sed -n '1p;$p'
+elif [ $# -eq 1 ]; then
+    sed -n '1p;$p' "$@"
+else
+    for f in "$@"; do
+        echo ">>>>> $f <<<<<"
+        sed -n '1p;$p' "$f"
+    done
+fi
