@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+#
+# Experiment with how INT is handled when a) SIG_BLOCK or b) custom
+# signal handler setup, in particular with regard to the control+c of a
+# terminal that goes to all processes of the foreground process group
+# (unless masked).
+
+use strict;
+use warnings;
+use POSIX qw(sigprocmask SIGINT SIG_BLOCK SIG_UNBLOCK);
+
+warn "parent $$\n";
+
+my $int = POSIX::SigSet->new(SIGINT);
+sigprocmask( SIG_BLOCK, $int );
+#$SIG{INT} = sub { warn "\nSIGINT $$\n" };
+
+# a bunch of processes in this process group...
+if ( fork == 0 ) {
+    sigprocmask( SIG_UNBLOCK, $int );
+    $SIG{INT} = sub { warn "\nSIGINT $$\n" };
+    fork;
+    warn "\nchild $$\n";
+}
+
+my $sleepy_time = 5;
+my $slept       = 0;
+while ( $slept < $sleepy_time ) {
+    $slept += sleep $sleepy_time;
+}
+
+warn "\nexit $$\n";
