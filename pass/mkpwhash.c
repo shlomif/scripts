@@ -21,38 +21,23 @@
 
 #include <err.h>
 #include <signal.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <sysexits.h>
 
-/* The compile may need `pkg-config --cflags --libs libsodium` or even
- * setting PKG_CONFIG_PATH depending on how exotic a location libsodium
- * was installed to.
- */
-#include <sodium.h>
+#include "salt.h"
 
-#define MIN_PASS_LEN 7
-#define MAX_PASS_LEN 67
+// FIXME adjust these as desired
+#define MIN_PASS_LEN 8
+#define MAX_PASS_LEN 128
 
-#define MAX_SALT 16U            // fixed length for all present fancier hashes
-#define SALT_LEN 4U + MAX_SALT
-
-/* For SHA512, see crypt(3). "$6$" + MAX_SALT + "$" + 86. Does not include
- * the \0, though there is probably little need to memzero that.
- */
-#define HASH_LEN 106U
-
-#define SALTCHARS_LEN 64U
-char Salt_Chars[] =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
+/* For SHA512, see crypt(3). "$6$" + (up to) MAX_SALT + "$" + 86 */
+#define HASH_LEN_MINUS_SALT 90
 
 int main(void)
 {
-    char *hash, *password, *pp, *verify;
-    char salt[SALT_LEN + 1], *sp;
+    char *hash, *password, *pp, *salt, *verify;
     size_t len;
     ssize_t plen, vlen;
+    unsigned int salt_len;
 
     // limit shenanigans
     if (setrlimit(RLIMIT_CORE, &(struct rlimit) {
@@ -82,54 +67,64 @@ int main(void)
     verify = password = NULL;
     if ((plen = getline(&password, &len, stdin)) < 0)
         err(EX_IOERR, "could not read password from stdin");
+    sodium_mlock(password, MAX_PASS_LEN);
     password[--plen] = '\0';    // nix the \n
-    if (plen < MIN_PASS_LEN)
+    if (plen < MIN_PASS_LEN) {
+        sodium_memzero(password, plen);
         errx(EX_DATAERR, "password is too short");
-    sodium_mlock(password, plen);
+    }
 
     if ((vlen = getline(&verify, &len, stdin)) < 0)
         err(EX_IOERR, "could not read password from stdin");
+    sodium_mlock(verify, MAX_PASS_LEN);
     // no-\n-before-EOF edge case
     if (verify[vlen - 1] == '\n')
         vlen--;
-    sodium_mlock(verify, vlen);
 
-    if (plen != vlen || strncmp(password, verify, plen) != 0)
+    if (plen != vlen || strncmp(password, verify, plen) != 0) {
+        sodium_memzero(password, plen);
+        sodium_memzero(verify, vlen);
         errx(EX_DATAERR, "passwords do not match");
+    }
 
     sodium_memzero(verify, vlen);
-    sodium_mlock(salt, SALT_LEN);
 
     /* Additional sanity tests, on the assumption that the password must
      * be typeable and thus reasonably short, and confined to a subset
      * of ASCII. In addition to the traditional gets(3), both Apple and
      * Google have had vulnerabilities from "too long" passwords. */
-    if (plen > MAX_PASS_LEN)
+    if (plen > MAX_PASS_LEN) {
+        sodium_memzero(password, plen);
         errx(EX_DATAERR, "password is too long");
+    }
     pp = password;
     while (*pp != '\0') {
-        if (*pp < 32 || *pp > 126)
+        if (*pp < 32 || *pp > 126) {
+            sodium_memzero(password, plen);
             errx(EX_DATAERR, "character in password out of range");
+        }
         pp++;
     }
 
-    strncpy(salt, "$6$", 3);    // SHA512 indicator, again see crypt(3)
-    sp = &salt[3];
+    salt_len =
+        MIN_SALT + randombytes_uniform((uint32_t) MAX_SALT - MIN_SALT + 1);
 
-    for (unsigned int i = 0; i < MAX_SALT; i++)
-        *sp++ = Salt_Chars[randombytes_uniform((uint32_t) SALTCHARS_LEN)];
-    *sp++ = '$';
-    *sp = '\0';
+    if ((salt = make_salt_sha512(salt_len)) == NULL) {
+        sodium_memzero(password, plen);
+        err(EX_OSERR, "could not generate salt");
+    }
+    sodium_mlock(salt, MAX_SALT);
 
     hash = crypt(password, salt);
     sodium_memzero(password, plen);
-    sodium_memzero(salt, SALT_LEN);
+    sodium_memzero(salt, salt_len);
+    //free(salt);
     if (!hash)
         errx(EX_OSERR, "crypt() returned NULL??");
 
-    write(STDOUT_FILENO, hash, HASH_LEN);
-    putchar('\n');
-    sodium_memzero(hash, HASH_LEN);
+    write(STDOUT_FILENO, hash, HASH_LEN_MINUS_SALT + salt_len);
+    write(STDOUT_FILENO, "\n", 1);
+    sodium_memzero(hash, HASH_LEN_MINUS_SALT + salt_len);
 
     exit(EXIT_SUCCESS);
 }
