@@ -10,14 +10,16 @@
  *
  *   echo echo hi | sudo ttywrite $(tty) -
  *   echo echo hi | sudo ttywrite $(tty)
- *   sudo ttywrite              $(tty) echo hi
- *   sudo ttywrite -N           $(tty) echo hi
- *   sudo ttywrite -N -d 100000 $(tty) echo hi
+ *   sudo ttywrite           $(tty) echo hi
+ *   sudo ttywrite -N        $(tty) echo hi
+ *   sudo ttywrite -N -d 250 $(tty) echo hi
  *
  * Though more likely some other terminal besides the one running this
  * code should be the target...
  *
  * On Linux, see also 'uinput'. To automate things under X11, xdotool.
+ * Expect would be the more typical approach if the code or terminal in
+ * question can be wrapped by that.
  */
 
 #include <sys/ioctl.h>
@@ -31,7 +33,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
@@ -39,9 +40,9 @@
 #include <goptfoo.h>
 
 void emit_help(void);
-void tty_write(int fd, int argc, char *argv[]);
+void tty_write(int fd, int argc, char *argv[], useconds_t delay);
 
-unsigned long Flag_Delay = 0;   // -d
+useconds_t Flag_Delay = 0;      // -d delay in milliseconds
 bool Flag_Newline = false;      // -N
 
 int main(int argc, char *argv[])
@@ -53,7 +54,9 @@ int main(int argc, char *argv[])
         case 'd':
             /* KLUGE useconds_t is "unsigned int" on *BSD at time of
              * writing so assume that as max for usleep(3) */
-            Flag_Delay = flagtoul(ch, optarg, 0UL, (unsigned long) UINT_MAX);
+            Flag_Delay = (useconds_t)
+                flagtoul(ch, optarg, 0UL,
+                         (unsigned long) UINT_MAX / 1000) * 1000;
             break;
         case 'N':
             Flag_Newline = true;
@@ -71,9 +74,9 @@ int main(int argc, char *argv[])
     if (argc < 1)
         emit_help();
 
-    if ((fd = open(*argv, O_WRONLY)) < 0)
+    if ((fd = open(*argv, O_WRONLY)) == -1)
         err(EX_IOERR, "could not open '%s'", *argv);
-    tty_write(fd, --argc, ++argv);
+    tty_write(fd, --argc, ++argv, Flag_Delay);
     close(fd);
 
     exit(EXIT_SUCCESS);
@@ -81,20 +84,19 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: ttywrite [-d microseconds] [-N] dev [command...|-]\n");
+    fprintf(stderr, "Usage: ttywrite [-d delayms] [-N] dev [command...|-]\n");
     exit(EX_USAGE);
 }
 
-void tty_write(int fd, int argc, char *argv[])
+void tty_write(int fd, int argc, char *argv[], useconds_t delay)
 {
     int c;
 
     if (argc == 0 || ((*argv)[0] == '-' && (*argv)[1] == '\0')) {
         while ((c = getchar()) != EOF) {
             ioctl(fd, TIOCSTI, &c);
-            if (Flag_Delay)
-                usleep(Flag_Delay);
+            if (delay)
+                usleep(delay);
         }
         if (ferror(stdin)) {
             err(EX_IOERR, "error reading from standard input");
@@ -105,8 +107,8 @@ void tty_write(int fd, int argc, char *argv[])
     while (*argv) {
         while (**argv != '\0') {
             ioctl(fd, TIOCSTI, (*argv)++);
-            if (Flag_Delay)
-                usleep(Flag_Delay);
+            if (delay)
+                usleep(delay);
         }
         ioctl(fd, TIOCSTI, " ");
         argv++;
