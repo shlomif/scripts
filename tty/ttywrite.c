@@ -17,6 +17,15 @@
  * Though more likely some other terminal besides the one running this
  * code should be the target...
  *
+ * Notable codes (via ttytest.c testing on Mac OS X) include:
+ *
+ *   sudo ttywrite $(tty) $'\003'   # SIGINT
+ *   sudo ttywrite $(tty) $'\004'   # EOF
+ *   sudo ttywrite $(tty) $'\014'   # clear (control+l)
+ *   sudo ttywrite $(tty) $'\020'   # SIGINFO
+ *   sudo ttywrite $(tty) $'\020'   # SIGTSTP
+ *   sudo ttywrite $(tty) $'\020'   # SIGQUIT
+ *
  * On Linux, see also 'uinput'. To automate things under X11, xdotool.
  * Expect would be the more typical approach if the code or terminal in
  * question can be wrapped by that.
