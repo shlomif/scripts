@@ -1,0 +1,53 @@
+#!/usr/bin/env expect
+#
+# Sticky search wrapper for less; tails the given file, though with
+# input of
+#   /asdf
+# or whatever will search for that new term then re-tail the file.
+# Needs `less` with the default hilight mode enabled, so see FIXME for
+# things that may need tweaks.
+
+if {[llength $argv] == 0} {
+    puts stderr {Usage: $argv0 [searchterm] file}
+    exit 64
+} elseif {[llength $argv] == 1} {
+    set fname [lindex $argv 0]
+    set search ""
+} else {
+    set fname [lindex $argv 1]
+    set search [lindex $argv 0]
+}
+
+# FIXME soas to nix any options (like turning off hilight) and on
+# account of LESSOPEN and LESSCLOSE being security risks due to the
+# defaults certain vendors set.
+foreach ev [list LESS LESSOPEN LESSCLOSE] {
+    if {[info exists env($ev)]} {
+        unset env($ev)
+    }
+}
+
+match_max 999
+set timeout -1
+
+spawn -noecho less $fname
+expect {
+    # TODO need better way to detect that less didn't fly
+    -ex "No such file or directory" { exit }
+    -re "." { }
+    default { exit }
+}
+
+if {$search ne ""} {
+    send -- "/$search\r"
+}
+send -raw "F"
+
+interact {
+    -echo -re {(/.*)[\n\r]} {
+        # C-c exits from tail mode
+        send -raw "\003"
+        send -- $interact_out(1,string)
+        send -raw "\rF"
+    }
+}
