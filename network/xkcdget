@@ -11,7 +11,7 @@
 
 use 5.014;
 use File::HomeDir ();
-use File::Slurp::Tiny qw(write_file);
+use File::Slurper qw(write_binary write_text);
 use File::Spec ();
 use File::stat qw(stat);
 use Getopt::Long qw(GetOptions);
@@ -60,7 +60,7 @@ if ( !-e $comic_file ) {
 
     if ( !-e $comic_file ) {
       my $json_file = join '.', "info", $comic_num, "json";
-      write_file( $json_file, $resp->{content}, binmode => ':encoding(UTF-8)' );
+      write_text( $json_file, $resp->{content} );
 
       my $img_url = URI->new( $dat->{img} );
       if ( $img_url->host !~ m/(?i)xkcd\.com$/ ) {
@@ -74,7 +74,7 @@ if ( !-e $comic_file ) {
       $comic_file = join '.', $comic_num, $extension;
 
       my $img = $agent->get( $dat->{img} );
-      write_file( $comic_file, $img->{content}, binmode => ':raw' );
+      write_binary( $comic_file, $img->{content} );
       warn $comic_num, "\n" if $show_comic_num;
     }
   } else {
