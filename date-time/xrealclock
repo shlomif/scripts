@@ -1,0 +1,28 @@
+#!/usr/bin/env wish8.5
+#
+# A real clock for real men.
+
+set onclock  "12:00"
+set offclock "     "
+set theclock $onclock
+
+proc setclock {} {
+  global theclock offclock onclock
+  if {$theclock eq $offclock} {
+    set theclock $onclock
+  } else {
+    set theclock $offclock
+  }
+  after 1000 [list setclock]
+}
+
+font create TtyFont -family Courier -size 32 -weight bold
+pack [label .clock -font TtyFont -textvariable theclock]
+
+grid .clock -row 1 -column 1
+grid rowconfigure . 1 -weight 1
+grid columnconfigure . 1 -weight 1
+
+wm geometry . 150x60-92-7
+
+setclock
