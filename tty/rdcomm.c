@@ -75,7 +75,9 @@ int main(int argc, char *argv[])
 
     if (argc == 0 || *argv == NULL) {
         /* Mac OS X - * in glob will be a bunch of digits, is created
-         * on the fly. */
+         * on the fly; the tty.* device is read-only vs. the cu.* dev
+         *   http://stackoverflow.com/questions/8632586
+         */
         if (glob("/dev/tty.usbmodem*", GLOB_NOSORT, NULL, &devglob) == 0) {
             if (devglob.gl_pathc > 0) {
                 if (devglob.gl_pathc > 1) {
