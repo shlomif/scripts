@@ -1,8 +1,12 @@
 CFLAGS+=-std=c99
 CFLAGS+=`pkg-config --cflags --libs goptfoo`
 
+# for OpenBSD ports; Mac OS X with MacPorts may instead need
+#   make rdcomm TCL=tcl
+TCL=tcl85
+
 rdcomm: rdcomm.c
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs tcl` -o rdcomm rdcomm.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs $(TCL)` -o rdcomm rdcomm.c
 ttywrite: ttywrite.c
 ttytest: ttytest.c
 
