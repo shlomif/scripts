@@ -39,7 +39,7 @@
 
 speed_t Flag_Baud = B9600;
 bool Flag_Raw;                  // -r  raw, do not defang special ASCII chars
-unsigned long Flag_MinRead = 1; // -M, for VMIN read
+unsigned long Flag_MinRead = 1; // -M  for VMIN read
 
 void emit_help(void);
 
@@ -67,8 +67,7 @@ int main(int argc, char *argv[])
             break;
         case 'M':
             Flag_MinRead =
-                (speed_t) flagtoul(ch, optarg, 1UL,
-                                   (unsigned long) SERIAL_BUF_LEN);
+                flagtoul(ch, optarg, 1UL, (unsigned long) SERIAL_BUF_LEN);
             break;
         case 'r':
             Flag_Raw = true;
@@ -99,7 +98,7 @@ int main(int argc, char *argv[])
         /* OpenBSD - static USB dev, guess the first one (though
          * sometimes it may jump to cuaU1 after plug/unplug things...).
          * User must be in the 'dialer' group as of OpenBSD 5.8. */
-        else if (glob("/dev/cuaU0*", 0, NULL, &devglob) == 0) {
+        else if (glob("/dev/cuaU0", 0, NULL, &devglob) == 0) {
             if (devglob.gl_pathc > 0) {
                 device = devglob.gl_pathv[0];
             }

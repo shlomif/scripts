@@ -1,0 +1,94 @@
+.Dd September 15, 2016
+.Dt RDCOMM 1
+.nh
+.Os
+.Sh NAME
+.Nm rdcomm
+.Nd read data from a serial device
+.Sh SYNOPSIS
+.Nm rdcomm
+.Bk -words
+.Op Fl B Ar baud
+.Op Fl e Ar expr
+.Op Fl M Ar minread
+.Op Fl r
+.Op Ar devname
+.Ek
+.Sh DESCRIPTION
+.Nm
+reads data from a serial device, and prints that data to standard out, or
+instead passes it to a supplied TCL expression. On Mac OS X or OpenBSD, the
+.Ar devname
+will be guessed at if not supplied, either
+.Pa /dev/tty.usbmodem*
+or
+.Pa /dev/cuaU0 .
+.Pp
+This code assumes eight bits, no parity, and one stop bit and does not at
+present offer command line options to change these.
+.Pp
+Options:
+.Bl -tag -width -indent
+.It Fl B Ar baud
+Baud to use, 9600 by default.
+.It Fl e Ar expr
+TCL expression the read data will be passed to via the
+.Dv $_
+variable. The data will not be printed; the TCL code must handle that,
+if necessary. Note that the data will be whatever
+.Xr read 2
+returns, which may be only a fragment of the expected data.
+.It Fl M Ar minread
+Minimum amount of data to read, by default 1 byte.
+.It Fl r
+Raw mode, do not replace special ASCII characters with a dot.
+.El
+.Pp
+.Sh EXIT STATUS
+.Nm
+will loop forever, though will exit with a non-zero code should something go
+awry or if the process or serial line is killed or interrupted.
+.Sh EXAMPLES
+These concern the task of supplying appropriate TCL code to the
+.Fl e
+option. The
+.Fl r
+raw option is necessary if the exact bytes are required, as without this
+option special ASCII characters will be replaced with a dot. The carriage
+return is by default ignored.
+.Pp
+A naive read of lines of temperature data over a serial line well illustrates
+the need to be cautious with what has been read:
+.Pp
+.Dl Ic $ rdcomm -e 'puts [string trim $_]' /dev/tty.usbmodem621
+.Dl 2
+.Dl 6.80
+.Dl 25.
+.Dl ^C
+.Pp
+With a minimum read of 6 bytes, the (assumed) fixed-width data is more likely to align with the
+.Xr read 2
+calls though could still be botched, depending exactly on when the reads being:
+.Pp
+.Dl Ic $ rdcomm -M 6 -e 'puts [string trim $_]' /dev/tty.usbmodem621
+.Dl 26.80
+.Dl 25.98
+.Dl ^C
+.Pp
+Character-wise processing will require splitting the input:
+.Pp
+.Dl Ic $ rdcomm -re 'foreach c [split $_ ""] { puts "$c [scan $c %c]" }'
+.Sh FILES
+If the
+.Fl e
+option is used, TCL will attempt to parse 
+.Pa $HOME/.tclshrc ,
+though will not fail if that file does not exist or contains invalid code.
+.Sh SEE ALSO
+.Xr cu 1 ,
+.Xr minicom 1 ,
+.Xr screen 1 ,
+.Xr Tcl n ,
+.Xr termios 4 
+.Sh AUTHOR
+.An Jeremy Mates
