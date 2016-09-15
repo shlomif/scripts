@@ -2,6 +2,7 @@ CFLAGS+=-std=c99
 CFLAGS+=`pkg-config --cflags --libs goptfoo`
 
 rdcomm: rdcomm.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs tcl` -o rdcomm rdcomm.c
 ttywrite: ttywrite.c
 ttytest: ttytest.c
 
