@@ -1,9 +1,0 @@
-#!/bin/sh
-#
-# Reveals files in the Finder under Mac OS X.
-
-if [ -z "$1" ]; then
-  echo "usage: `basename $0` files"
-  exit 64
-fi
-open -a Finder "$@"

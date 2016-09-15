@@ -1,6 +1,0 @@
-#!/bin/sh
-# Show SMTP server certificate. Usage:
-# check-smtp -connect mail.example.org:465
-# check-smtp -starttls smtp -connect mail.example.org:25
-# check-smtp -starttls smtp -connect mail.example.org:587
-(echo EHLO `hostname`; echo QUIT) | openssl s_client "$@" 2>&1

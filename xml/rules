@@ -1,9 +1,0 @@
-# ruleset for processing of XML documents
-suffix not eq "xml" ignore
-
-# different path for CFM docs: uses eolas, but different stylesheets
-dirname sub "cfm/co/website/htdocs" \
-  path=/home/jmates/cfm/co/website/htdocs/_xs/%{class}/%{style}.xsl \
-
-rootname eq "eolas" stop class=eolas style=default
-rootname eq "changelog" stop class=cvs2cl style=default

@@ -6,7 +6,5 @@ CFLAGS += `pkg-config --libs --cflags goptfoo`
 
 birds: birds.c
 
-orb-of-fire: orb-of-fire.c
-
 clean:
-	@-rm -f birds orb-of-fire *.core 2>/dev/null
+	@-rm -f birds *.core 2>/dev/null

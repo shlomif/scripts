@@ -1,4 +1,7 @@
 #!/usr/bin/env perl
+#
+# Change ownership of files in a tarball, to sanitize them.
+
 use strict;
 use warnings;
 use Archive::Tar 1.80;

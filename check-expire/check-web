@@ -1,5 +1,0 @@
-#!/bin/sh
-#
-# Show website certificate. Usage: check-web www.example.org:443
-
-echo GET / HTTP/1.0 | openssl s_client -connect "$1" 2>&1

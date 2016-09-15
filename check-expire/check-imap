@@ -1,7 +1,0 @@
-#!/bin/sh
-#
-# Show IMAP server certificate. Usage:
-#
-# check-imap mail.example.org:993
-
-echo 00000001 LOGOUT | openssl s_client -connect "$1" 2>&1

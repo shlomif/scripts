@@ -1,9 +1,0 @@
-#!/bin/sh
-#
-# Usage:
-#   safertail2 -f /some/log
-#
-# Like safertail, but blows up if non-printable characters seen, so that
-# one can investigate where those characters came from, etc.
-
-exec tail "$@" | perl -ple 'if (m/[^ -~]/) { s/[^ -~]/sprintf "%%%02x", ord($1)/eg; die "non-printable data in log: $_\n" }'

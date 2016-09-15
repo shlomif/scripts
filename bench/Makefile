@@ -7,15 +7,9 @@ CFLAGS += -g
 # for some of the progs
 CFLAGS += -lpthread
 
-alloct: alloct.c
-
-insertornot: insertornot.c
-
 lockalot: lockalot.c
-
 malloc: malloc.c
-
 usemem: usemem.c
 
 clean:
-	@-rm -f insertornot lockalot malloc usemem *.core 2>/dev/null
+	@-rm -f lockalot malloc usemem *.core 2>/dev/null

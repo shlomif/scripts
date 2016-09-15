@@ -1,6 +1,0 @@
-#!/bin/sh
-#
-# Unset FTARGET, which is used by various other scripts I employ (mtmmd,
-# notably).
-rm $HOME/.zsh/sighandle/USR1/set-ftarget 2>/dev/null
-exec allsh unset FTARGET
