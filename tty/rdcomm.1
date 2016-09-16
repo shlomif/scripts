@@ -77,7 +77,7 @@ calls though could still be botched, depending exactly on when the reads being:
 .Pp
 Character-wise processing will require splitting the input:
 .Pp
-.Dl Ic $ rdcomm -re 'foreach c [split $_ ""] { puts "$c [scan $c %c]" }'
+.Dl Ic $ rdcomm -re 'foreach c [split $_ \*q\*q] { puts \*q$c [scan $c %c]\*q }'
 .Sh FILES
 If the
 .Fl e

@@ -2,11 +2,11 @@ blocksig: blocksig.c
 
 jitterbits: jitterbits.c
 
+obdurate: obdurate.c
+
 sigint-off: sigint-off.c
 
 sigint-on: sigint-on.c
-
-sigratetest: sigratetest.c
 
 slay-self: slay-self.c
 

@@ -321,7 +321,7 @@ question execute arbitrary perl code.
 
 Newer versions of this script may be available from:
 
-http://github.com/thrig/sial.org-scripts/tree/master
+http://github.com/thrig/scripts/tree/master
 
 If the bug is in the latest version, send a report to the author.
 Patches that fix problems or add new features are welcome.

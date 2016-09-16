@@ -485,7 +485,7 @@ against the full directory name being considered.
   dir/example.org/htdocs http://devo.example.org/%1
 
   # github example...
-  co/scripts http://github.com/thrig/sial.org-scripts/commits/master/%1
+  co/scripts http://github.com/thrig/scripts/commits/master/%1
 
 =head1 TAB COMPLETION
 

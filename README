@@ -1,40 +1,8 @@
-Various Perl and C and Shell scripts, doubtless in no way suitable for any sort
-of use whatsoever. See also https://github.com/thrig/zsh-compdef which may have
-ZSH completions for some of the utilities herein. Which, again, should not be
-used, except as a warning to the next ten generations.
+Various Perl and C and Shell scripts for unix. (And some TCL, if you
+look hard enough.)
 
-The C code is aimed at *BSD, Mac OS X and OpenBSD in particular, and probably
-assumes that at least -std=c99 is set e.g. in $CFLAGS. Much less effort is made
-towards porting the C code to work on, say, Linux.
+https://github.com/thrig/zsh-compdef contains ZSH completions for some
+of the utilities herein.
 
-Achtung, Minen
---------------
-
-Things may well be moved or deleted without notice. If this is a concern, copy
-the bits somewhere else. Or back away. Slowly.
-
-Porting
--------
-
-I strongly advise against using systems that use bash, especially where /bin/sh
-is actually bash, in which case setting LC_COLLATE=C and such may be mandatory
-in various shell scripts, or to just not use shell scripts.
-
-http://utcc.utoronto.ca/~cks/space/blog/linux/BashLocaleScriptDestruction
-
-A Historical Missive
---------------------
-
-This ragged bundle of bits began as a CVS repository, not less than a few years
-ago. At one point, it was briefly migrated to Subversion, but that ended in
-disaster when the Subversion database wedged--something about BDB and Mac OS X,
-who knows. One can find traces of this event in the history. Anyways, it was
-back to CVS for a while longer, until eventually I moved to git, that being the
-fashionable thing for Perl folks to do, or so I hear. git has yet to blow up on
-me, which I suppose is nice.
-
-LICENSE
--------
-
-Using the ISC license now because putting things into the public domain is uh
-probably not possible given the present style of attaching onions to belts.
+The C code is written for Mac OS X and OpenBSD; portability beyond that
+is largely untested.

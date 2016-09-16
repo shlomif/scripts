@@ -121,11 +121,6 @@ check_dir () {
     update_perforce
     return
   fi
-
-  # default is to recurse into subdirs - not so nice in $HOME...
-  #subdir | while read dir; do
-  #  ( cd -- "$dir" && check_dir )
-  #done
 }
 
 OPT=

@@ -4,6 +4,7 @@
 #
 # TODO FYS algorithm works on in-memory array; way to shuffle while
 # streaming over the input, similar to "print random line from file?"
+# (shuf, apparently, if you have that toolset)
 
 END {
   # Report problems when writing to stdout (perldoc perlopentut)

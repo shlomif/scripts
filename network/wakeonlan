@@ -4,6 +4,10 @@
 #
 #  Plus the -I option to set the source IP among other tweaks.
 #    -- jmates@ 2013-04-14
+#
+# This actually does not work out too well, e.g. when the kids plug the
+# monitor into the wrong card (so the system doesn't boot) or a hundred
+# other little things that can prevent wakeonlan from working.
 
 use strict;
 use Socket;
