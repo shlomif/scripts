@@ -1,4 +1,4 @@
-.Dd September 15, 2016
+.Dd September 18, 2016
 .Dt RDCOMM 1
 .nh
 .Os
@@ -10,8 +10,10 @@
 .Bk -words
 .Op Fl B Ar baud
 .Op Fl e Ar expr
+.Op Fl I Ar bits
 .Op Fl M Ar minread
-.Op Fl r
+.Op Fl P Ar parity
+.Op Fl CrS
 .Op Ar devname
 .Ek
 .Sh DESCRIPTION
@@ -24,13 +26,12 @@ will be guessed at if not supplied, either
 or
 .Pa /dev/cuaU0 .
 .Pp
-This code assumes eight bits, no parity, and one stop bit and does not at
-present offer command line options to change these.
-.Pp
 Options:
 .Bl -tag -width -indent
 .It Fl B Ar baud
 Baud to use, 9600 by default.
+.It Fl C
+If set, carriage returns are not stripped. By default they are.
 .It Fl e Ar expr
 TCL expression the read data will be passed to via the
 .Dv $_
@@ -38,10 +39,22 @@ variable. The data will not be printed; the TCL code must handle that,
 if necessary. Note that the data will be whatever
 .Xr read 2
 returns, which may be only a fragment of the expected data.
+.It Fl I Ar bits
+Number of tranmission bits, 5 through 8. 8 bits by default.
 .It Fl M Ar minread
-Minimum amount of data to read, by default 1 byte.
+Minimum amount of data to read, by default 1 byte. May not exceed the
+.Dv SERIAL_BUF_LEN
+value set in the code.
+.It Fl P Ar parity
+Whether and how to perform parity checks, by default or on 0 no parity, 1
+for odd parity, and 2 for even parity. If parity checks are enabled, these
+will be marked.
 .It Fl r
-Raw mode, do not replace special ASCII characters with a dot.
+Raw mode, do not replace special ASCII characters with a dot. A rogue serial
+device may be able to send XTerm Control Sequences, which depending on the
+terminal may allow attacks ranging from nuisance to arbitrary code execution.
+.It Fl S
+Configure for two stop bits instead of the default one.
 .El
 .Pp
 .Sh EXIT STATUS
@@ -55,7 +68,9 @@ option. The
 .Fl r
 raw option is necessary if the exact bytes are required, as without this
 option special ASCII characters will be replaced with a dot. The carriage
-return is by default ignored.
+return is by default ignored, unless the
+.Fl C
+option is set.
 .Pp
 A naive read of lines of temperature data over a serial line well illustrates
 the need to be cautious with what has been read:
@@ -77,7 +92,7 @@ calls though could still be botched, depending exactly on when the reads being:
 .Pp
 Character-wise processing will require splitting the input:
 .Pp
-.Dl Ic $ rdcomm -re 'foreach c [split $_ \*q\*q] { puts \*q$c [scan $c %c]\*q }'
+.Dl Ic $ rdcomm -Cre 'foreach c [split $_ \*q\*q] { puts \*q$c [scan $c %c]\*q }'
 .Sh FILES
 If the
 .Fl e

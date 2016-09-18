@@ -37,11 +37,16 @@
 #define BAUD_MAX 640 * 640
 #define SERIAL_BUF_LEN 80
 
-speed_t Flag_Baud = B9600;
-bool Flag_Raw;                  // -r  raw, do not defang special ASCII chars
+speed_t Flag_Baud = B9600;      // -B  baud
+bool Flag_CR;                   // -C  do not ignore CR
+uint8_t Flag_Bits;              // -I  bits (5-8)
 unsigned long Flag_MinRead = 1; // -M  for VMIN read
+uint8_t Flag_Parity;            // -P  parity (0-2 off odd even)
+bool Flag_Raw;                  // -r  raw, do not defang special ASCII chars
+bool Flag_StopBits;             // -S  two stop bits if set
 
 void emit_help(void);
+void set_dev_termios(const int fd, const char *device);
 
 int main(int argc, char *argv[])
 {
@@ -51,26 +56,37 @@ int main(int argc, char *argv[])
     char *serialdata, *tclshrc;
     glob_t devglob;
     ssize_t readret;
-    struct termios device_tio;
     Tcl_Interp *Interp = NULL;
     Tcl_Obj *Script = NULL;
 
-    while ((ch = getopt(argc, argv, "B:e:h?M:r")) != -1) {
+    while ((ch = getopt(argc, argv, "B:Ce:h?I:M:P:rS")) != -1) {
         switch (ch) {
         case 'B':
             Flag_Baud =
                 (speed_t) flagtoul(ch, optarg, 1UL, (unsigned long) BAUD_MAX);
             break;
+        case 'C':
+            Flag_CR = true;
+            break;
         case 'e':
             Script = Tcl_NewStringObj(optarg, -1);
             Tcl_IncrRefCount(Script);
+            break;
+        case 'I':
+            Flag_Bits = (uint8_t) flagtoul(ch, optarg, 5UL, 8UL);
             break;
         case 'M':
             Flag_MinRead =
                 flagtoul(ch, optarg, 1UL, (unsigned long) SERIAL_BUF_LEN);
             break;
+        case 'P':
+            Flag_Parity = (uint8_t) flagtoul(ch, optarg, 0UL, 2UL);
+            break;
         case 'r':
             Flag_Raw = true;
+            break;
+        case 'S':
+            Flag_StopBits = true;
             break;
         case 'h':
         case '?':
@@ -152,44 +168,10 @@ int main(int argc, char *argv[])
     if ((device_fd = open(device, O_RDONLY | O_NOCTTY | O_NONBLOCK)) == -1)
         err(EX_IOERR, "could not open '%s'", device);
 
-    // exclusive, no more open operations on terminal permitted
+    // exclusive, no more open operations on terminal permitted?
     ioctl(device_fd, TIOCEXCL);
 
-    if (tcgetattr(device_fd, &device_tio) == -1)
-        err(EX_IOERR, "tcgetattr() failed on '%s'", device);
-    // see termios(4) though even those docs may not be clear on the
-    // whys or whatfors of these various flags...
-    device_tio.c_cc[VMIN] = Flag_MinRead;
-    device_tio.c_cc[VTIME] = 0;
-    device_tio.c_cflag &= ~(CSIZE | PARENB);
-    device_tio.c_cflag |= CREAD | CS8 | CLOCAL;
-    /* BREAK untested as cu(1) -> rdcomm via two serial lines (one a
-     * "Prolific Technology Inc. USB-Serial Controller" and the other a
-     * "FTDI FT232R USB UART") yielded NUL on ~# in cu, and unsure how
-     * to send proper BREAK via arduino. */
-    // NOTE may need option to unset or use different CR/NL flags, as
-    // cu(1) to rdcomm needs ICRNL not set (no output), while arduino to
-    // rdcomm does need it set (otherwise doubled newlines). Sigh.
-    device_tio.c_iflag &= ~(ISTRIP | ICRNL | IGNBRK);
-    device_tio.c_iflag |= (BRKINT | IGNCR);
-    device_tio.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
-    device_tio.c_oflag &= ~OPOST;
-    cfsetspeed(&device_tio, Flag_Baud);
-    if (tcsetattr(device_fd, TCSAFLUSH, &device_tio) == -1)
-        err(EX_IOERR, "tcsetattr() failed on '%s'", device);
-
-    // confirm settings were actually made (APUE does this...)
-    if (tcgetattr(device_fd, &device_tio) == -1)
-        err(EX_IOERR, "tcgetattr() failed on '%s'", device);
-    if (device_tio.c_cc[VTIME] != 0 || device_tio.c_cc[VMIN] != Flag_MinRead ||
-        ((device_tio.c_cflag & (CSIZE | PARENB | CREAD | CS8 | CLOCAL)) !=
-         (CREAD | CS8 | CLOCAL))
-        || ((device_tio.c_iflag & (ISTRIP | ICRNL | IGNBRK | BRKINT | IGNCR)) !=
-            (BRKINT | IGNCR))
-        || (device_tio.c_lflag & (ICANON | ISIG | IEXTEN | ECHO))
-        || device_tio.c_oflag & OPOST) {
-        errx(EX_OSERR, "did not tcsetattr() properly");
-    }
+    set_dev_termios(device_fd, device);
 
     fcntl(device_fd, F_SETFL, 0);       // back to blocking mode
 
@@ -233,4 +215,100 @@ void emit_help(void)
     fprintf(stderr,
             "Usage: rdcomm [-B baud] [-e expr] [-M minread] [-r] [/dev/foo]\n");
     exit(EX_USAGE);
+}
+
+/* see termios(4) though even those docs may not be clear on the whys or
+ * whatfors of these various flags... */
+void set_dev_termios(const int fd, const char *device)
+{
+    struct termios tio;
+    tcflag_t cflags, iflags;
+
+    if (tcgetattr(fd, &tio) == -1)
+        err(EX_IOERR, "tcgetattr() failed on '%s'", device);
+
+    cfsetspeed(&tio, Flag_Baud);
+
+    /* block until read VMIN due to timer being disabled */
+    tio.c_cc[VMIN] = Flag_MinRead;
+    tio.c_cc[VTIME] = 0;
+
+    /************************* Control Modes *************************/
+    cflags = tio.c_cflag;
+    cflags |= (CLOCAL | CREAD);
+
+    cflags &= ~CSIZE;
+    switch (Flag_Bits) {
+    case 5:
+        cflags |= CS5;
+        break;
+    case 6:
+        cflags |= CS6;
+        break;
+    case 7:
+        cflags |= CS7;
+        break;
+    default:
+        cflags |= CS8;
+    }
+
+    // see also how parity is handled in input modes section
+    switch (Flag_Parity) {
+    case 1:
+        cflags |= PARODD;
+        // no break as fall through to enable parity
+    case 2:
+        cflags |= PARENB;
+        break;
+    default:
+        cflags &= ~(PARENB);
+    }
+
+    if (Flag_StopBits) {
+        cflags |= CSTOPB;
+    }
+
+    tio.c_cflag = cflags;
+
+    /************************* Input Modes *************************/
+    iflags = tio.c_iflag;
+
+    // NOTE BREAK is untested, so these BRK settings may not be desireable
+    iflags &= ~(ICRNL | IGNBRK | IMAXBEL | INLCR | INPCK | ISTRIP);
+    iflags |= (BRKINT | IGNPAR);
+
+    if (Flag_CR) {
+        iflags &= ~IGNCR;
+    } else {
+        iflags |= IGNCR;
+    }
+
+    if (Flag_Parity) {
+        /* NOTE parity errors untested; may need flag to let user pick
+         * between marking and discarding any such errors. For now mark
+         * them to draw attention. */
+        iflags |= (INPCK | PARMRK);
+        iflags &= ~IGNPAR;
+    }
+
+    tio.c_iflag = iflags;
+
+    /************************* Local Modes *************************/
+    tio.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
+
+    /************************* Output Modes *************************/
+    tio.c_oflag &= ~OPOST;
+
+    if (tcsetattr(fd, TCSAFLUSH, &tio) == -1)
+        err(EX_IOERR, "tcsetattr() failed on '%s'", device);
+
+    // confirm settings were actually made (APUE does this...)
+    if (tcgetattr(fd, &tio) == -1)
+        err(EX_IOERR, "tcgetattr() failed after set on '%s'", device);
+    if (tio.c_cc[VTIME] != 0 || tio.c_cc[VMIN] != Flag_MinRead
+        || tio.c_cflag != cflags || tio.c_iflag != iflags
+        || (tio.c_lflag & (ICANON | ISIG | IEXTEN | ECHO))
+        || tio.c_oflag & OPOST) {
+        errx(EX_OSERR, "did not tcsetattr() properly??");
+    }
 }
