@@ -15,7 +15,7 @@
 #   (echo set x 42; echo set y 15.238095238095237) | feed - tclsh
 #   ...
 #
-#   echo run -al | feed - gdb `which ls`
+#   echo run -al | feed - gdb ls
 #   ...
 #
 # Exotic REPL or strange languages may require adjustments to the
