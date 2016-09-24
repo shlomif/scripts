@@ -1,0 +1,107 @@
+#!/usr/bin/env expect
+#
+# Feeds the commands in the given input file (or stdin) to the
+# subsequent program; this allows one to have a vi buffer, and then
+# launch a REPL via something like
+#
+#   :!feed % clisp -q -q
+#
+# The buffer commands will be input into the program, and then the REPL
+# can be interacted with as necessary. (No, I do not use slime.) If the
+# first argument is "-" input will instead be read from stdin; this may
+# not be reliable on account of the need to restore access to the tty
+# for interactive use (if it "does not work" please let me know):
+#
+#   (echo set x 42; echo set y 15.238095238095237) | feed - tclsh
+#   ...
+#
+#   echo run -al | feed - gdb `which ls`
+#   ...
+#
+# Exotic REPL or strange languages may require adjustments to the
+# EXPECT_COMMENT or EXPECT_PROMPT environment variables to properly
+# match language comments and REPL prompts. "env EXPECT_PROMPT= feed
+# ..." should disable the waits for a prompt.
+#
+# This code assumes a TCL version >= 8.5
+
+set prog_name [lindex [split $argv0 "/"] end]
+if {[llength $argv] < 2} {
+    puts stderr "Usage: $prog_name inputfile|- command \[command args ..]"
+    exit 64
+}
+
+# hide TCL stack traces as the TCL code is probably irrelevant given
+# that filesystem or TMP directory permissions are more likely to blame
+# for whatever caused the error
+proc failnbail {progn err} {
+    puts stderr "$progn: $err"
+    exit 1
+}
+
+# regex for skipping input lines that should not be fed to program
+# (blank lines are also skipped)
+if {[info exists env(EXPECT_COMMENT)]} {
+    set comment $env(EXPECT_COMMENT)
+} else {
+    set comment {^[:blank:]*(;|#)}
+}
+# regex for prompt detection for the prompt-wise feed of commands
+if {[info exists env(EXPECT_PROMPT)]} {
+    set prompt $env(EXPECT_PROMPT)
+} else {
+    set prompt "(%|#|gdb\\)|\\\\$|>|) $"
+}
+
+# first argument is where the commands come from: stdin or from a file?
+set argv [lassign $argv input_file];  # it's shift, Jim, but not as we know it
+if {$input_file eq "-"} {
+    # copy stdin into a tmp file and hopefully restore access to tty
+    if {[info exists env(TMPDIR)]} {
+        set tmpdir $env(TMPDIR)
+    } else {
+        set tmpdir /tmp
+    }
+    if {[catch {set tmpfile [exec mktemp $tmpdir/$prog_name.XXXXXXXXXX]} err]} {
+        failnbail $prog_name $err
+    }
+    if {[catch {set tmpfh [open $tmpfile w]} err]} {
+        failnbail $prog_name $err
+    }
+    while {[gets stdin line] >= 0} {
+        puts $tmpfh $line
+    }
+    close $tmpfh
+    close stdin
+    open /dev/tty r+
+    if {[catch {set input_fh [open $tmpfile r]} err]} {
+        failnbail $prog_name $err
+    }
+} else {
+    # regular file input
+    if {[catch {set input_fh [open $input_file r]} err]} {
+        failnbail $prog_name $err
+    }
+    set tmpfile ""
+}
+
+# NOTE that TCL versions <8.5 will need "eval spawn $argv" instead and
+# are totally untested with this code
+if {[catch {spawn -noecho {*}$argv} err]} {
+    failnbail $prog_name $err
+}
+# feed REPL with the commands
+while {[gets $input_fh command] >= 0} {
+    if { $command eq ""
+      || [regexp {^[:blank:]+$} $command]
+      || [regexp -- $comment $command] } { continue }
+    if {$prompt ne ""} { expect -re $prompt }
+    # see expect(1) and search on "human" if the sends must be sent
+    # slowly TODO perhaps a flag for such might be handy...
+    send -- "$command\r"
+}
+if {$tmpfile ne ""} { exec rm $tmpfile }
+close $input_fh
+
+# and hand REPL over to the bluberous fleshy mandibles of the user
+interact
