@@ -1,0 +1,65 @@
+.Dd September 26, 2016
+.Dt FEED 1
+.nh
+.Os
+.Sh NAME
+.Nm feed
+.Nd feeds commands into a REPL
+.Sh SYNOPSIS
+.Nm feed
+.Ar inputfile|-
+.Ar command
+.Op Ar command-args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+reads commands from the given
+.Pa inputfile
+or standard input if
+.Ar -
+is given as the filename, and feeds these commands to the subsequent
+command, ideally some sort of REPL. Once the commands have been fed,
+the user will be able to interact with the REPL manually.
+Using standard input requires that the 
+.Xr mktemp 1
+utility be available.
+.Sh ENVIRONMENT
+The following environment variables adjust the behavior of this script.
+.Pp
+.Bl -tag -width EXPECT_COMMENT
+.It Ev EXPECT_COMMENT
+A regular expression to exclude comments from the given input. By
+default the semicolon and hash optionally preceeded by whitespace
+are excluded. Blank lines are skipped by default.
+.It Ev EXPECT_PROMPT
+A regular expression that matches a prompt this script will wait on
+before issuing subsequent commands from the input. Set this to the blank
+string to skip this check.
+.El
+.Pp
+.Xr re_syntax n
+details the format of the regular expression.
+.Sh EXIT STATUS
+.Nm
+will turn execution over to the
+.Ar command
+though remains running during that exection.
+.Sh EXAMPLES
+From a 
+.Xr vi 1
+buffer containing LISP code, one could issue
+.Pp
+.Dl Ic :!feed % clisp -q -q
+.Pp
+to feed the contents of the buffer to clisp. Standard input is also
+supported as a source of input:
+.Pp
+.Dl $ Ic echo run -al | feed - gdb ls
+.Pp
+.Sh SEE ALSO
+.Xr expect 1 ,
+.Xr mktemp 1 ,
+.Xr re_syntax n ,
+.Xr vi 1
+.Sh AUTHOR
+.An Jeremy Mates
