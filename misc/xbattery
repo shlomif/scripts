@@ -1,0 +1,51 @@
+#!/usr/bin/env wish8.5
+#
+# An OpenBSD battery level thingymabobber.
+
+set width 115
+set height 57
+
+set notice_percent 30
+set warn_percent 15
+
+set period 59999 ;# milliseconds between updates
+set batlevel "?"
+
+font create TtyFont -family Courier -size 14 -weight bold
+set label [label .disp -background white -foreground black -width $width -height $height -font TtyFont -textvariable batlevel]
+
+proc getbatlevel {} {
+    global batlevel label notice_percent period warn_percent
+    set maxval [lindex [split [exec sysctl -n hw.sensors.acpibat0.watthour0] " "] 0]
+    set curval [lindex [split [exec sysctl -n hw.sensors.acpibat0.watthour3] " "] 0]
+    if {$maxval == 0} {
+	set batlevel "0?"
+    } else {
+	set batlevel [format "%.0f" [expr $curval / $maxval * 100]]
+    }
+    set batstate [lindex [split [exec sysctl -n hw.sensors.acpibat0.raw0] " "] 0]
+    if {$batstate == 2} {
+	set batlevel "${batlevel}% +"
+	$label configure -background green
+    } else {
+	if {$batlevel < $warn_percent} {
+	    $label configure -background red
+	} else if {$batlevel < $notice_percent} {
+	    $label configure -background yellow
+	} else {
+	    $label configure -background green
+	}
+	set batlevel "${batlevel}% -"
+    }
+    after $period [list getbatlevel]
+}
+
+# label floats in middle of the window
+pack $label
+grid .disp -row 1 -column 1
+grid rowconfigure . 1 -weight 1
+grid columnconfigure . 1 -weight 1
+
+wm geometry . "${width}x${height}+493-4"
+
+getbatlevel
