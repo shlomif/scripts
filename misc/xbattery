@@ -27,10 +27,13 @@ proc getbatlevel {} {
     if {$batstate == 2} {
 	set batlevel "${batlevel}% +"
 	$label configure -background green
+    } elseif {$batstate == 0} {
+	set batlevel ""
+	$label configure -background green
     } else {
 	if {$batlevel < $warn_percent} {
 	    $label configure -background red
-	} else if {$batlevel < $notice_percent} {
+	} elseif {$batlevel < $notice_percent} {
 	    $label configure -background yellow
 	} else {
 	    $label configure -background green
