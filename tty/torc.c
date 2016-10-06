@@ -29,6 +29,9 @@
 enum { TORC_TERM_NORM, TORC_TERM_RAW } Terminal_Mode = TORC_TERM_NORM;
 struct termios Original_Termios;
 
+const char *Flag_Outputfile;    /* -o file */
+int Flag_Quiet;                 /* -q */
+
 void cleanup(void);
 void emit_help(void);
 void handle_sig(int signo);
@@ -37,17 +40,24 @@ void reset_term(int fd);
 
 int main(int argc, char *argv[])
 {
-    int ch, *fd_list;
     char *device = NULL;
-    char buf[READ_BUF_LEN];
-    unsigned int dead_terms, fd_list_len, fdi;
+    char buf[READ_BUF_LEN], **tty_list;
+    int ch, *fd_list;
+    int output_fd = 0;
     sigset_t blockthese;
     ssize_t readret, rri;
+    unsigned int dead_terms, fd_list_len, fdi;
 
-    while ((ch = getopt(argc, argv, "h?P")) != -1) {
+    while ((ch = getopt(argc, argv, "h?o:Pq")) != -1) {
         switch (ch) {
+        case 'o':
+            Flag_Outputfile = optarg;
+            break;
         case 'P':
             warnx("PID %d", getpid());
+            break;
+        case 'q':
+            Flag_Quiet = 1;
             break;
         case 'h':
         case '?':
@@ -69,6 +79,8 @@ int main(int argc, char *argv[])
     fd_list_len = 0;
     dead_terms = 0;
 
+    tty_list = argv;
+
     while (*argv) {
         if (strchr(*argv, '/') == NULL) {
             if (asprintf(&device, "%s%s", _PATH_DEV, *argv) == -1)
@@ -79,6 +91,12 @@ int main(int argc, char *argv[])
         if ((fd_list[fd_list_len++] = open(device, O_WRONLY)) == -1)
             err(EX_IOERR, "could not open '%s'", device);
         argv++;
+    }
+
+    if (Flag_Outputfile) {
+        if ((output_fd =
+             open(Flag_Outputfile, O_CREAT | O_WRONLY | O_APPEND, 0666)) < 0)
+            err(EX_IOERR, "could not open '%s'", Flag_Outputfile);
     }
 
     sigemptyset(&blockthese);
@@ -104,7 +122,7 @@ int main(int argc, char *argv[])
             err(EX_IOERR, "read failed");
         }
         if (readret == 0) {
-            // EOF on standard input, nothing more to do
+            /* EOF on standard input, nothing more to do */
             exit(EXIT_SUCCESS);
         } else if (readret < 0) {
             errx(1, "unexpected negative return from read: %ld", readret);
@@ -113,30 +131,45 @@ int main(int argc, char *argv[])
             for (fdi = 0; fdi < fd_list_len; fdi++) {
                 if (fd_list[fdi] != -1) {
                     if (ioctl(fd_list[fdi], TIOCSTI, buf + rri) == -1) {
+                        if (!Flag_Quiet) {
+                            warn("could not write to %s", tty_list[fdi]);
+                            /* avoid dangling off end of error message */
+                            if (write(STDOUT_FILENO, "\x1b[1G", 4) < 0)
+                                err(EX_IOERR, "write to stdout failed");
+                        }
                         close(fd_list[fdi]);
                         fd_list[fdi] = -1;
                         dead_terms++;
                     }
                 }
             }
+            /* modest controlling terminal display rectification */
             switch (buf[rri]) {
             case 127:
-                // http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
-                // cursor backward, erase to right
-                write(STDOUT_FILENO, "\x1b[D\x1b[K", 6);
+                /* http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+                 * cursor backward, erase to right */
+                if (write(STDOUT_FILENO, "\x1b[D\x1b[K", 6) < 0)
+                    err(EX_IOERR, "write to stdout failed");
                 break;
             case 13:
                 /* CR/NL kluge, may not be portable */
-                write(STDOUT_FILENO, "\n", 1);
+                if (write(STDOUT_FILENO, "\n", 1) < 0)
+                    err(EX_IOERR, "write to stdout failed");
             default:
-                write(STDOUT_FILENO, (buf + rri), 1);
+                if (write(STDOUT_FILENO, (buf + rri), 1) < 0)
+                    err(EX_IOERR, "write to stdout failed");
             }
         }
         if (dead_terms == fd_list_len) {
-            // could false positive, in which case will need to check if
-            // ioctl sets errno and then extra logic on that value...
-            warnx("notice: no error-free terminals remain");
-            exit(EXIT_SUCCESS);
+            /* could false positive, in which case will need to check if
+             * ioctl sets errno and then extra logic on that value... */
+            if (!Flag_Quiet)
+                warnx("no error-free terminals remain");
+            exit(1);
+        }
+        if (output_fd != 0) {
+            if (write(output_fd, buf, (size_t) readret) < 0)
+                err(EX_IOERR, "write to output '%s' failed", Flag_Outputfile);
         }
     }
 
@@ -151,14 +184,14 @@ void cleanup(void)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: torc dev [dev2 ..]\n");
+    fprintf(stderr, "Usage: torc [-o file] [-P] [-q] dev [dev2 ..]\n");
     exit(EX_USAGE);
 }
 
 void handle_sig(int signo)
 {
     exit(1);
-    // and then the atexit handler should reset the terminal
+    /* and then the atexit handler should reset the terminal */
 }
 
 void raw_terminal(int fd)
@@ -183,7 +216,7 @@ void raw_terminal(int fd)
     if (tcsetattr(fd, TCSAFLUSH, &terminfo) < 0)
         err(EX_OSERR, "could not tcsetattr()");
 
-    // confirm settings
+    /* confirm settings actually made */
     if (tcgetattr(fd, &terminfo) < 0) {
         tcsetattr(fd, TCSANOW, &Original_Termios);
         err(EX_OSERR, "could not tcgetattr()");

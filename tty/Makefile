@@ -7,6 +7,7 @@ TCL=tcl85
 
 rdcomm: rdcomm.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs $(TCL)` -o rdcomm rdcomm.c
+torc: torc.c
 ttywrite: ttywrite.c
 ttytest: ttytest.c
 

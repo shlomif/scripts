@@ -1,0 +1,49 @@
+.Dd October  6, 2016
+.Dt TORC 1
+.nh
+.Os
+.Sh NAME
+.Nm torc
+.Nd orchestrates terminals via the TIOCSTI ioctl
+.Sh SYNOPSIS
+.Nm torc
+.Bk -words
+.Op Fl o Ar file
+.Op Fl P
+.Op Fl q
+.Ar dev1
+.Op Ar dev2 ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+orchestrates terminals via the TIOCSTI ioctl; that is, whatever is typed
+into the terminal running
+.Nm
+will be written into all the devices passed to
+.Nm .
+This typically requires root or appropriate permissions otherwise
+granted. Terminals that cannot be written to will be removed from the
+write list; writes will continue to the remaining until all terminals
+enter an error state.
+Options:
+.Bl -tag -width -indent
+.It Fl o Ar file
+will contain a copy of the exact characters written provided there was
+at least one error-free terminal at the time
+.It Fl P
+reports the pid of
+.Nm
+before accepting characters to write
+.It Fl q
+makes
+.Nm
+issue fewer messages to standard error
+.El
+.Sh EXIT STATUS
+.Nm
+will run until killed or all terminals enter an error state; a non-zero
+exit is probably the only exit status that will be seen.
+.Sh EXAMPLES
+.Dl $ Ic doas torc -o log ttyp2 ttyp3
+.Sh AUTHOR
+.An Jeremy Mates
