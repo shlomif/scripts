@@ -2,4 +2,3 @@ copycat
 muss-with-environ
 setsid
 threading
-timeout

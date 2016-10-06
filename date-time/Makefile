@@ -8,5 +8,7 @@ mycal: mycal.c
 
 now: now.c
 
+timeout: timeout.c
+
 clean:
-	@-rm c-delta-time date2epoch myat mycal now 2>/dev/null
+	@-rm c-delta-time date2epoch myat mycal now timeout 2>/dev/null

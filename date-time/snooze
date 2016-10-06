@@ -1,0 +1,82 @@
+#!/usr/bin/env perl
+#
+# snooze - sleep for a given duration, with SIGINFO (control+t maybe)
+# or SIGQUIT (control+\ typically) showing how much time remains. Usage:
+#
+#   snooze 3m; make-noise-somehow
+#
+# or with
+#
+#   snooze 25m bread; make-noise-somehow
+#
+# one can then elsewhere
+#
+#   pkill -INFO snooze-bread
+
+use strict;
+use warnings;
+use Term::ReadKey qw(ReadMode);
+
+my %factors = ( s => 1, m => 60, h => 3600, d => 86400 );
+
+my $arg = shift or die "Usage: $0 sleep-time [label]\n";
+my $to_sleep = 0;
+while ( $arg =~ m/([0-9]+)([smhd])?/g ) {
+    my $value = $1;
+    $value *= $factors{$2} if $2;
+    $to_sleep += $value;
+}
+die "nothing to die to sleep to sleep no more for\n" if $to_sleep == 0;
+
+my $label = shift;
+$0 = $label ? "snooze-$label" : "snooze";
+
+ReadMode 2;    # noecho to hide control+\s from gunking up the message
+
+sub remainder { warn "$0: " . deltatimefmt($to_sleep) . " remaining\n" }
+
+sub restore {
+    ReadMode 0;
+    warn "$0: " . deltatimefmt($to_sleep) . " remainds\n";
+    exit 1;
+}
+
+# expect user to mash on control+\ or whatever generates SIGINFO
+for my $name (qw/ALRM INFO QUIT/) {
+    $SIG{$name} = \&remainder;
+}
+
+# back to original term settings if get blown away
+for my $name (qw/HUP INT TERM USR1 USR2/) {
+    $SIG{$name} = \&restore;
+}
+
+$SIG{TSTP} = 'IGNORE';    # no Zees for you!
+
+while ( $to_sleep > 0 ) {
+    $to_sleep -= sleep $to_sleep;
+}
+
+ReadMode 0;
+exit;
+
+sub deltatimefmt {
+    my $difference = shift;
+
+    return "0s" if $difference == 0;
+
+    my $seconds = $difference % 60;
+    $difference = ( $difference - $seconds ) / 60;
+    my $minutes = $difference % 60;
+    $difference = ( $difference - $minutes ) / 60;
+
+    my $hours = $difference % 24;
+    $difference = ( $difference - $hours ) / 24;
+    my $days = $difference % 7;
+
+    my $temp = ($days) ? "${days}d" : q{};
+    $temp .= ($hours)   ? "${hours}h"   : q{};
+    $temp .= ($minutes) ? "${minutes}m" : q{};
+    $temp .= ($seconds) ? "${seconds}s" : q{};
+    return $temp;
+}

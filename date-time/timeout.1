@@ -1,0 +1,57 @@
+.Dd October  6, 2016
+.Dt TIMEOUT 1
+.nh
+.Os
+.Sh NAME
+.Nm timeout
+.Nd terminates a command after the specified amount of time
+.Sh SYNOPSIS
+.Nm timeout
+.Bk -words
+.Op Fl F
+.Op Fl q
+.Ar --
+.Ar duration
+.Ar command
+.Op Ar command-args ...
+.Ek
+.Sh DESCRIPTION
+.Nm
+sends a SIGTERM to the specified command if it does not exit within the
+specified duration.
+.Nm
+does not handle any other signals besides SIGALRM, so could be made to
+exit early by some other terminal signal.
+.Pp
+.Bl -tag -width -indent
+.It Fl F
+forces
+.Nm
+to wait for at least the full duration, unless killed by some signal.
+Use this to avoid a tight start-fail-gotostart loop, or to avoid leaking
+how long the command run took.
+.It Fl q
+makes
+.Nm
+emit less noise.
+.El
+.Sh EXAMPLES
+The use of the double hyphens while optional is to prevent the option
+processing for
+.Nm
+from running into those of the subsquent command, if any. The duration
+may be given either as raw seconds, or in a short form, with various
+limits on what the numbers may be.
+.Pp
+.Dl Ic timeout -- 3 sleep 7
+.Dl Ic timeout -- 3m21s sleep 202
+.Sh EXIT STATUS
+.Ex -std timeout
+In particular, the exit status is 2 on timeout.
+.Sh HISTORY
+Began as a (quite bad) Perl script in 2002 to deal with Apache FOP not
+exiting when building PDF via XSL-FO. Less bad implementation in C
+written in 2013. The GNU coreutils utility of the same name appears to
+date to 2008.
+.Sh AUTHOR
+.An Jeremy Mates
