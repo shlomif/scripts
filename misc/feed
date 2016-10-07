@@ -12,7 +12,7 @@
 # not be reliable on account of the need to restore access to the tty
 # for interactive use (if it "does not work" please let me know):
 #
-#   (echo set x 42; echo set y 15.238095238095237) | feed - tclsh8.5
+#   (echo set x 42; echo set y 15.238095238095237) | feed - tclsh
 #   ...
 #
 #   echo run -al | feed - gdb ls
@@ -29,7 +29,7 @@
 
 set prog_name [lindex [split $argv0 "/"] end]
 if {[llength $argv] < 2} {
-    puts stderr "Usage: $prog_name inputfile|- command \[command args ..]"
+    puts stderr "Usage: $prog_name file|- command \[command-args ..]"
     exit 64
 }
 
@@ -64,10 +64,43 @@ proc die {args} {
 # first argument is where the commands come from: stdin or from a file?
 set argv [lassign $argv input_file];  # it's shift, Jim, but not as we know it
 
+if {$input_file eq "-"} {
+    # copy stdin into a tmp file and then hopefully restore access to tty
+    set tmpfile [::fileutil::tempfile "$prog_name-"]
+    trap {file delete $tmpfile; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
+    if {[catch {set tmpfh [open $tmpfile w]} err]} {
+        file delete $tmpfile
+        die $err
+    }
+    while {[gets stdin line] >= 0} {
+        puts $tmpfh $line
+    }
+    if {[catch {close $tmpfh} err]} {
+        file delete $tmpfile
+        die $err
+    }
+    close stdin
+    open /dev/tty r+
+    if {[catch {set input_fh [open $tmpfile r]} err]} {
+        file delete $tmpfile
+        die $err
+    }
+} else {
+    # regular file input
+    if {[catch {set input_fh [open $input_file r]} err]} {
+        die $err
+    }
+    set tmpfile ""
+}
+
+if {[catch {spawn -noecho {*}$argv} err]} {
+    if {$tmpfile ne ""} { file delete $tmpfile }
+    die $err
+}
+
 # TWEAK and here we try to figure out hopefully a 90% solution for feeding
 # of varied inputs to varied REPL
 set tocall [lindex $argv 0]
-
                                                                # LISP
 if {$tocall eq "clisp" || $tocall eq "sbcl"} {
     proc dosomethingwith {line} {
@@ -84,7 +117,6 @@ if {$tocall eq "clisp" || $tocall eq "sbcl"} {
 
         send -- "$line\r"
     }
-
                                                                # Perl
 } elseif {($tocall eq "perl" && "-d" in $argv)
   || $tocall eq "tinyrepl"} {
@@ -98,7 +130,6 @@ if {$tocall eq "clisp" || $tocall eq "sbcl"} {
 
         send -- "$line\r"
     }
-
                                                                # TCL
 } elseif {$tocall eq "expect"
   || [string match "tclsh*" $tocall]
@@ -121,53 +152,43 @@ if {$tocall eq "clisp" || $tocall eq "sbcl"} {
 } elseif {$tocall eq "gdb"} {
     proc dosomethingwith {line} {
 
-        if {[regexp {^[:blank:]*(;?#|$)} $line]} { return }
+        # assume hash and blank lines are comments around gdb commands
+        # in the input and skip
+        if {[regexp {^[:blank:]*(#|$)} $line]} { return }
 
+        # TODO does this change? (or also (lldb) for llvm but that on
+        # Apple is always failing from the cli due to integrity checks
+        # or whatnot so ignore
         expect -ex "(gdb)"
 
         send -- "$line\r"
     }
-
+                                                               # default
 } else {
-    die "error: do not know how to handle REPL: $argv"
+    # assume # as comments and send the rest through; probably adequate
+    # for shell scripts and doubtless other things though does not wait
+    # for any prompt
+    proc dosomethingwith {line} {
+        if {[regexp {^[:blank:]*#} $line]} { return }
+        send -- "$line\r"
+    }
 }
 
-if {$input_file eq "-"} {
-    # copy stdin into a tmp file and then hopefully restore access to tty
-    set tmpfile [::fileutil::tempfile "$prog_name-"]
-    trap {file delete $tmpfile; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
-    if {[catch {set tmpfh [open $tmpfile w]} err]} {
-        file delete $tmpfile
-        die $err
-    }
-    while {[gets stdin line] >= 0} {
-        puts $tmpfh $line
-    }
-    close $tmpfh
-    close stdin
-    open /dev/tty r+
-    if {[catch {set input_fh [open $tmpfile r]} err]} {
-        file delete $tmpfile
-        die $err
-    }
-} else {
-    # regular file input
-    if {[catch {set input_fh [open $input_file r]} err]} {
-        die $err
-    }
-    set tmpfile ""
-}
-
-if {[catch {spawn -noecho {*}$argv} err]} {
-    if {$tmpfile ne ""} { file delete $tmpfile }
-    die $err
-}
 while {[gets $input_fh line] >= 0} { dosomethingwith $line }
-if {$tmpfile ne ""} {
-    trap {puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
-    file delete $tmpfile
-}
-close $input_fh
+
+# control+z will background feed (and whatever being run) while for
+# control+c that is passed through to the program being run.
+set CONTROL_C \003
+set CONTROL_Z \032
+trap {puts ""; exit 1} {SIGHUP SIGPIPE SIGTERM}
+#trap SIG_IGN SIGINT
+trap {send $CONTROL_C} SIGINT
+
+if {$tmpfile ne ""} { file delete $tmpfile }
+if {[catch {close $input_fh} err]} { die $err }
 
 # and hand REPL over to the bluberous fleshy mandibles of the user
-interact
+interact {
+    $CONTROL_C {send -raw $CONTROL_C}
+    -reset $CONTROL_Z {exec kill -STOP [pid]}
+}

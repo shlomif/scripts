@@ -1,4 +1,4 @@
-.Dd October  6, 2016
+.Dd October  8, 2016
 .Dt FEED 1
 .nh
 .Os
@@ -7,27 +7,53 @@
 .Nd feeds commands into a REPL
 .Sh SYNOPSIS
 .Nm feed
-.Ar inputfile|-
+.Ar file|-
 .Ar command
 .Op Ar command-args ..
 .Ek
 .Sh DESCRIPTION
 .Nm
-reads commands from the given
-.Pa inputfile
-or standard input if
-.Ar -
-is given as the filename, and feeds these commands to the subsequent
-command, ideally some sort of REPL. Once the commands have been fed, the
-user will be able to interact with the REPL manually.
+reads lines from the given
+.Pa file
+(or standard input) and feeds these lines to the subsequent
+.Ar command ,
+Once all the lines have been fed, the user will be able to
+.Ic interact
+with the REPL manually.
 .Pp
-Support for a REPL must be written into the code; see the code
-for details.
-.Sh EXIT STATUS
+Support for a REPL should ideally be written into the code. See the
+code for the supported REPL and default behavior, as for some commands
+some lines (comments, blank lines) may be skipped, prompts may be
+waited for, etc.
+.Pp
+Input of
+.Ic control+z
+will cause
 .Nm
-will turn execution over to the
+(and the
+.Ar command )
+to stop. A
+.Ic control+c
+will be relayed from
+.Nm
+to the 
+.Ar command .
+.Sh EXIT STATUS
+.Ex -std
+The exit status once
+.Nm
+has begun to
+.Ic interact
+with the given
 .Ar command
-though remains running during that exection.
+will likely always be 0 (regardless how the
+.Ar command
+exits), unless a
+.Dv HUP ,
+.Dv PIPE ,
+or
+.Dv TERM
+signal is sent.
 .Sh EXAMPLES
 From a 
 .Xr vi 1
@@ -36,11 +62,52 @@ buffer containing LISP code, one could issue
 .Dl Ic :!feed % clisp -q -q
 .Pp
 to feed the contents of the buffer to clisp. Standard input is also
-supported as a source of input:
+supported as a source of input,
 .Pp
 .Dl $ Ic echo run -al | feed - gdb ls
 .Pp
+would run
+.Pa ls
+under
+.Pa gdb
+and then launch
+.Pa ls
+with the arguments
+.Ar -al 
+and then turn
+.Pa gdb
+over to the user.
+.Pp
+.Nm
+assisted the design and debugging of the ZSH completion script for
+.Nm ;
+given a
+.Pa vi
+buffer containing
+.Pp
+.Dl rm ~/.zcompdump
+.Dl fpath=(~/co/zsh/compdef $fpath)
+.Dl autoload -U compinit && compinit
+.Dl # fake completion on ls as want to see if complete its arguments
+.Dl zstyle ':completion:*:*:feed:*:commands' fake-always ls
+.Dl zstyle ':completion:*:*:feed:*:commands' ignored-patterns '*'
+.Dl # stdin completion testing
+.Dl #print -z 'echo foo | feed '
+.Dl print -z 'feed '
+.Pp
+one can then feed a test shell invocation with these commands via
+.Pp
+.Dl Ic :!feed % zsh -f
+.Pp
+and then try out the tab completion (edited elsewhere) until it works. The
+.Ar -f
+to
+.Pa zsh
+prevents anything in the regular shell configuration from interfering
+with the task at hand, though do note that undesirable environment
+variables may be passed through from the parent process.
 .Sh SEE ALSO
-.Xr expect 1
+.Xr expect 1 ,
+.Xr Tcl n
 .Sh AUTHOR
 .An Jeremy Mates
