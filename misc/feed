@@ -12,7 +12,7 @@
 # not be reliable on account of the need to restore access to the tty
 # for interactive use (if it "does not work" please let me know):
 #
-#   (echo set x 42; echo set y 15.238095238095237) | feed - tclsh
+#   (echo set x 42; echo set y 15.238095238095237) | feed - tclsh8.5
 #   ...
 #
 #   echo run -al | feed - gdb ls
@@ -47,6 +47,10 @@ if {[llength $argv] < 2} {
 # lines (LISP, TCL).
 #set timeout .5
 set timeout 3
+
+# for Tcl version of mktemp(1)
+package require Tcl 8
+package require fileutil
 
 proc warn {msg} {
     global prog_name
@@ -130,17 +134,10 @@ if {$tocall eq "clisp" || $tocall eq "sbcl"} {
 
 if {$input_file eq "-"} {
     # copy stdin into a tmp file and then hopefully restore access to tty
-    if {[info exists env(TMPDIR)]} {
-        set tmpdir $env(TMPDIR)
-    } else {
-        set tmpdir /tmp
-    }
-    if {[catch {set tmpfile [exec mktemp $tmpdir/$prog_name.XXXXXXXXXX]} err]} {
-        die $err
-    }
-    trap {exec rm $tmpfile; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
+    set tmpfile [::fileutil::tempfile "$prog_name-"]
+    trap {file delete $tmpfile; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
     if {[catch {set tmpfh [open $tmpfile w]} err]} {
-        exec rm $tmpfile
+        file delete $tmpfile
         die $err
     }
     while {[gets stdin line] >= 0} {
@@ -150,7 +147,7 @@ if {$input_file eq "-"} {
     close stdin
     open /dev/tty r+
     if {[catch {set input_fh [open $tmpfile r]} err]} {
-        exec rm $tmpfile
+        file delete $tmpfile
         die $err
     }
 } else {
@@ -161,16 +158,14 @@ if {$input_file eq "-"} {
     set tmpfile ""
 }
 
-# NOTE that TCL versions <8.5 will need "eval spawn $argv" instead and
-# are totally untested with this code
 if {[catch {spawn -noecho {*}$argv} err]} {
-    if {$tmpfile ne ""} { exec rm $tmpfile }
+    if {$tmpfile ne ""} { file delete $tmpfile }
     die $err
 }
 while {[gets $input_fh line] >= 0} { dosomethingwith $line }
 if {$tmpfile ne ""} {
     trap {puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
-    exec rm $tmpfile
+    file delete $tmpfile
 }
 close $input_fh
 

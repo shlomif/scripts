@@ -1,4 +1,4 @@
-.Dd October  5, 2016
+.Dd October  6, 2016
 .Dt FEED 1
 .nh
 .Os
@@ -21,12 +21,6 @@ is given as the filename, and feeds these commands to the subsequent
 command, ideally some sort of REPL. Once the commands have been fed, the
 user will be able to interact with the REPL manually.
 .Pp
-Using standard input requires that the
-.Xr mktemp 1
-and
-.Xr rm 1
-utilities be available.
-.Pp
 Support for a REPL must be written into the code; see the code
 for details.
 .Sh EXIT STATUS
@@ -47,8 +41,6 @@ supported as a source of input:
 .Dl $ Ic echo run -al | feed - gdb ls
 .Pp
 .Sh SEE ALSO
-.Xr expect 1 ,
-.Xr mktemp 1 ,
-.Xr vi 1
+.Xr expect 1
 .Sh AUTHOR
 .An Jeremy Mates
