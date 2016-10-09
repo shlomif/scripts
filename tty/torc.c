@@ -41,7 +41,7 @@ void reset_term(int fd);
 int main(int argc, char *argv[])
 {
     char *device = NULL;
-    char buf[READ_BUF_LEN], **tty_list;
+    char buf[READ_BUF_LEN], *mytty, **tty_list;
     int ch, *fd_list;
     int output_fd = 0;
     sigset_t blockthese;
@@ -73,6 +73,8 @@ int main(int argc, char *argv[])
 
     if (isatty(STDIN_FILENO) == 0)
         err(EX_USAGE, "standard input is not a terminal");
+    if ((mytty = ttyname(STDIN_FILENO)) == NULL)
+        errx(EX_IOERR, "could not get ttyname of stdin??");
 
     if ((fd_list = malloc(argc * sizeof(int))) == NULL)
         err(EX_OSERR, "could not malloc() fd list");
@@ -88,6 +90,8 @@ int main(int argc, char *argv[])
         } else {
             device = *argv;
         }
+        if (strcmp(mytty, device) == 0)
+            errx(EX_USAGE, "will not write to my tty: %s", mytty);
         if ((fd_list[fd_list_len++] = open(device, O_WRONLY)) == -1)
             err(EX_IOERR, "could not open '%s'", device);
         argv++;
