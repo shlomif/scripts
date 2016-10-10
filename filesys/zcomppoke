@@ -1,0 +1,71 @@
+#!/usr/bin/env expect
+#
+# zcomppoke - poke manually at a specific zsh completion script (or
+# directory of completion scripts). That is, the named completion will
+# be copied to a work directory, a `zsh -f` will be started in that
+# directory, and commands issued to that shell to enable completion, at
+# which point the user can then interact with the test shell with the
+# test completion.
+#
+# If a ~/.zcomppoke file exists, that file will be sourced prior to
+# $fpath being set and the autoload/compinit commands.
+
+set prog_name [lindex [split $argv0 "/"] end]
+if {[llength $argv] < 1} {
+    puts stderr "Usage: $prog_name zsh-completion-file-or-dir"
+    exit 64
+}
+
+if {[catch {set workdir [exec mktemp -d -t $prog_name]} err]} {
+    puts stderr "could not mktemp a temporary directory: $err"
+    exit 1
+}
+trap {exec rm -rf -- $workdir; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM SIGUSR1 SIGUSR2}
+proc cleanup {} { global workdir; exec rm -rf -- $workdir }
+
+set input [lindex $argv 0]
+if {[file isfile $input]} {
+    file copy -- $input $workdir
+    # _blah to "blah " for slightly less typing in interact, below
+    set comp_name [lindex [split $input "/"] end]
+    set compfor "[string trimleft $comp_name _] "
+} elseif {[file isdirectory $input]} {
+    foreach srcfile [glob -directory $input *] {
+        file copy -- $srcfile $workdir
+    }
+    set compfor ""
+} else {
+    cleanup
+    puts stderr "file or directory not specified as first argument"
+    puts stderr "Usage: $prog_name zsh-completion-file-or-dir"
+    exit 64
+}
+
+if {[catch {cd $workdir} err]} {
+    cleanup
+    puts stderr "could not chdir to $workdir: $err"
+    exit 1
+}
+
+set prompt "$prog_name% "
+set env(PS1) "$prog_name%% "
+set env(ZDOTDIR) .
+
+spawn -noecho zsh -f
+expect -ex $prompt
+
+if {[file exists ~/.$prog_name]} {
+    send -- "source ~/.$prog_name\r"
+    expect -ex $prompt
+}
+
+send -- "fpath=($workdir \$fpath)\r"
+expect -ex $prompt
+
+send -- "autoload -U compinit && compinit\r"
+expect -ex $prompt
+
+if {$compfor ne ""} { send -- $compfor }
+interact
+
+cleanup
