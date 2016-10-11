@@ -1,4 +1,4 @@
-.Dd July 7, 2014
+.Dd October 12 2016
 .Dt RANDMAC 1
 .nh
 .Os
@@ -9,35 +9,17 @@
 .Nm randmac
 .Bk -words
 .Op Fl 6hLmp
-.Op Fl B Ar macbytes
+.Op Fl B Ar bytes
 .Op Ar XX:XX...
 .Ek
 .Sh DESCRIPTION
 .Nm
-generates a (quite possibly) random MAC address.
+generates random MAC addresses.
 .Pp
-The 
-.Fl p
-flag sets the private MAC bit (very unlikely to be assigned by
-IEEE, but see below) and the
-.Fl m
-flag sets the multicast MAC bit. IPv4
-and IPv6 set certain MAC prefixes (again, see below) for their
-multicast traffic. NOTE lacking the
-.Fl m
-or
-.Fl p
-flags, the default is to generate a public, non-multicast address. Specify the
-.Fl L
-flag to enforce a literal MAC address.
-.Pp
-The
-.Fl B
-bytes flag and a corresponding number of hex-or-X characters given as the first argument to this program allow for other sizes of MAC addresses to be generated.
-.Pp
-The
-.Fl 6
-flag IPv6ifies (EUI-64) a 48-bit MAC address, and will flip a bit, independent of the
+Options:
+.Bl -tag -width -indent
+.It Fl 6
+IPv6ifies (EUI-64) a 48-bit MAC address, and will flip a bit, independent of the
 .Fl L
 flag. However, the 
 .Fl L
@@ -48,33 +30,39 @@ to avoid the otherwise mandatory
 or
 .Fl p
 related flips.
-.Pp
-Incomplete segments may be specified ("01:02:c:03:04:05") and will be converted to the equivalent of "0c" and not to "c0".
-.Pp
+.It Fl B Ar bytes
+The bytes flag and a corresponding number of hex-or-X characters given
+as the first argument to this program allow for other sizes of MAC
+addresses to be generated.
+.It Fl L
+enforces a literal MAC address.
+.It Fl m
+flag sets the multicast MAC bit. IPv4 and IPv6 set certain MAC prefixes
+(see below) for their multicast traffic. NOTE lacking the
+.Fl m
+or
+.Fl p
+flags, the default is to generate a public, non-multicast address.
+.It Fl p
+sets the private MAC bit (very unlikely to be assigned by IEEE, but
+see below).
+.El
 .Sh EXAMPLES
-.Dl # public random 48-bit MAC
-.Dl randmac
+Public random 48-bit MAC.
 .Pp
-.Dl # private random 48-bit MAC
-.Dl randmac -p
+.Dl $ Ic randmac
 .Pp
-.Dl # same, but less random
-.Dl randmac -p XX:12:34:56:78:XX
+Private and less random MAC.
 .Pp
-.Dl # Apple, Inc.
-.Dl randmac -L 40:a6:d9:XX:XX:XX
+.Dl $ Ic randmac -p XX:12:34:56:78:XX
 .Pp
-.Dl # private
-.Dl randmac -L 42:a6:d9:XX:XX:XX
+Private MAC-64.
 .Pp
-.Dl # not random at all
-.Dl randmac -L a:b:c:d:e:f
+.Dl $ Ic randmac -B 8 -p XX:XX:XX:XX:XX:XX:XX:XX
 .Pp
-.Dl # private MAC-64
-.Dl randmac -B 8 -p XX:XX:XX:XX:XX:XX:XX:XX
+IPv6 link-local.
 .Pp
-.Dl # IPv6 link-local
-.Dl randmac -L6 00:11:22:XX:XX:XX | sed 's/^/fe80::/'
+.Dl $ Ic randmac -L6 00:11:22:XX:XX:XX \&| sed 's/^/fe80::/'
 .Pp
 Prefix material may throw off calculations for the 
 .Fl m
@@ -82,46 +70,52 @@ and
 .Fl p
 options. Use
 .Xr sed 1
-afterwards to workaround this limitation, for example to generate a random filename for use under the pxelinux.cfg directory:
+afterwards to workaround this limitation, for example to generate a
+random filename for use under the pxelinux.cfg directory:
 .Pp
-.Dl randmac -p XX-XX-XX-XX-XX-XX | sed 's/^/01-/'
+.Dl $ Ic randmac -p XX-XX-XX-XX-XX-XX \&| sed 's/^/01-/'
 .Pp
 .Sh RUMINATIONS
-A digression on bits, the contents of out.txt as provided by IEEE, and IP multicast specifics follows.
+A digression on bits, the contents of out.txt as provided by IEEE, and
+IP multicast specifics follows.
 .Pp
 Viewing the bits for a given hex value is possible via:
 .Pp
-.Dl $ perl \-E 'say sprintf qq{%08b}, 0x40'
+.Dl $ Ic perl \-E 'say sprintf qq{%08b}, 0x40'
 .Dl 01000000
-.Dl $ perl \-E 'say sprintf qq{%08b}, 0x42'
+.Dl $ Ic perl \-E 'say sprintf qq{%08b}, 0x42'
 .Dl 01000010
 .Pp
-So 42:a6:d9, being private, enables the penultimate bit, while 40:a6:d9, being assigned to Apple, does not. However! There appear to be several registered OUI that set the private or broadcast bits (*roff mangles the code so see randmac.c for that):
+So 42:a6:d9, being private, enables the penultimate bit, while 40:a6:d9,
+being assigned to Apple, does not. However! There appear to be several
+registered OUI that set the private or broadcast bits (*roff mangles the
+code so see randmac.c for that):
 .Pp
 .Dl 00000010 02
 .Dl 00010001 11
 .Dl 10101010 AA
 .Pp
-These perhaps should be avoided in "private" assignments, or I've
-made a mistake somewhere in my calculations. The 11 (broadcast bit
-enabled) is a single assignment:
+These perhaps should be avoided in "private" assignments, or I've made a
+mistake somewhere in my calculations. The 11 (broadcast bit enabled) is
+a single assignment:
 .Pp
 .Dl   11-00-AA   (hex)           PRIVATE
 .Pp
-While the 02 (various companies) and AA (DEC) show 18 globally
-assigned prefixes in the private address space. Doubtless the odds of
-a random private address landing in one of these subnets and
-conflicting with some actual piece of hardware would be somewhat low.
+While the 02 (various companies) and AA (DEC) show 18 globally assigned
+prefixes in the private address space. Doubtless the odds of a random
+private address landing in one of these subnets and conflicting with
+some actual piece of hardware would be somewhat low.
 .Pp
-IPv4 broadcast sets all ones (low odds of randomly rolling if given
-all XXs); IPv4 multicast uses a prefix of 01:00:5e, and IPv6
-multicast the prefix 33:33. This tool at present takes no effort not
-to generate something inside these various ranges.
+IPv4 broadcast sets all ones (low odds of randomly rolling if given all
+XXs); IPv4 multicast uses a prefix of 01:00:5e, and IPv6 multicast the
+prefix 33:33. This tool at present takes no effort not to generate
+something inside these various ranges.
 .Pp
 .Sh EXIT STATUS
-.Ex -std randmac
+.Ex -std
 .Sh SEE ALSO
 .Xr ifconfig 8
+on OpenBSD can randomize the MAC address.
 .Rs
 .%T "MAC address"
 .%U https://en.wikipedia.org/wiki/MAC_address

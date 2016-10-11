@@ -1,10 +1,10 @@
-.Dd July 6, 2014
+.Dd October 12 2016
 .Dt DATE2EPOCH 1
 .nh
 .Os
 .Sh NAME
 .Nm date2epoch
-.Nd strptime(3) convert date to epoch time
+.Nd convert date to epoch
 .Sh SYNOPSIS
 .Nm date2epoch
 .Op Fl hq
@@ -12,25 +12,29 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility (tries to) convert a YYYY-MM-DD HH:MM:SS via
+utility attempts to convert a
+.Cm YYYY-MM-DD HH:MM:SS
+timestamp via
 .Xr strptime 3
-to epoch time. The day, day and month, seconds, seconds and minutes, etc. are optional.
+to epoch time. The day, day and month, seconds, seconds and minutes,
+etc. are optional.
 .Pp
-The options are as follows:
+Options:
 .Bl -tag -width Ds
 .It Fl h
 Print brief usage note.
 .It Fl q
-Do not print warning if non-UTC timezone detected in third argument to script.
+Do not print warning if non-UTC timezone detected in third argument
+to script.
 .El
 .Sh EXAMPLES
-.Dl $ date2epoch 2003-07-31 17:44:00 UTC
-.Dl $ date2epoch 2014 15
+.Dl $ Ic date2epoch 2003-07-31 17:44:00 UTC
+.Dl $ Ic date2epoch 2014 15
 .Sh EXIT STATUS
 .Ex -std date2epoch
 .Sh SEE ALSO
+.Xr date 1 ,
 .Xr epoch2date 1 ,
-.Xr epochal 1 ,
-.Xr strptime 3
+.Xr epochal 1
 .Sh AUTHOR
 .An Jeremy Mates

@@ -1,4 +1,4 @@
-.Dd December 6, 2014
+.Dd October 12 2016
 .Dt EPOCHAL 1
 .nh
 .Os
@@ -15,34 +15,36 @@
 .Op Ar file|-
 .Ek
 .Sh DESCRIPTION
-The
 .Nm
-utility attempts to convert timestamps in standard input via a user-supplied
+attempts to convert timestamps in standard input via a user-supplied
 .Xr strptime 3
 function to an output format (epoch by default, or customized via the
 .Fl o
 option), and emits the data to standard out.
 .Pp
-The options are as follows:
+Options:
 .Bl -tag -width Ds
 .It Fl f Ar input-format
-Mandatory, specifies input format timestamps will be detected with. The
+Mandatory. Specifies input format timestamps will be detected with. The
 .Xr strftime 3
 manual details the format specification. Note that
 .Qq Dv %s
-is not supported as an input type, and should not be used. (It is safe as an output format, though.) Also note that
+is not supported as an input type, and should not be used. It is safe as
+an output format. Also note that
 .Qq Dv %Z
 can cause issues, and may be best avoided or otherwise worked around.
 .It Fl g
-Multiple timestamps will be searched for and replaced on a line, instead of just the first.
+Multiple timestamps will be searched for and replaced on a line, instead
+of just the first.
 .It Fl o Ar output-format
-Output format (default is epoch time via the
-.Qq Dv %s
-conversion specification). This format is safe for output, but not as an input format due to a stupid bug on Mac OS X (Bug 15753871).
+Output format. The default is epoch time via
+.Qq Dv %s .
+This format is safe for output, but not as an input format due to a
+stupid bug on Mac OS X (Bug 15753871).
 .It Fl s
 Non-timestamp data will be omitted from the output.
 .It Fl y
-Fill in current year if the parsed
+Fill in the current year if the parsed
 .Qq Dv tm_year
 field is zero. The current year is only set when the program is launched.
 .It Fl Y Ar year
@@ -55,43 +57,51 @@ Parse
 .Xr syslogd(8)
 logs assuming that the missing year is the current one, or a custom year:
 .Pp
-.Dl $ epochal -f '%b %d %H:%M:%S' -y      < /path/to/syslog
-.Dl $ epochal -f '%b %d %H:%M:%S' -Y 1999 < /path/to/syslog
+.Dl $ Ic epochal -f '%b %d %H:%M:%S' -y      < /path/to/syslog
+.Dl $ Ic epochal -f '%b %d %H:%M:%S' -Y 1999 < /path/to/syslog
 .Pp
 Convert timestamps used by Apache access logs (and other programs):
 .Pp
-.Dl $ epochal -f '[%d/%b/%Y:%H:%M:%S%n%z]' < /path/to/access
+.Dl $ Ic epochal -f '[%d/%b/%Y:%H:%M:%S%n%z]' < /path/to/access
 .Pp
 Note that some systems may not handle the
 .Qq Dv %z
 timezone option, or may not support various conversion specifications:
 .Pp
-.Dl $ epochal -f '[%d/%b/%Y:%H:%M:%S' < /path/to/access
+.Dl $ Ic epochal -f '[%d/%b/%Y:%H:%M:%S' < /path/to/access
 .Pp
 Though usually converting enough of the timestamp to epoch suffices for
 subsequent awk/perl munging of the data.
 .Sh CAVEATS
 The various 
 .Xr strftime 3
-conversion specifications may not be portable, especially to more eldritch flavors of Unix. They may even be buggy on older (e.g. OpenBSD had a UTC related segfault when data followed
+conversion specifications may not be portable, especially to more
+eldritch flavors of Unix. They may even be buggy on older (e.g. OpenBSD
+had a UTC related segfault when data followed
 .Qq Dv %Z )
-or as yet unfixed implementations. Non-UTC timezones have not been tested. Daylight Savings Time has not been tested for (stop using such horrid timezones!). There may be other unknown gotchas, depending on the implementation of the system functions involved or the locale involved.
+or as yet unfixed implementations. Non-UTC timezones have not been
+tested. Daylight Savings Time has not been tested for (stop using such
+horrid timezones!). There may be other unknown gotchas, depending on the
+implementation of the system functions involved or the locale involved.
 .Pp
 .Qq Dv %s
 as mentioned above may not be used with the 
 .Fl f Ar input-format
 flag.
 .Pp
-Also, there may be unexpected date or time values depending on what is missing from the 
+Also, there may be unexpected date or time values depending on what is
+missing from the
 .Xr strptime 3
-parse into the zero-by-default struct, for example if the month or day of month is not parsed from the input. Patches welcome for such an edge case.
+parse into the zero-by-default struct, for example if the month or day
+of month is not parsed from the input. Patches welcome for such an
+edge case.
 .Sh EXIT STATUS
 .Ex -std epochal
 .Sh SEE ALSO
+.Xr date 1 ,
 .Xr date2epoch 1 ,
 .Xr epoch2date 1 ,
-.Xr strptime 3 ,
 .Xr strftime 3 ,
-.Xr sysexits 3
+.Xr strptime 3
 .Sh AUTHOR
 .An Jeremy Mates

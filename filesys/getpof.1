@@ -1,4 +1,4 @@
-.Dd July 14, 2015
+.Dd October 12 2016
 .Dt GETPOF 1
 .nh
 .Os
@@ -8,10 +8,8 @@
 .Sh SYNOPSIS
 .Nm getpof
 .Bk -words
-.Op Fl q
-.Op Fl r
-.Op Fl x
-.Ar filename
+.Op Fl qrx
+.Ar file
 .Op Ar dir
 .Op Ar ..
 .Ek
@@ -19,16 +17,16 @@
 .Nm
 searches the specified directories (or the current directory if none are
 specified) for the given
-.Ar filename
+.Ar file
 and prints any directories that
-.Pa filename
+.Pa file
 is found in. Options:
 .Bl -tag -width -indent
 .It Fl q
 Be quiet. The exit code can be inspected for errors, regardless.
 .It Fl r
 Recurse into directories the
-.Ar filename
+.Ar file
 is found in. The default is to prune the search.
 .It Fl x
 Prevents recursion into directories on different device numbers.
@@ -41,18 +39,20 @@ Find all
 .Pa .git
 repositories under the home directory:
 .Pp
-.Dl getpof -q .git $HOME
+.Dl $ Ic getpof -q .git $HOME
 .Pp
 Add the 
 .Fl r
 flag to find repositories that are located within other repositories.
 .Sh SEE ALSO
 .Xr find 1 ,
+.Xr findin 1 ,
 .Xr findup 1
 .Sh AUTHOR
 .An Jeremy Mates
 .Sh CAVEATS
-Duplicate error messages may be printed for parent directory permissions problems. This appears to be a 
+Duplicate error messages may be printed for parent directory permissions
+problems. This appears to be a
 .Xr fts 3
 gotcha, as such directories are called for both
 .Dv FTS_D

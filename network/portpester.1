@@ -1,10 +1,10 @@
-.Dd July 7, 2014
+.Dd October 12 2016
 .Dt PORTPESTER 1
 .nh
 .Os
 .Sh NAME
 .Nm portpester
-.Nd annoy your network admin
+.Nd makes lots of TCP connections to a port
 .Sh SYNOPSIS
 .Nm portpester
 .Bk -words
@@ -14,18 +14,22 @@
 .Ek
 .Sh DESCRIPTION
 .Nm
-floods the given target with lots of TCP connect calls.
-.Fl n
-skips hostname resolution,
-.Fl v
-makes things more verbose, and
-.Fl 4
-or
-.Fl 6
-force IPv4 or IPv6. Otherwise, this tool is fairly incomplete, and may require digging around in the source or the use of some other network tool, depending on the need.
+floods the given target with lots of TCP connect calls; this may be
+useful to test for buggy handling of such a state.
 .Pp
+Options:
+.Bl -tag -width Ds
+.It Fl 4
+forces IPv4
+.It Fl 6
+forces IPv6
+.It Fl n
+skips hostname resolution
+.It Fl v
+makes things more verbose
+.El
 .Sh EXIT STATUS
-.Ex -std portpester
+.Ex -std
 .Sh SEE ALSO
 .Xr nmap 1
 .Sh AUTHOR

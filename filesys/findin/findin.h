@@ -1,20 +1,26 @@
+#ifndef _H_FINDIN_H_
+#define _H_FINDIN_H_
+
 #include <err.h>
+#include <glob.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #define ENV_PATH_DELIMITER ':'
 #define STDIN_PATH_DELIMITER '\n'
 #define DIR_DELIMITER '/'
 
-int get_next_env(char const *env);
-int get_next_stdin(char const *not_used);
-void iterate(char const *file_expr, char const *env, int const record_delim,
-             int (*get_next) (char const *));
+void emit_help(void);
+int get_next_env(const char *env);
+int get_next_stdin(const char *not_used);
+void iterate(char *file_expr, const char *env, int record_delim,
+             int (*get_next) (const char *));
 
-void check_dir(char const *directory, char const *file_expr);
+void check_dir(char *directory, char *file_expr);
 
-/* If possible, instead use sysexits.h values */
-enum returns { R_NO_HITS = 1 };
-int exit_status;
+#endif

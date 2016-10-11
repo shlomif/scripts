@@ -1,4 +1,4 @@
-.Dd July 7, 2014
+.Dd October 12 2016
 .Dt LLCOUNT 1
 .nh
 .Os
@@ -13,16 +13,19 @@
 .Ek
 .Sh DESCRIPTION
 .Nm
-displays the line number, the start position of that line, and the length of the line of the file mentioned or failing that or if the file is - the data from standard input is used. The file data is then displayed after this metadata. The
+displays the line number, the start position of that line, and the
+length of the line of the file mentioned or failing that or if the file
+is - the data from standard input is used. The file data is then
+displayed after this metadata. The
 .Fl x
-option specifies that hexadecimal should be used instead of decimal for the line start position value, while the
+option specifies that hexadecimal should be used instead of decimal for
+the line start position value, while the
 .Fl h
 prints a brief usage message.
 .Pp
 .Sh EXIT STATUS
 .Ex -std llcount
 .Sh SEE ALSO
-.Xr hexdump 1 ,
-.Xr replacebytes 1
+.Xr hexdump 1
 .Sh AUTHOR
 .An Jeremy Mates

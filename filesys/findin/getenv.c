@@ -1,21 +1,25 @@
-#include <stdlib.h>
-
 #include "findin.h"
 
-static char *dir_list;
+static bool done_reading;
 static bool got_env;
+static char *envp;
 
-int get_next_env(char const *env)
+int get_next_env(const char *env)
 {
     int c;
 
     if (!got_env) {
-        if ((dir_list = getenv(env)) == NULL) {
+        if ((envp = getenv(env)) == NULL) {
             errx(EX_USAGE, "no such environment variable '%s'", env);
         }
         got_env = true;
     }
 
-    c = *dir_list++;
-    return c != '\0' ? c : EOF;
+    if (!done_reading) {
+        c = *envp++;
+        if (c == '\0')
+            done_reading = true;
+    }
+
+    return done_reading ? EOF : c;
 }

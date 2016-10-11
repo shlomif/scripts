@@ -1,4 +1,4 @@
-.Dd July 6, 2014
+.Dd October 12 2016
 .Dt MYAT 1
 .nh
 .Os
@@ -11,28 +11,47 @@
 .Op Ar YYYY-MM-DD [HH:MM]
 .Sh DESCRIPTION
 .Nm
-accepts either YYYY-MM-DD [HH:MM] or just HH:MM (assumed today) and formats that time as appropriate for at(1), then calls at(1) with said time.
+accepts either
+.Cm YYYY-MM-DD [HH:MM]
+or just
+.Cm HH:MM
+(assumed today) and formats that time as appropriate for
+.Xr at 1 ,
+then calls that utility with that formatted time.
 .Pp
-Note that 
+Do note that 
 .Xr at 1
-at least on OpenBSD executes the scheduled job from the directory it was scheduled from; this can be a problem if a reminder is made from ~/tmp/foo that is then deleted before the job can run. If this is problematic, add a 
+may execute the scheduled job from the directory it was scheduled from;
+this can be a problem if a reminder is made from
+.Pa ~/tmp/foo
+that is then deleted before the job can run. As a workaround, add a
 .Xr chdir 2
-call or use a shell function wrapper to change to a safe directory first.
+call or use a shell function wrapper to change to a safe
+directory first.
 .Pp
-The options are as follows:
+Options:
 .Bl -tag -width Ds
 .It Fl h
 Print brief usage note.
+.It Fl q
+Emit fewer warning messages.
 .El
 .Sh EXAMPLES
-.Dl $ echo not long now | myat 2038-01-19
-.Dl $ echo all is lost  | myat 2038-01-19 03:14
-.Dl $ myat 23:14
-.Dl   echo some reminder
-.Dl   ^D
+.Dl $ Ic echo not long now \&| myat 2038-01-19
+.Dl $ Ic echo all is lost  \&| myat 2038-01-19 03:14
+.Dl $ Ic myat 23:14
+.Dl Ic  echo some reminder
+.Dl Ic  ^D
+.Pp
+A shell function wrapper might look something like:
+.Pp
+.Dl Ic function myat { \&( builtin cd $HOME && command myat \&"$@\&" \&) }
 .Sh EXIT STATUS
 .Ex -std myat
 .Sh SEE ALSO
 .Xr at 1
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh BUGS
+.Cm teatime
+is not supported.

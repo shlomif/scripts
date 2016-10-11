@@ -1,42 +1,89 @@
-.TH FINDIN 1 
+.Dd October 12 2016
+.Dt FINDIN 1
 .nh
-.SH NAME
-findin -- find files in PATH or other lists of directories
-.SH SYNOPSIS
-Find ls in PATH, find a glob(3) expression under MANPATH directories, or search directories passed via standard input:
-
-.B $ findin ls
-
-.B $ findin -q 'man*' MANPATH
-
-.B $ (echo /bin; echo /sbin) | findin 'l*' -
-.SH "DESCRIPTION"
-Returns zero if files found; otherwise some non-zero value on error or if no files are matched. Files found will be printed to standard output. Errors or usage information will be printed to standard error.
-
-The -? or -h options will show usage information. The -q option will mask what usually are just false alarms from glob(3).
-.SH ERRORS
-Diagnostics or usage notes are printed to standard error. sysexits(3) exit codes are used where possible, though a 1 will be returned if nothing is found.
-.SH ENVIRONMENT
-PATH is used by default; any arbitrary colon-delimited environment variable can be used if specified as the second argument to the program. Note that certain environment variables are not exported to child processes. For example, the Z-Shell does not export FPATH, as that is internal to the ZSH completion system.
-
-.B $ export FPATH; findin _mplayer FPATH
-
-Directories passed via standard input must be specified one per line. Returning to the Z-Shell $fpath example, another solution would be:
-
-.B $ echo $fpath | tr ' ' '\\\\n' | findin _mplayer -
-
-.SH "SEE ALSO"
-find(1), findup(1), glob(3), zshexpn(1), zshparam(1)
-
-Using the Z-Shell (zsh), this utility might be replaced with expressions such as:
-
-.B % print -l ${^fpath}/_pgrep(N)
-
-.B % print -l ${^path}/perl(N)
-
-.B % print -l ${^${(s.:.)PATH}}/perl(N)
-
-.SH BUGS
-No known issues.
-.SH AUTHOR
+.Os
+.Sh NAME
+.Nm findin
+.Nd find files in PATH or other lists of directories
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Op Fl 0hq
+.Ar glob
+.Op Ar envvar|-
+.Ek
+.Sh DESCRIPTION
+.Nm
+performs a glob search using the first argument in each of the
+directories present in the
+.Ev PATH
+environment variable, or instead using the given environment variable
+name, such as
+.Ev MANPATH .
+If 
+.Ar -
+is specified the list of directories to search is read from
+standard input.
+.Pp
+Options:
+.Bl -tag -width -indent
+.It Fl 0
+specfies that the input directories and output will be NUL delimited.
+.It Fl h
+show help for
+.Nm .
+.It Fl q
+emit less noise from in particular
+.Xr glob 3
+calls at cost of perhaps missing errors.
+.El
+.Sh ENVIRONMENT
+PATH is used by default; any arbitrary colon-delimited environment
+variable can be used if specified as the second argument to the program.
+Note that certain shell variables are not exported so will not be
+available to
+.Nm .
+.Pp
+.Dl % Ic echo ${(t)PATH}
+.Dl scalar-export-special
+.Dl % Ic echo ${(t)fpath}
+.Dl array-special
+.Pp
+These could instead be passed in via standard input:
+.Pp
+.Dl % Ic print -l $fpath \&| findin _pgrep -
+.Sh EXAMPLES
+List manual pages that begin with
+.Ar ls .
+.Pp
+.Dl $ Ic findin -q 'man*/ls*' MANPATH
+.Pp
+A contrived example to illustrate the use of
+.Fl 0 .
+.Pp
+.Dl % Ic echo -n /etc$'\e0'/usr \&| findin -0 's*' \&| xargs -0 echo
+.Sh EXIT STATUS
+.Ex -std
+In particular, 2 indicates that no files were found and that no other
+error occurred.
+.Sh SEE ALSO
+.Xr find 1 ,
+.Xr findup 1 ,
+.Xr getpof 1 ,
+.Xr glob 3
+.Pp
+Using the Z shell, this utility might be replaced with
+expressions such as:
+.Pp
+.Dl % Ic print -l ${^fpath}/_pgrep(N)
+.Dl % Ic print -l ${^path}/perl(N)
+.Dl % Ic print -l ${^${(s.:.)PATH}}/perl(N)
+.Pp
+.Xr zshexpn 1 ,
+.Xr zshparam 1
+.Sh AUTHOR
 Jeremy Mates
+.Sh CAVEATS
+.Dv GLOB_LIMIT
+is not used; this utility must therefore not be exposed to attackers who
+can supply arbitrary patterns to glob.

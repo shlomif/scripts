@@ -11,7 +11,7 @@ set warn_percent 15
 set period 59999 ;# milliseconds between updates
 set batlevel "?"
 
-font create TtyFont -family Courier -size 14 -weight bold
+font create TtyFont -family Courier -size 16 -weight bold
 set label [label .disp -background white -foreground black -width $width -height $height -font TtyFont -textvariable batlevel]
 
 proc getbatlevel {} {
@@ -48,6 +48,12 @@ pack $label
 grid .disp -row 1 -column 1
 grid rowconfigure . 1 -weight 1
 grid columnconfigure . 1 -weight 1
+
+bind . <r> {
+    after cancel [after info]
+    getbatlevel
+}
+bind . <q> { exit }
 
 wm geometry . "${width}x${height}+493-4"
 
