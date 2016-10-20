@@ -1,4 +1,4 @@
-.Dd October 12 2016
+.Dd October 20 2016
 .Dt COPYCAT 1
 .nh
 .Os
@@ -96,7 +96,10 @@ the special star register should obviate the need for this script, e.g.
 .Ic :%y *
 .El
 .Pp
-to yank to the X11 clipboard.
+to yank to the X11 clipboard. But I do not use that flavor of 
+.Xr vim 1 ,
+and there are other non-vim contexts that require copying of
+terminal data.
 .Sh EXIT STATUS
 .Ex -std copycat
 .Sh SEE ALSO
@@ -110,5 +113,10 @@ to yank to the X11 clipboard.
 .%D 2012
 .%B Practical Vim
 .Re
+As an alternative, instead use a FIFO, which might run something like
+.Pp
+.Dl $ Ic mkfifo asdf
+.Dl $ Ic $CLIPBOARD < asdf &
+.Dl $ Ic tee asdf
 .Sh AUTHORS
 .An Jeremy Mates
