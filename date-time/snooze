@@ -1,17 +1,7 @@
 #!/usr/bin/env perl
 #
 # snooze - sleep for a given duration, with SIGINFO (control+t maybe)
-# or SIGQUIT (control+\ typically) showing how much time remains. Usage:
-#
-#   snooze 3m; make-noise-somehow
-#
-# or with
-#
-#   snooze 25m bread; make-noise-somehow
-#
-# one can then elsewhere
-#
-#   pkill -INFO snooze-bread
+# or SIGQUIT (control+\ typically) showing how much time remains.
 
 use strict;
 use warnings;
@@ -33,11 +23,17 @@ $0 = $label ? "snooze-$label" : "snooze";
 
 ReadMode 2;    # noecho to hide control+\s from gunking up the message
 
-sub remainder { warn "$0: " . deltatimefmt($to_sleep) . " remaining\n" }
+my $total_time = $to_sleep;
+
+sub remainder {
+    warn sprintf "$0: %s remaining (%d%%)\n", deltatimefmt($to_sleep),
+      $to_sleep / $total_time * 100;
+}
 
 sub restore {
     ReadMode 0;
-    warn "$0: " . deltatimefmt($to_sleep) . " remainds\n";
+    warn sprintf "$0: %s remainds  (%d%%)\n", deltatimefmt($to_sleep),
+      $to_sleep / $total_time * 100;
     exit 1;
 }
 

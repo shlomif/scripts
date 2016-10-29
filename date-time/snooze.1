@@ -1,0 +1,73 @@
+.Dd October 29 2016
+.Dt SNOOZE 1
+.nh
+.Os
+.Sh NAME
+.Nm snooze
+.Nd sleep for a given duration
+.Sh SYNOPSIS
+.Nm snooze
+.Ar duration
+.Op Ar label
+.Sh DESCRIPTION
+.Nm
+sleeps for the given
+.Ar duration
+which may either be a number of seconds or an abbreviated form. The optional
+.Ar label
+changes the process name so that
+.Xr pkill 1
+may easily signal a specific instance. Unlike
+.Xr sleep 1 
+.Nm
+will emit the time remaining on the receipt of an
+.Dv INFO
+or
+.Dv QUIT
+signal and continue to run for the remainder of the duration. Various
+fatal signals will cause
+.Nm
+to emit how much time remainded at the time of that fatal signal.
+.Pp
+Terminals vary, though usually 
+.Ic \&^\e\\&
+will generate a
+.Dv QUIT
+signal that will cause
+.Nm
+to show the remaining time. Some systems (e.g. OpenBSD) bind
+.Ic \&^T
+to generate the
+.Dv INFO
+signal; check
+.Xr stty 1
+for details. (Though note that the relevant
+.Cm kerninfo
+flag does not appear to do anything on Mac OS X 10.11.6).
+.Pp
+.Nm
+should not be run in the background, as informational signals will cause
+it to emit output which in turn will likely result in a
+.Dv SIGTTOU
+signal and
+.Nm
+being stopped.
+.Sh EXAMPLES
+.Dl $ Ic snooze 3m; make-noise-somehow
+.Pp
+Or alter the process name:
+.Pp
+.Dl $ Ic snooze 25m bread; make-noise-somehow
+.Pp
+And then in another terminal:
+.Pp
+.Dl $ Ic pkill -INFO snooze-bread
+.Sh EXIT STATUS
+.Ex -std snooze
+.Sh SEE ALSO
+.Xr pkill 1 ,
+.Xr signal 3 ,
+.Xr sleep 1 ,
+.Xr stty 1
+.Sh AUTHOR
+.An Jeremy Mates
