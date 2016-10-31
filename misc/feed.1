@@ -1,4 +1,4 @@
-.Dd October 12 2016
+.Dd October 31 2016
 .Dt FEED 1
 .nh
 .Os
@@ -76,7 +76,16 @@ with the arguments
 .Ar -al 
 and then turn
 .Pa gdb
-over to the user.
+over to the user. From an editor, one may use a
+.Pa fooprog.gdb
+file containing
+.Pp
+.Dl file fooprog
+.Dl break 640
+.Dl run
+.Pp
+and then set your editor to feed this to
+.Nm .
 .Pp
 .Nm
 assisted the design and debugging of the ZSH completion script for
