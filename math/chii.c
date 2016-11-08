@@ -37,6 +37,8 @@ double Flag_Fitness = 0.05;     // -F @ 95% confidence by default
 long long Flag_Min;             // -m
 long long Flag_Max;             // -M
 
+double chisq(long long valuec, long long *values, long long minv,
+             long long maxv, long long sum);
 void emit_help(void);
 
 int main(int argc, char *argv[])
@@ -44,9 +46,8 @@ int main(int argc, char *argv[])
     int ch;
 
     char *ep;
-    long long count = 0;
-    long long delta, *intstore, value;
-    double expected, pvalue, sq;
+    long long number_of_nums = 0;
+    long long range, *numstore, value;
 
     char *line = NULL;
     char *lp;
@@ -55,21 +56,19 @@ int main(int argc, char *argv[])
     ssize_t linelen;
     ssize_t lineno = 1;
 
+    double pvalue;
+
     while ((ch = getopt(argc, argv, "F:h?m:M:")) != -1) {
         switch (ch) {
-
         case 'F':
             Flag_Fitness = flagtod(ch, optarg, 0.0, 1.0);
             break;
-
         case 'm':
             Flag_Min = flagtoll(ch, optarg, LLONG_MIN, LLONG_MAX);
             break;
-
         case 'M':
             Flag_Max = flagtoll(ch, optarg, LLONG_MIN, LLONG_MAX);
             break;
-
         case 'h':
         case '?':
         default:
@@ -92,10 +91,10 @@ int main(int argc, char *argv[])
     }
 
     // inclusive, need buckets for all possible numbers
-    delta = Flag_Max - Flag_Min + 1;
+    range = Flag_Max - Flag_Min + 1;
 
-    if ((intstore = calloc((size_t) delta, sizeof(long long))) == NULL)
-        err(EX_OSERR, "could not calloc() for %lld long longs", delta);
+    if ((numstore = calloc((size_t) range, sizeof(long long))) == NULL)
+        err(EX_OSERR, "could not calloc() for %lld long longs", range);
 
     while ((linelen = getline(&line, &linesize, fh)) != -1) {
         // so can parse multiple numbers per line, assuming they are
@@ -112,8 +111,8 @@ int main(int argc, char *argv[])
             if (value < Flag_Min || value > Flag_Max)
                 errx(EX_DATAERR, "value beyond bounds at line %ld", lineno);
 
-            intstore[value - Flag_Min]++;
-            count++;
+            numstore[value - Flag_Min]++;
+            number_of_nums++;
 
             // nom up not-strtoll() material so parser does not get wedged
             // on trailing material such as `echo -n 0 1 2 3 4" "` 
@@ -128,22 +127,31 @@ int main(int argc, char *argv[])
         }
         lineno++;
     }
-    if (count == 0)
+    if (number_of_nums == 0)
         errx(EX_DATAERR, "could not parse any numbers");
     if (ferror(fh))
         err(EX_IOERR, "ferror() reading input");
 
-    // presume even distribution of values
-    expected = count / (double) delta;
-
-    sq = 0.0;
-    for (long long v = 0; v < delta; v++) {
-        sq += pow(intstore[v] - expected, 2.0) / expected;
-    }
-    pvalue = gsl_cdf_chisq_Q(sq, (double) delta - 1);
-    printf("p-value %.6g%s\n", pvalue, pvalue <= Flag_Fitness ? " *" : "");
+    pvalue = chisq(range, numstore, Flag_Min, Flag_Max, number_of_nums);
+    printf("p-value %.6g%s\n", pvalue, pvalue <= Flag_Fitness ? " FAIL" : "");
 
     exit(EXIT_SUCCESS);
+}
+
+double chisq(long long valuec, long long *values, long long minv,
+             long long maxv, long long sum)
+{
+    unsigned long delta, v;
+    double expected, sum_of_squares;
+
+    delta = maxv - minv + 1;
+    expected = sum / (double) delta;
+
+    sum_of_squares = 0.0;
+    for (v = 0; v < valuec; v++) {
+        sum_of_squares += pow(values[v] - expected, 2.0) / expected;
+    }
+    return gsl_cdf_chisq_Q(sum_of_squares, (double) delta - 1.0);
 }
 
 void emit_help(void)
