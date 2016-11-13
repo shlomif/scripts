@@ -113,6 +113,7 @@ my $c_template = <<"END_TMPL";
 #include <sys/socket.h>
 #include <sys/stat.h>
 
+#include <complex.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>

@@ -1,0 +1,40 @@
+.Dd November 13 2016
+.Dt ZCOMPPOKE 1
+.nh
+.Os
+.Sh NAME
+.Nm zcomppoke
+.Nd isolate zsh completion scripts for testing
+.Sh SYNOPSIS
+.Nm zcomppoke
+.Bk -words
+.Ar zsh-completion-file-or-dir
+.Ek
+.Sh DESCRIPTION
+.Nm
+isolates a given zsh completion file (as found somewhere under
+.Dv $fpath )
+or directory of said files into a temporary directory and then runs 
+.Ar zsh -f
+within that directory, with
+.Dv $fpath
+set appropriately, and the zsh completion system enabled. The user may
+then interact with that shell, and exit it when done testing.
+.Pp
+The standard ZSH completion scripts will be available, where standard
+means whatever completion scripts were set when ZSH was compiled (the
+completion system is tricky to enable without various of these files
+being available).
+.Sh FILES
+If
+.Pa ~/.zcomppoke
+exists it will be read into the shell thus launched using the
+.Cm source
+built-in.
+.Sh EXIT STATUS
+.Ex -std zcomppoke
+.Sh SEE ALSO
+.Xr feed 1 ,
+.Xr zsh 1
+.Sh AUTHOR
+.An Jeremy Mates

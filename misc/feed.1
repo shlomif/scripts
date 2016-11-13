@@ -1,4 +1,4 @@
-.Dd October 31 2016
+.Dd November 13 2016
 .Dt FEED 1
 .nh
 .Os
@@ -64,7 +64,7 @@ buffer containing LISP code, one could issue
 to feed the contents of the buffer to clisp. Standard input is also
 supported as a source of input,
 .Pp
-.Dl $ Ic echo run -al \&| feed - gdb ls
+.Dl $ Ic echo run -al \&| feed - gdb -q ls
 .Pp
 would run
 .Pa ls
@@ -78,14 +78,24 @@ and then turn
 .Pa gdb
 over to the user. From an editor, one may use a
 .Pa fooprog.gdb
-file containing
+file containing whatever GDB commands are necessary, e.g.
 .Pp
-.Dl file fooprog
-.Dl break 640
+.Dl file ./fooprog
+.Dl break somecall
+.Dl commands
+.Dl silent
+.Dl watch somevarinsomecall
+.Dl continue
+.Dl end
 .Dl run
 .Pp
 and then set your editor to feed this to
 .Nm .
+With
+.Xr vim 1 ,
+an appropriate mapping might look something like
+.Pp
+.Dl map <Leader>t :!feed % gdb -q<CR><CR>
 .Pp
 .Nm
 assisted the design and debugging of the ZSH completion script for
@@ -117,6 +127,9 @@ with the task at hand, though do note that undesirable environment
 variables may be passed through from the parent process.
 .Sh SEE ALSO
 .Xr expect 1 ,
-.Xr Tcl n
+.Xr Tcl n ,
+.Xr vi 1 ,
+.Xr vim 1 ,
+.Xr zcomppoke 1
 .Sh AUTHOR
 .An Jeremy Mates
