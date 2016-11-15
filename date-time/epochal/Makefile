@@ -1,9 +1,14 @@
+#CFLAGS = -g
+CC=gcc
+CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+
 epochal: epochal.c
 
-# requires App::Prove, Test::More, Test::Cmd perl modules installed
+depend:
+	cpanm --installdeps .
+
 test: epochal
-	@-rm epochal.core 2>/dev/null
-	@prove t/*.t
+	prove t/*.t
 
 clean:
-	@-rm -f epochal *.o *.core
+	@-rm -f epochal *.o *.core >/dev/null 2>&1

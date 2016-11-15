@@ -1,8 +1,8 @@
-CFLAGS += -std=c99
-CFLAGS += `pkg-config --cflags --libs goptfoo jkiss`
-
 # (debug -g flag to help avoid compiler optimizing away memory foo being done)
-CFLAGS += -g
+CFLAGS = -g
+CFLAGS += -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+
+CFLAGS += `pkg-config --cflags --libs goptfoo jkiss`
 
 # for some of the progs
 CFLAGS += -lpthread

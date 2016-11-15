@@ -1,3 +1,7 @@
+#CFLAGS = -g
+CC=gcc
+CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+
 findin: findin.o getenv.o
 	$(CC) $(CFLAGS) -o findin findin.o getenv.o
 findin.o: findin.c findin.h

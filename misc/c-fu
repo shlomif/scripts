@@ -29,15 +29,16 @@ use Getopt::Long qw/GetOptions/;
 use IO::Handle;
 
 my $BASENAME = basename($0);
-my $CC = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
-my @CFLAGS = split ' ', exists $ENV{'CFLAGS'} ? $ENV{'CFLAGS'} : '-O2 -Wall';
+my $CC       = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
+my @CFLAGS   = split ' ',
+  exists $ENV{'CFLAGS'} ? $ENV{'CFLAGS'} : '-O2 -Wall -lm';
 
 my $echo_code   = 0;
 my $dry_run     = 0;
 my $exit_status = 0;
 
 my ( $code_fh, $code_fname, $bin_fname );
-my ( @defines );
+my (@defines);
 
 my $main_args = 'int argc, const char *argv[]';
 
@@ -46,47 +47,47 @@ my $main_args = 'int argc, const char *argv[]';
 # MAIN
 
 unless (@ARGV) {
-  warn "Usage: $BASENAME [c-statement-1 c-stmt-2 ..|-]\n";
-  exit 64;
+    warn "Usage: $BASENAME [c-statement-1 c-stmt-2 ..|-]\n";
+    exit 64;
 }
 
 GetOptions(
-  'show-code|l' => \$echo_code,
-  'dry-run|n'   => \$dry_run,
-  'defines|d=s' => \@defines
+    'show-code|l' => \$echo_code,
+    'dry-run|n'   => \$dry_run,
+    'defines|d=s' => \@defines
 );
 
 for my $define (@defines) {
-  $define .= "\n" unless $define =~ m/\n$/;
+    $define .= "\n" unless $define =~ m/\n$/;
 }
 
 if ( !grep { $_ eq '-x' } @CFLAGS ) {
-  push @CFLAGS, qw/-x c/;
+    push @CFLAGS, qw/-x c/;
 }
 
 if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
-  chomp( @ARGV = readline *STDIN );
+    chomp( @ARGV = readline *STDIN );
 }
 
 for my $statement (@ARGV) {
-  $statement .= ";\n" unless $statement =~ m/;\s*$/;
+    $statement .= ";\n" unless $statement =~ m/;\s*$/;
 }
 
-if ("@ARGV" !~ m/arg[cv]/) {
-  $main_args = 'void';
+if ( "@ARGV" !~ m/arg[cv]/ ) {
+    $main_args = 'void';
 }
 
 # PID is in filename as otherwise src and obj would only be related by
 # perhaps the filesystem mtime
 ( $code_fh, $code_fname ) = tempfile(
-  "$BASENAME.src-$$.XXXXXXXXXX",
-  DIR    => File::Spec->tmpdir,
-  UNLINK => 0
+    "$BASENAME.src-$$.XXXXXXXXXX",
+    DIR    => File::Spec->tmpdir,
+    UNLINK => 0
 );
 ( undef, $bin_fname ) = tempfile(
-  "$BASENAME.obj-$$.XXXXXXXXXX",
-  DIR    => File::Spec->tmpdir,
-  UNLINK => 0
+    "$BASENAME.obj-$$.XXXXXXXXXX",
+    DIR    => File::Spec->tmpdir,
+    UNLINK => 0
 );
 
 # Used mostly on Unix or BSD (Mac OS X, OpenBSD), less so on Linux.
@@ -148,13 +149,13 @@ print $code_fh $c_template;
 print $c_template if $echo_code;
 
 if ( !$dry_run ) {
-  my $s = system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname );
-  if ( $s != 0 ) {
-    print $c_template;
-    die "error: compile failed: $?\n";
-  }
-  system($bin_fname);
-  $exit_status = $? >> 8;
+    my $s = system( $CC, @CFLAGS, $code_fname, '-o', $bin_fname );
+    if ( $s != 0 ) {
+        print $c_template;
+        die "error: compile failed: $?\n";
+    }
+    system($bin_fname);
+    $exit_status = $? >> 8;
 }
 
 unlink $code_fname, $bin_fname;

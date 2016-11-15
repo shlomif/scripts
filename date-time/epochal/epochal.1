@@ -1,4 +1,4 @@
-.Dd October 12 2016
+.Dd November 15 2016
 .Dt EPOCHAL 1
 .nh
 .Os
@@ -68,7 +68,7 @@ Note that some systems may not handle the
 .Qq Dv %z
 timezone option, or may not support various conversion specifications:
 .Pp
-.Dl $ Ic epochal -f '[%d/%b/%Y:%H:%M:%S' < /path/to/access
+.Dl $ Ic epochal -f '[%d/%b/%Y:%H:%M:%S' < /path/to/access_log
 .Pp
 Though usually converting enough of the timestamp to epoch suffices for
 subsequent awk/perl munging of the data.
@@ -83,6 +83,7 @@ or as yet unfixed implementations. Non-UTC timezones have not been
 tested. Daylight Savings Time has not been tested for (stop using such
 horrid timezones!). There may be other unknown gotchas, depending on the
 implementation of the system functions involved or the locale involved.
+Microseconds in timestamps will require some sort of pre-filter.
 .Pp
 .Qq Dv %s
 as mentioned above may not be used with the 

@@ -15,7 +15,8 @@ use warnings;
 use File::Basename qw(basename);
 use POSIX qw(strftime);
 
-my $basename = basename $0;
+my $basename    = basename $0;
+my $epoch_guess = 0;
 
 use Getopt::Std;
 my %opts;
@@ -23,8 +24,8 @@ getopts( 'h?f:gl', \%opts );
 print_help() if exists $opts{h} or exists $opts{'?'};
 
 if ( not @ARGV or exists $opts{h} or exists $opts{'?'} ) {
-  warn "Usage: $basename [-f strftime] [-g|-l] [epoch [epoch ...]|-]\n";
-  exit 64;
+    warn "Usage: $basename [-f strftime] [-g|-l] [epoch [epoch ...]|-]\n";
+    exit 64;
 }
 
 my $format = $opts{f} || '%Y-%m-%d %H:%M:%S %Z';
@@ -42,14 +43,23 @@ $timefunc = sub { gmtime $_[0] }
 @ARGV = readline *STDIN if $ARGV[0] eq '-';
 
 for my $entry (@ARGV) {
-  # negative epoch dubious? but why not
-  for my $epoch ( $entry =~ m/(-?[0-9]+)/g ) {
-    print strftime( $format, $timefunc->($epoch) ), "\n";
-  }
+    # negative epoch dubious? but why not
+    for my $epoch ( $entry =~ m/(-?[0-9]+)/g ) {
+        # NOTE systemtap apparently uses a microseconds-based epoch
+        # (1475682078014325 -> 1475682078 014325) without being sensible
+        # enough to put a dot or something between the elements, sigh.
+        # KLUGE guess which is which
+        if ( length $epoch > 11 ) {
+            warn "notice: guess microseconds for $epoch\n" unless $epoch_guess;
+            $epoch /= 1e6;
+            $epoch_guess = 1;
+        }
+        print strftime( $format, $timefunc->($epoch) ), "\n";
+    }
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [opts] [epoch [epoch ...]|-]
 
 Converts unix epoch to human readable dates.
@@ -64,15 +74,15 @@ Options:
 
 Run perldoc(1) on this script for additional documentation.
 HELP
-  exit 64;
+    exit 64;
 }
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 __END__
@@ -93,7 +103,8 @@ epoch2date - converts unix epoch to human readable dates
 
 =head1 DESCRIPTION
 
-Converts unix epoch seconds to human readable dates.
+Converts unix epoch seconds to human readable dates. Will attempt to
+guess if the timestamp appears to be in microseconds.
 
 =head1 OPTIONS
 
@@ -115,15 +126,15 @@ Prints a brief usage note.
 
 =item B<-l>
 
-Use the C<localtime> function. This is the default. However, the author now
-sets all systems to use UTC (to avoid the various pitfalls of timezones that
-suffer from Daylight Saving Time), and obtains the local time zone when
-necessary via:
+Use the C<localtime> function. This is the default. However, the author
+now sets all systems to use UTC (to avoid the various pitfalls of
+timezones that suffer from Daylight Saving Time), and obtains the local
+time zone when necessary via:
 
   $ TZ=US/Pacific epoch2date ...
 
-This is explicit (danger! a timezone that wobbles!) and provides for better
-documentation than a short option flag does.
+This is explicit (danger! a timezone that wobbles!) and provides for
+better documentation than a short option flag does.
 
 =back
 

@@ -1,3 +1,7 @@
+#CFLAGS = -g
+CC=gcc
+CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+
 CFLAGS += `pkg-config --cflags --libs goptfoo`
 
 all: showip udp-sender udp-sink
