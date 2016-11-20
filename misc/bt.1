@@ -1,0 +1,43 @@
+.Dd November 21 2016
+.Dt BT 1
+.nh
+.Os
+.Sh NAME
+.Nm bt
+.Nd debugger wrapper for easy backtraces
+.Sh SYNOPSIS
+.Nm bt
+.Op Fl D Qq Ar debugger
+.Op Ar program-or-corefile
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a wrapper around a debugger (by default
+.Pa gdb )
+that with no arguments searches for the most recent
+.Pa *.core
+file or failing that the most recent executable in the current working
+directory, or with the argument of a program or
+.Pa *.core
+file, runs the debugger with that program and optional core file.
+.Sh EXIT STATUS
+.Nm
+replaces itself with the debugger though will exit with a non-zero value
+should something go awry before said replacement.
+.Sh ENVIRONMENT
+.Dv BT_DEBUGGER
+customizes the debugger command, unless the
+.Fl D
+flag is used.
+.Sh SEE ALSO
+.Xr feed 1 ,
+.Xr gdb 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+The debugger command is tokenized by spaces; call a wrapper script
+that in turn launches the debugger if the debugger must be called with
+arguments that contain spaces:
+.Pp
+.Dl #!/bin/sh
+.Dl exec gdb -e \&"g space s\&" ... \&"$@\&"

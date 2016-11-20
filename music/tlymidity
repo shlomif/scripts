@@ -2,52 +2,51 @@
 #
 # Wrap timidity, reading *.ly files for extra command line arguments.
 # This is mostly to allow the use of custom soundfont files without
-# needing to muck up a Makefile or go off editing timidity.cfg all
-# the time. The *.ly files should include a single line such as:
+# needing to muck up a Makefile or go off editing timidity.cfg all the
+# time. The *.ly files should include a single line such as:
 #
-# % timidity --config-file=blahblahblah ...
+# % timidity --config-file=blabla ...
 #
 # Any text after timidity will be split on whitespace and then prepended
 # to the list of arguments passed to timidity.
 
-use strict;
+use 5.14.0;
 use warnings;
 
-use File::Basename qw(fileparse);
-use File::Spec     ();
+use File::Basename qw(dirname);
+use File::stat qw(stat);
+use List::UtilsBy qw(max_by);
 
-die "Usage: $0 midifile\n" if @ARGV != 1;
+my @TIMIDITY_CMD = qw/timidity -A90a --quiet=1/;
 
-my @TIMIDITY_CMD = qw/timidity --quiet=1/;
+my $midi_file = shift // most_recent_midi();
 
-my ( $name, $path, $suffix ) =
-  File::Basename::fileparse( $ARGV[-1], qr/\.midi/ );
-my $ly_file = File::Spec->catfile( $path, $name . ".ly" );
-
-if ( defined $suffix and -f $ly_file ) {
-  unshift @ARGV, parse_ly($ly_file);
+my $ly_file = $midi_file =~ s/.[^.]+$/.ly/r;
+if ( -f $ly_file ) {
+    unshift @ARGV, parse_ly( $ly_file, dirname($midi_file) );
 }
 
-exec @TIMIDITY_CMD, @ARGV;
+exec( @TIMIDITY_CMD, @ARGV, $midi_file )
+  or die "could not exec '@TIMIDITY_CMD @ARGV $midi_file': $!\n";
 
-########################################################################
-#
-# SUBROUTINES
+sub most_recent_midi {
+    max_by { stat($_)->mtime } glob '*.midi';
+}
 
 sub parse_ly {
-  my ($filename) = @_;
-  my @argv_additions;
+    my ( $filename, $path ) = @_;
+    my @argv_additions;
 
-  open my $lyfh, '<', $filename or die "could not open $filename: $!\n";
-  while (<$lyfh>) {
-    # which I disable when needed with a %% prefix...
-    if (m/^%\s+timidity\s+([^%]+)/) {
-      push @argv_additions, split ' ', $1;
-      last;
+    open my $lyfh, '<', $filename or die "could not open '$filename': $!\n";
+    while ( readline $lyfh ) {
+        # which I disable when needed with a %% prefix...
+        if (m/^%\s+timidity\s+([^%]+)/) {
+            push @argv_additions, split ' ', $1;
+            last;
+        }
     }
-  }
-  for my $extra (@argv_additions) {
-    $extra =~ s{file=(?![./])}{file=$path/};
-  }
-  return @argv_additions;
+    for my $extra (@argv_additions) {
+        $extra =~ s{file=(?![./])}{file=$path/};
+    }
+    return @argv_additions;
 }

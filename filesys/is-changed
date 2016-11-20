@@ -1,0 +1,54 @@
+#!/usr/bin/env perl
+#
+# Checks over a given interval whether any of the given files have
+# changed (per a checksum) and if so runs the given command. Uses would
+# include fiddling around in terminal A with foo.c, and then running in
+# terminal B
+#
+#   is-changed 7s 'make foo && ./foo ...; echo' foo.c
+#
+# Alternatives include doing this from the editor, but that pulls you
+# out of fiddling around with the file, or using some sort of filesystem
+# change notification, but that's not portable...
+
+use strict;
+use warnings;
+use Digest::SHA1;
+
+my $duration = shift;
+my $command  = shift;
+die "Usage: $0 duration command file [file2 ..]"
+  if !defined $duration
+  or !defined $command
+  or !@ARGV;
+
+my %factors = ( s => 1, m => 60, h => 3600, d => 86400 );
+my $seconds;
+while ( $duration =~ m/([0-9]+)([smhd])?/g ) {
+    my $value = $1;
+    $value *= $factors{$2} if $2;
+    $seconds += $value;
+}
+
+my ( @changes, %prev );
+while (1) {
+    @changes = ();
+    for my $file (@ARGV) {
+        my ( $fh, $checksum );
+        open $fh, '<', $file or next;
+        eval { $checksum = Digest::SHA1->new->addfile($fh)->digest };
+        next if $@;
+
+        if ( exists $prev{$file} and $prev{$file} ne $checksum ) {
+            push @changes, $file;
+        }
+        $prev{$file} = $checksum;
+    }
+    if (@changes) {
+        # TWEAK or pass the changed files to the command, if need be
+        system $command;
+    }
+    # TWEAK if the command takes awhile then that runtime might be
+    # subtracted from this value
+    sleep $seconds;
+}

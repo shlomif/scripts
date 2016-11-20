@@ -9,11 +9,9 @@
 # looked for, and how to handle blank lines and comments--given that
 # this code is not very intelligent about what is passed through; look
 # for things to TWEAK.
-#
-# This code assumes a TCL version >= 8.5
 
+package require Tcl 8.5
 # for Tcl version of mktemp(1) - NOTE probably requires tcllib package
-package require Tcl 8
 package require fileutil
 
 set prog_name [lindex [split $argv0 "/"] end]
@@ -45,8 +43,8 @@ proc warn {msg} {
     global prog_name
     puts stderr "$prog_name: $msg"
 }
-proc die {args} {
-    if {[llength $args] > 0} { warn $args }
+proc die {{msg ""}} {
+    if {$msg ne ""} { warn $msg }
     exit 1
 }
 
@@ -129,8 +127,8 @@ if {$tocall eq "clisp" || $tocall eq "sbcl"} {
         if {[regexp {^[[:blank:]]*(;?#.*)?$} $line]} { return }
 
         # don't wait for prompt if line looks like continuation (via the
-        # leading whitespace)
-        if {![regexp {^[[:blank:]]} $line]} {
+        # leading whitespace or closing curly of a block)
+        if {![regexp {^[[:blank:]]*\}?} $line]} {
             # default "% " prompt or I've instead set tcl_prompt1 to "foo> "
             expect -re {[%>] }
         }

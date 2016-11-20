@@ -201,38 +201,13 @@ void handle_sig(int signo)
 void raw_terminal(int fd)
 {
     struct termios terminfo;
-
     if (tcgetattr(fd, &terminfo) < 0)
         err(EX_OSERR, "could not tcgetattr()");
     Original_Termios = terminfo;
-
-    terminfo.c_cc[VMIN] = 1;
-    terminfo.c_cc[VTIME] = 0;
-
-    terminfo.c_cflag &= ~(CSIZE | PARENB);
-    terminfo.c_cflag |= (CS8);
-    terminfo.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-    terminfo.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-
-    terminfo.c_oflag &= ~(OPOST);
-
-    Terminal_Mode = TORC_TERM_RAW;
+    cfmakeraw(&terminfo);
     if (tcsetattr(fd, TCSAFLUSH, &terminfo) < 0)
         err(EX_OSERR, "could not tcsetattr()");
-
-    /* confirm settings actually made */
-    if (tcgetattr(fd, &terminfo) < 0) {
-        tcsetattr(fd, TCSANOW, &Original_Termios);
-        err(EX_OSERR, "could not tcgetattr()");
-    }
-    if (terminfo.c_cc[VMIN] != 1 || terminfo.c_cc[VTIME] != 0 ||
-        (terminfo.c_cflag & (CSIZE | PARENB | CS8)) != CS8 ||
-        (terminfo.c_iflag & (BRKINT | ICRNL | INPCK | ISTRIP | IXON)) ||
-        (terminfo.c_lflag & (ECHO | ICANON | IEXTEN | ISIG)) ||
-        (terminfo.c_oflag & (OPOST))) {
-        tcsetattr(fd, TCSANOW, &Original_Termios);
-        err(EX_OSERR, "did not tcsetattr()");
-    }
+    Terminal_Mode = TORC_TERM_RAW;
 }
 
 void reset_term(int fd)

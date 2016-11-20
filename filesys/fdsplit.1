@@ -1,0 +1,54 @@
+.Dd November 26 2016
+.Dt FDSPLIT 1
+.nh
+.Os
+.Sh NAME
+.Nm fdsplit
+.Nd splits filenames into root or extension components
+.Sh SYNOPSIS
+.Nm fdsplit
+.Bk -words
+.Op Fl 0
+.Op Fl d Ar delim 
+.Ar root|ext
+.Ar filename
+.Ek
+.Sh DESCRIPTION
+.Nm
+prints either the root or extension (if any) of the given filename.
+Preceding directory entries (anything prior to the last
+.Qq /
+in the filename) will not be considered for splitting.
+Options:
+.Bl -tag -width -indent
+.It Fl 0
+Null delimit the result instead of the default newline. Use if the
+filename may contain a newline.
+.It Fl d Ar delim
+Specify a different character than
+.Qq \&.
+to split the filename on. This character may not be the
+.Dv NUL
+character.
+.El
+.Sh EXIT STATUS
+.Ex -std fdsplit
+.Sh EXAMPLES
+.Dl $ Ic fdsplit root foo.tar.gz
+.Dl foo.tar
+.Dl $ Ic fdsplit ext foo.tar.gz
+.Dl gz
+.Dl $ Ic fdsplit root /etc/cron.d/
+.Dl /etc/cron.d/
+.Pp
+In the last example, the filename component is the empty string as
+everything preceding the final
+.Qq /
+is considered part of the directory path . Any trailing slashes should
+be removed prior to calling
+.Nm
+if this behavior is a problem.
+.Sh SEE ALSO
+.Xr cut 1
+.Sh AUTHOR
+.An Jeremy Mates

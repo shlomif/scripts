@@ -1,0 +1,106 @@
+.Dd November 27 2016
+.Dt REPOD 1
+.nh
+.Os
+.Sh NAME
+.Nm repod
+.Nd git remote utility
+.Sh SYNOPSIS
+.Nm repod
+.Ar github|init|remote
+.Op Ar hostname
+.Ek
+.Sh DESCRIPTION
+.Nm
+adds remote branches to 
+.Xr git 1
+repositories; the first argument determines how this is done, and the
+repository name is taken from the directory name of the first upwards
+directory that contains a
+.Pa .git
+entry. The first arguments include:
+.Bl -tag -width -indent
+.It Ar github
+A remote branch named
+.Qq github
+is added, with a git user as parsed by the 
+.Xr git-config 1
+command.
+.It Ar init Ar hostname
+A 
+.Xr git-init 1
+is performed via
+.Xr ssh 1
+and a remote branch named after the
+.Ar hostname
+is added. The directory path may be modified via the
+.Dv checkout_dir
+array specified in
+.Pa ~/.repodrc .
+.It Ar remote Ar hostname
+Adds a remote branch named after the
+.Ar hostname .
+The directory path may be modified via the
+.Dv checkout_dir
+array specified within
+.Pa ~/.repodrc .
+.El
+.Pp
+The SSH configuration may need tweaks such that the
+.Ar hostname
+is suitable for a branch name and to find the appropriate SSH
+configuration; one method is to use an alias
+.Qq foo
+specified via
+.Xr ssh_config 5
+for the branch name:
+.Pp
+.Dl Host somehost foo
+.Dl \& \& \& \& Hostname somehost.example.org
+.Dl \& \& \& \& ...
+.Pp
+And then that alias for the remote branch name:
+.Pp
+.Dl $ Ic repod init foo
+.Pp
+As
+.Nm
+only sets up the remote branch entries, various push or pull will need
+to be done as necessary following.
+.Sh FILES
+The
+.Pa ~/.repodrc
+file will be read if it exists. In particular this allows the
+.Dv checkout_dir
+array to be set, in which the first instance of a
+.Qq localhost
+entry will be replaced with the corresponding
+.Ar hostname
+value. For example, if on the local system a
+.Pa co
+directory is used for checkouts, and on a remote host the repositories
+are instead saved under the
+.Pa share
+directory, 
+.Pa ~/.repodrc
+should contain:
+.Pp
+.Dl set checkout_dir(localhost) \& "co"
+.Dl set checkout_dir(remotehost) "share"
+.Pp
+The file can actually contain any valid TCL commands, though is run
+very early in the process.
+.Sh EXIT STATUS
+.Ex -std repod
+.Nm
+should be safe to run again if a previous run fails.
+.Sh SEE ALSO
+.Xr findup 1 ,
+.Xr git 1 ,
+.Xr git-config 1 ,
+.Xr git-init 1 ,
+.Xr git-remote 1 ,
+.Xr ssh 1 ,
+.Xr ssh_config 5
+.Sh AUTHOR
+.An Jeremy Mates

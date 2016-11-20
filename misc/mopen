@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Opens a PDF, unless already open, in which case the PDF viewer is
+# signalled so the PDF is refreshed from disk. Used to either open or
+# refresh a PDF being worked on with lilypond or TeX regenerating the
+# PDF. (Preview.app on Mac OS X has gone downhill for this use-case from
+# ~10.9 onwards. Progress!)
+
+FILE=$1
+if [ ! -r "$FILE" ]; then
+    PROG_NAME=`basename $0`
+    echo >&2 "$PROG_NAME: could not read file '$FILE'"
+    echo >&2 "Usage: $PROG_NAME foo.pdf"
+    exit 65
+fi
+
+USER=`id -un`
+# NOTE MacPorts calls this mupdf-x11
+PDFREADER=mupdf
+
+trap 'exit 0' USR2
+ps xo pid,user,command | while read pid uc; do
+    if echo "$uc" | egrep -q -- "^$USER[[:blank:]]*$PDFREADER.*$FILE"; then
+        kill -HUP "$pid"
+        kill -USR2 $$
+    fi
+done
+
+exec setsid $PDFREADER -- "$FILE" >$HOME/var/log/$PDFREADER 2>&1

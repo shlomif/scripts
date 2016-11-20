@@ -72,8 +72,6 @@ eval {
 };
 if ($@) {
   die unless $@ eq "alarm\n";
-
-  # TODO figure out why zsh handles the alarm/sets exit to 142 for me
   exit $timeout_status;
 }
 
@@ -347,10 +345,7 @@ Patches that fix problems or add new features are welcome.
 
 =head2 Known Issues
 
-The zsh shell is exiting the alarm timeout with an exit status of 142,
-not sure why at present.  Have not yet tested other shells.
-
-See also source for TODO notes and similar.
+See source for TODO notes.
 
 =head1 SEE ALSO
 

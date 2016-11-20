@@ -1,9 +1,13 @@
-#!/usr/bin/env zsh
+#!/bin/sh
+#
+# *.wav in, normalized *.mp3 out
+
+set -e
 
 for file in "$@"; do
-  basename=$file:r
-  normed=`mktemp` || exit 1
-  sox --norm $file -b 16 -t wav $normed rate 44100 dither -s
-  ffmpeg -f wav -i $normed $basename.mp3
-  rm $normed
+    rootname=`fdsplit root "$file"`
+    normed=`mktemp`
+    sox --norm "$file" -b 16 -t wav "$normed" rate 44100 dither -s
+    ffmpeg -f wav -i "$normed" "$rootname.mp3"
+    rm "$normed"
 done

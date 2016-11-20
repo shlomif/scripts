@@ -1,0 +1,25 @@
+#!/bin/sh
+
+QUIET=0
+
+OPT=
+while getopts q OPT; do
+    case $OPT in
+        q)
+            QUIET=1
+        ;;
+    esac
+done
+# skip as no subsequent use of args
+#shift `expr $OPTINT - 1`
+
+osascript -e 'get volume settings' \
+| egrep -q '(^output volume:0,|output muted:true)'
+if [ $? -eq 0 ]; then
+    if [ $QUIET -eq 0 ]; then
+        echo mute
+    fi
+    exit 0
+else
+    exit 1
+fi

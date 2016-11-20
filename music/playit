@@ -1,23 +1,27 @@
-#!/usr/bin/env zsh
+#!/bin/sh
 #
-# Wrapper thingy called from vi to preview and play lilypond music, OpenBSD
-# version, so you'll need the OpenBSD open(1) I wrote and etc.
+# Wrapper to preview and play lilypond music,
 
 set -e
 
-MRF=$(glf --exclude='[.](?!ly$)' '\.ly' .)
-[[ -z $MRF ]] && {
-  echo >&2 "no *.ly found (or glf problem)"
-  exit 1
-}
+LYFILE=`glf --exclude='[.](?!ly$)' '\.ly$' .`
 
-MRP=${MRF:s/\.ly/.pdf}
+if [ -z "$LYFILE" ]; then
+    echo >&2 "no *.ly found (or glf problem)"
+    exit 1
+fi
 
-[[ ! -e $MRP || $MRF -nt $MRP ]] && {
-  lilypond --silent -dno-point-and-click $MRF
-  open $MRP
-}
+ROOTNAME=`fdsplit root "$LYFILE"`
+PDF="$ROOTNAME.pdf"
 
-[[ `mixerctl -n outputs.hp_mute` == "off" ]] && {
-  tlymidity *.midi(om[1])
-}
+if command test ! -e "$PDF" -o "$LYFILE" -nt "$PDF"; then
+    lilypond --silent -dno-point-and-click "$LYFILE"
+    mopen "$PDF"
+fi
+
+set +e
+
+is-mute -q
+if [ $? -eq 1 ]; then
+    tlymidity "$ROOTNAME.midi"
+fi

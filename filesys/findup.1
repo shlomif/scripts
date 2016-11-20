@@ -1,0 +1,68 @@
+.Dd November 27 2016
+.Dt FINDUP 1
+.nh
+.Os
+.Sh NAME
+.Nm findup
+.Nd search for directory that contains a given filename
+.Sh SYNOPSIS
+.Nm findup
+.Bk -words
+.Op Fl dfqH
+.Ar wanted
+.Op Ar directory-path
+.Ek
+.Sh DESCRIPTION
+.Nm
+searches for the
+.Ar wanted
+file in the current directory and on up to the root directory, printing
+the name of the directory that contains
+.Ar wanted
+or otherwise printing nothing and exiting with a non-zero code.
+Options:
+.Bl -tag -width -indent
+.It Fl d
+Use the is-directory test on
+.Ar wanted . The default test is whether the file is readable.
+.It Fl f
+Use the is-regular-file test on
+.Ar wanted .
+.It Fl q
+Emit nothing, only indicate result via exit status.
+.It Fl H
+Abort the upwards search if the search passes outside of the
+.Dv HOME
+directory for the user running
+.Nm .
+.El
+.Pp
+An optional
+.Ar directory-path
+as the second argument allows a custom working directory to be
+specified; by default, the path to search is taken from
+.Xr pwd 1 ;
+use 
+.Ar directory-path
+to specify some other path, e.g. the physical instead of the logical
+path:
+.Pp
+.Dl $ Ic findup something \&"`pwd -P`\&"
+.Sh EXIT STATUS
+.Ex -std findup
+.Sh EXAMPLES
+A common task would be to determine whether one is under a git
+repository and if so what directory contains said repository,
+without escaping from the user's home directory, in the event the
+sysadmin placed a
+.Pa .git
+directory somewhere between / and $HOME.
+.Pp
+.Dl $ Ic findup -d -H .git
+.Sh SEE ALSO
+.Xr find 1 ,
+.Xr findin 1 ,
+.Xr getpof 1 ,
+.Xr pwd 1
+.Sh AUTHOR
+.An Jeremy Mates

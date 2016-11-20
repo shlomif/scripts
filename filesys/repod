@@ -1,60 +1,156 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env expect
 #
-# Repository duplicatorator: branch for github (named "github"), bare
-# clones to a remote virt (linode, pushed and pulled from), and assumed-
-# existing-and-checked-out-trees on other named host systems (pulled
-# from, e.g. when have done work on some other system).
+# Git repository remote wrapper with some remote init on the side.
+
+array set checkout_dir {}
+catch {source $env(HOME)/.repodrc} cresult coptions
+
+set prog_name [lindex [split $argv0 "/"] end]
+
+proc emit_help {} {
+    global prog_name
+    puts stderr "Usage: $prog_name \[github|init hostname|remote hostname]"
+    exit 64
+}
+if {[llength $argv] == 0} { emit_help }
+
+proc finddirup {what} {
+    set cur_dir [pwd]
+    while 1 {
+        set wanted [file join $cur_dir $what]
+        if {[file isdirectory $wanted]} {
+            return $cur_dir
+        }
+        set new_dir [file dirname $cur_dir]
+        if {$new_dir eq $cur_dir} {
+            return ""
+        }
+        set cur_dir $new_dir
+    }
+}
+
+proc warn {msg} {
+    global prog_name
+    puts stderr "$prog_name: $msg"
+}
+
+proc die {{msg ""}} {
+    if {$msg ne ""} { warn $msg }
+    exit 1
+}
+
+if {[dict get $coptions -code] != 0} {
+    if {![string match "POSIX ENOENT *" [dict get $coptions -errorcode]]} {
+        warn [dict get $coptions -errorinfo]
+        die "could not source ~/.repodrc"
+    }
+}
+if {![array exists checkout_dir]} {
+    die "checkout_dir must be TCL array (check ~/.repodrc)"
+}
+
+set repo_path [finddirup .git]
+if {$repo_path eq ""} {
+    die "could not find a git repo above [pwd]"
+}
+set repo_name [lindex [split $repo_path "/"] end]
+
+proc checkout_dir_sub {host path} {
+    global checkout_dir
+    if {[array get checkout_dir "localhost"] ne "" \
+     && [array get checkout_dir $host] ne ""} {
+        set path [regsub $checkout_dir(localhost) $path $checkout_dir($host)]
+    }
+    return $path
+}
+
+proc git_remote_geturl {name} {
+    set url ""
+    catch {exec git remote get-url $name} cresult coptions
+    if {[dict get $coptions -code] == 0} {
+        set url $cresult
+    }
+    return $url
+}
+
+proc git_remote_add {name newurl} {
+    set oldurl [git_remote_geturl $name]
+    if {$oldurl eq ""} {
+        set means "add"
+    } elseif {$oldurl ne $newurl} {
+        warn "notice: $hostname changes $oldurl to $newurl"
+        set means "set-url"
+    } else {
+        exit
+    }
+    catch {exec git remote $means $name $newurl} cresult coptions
+    if {[dict get $coptions -code] != 0} {
+        die "$cmd $name $newurl: $cresult"
+    }
+}
+
+proc git_ssh_remote {name path} {
+    if {[file pathtype $path] eq "relative"} {
+        set path "~/$path"
+    }
+    git_remote_add $name ssh://$name/$path
+}
+
+proc repo_nohome {path} {
+    global env
+    regsub $env(HOME)/ $path ""
+}
+
+########################################################################
 #
-#   repod github
-#   repod linode
-#   repod host thatotherhost
+# TARGETS
 
-if [[ -z $1 ]]; then
-  echo >&2 "Usage: $0 [github|host hostname|linode]"
-  exit 64
-fi
+set target [lindex $argv 0]
 
-# directory name under $HOME under which checkouts are done
-CHECKOUT_DIR=co
+if {$target eq "init"} {
 
-set -e
+    set host_name [lindex $argv 1]
+    if {$host_name eq ""} {
+        warn "'$target' target requires a hostname argument"
+        emit_help
+    }
+    set homeless_repo_path [repo_nohome $repo_path]
+    set homeless_repo_path "[checkout_dir_sub $host_name $homeless_repo_path].git"
 
-WHERE=$1
-shift
+    # per git-init(1) "Running git init in an existing repository is
+    # safe" and git handles the creation of any necessary parent
+    # directories, so just do that
+    exec ssh -aqx -e none \
+      -o BatchMode=yes \
+      -o ClearAllForwardings=yes \
+      -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic \
+      -o StrictHostKeyChecking=yes $host_name \
+      "git init --bare $homeless_repo_path"
 
-# /home/jdoe/blah/de/blah/bob
-REPO_PATH=`findup .git`
-if [[ -z $REPO_PATH ]]; then
-  echo >&2 could not find a git repo above `pwd`
-  exit 64
-fi
-# "bob"
-REPO_NAME=$REPO_PATH:t
-# /home/jdoe/blah/de/blah
-REPO_PARENT_DIR=$REPO_PATH:h
-# de/blah, for bare clones to a not-blah directory structure
-REPO_SUBPATH=${${REPO_PARENT_DIR#$HOME/$CHECKOUT_DIR}#*/}
+    git_ssh_remote $host_name $homeless_repo_path
 
-if [[ $WHERE == linode ]]; then
-  REMOTE_PARENT_DIR=share/$REPO_SUBPATH
-  RESULT=`ssh gh "test -d $REMOTE_PARENT_DIR/$REPO_NAME.git || echo nodir; mkdir -p $REMOTE_PARENT_DIR"`
-  if [[ $RESULT == nodir ]]; then
-    [ -d $REPO_PATH.git ] || git clone --bare $REPO_PATH $REPO_PATH.git
-    scp -r $REPO_PATH.git gh:$REMOTE_PARENT_DIR
-    rm -rf $REPO_PATH.git
-  fi
-  git remote add linode gh:$REMOTE_PARENT_DIR/$REPO_NAME.git
-elif [[ $WHERE == host ]]; then
-  HOST=$1
-  # $HOME hijinks due to Apple using /Users while everything else /home
-  git remote add $HOST ssh://$HOST/~/${REPO_PATH#$HOME/}
-elif [[ $WHERE == github ]]; then
-  GIT_USER=`git config --get github.user`
-  git remote add github git@github.com:$GIT_USER/$REPO_NAME
-else
-  echo >&2 unknown target $WHERE
-  echo >&2 "Usage: $0 [github|host hostname|linode]"
-  exit 64
-fi
+} elseif {$target eq "remote"} {
 
-exit 0
+    set host_name [lindex $argv 1]
+    if {$host_name eq ""} {
+        warn "'$target' target requires a hostname argument"
+        emit_help
+    }
+    set homeless_repo_path [repo_nohome $repo_path]
+    set homeless_repo_path [checkout_dir_sub $host_name $homeless_repo_path]
+
+    git_ssh_remote $host_name $homeless_repo_path
+
+} elseif {$target eq "github"} {
+
+    set git_user [exec git config --get github.user]
+    if {$git_user eq ""} {
+        die "no username from 'git config --get github.user'"
+    }
+
+    git_remote_add github git@github.com:$git_user/$repo_name
+
+} else {
+    warn "unknown target '$target'"
+    emit_help
+}
