@@ -34,21 +34,21 @@ my $Variance_Threshold = 25;
 my $Z_Sq_Threshold = 25;
 
 GetOptions(
-  "Vthresh=f" => \$Variance_Threshold,
-  "Zthresh=f" => \$Z_Sq_Threshold,
-  "ithresh=f" => \$Interval_Threshold,
-  "bufsize=i" => \$Buf_Size,
-  "stats"     => \my $Flag_Stats,
-  "verbose|v" => \my $Flag_Verbose,
+    "Vthresh=f" => \$Variance_Threshold,
+    "Zthresh=f" => \$Z_Sq_Threshold,
+    "ithresh=f" => \$Interval_Threshold,
+    "bufsize=i" => \$Buf_Size,
+    "stats"     => \my $Flag_Stats,
+    "verbose|v" => \my $Flag_Verbose,
 ) or die "$0: error parsing options\n";
 
 die "$0: bufsize value '$Buf_Size' is too small\n" if $Buf_Size < 3;
 
 if ($Flag_Stats) {
-  $Flag_Verbose       = 1;
-  $Interval_Threshold = 0;
-  $Variance_Threshold = 0;
-  $Z_Sq_Threshold     = 0;
+    $Flag_Verbose       = 1;
+    $Interval_Threshold = 0;
+    $Variance_Threshold = 0;
+    $Z_Sq_Threshold     = 0;
 }
 
 $Variance_Threshold = ~0 if $Variance_Threshold == 0;
@@ -71,59 +71,59 @@ my $Line_Idx  = 0;
 my $Print_Idx = -1;
 
 LINE: while (<>) {
-  chomp;
-  my ( $epoch, $rest ) = split ' ', $_, 2;
+    chomp;
+    my ( $epoch, $rest ) = split ' ', $_, 2;
 
-  die "$0: not a number '$epoch' at $ARGV:$.\n" if !looks_like_number $epoch;
-  $rest //= '';
+    die "$0: not a number '$epoch' at $ARGV:$.\n" if !looks_like_number $epoch;
+    $rest //= '';
 
-  # Here one could filter out false positives, local networks, anything that
-  # should not be considered and might hide the signal being looked for.
-  # This could also be done to the data prior to it being passed...
-  #next if $rest eq ...
+    # Here one could filter out false positives, local networks, anything that
+    # should not be considered and might hide the signal being looked for.
+    # This could also be done to the data prior to it being passed...
+    #next if $rest eq ...
 
-  push @Buffer, [ $epoch, $rest ];
-  $Current_Sum += $epoch;
+    push @Buffer, [ $epoch, $rest ];
+    $Current_Sum += $epoch;
 
-  if ( @Buffer == $Buf_Size ) {
-    # Optimization: if the most recent value is nowhere near the previous one,
-    # toss out all the previous data points. This skips the stats calcs across
-    # gaps of the said interval in the input data. (Though will mean that N <
-    # $Buf_Size clumps in the log will be ignored if they are followed by a
-    # suitable gap. However, disabling this flag will mean that some outliers
-    # may be printed with the clumps, unless the z_sq filter excludes these.)
-    if ( $Interval_Threshold > 0
-      and abs( $Buffer[-1][0] - $Buffer[-2][0] ) > $Interval_Threshold ) {
-      $Current_Sum = $Buffer[-1][0];
-      splice @Buffer, 0, $#Buffer;
-      $Line_Idx  = 0;
-      $Print_Idx = -1;
-      next LINE;
-    }
-
-    my $mean = $Current_Sum / $Buf_Size;
-    my $vsum = 0;
-    for my $bval (@Buffer) {
-      $vsum += $bval->[2] = ( $bval->[0] - $mean )**2;
-    }
-    my $variance = $vsum / $Buf_Size;
-
-    if ( $variance <= $Variance_Threshold ) {
-      my $range = $Line_Idx - $Print_Idx - 1;
-      $range = $#Buffer if $range > $#Buffer;
-      for my $bval ( @Buffer[ ( $#Buffer - $range ) .. $#Buffer ] ) {
-        my $z_sq = ( $variance != 0 ) ? ( $bval->[2] - $variance )**2 / $variance : 0;
-        if ( $z_sq < $Z_Sq_Threshold ) {
-          printf "m=%.2f v=%.2f zsq=%.2f ", $mean, $variance, $z_sq if $Flag_Verbose;
-          print "$bval->[0] $bval->[1]\n";
+    if ( @Buffer == $Buf_Size ) {
+        # Optimization: if the most recent value is nowhere near the previous one,
+        # toss out all the previous data points. This skips the stats calcs across
+        # gaps of the said interval in the input data. (Though will mean that N <
+        # $Buf_Size clumps in the log will be ignored if they are followed by a
+        # suitable gap. However, disabling this flag will mean that some outliers
+        # may be printed with the clumps, unless the z_sq filter excludes these.)
+        if ( $Interval_Threshold > 0
+            and abs( $Buffer[-1][0] - $Buffer[-2][0] ) > $Interval_Threshold ) {
+            $Current_Sum = $Buffer[-1][0];
+            splice @Buffer, 0, $#Buffer;
+            $Line_Idx  = 0;
+            $Print_Idx = -1;
+            next LINE;
         }
-      }
-      $Line_Idx = $Print_Idx;
+
+        my $mean = $Current_Sum / $Buf_Size;
+        my $vsum = 0;
+        for my $bval (@Buffer) {
+            $vsum += $bval->[2] = ( $bval->[0] - $mean )**2;
+        }
+        my $variance = $vsum / $Buf_Size;
+
+        if ( $variance <= $Variance_Threshold ) {
+            my $range = $Line_Idx - $Print_Idx - 1;
+            $range = $#Buffer if $range > $#Buffer;
+            for my $bval ( @Buffer[ ( $#Buffer - $range ) .. $#Buffer ] ) {
+                my $z_sq = ( $variance != 0 ) ? ( $bval->[2] - $variance )**2 / $variance : 0;
+                if ( $z_sq < $Z_Sq_Threshold ) {
+                    printf "m=%.2f v=%.2f zsq=%.2f ", $mean, $variance, $z_sq if $Flag_Verbose;
+                    print "$bval->[0] $bval->[1]\n";
+                }
+            }
+            $Line_Idx = $Print_Idx;
+        }
+        $Current_Sum -= ( shift @Buffer )->[0];
     }
-    $Current_Sum -= ( shift @Buffer )->[0];
-  }
 } continue {
-  $Line_Idx++;
+    $Line_Idx++;
 }
 
 exit 0;
@@ -254,17 +254,12 @@ L<https://www.khanacademy.org/math/probability>
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
+Jeremy Mates
 
 =head1 HISTORY
 
 Given that it is held to be the end of history by some, I am really not sure
 why it is still being written. However, I now return you to your regularily
 scheduled documentation.
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
 
 =cut

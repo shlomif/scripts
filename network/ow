@@ -27,22 +27,22 @@ my $default_open = $ENV{OW_METHOD} || 'lynx';
 # echo "$@" | $COMMAND
 
 my %open = (
-  firefox       => [qw(open -a Firefox --background)],
-  lwp           => [qw(lwp-request)],
-  'lwp-noproxy' => [qw(lwp-request -P)],
-  lynx          => [qw(lynx)],
-  open          => [qw(open --background)],
-  openfg        => [qw(open)],
-  pbcopy        => [qw(sgrax pbcopy)],
-  safari        => [qw(open -a Safari --background)],
-  wget          => [qw(wget)],
-  w3m           => [qw(w3m -M)],
-  xombrero      => [qw(xombrero -n)],                    # requires enable_socket
+    firefox       => [qw(open -a Firefox --background)],
+    lwp           => [qw(lwp-request)],
+    'lwp-noproxy' => [qw(lwp-request -P)],
+    lynx          => [qw(lynx)],
+    open          => [qw(open --background)],
+    openfg        => [qw(open)],
+    pbcopy        => [qw(sgrax pbcopy)],
+    safari        => [qw(open -a Safari --background)],
+    wget          => [qw(wget)],
+    w3m           => [qw(w3m -M)],
+    xombrero      => [qw(xombrero -n)],                    # requires enable_socket
 );
 
 my %pfiles = (
-  shortcuts => '~/.ow/shortcuts',
-  dirmap    => '~/.ow/dirmap',
+    shortcuts => '~/.ow/shortcuts',
+    dirmap    => '~/.ow/dirmap',
 );
 
 # parse command-line options
@@ -51,187 +51,187 @@ my %opts;
 getopts( 'h?dlo:T:', \%opts );
 
 if ( exists $opts{h} or $opts{'?'} ) {
-  print_help();
-  exit 64;
+    print_help();
+    exit 64;
 }
 
 for ( keys %pfiles ) {
-  $pfiles{$_} = tilde_expand( $pfiles{$_} );
+    $pfiles{$_} = tilde_expand( $pfiles{$_} );
 }
 
 # -d flag does directory->web map lookup ("wv" mode)
 # TODO rename to "file" instead of @dir !!
 if ( exists $opts{d} ) {
-  my $dirmap = loadconfig( $pfiles{dirmap} );
+    my $dirmap = loadconfig( $pfiles{dirmap} );
 
-  require Cwd;
+    require Cwd;
 
-  if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
-    chomp( @ARGV = readline *STDIN );
-  }
-
-  my @dir;
-  if (@ARGV) {
-    @dir = map { Cwd::abs_path($_) } @ARGV;
-  }
-
-  # default to current directory
-  push @dir, Cwd::getcwd() unless @dir;
-
-  for my $dir (@dir) {
-
-    my $got_url = 0;
-
-    # longest first, so subdirs can override parent
-    for ( sort { length $b <=> length $a } keys %$dirmap ) {
-
-      my $pos = index $dir, $_;
-      if ( $pos > -1 ) {
-        my $frag = substr( $dir, $pos + length $_ ) || q{};
-
-        # prevent // issues
-        $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
-
-        $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq q{};
-
-        visit( expand( $dirmap->{$_}, [$frag] ) );
-        $got_url = 1;
-      }
+    if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
+        chomp( @ARGV = readline *STDIN );
     }
 
-    if ( !$got_url ) {
-      visit( expand( 'file://' . $dir ) );
+    my @dir;
+    if (@ARGV) {
+        @dir = map { Cwd::abs_path($_) } @ARGV;
     }
-  }
 
-  exit;
+    # default to current directory
+    push @dir, Cwd::getcwd() unless @dir;
+
+    for my $dir (@dir) {
+
+        my $got_url = 0;
+
+        # longest first, so subdirs can override parent
+        for ( sort { length $b <=> length $a } keys %$dirmap ) {
+
+            my $pos = index $dir, $_;
+            if ( $pos > -1 ) {
+                my $frag = substr( $dir, $pos + length $_ ) || q{};
+
+                # prevent // issues
+                $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
+
+                $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq q{};
+
+                visit( expand( $dirmap->{$_}, [$frag] ) );
+                $got_url = 1;
+            }
+        }
+
+        if ( !$got_url ) {
+            visit( expand( 'file://' . $dir ) );
+        }
+    }
+
+    exit;
 }
 
 my $scuts = loadconfig( $pfiles{shortcuts} );
 
 # for _T_ab completion lookups on hash keys, e.g. for shell autocomplete
 if ( exists $opts{T} ) {
-  if ( $opts{T} eq 'open' ) {
-    print join "\n", sort keys %open;
-  } elsif ( $opts{T} eq 'shortcuts' ) {
-    # need to cut out the "*" and "google@" stuff
-    my %seen;
-    @seen{ map { /(\w+)/ } keys %$scuts } = ();
-    print join "\n", sort keys %seen;
-  }
-  print "\n";
-  exit;
+    if ( $opts{T} eq 'open' ) {
+        print join "\n", sort keys %open;
+    } elsif ( $opts{T} eq 'shortcuts' ) {
+        # need to cut out the "*" and "google@" stuff
+        my %seen;
+        @seen{ map { /(\w+)/ } keys %$scuts } = ();
+        print join "\n", sort keys %seen;
+    }
+    print "\n";
+    exit;
 }
 
 if (@ARGV) {
-  parse_sc( [ \@ARGV ] );
+    parse_sc( [ \@ARGV ] );
 } else {
-  my $scs;
-  while (readline *STDIN) {
-    chomp;
-    push @$scs, [split];
-  }
-  parse_sc($scs);
+    my $scs;
+    while ( readline *STDIN ) {
+        chomp;
+        push @$scs, [split];
+    }
+    parse_sc($scs);
 }
 
 sub parse_sc {
-  my $sc = shift;
+    my $sc = shift;
 
-  for (@$sc) {
-    if ( @$_ == 1 ) {
-      if ( exists $scuts->{ $_->[0] } ) {
+    for (@$sc) {
+        if ( @$_ == 1 ) {
+            if ( exists $scuts->{ $_->[0] } ) {
 
-        # assume vanilla shortcuts are urls...
-        visit( $scuts->{ $_->[0] } );
+                # assume vanilla shortcuts are urls...
+                visit( $scuts->{ $_->[0] } );
 
-      } elsif ( $_->[0] =~ m(^\w+://.) ) {
+            } elsif ( $_->[0] =~ m(^\w+://.) ) {
 
-        # visit url-ish resources directly
-        visit( $_->[0] );
+                # visit url-ish resources directly
+                visit( $_->[0] );
 
-      } elsif ( $_->[0] =~ m/\./ ) {
+            } elsif ( $_->[0] =~ m/\./ ) {
 
-        visit( 'http://' . $_->[0] );
+                visit( 'http://' . $_->[0] );
 
-      } elsif ( exists $scuts->{'*'} ) {
+            } elsif ( exists $scuts->{'*'} ) {
 
-        # * shortcut is for unmatched things, an example target would be
-        # http://www.%@.com/ to expand input to .com websites
-        visit( expand( $scuts->{'*'}, $_ ) );
+                # * shortcut is for unmatched things, an example target would be
+                # http://www.%@.com/ to expand input to .com websites
+                visit( expand( $scuts->{'*'}, $_ ) );
 
-      } else {
-        die "not sure what to do with: $_->[0]\n";
-      }
-    } else {
-      my $key = shift @$_;
+            } else {
+                die "not sure what to do with: $_->[0]\n";
+            }
+        } else {
+            my $key = shift @$_;
 
-      # shortcut names with parameters have a trailing @ on them,
-      # but user should not type that
-      $key .= '@';
+            # shortcut names with parameters have a trailing @ on them,
+            # but user should not type that
+            $key .= '@';
 
-      # TODO check if two args whether second is actually a http:// URL,
-      # which should get fed to direct lookup instead of google search
-      # perhaps?
-      if ( exists $scuts->{$key} ) {
-        visit( expand( $scuts->{$key}, $_ ) );
-      } else {
-        die "no such shortcut: $key\n";
-      }
+            # TODO check if two args whether second is actually a http:// URL,
+            # which should get fed to direct lookup instead of google search
+            # perhaps?
+            if ( exists $scuts->{$key} ) {
+                visit( expand( $scuts->{$key}, $_ ) );
+            } else {
+                die "no such shortcut: $key\n";
+            }
+        }
     }
-  }
 }
 
 # takes URL pattern "http://www.%@.com/" and an array reference to insert
 # into said pattern.  Returns expanded string.
 sub expand {
-  my $pattern = shift;
-  my $terms   = shift;
+    my $pattern = shift;
+    my $terms   = shift;
 
-  $pattern =~ s/\Q%@/join '+', @$terms/ge;
-  $pattern =~ s/%(\d+)/$terms->[$1-1]||q{}/ge;
+    $pattern =~ s/\Q%@/join '+', @$terms/ge;
+    $pattern =~ s/%(\d+)/$terms->[$1-1]||q{}/ge;
 
-  my $url = URI->new($pattern)->canonical;
+    my $url = URI->new($pattern)->canonical;
 
-  warn "notice: could not convert to URL: $url\n" unless $url;
-  return $url;
+    warn "notice: could not convert to URL: $url\n" unless $url;
+    return $url;
 }
 
 # expects URL to visit, handles launching what OS needs.
 sub visit {
-  my $url = shift;
-  return unless $url;
+    my $url = shift;
+    return unless $url;
 
-  if ( exists $opts{l} ) {
-    print $url;
-    print "\n" if -t STDOUT;
-    return;
-  }
+    if ( exists $opts{l} ) {
+        print $url;
+        print "\n" if -t STDOUT;
+        return;
+    }
 
-  my $method = exists $opts{o} ? $opts{o} : $default_open;
-  die "error: unknown open method: $method\n" unless exists $open{$method};
+    my $method = exists $opts{o} ? $opts{o} : $default_open;
+    die "error: unknown open method: $method\n" unless exists $open{$method};
 
-  # or otherwise a more complicated configuration that maps certain shortcuts
-  # to certain methods...
-  if ( $url =~ m{^dict://} ) {
-    $method = 'openfg';
-  }
+    # or otherwise a more complicated configuration that maps certain shortcuts
+    # to certain methods...
+    if ( $url =~ m{^dict://} ) {
+        $method = 'openfg';
+    }
 
-  # TODO dispatch table for this
-  if ( ref $open{$method} eq 'ARRAY' ) {
+    # TODO dispatch table for this
+    if ( ref $open{$method} eq 'ARRAY' ) {
 
-    # TODO error checking
-    system @{ $open{$method} }, $url;
-  } else {
-    $open{$method}->($url);
-  }
+        # TODO error checking
+        system @{ $open{$method} }, $url;
+    } else {
+        $open{$method}->($url);
+    }
 }
 
 sub open_omniweb_bg {
-  my $url = shift;
+    my $url = shift;
 
-  # for Mac OS X, use AppleScript to open pages in background, as
-  # open(1) brings the browser forward, which annoys me.
-  my $omniweb_open_script = <<"END_OMNIWEB_SCRIPT";
+    # for Mac OS X, use AppleScript to open pages in background, as
+    # open(1) brings the browser forward, which annoys me.
+    my $omniweb_open_script = <<"END_OMNIWEB_SCRIPT";
 set url_new to "$url"
 set AppleScript's text item delimiters to {"#"}
 tell application "OmniWeb"
@@ -254,23 +254,23 @@ tell application "OmniWeb"
 end tell
 END_OMNIWEB_SCRIPT
 
-  # TODO error checking!
-  # TODO better handling of annoying output from osascript
-  close STDOUT;
-  open OSASCRIPT, "|-"
-    or exec 'osascript'
-    or die "problem with osascript: $!";
-  print OSASCRIPT $omniweb_open_script;
-  close OSASCRIPT;
+    # TODO error checking!
+    # TODO better handling of annoying output from osascript
+    close STDOUT;
+    open OSASCRIPT, "|-"
+      or exec 'osascript'
+      or die "problem with osascript: $!";
+    print OSASCRIPT $omniweb_open_script;
+    close OSASCRIPT;
 
-  return;
+    return;
 }
 
 # expands ~username syntax to full home directory path
 sub tilde_expand {
-  my @pathes = @_;
-  for (@pathes) {
-    s{^ ~      # leading tilde
+    my @pathes = @_;
+    for (@pathes) {
+        s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
       $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
@@ -279,49 +279,49 @@ sub tilde_expand {
              { file => $_ })
         && exit 67;
      }ex;
-  }
-  return wantarray ? @pathes : "@pathes";
+    }
+    return wantarray ? @pathes : "@pathes";
 }
 
 # accepts filename to load TSV from, returns hash reference
 sub loadconfig {
-  my $f = shift;
-  my $h;
+    my $f = shift;
+    my $h;
 
-  open F, "< $f" or die "error: unable to open $f: $!\n";
-  while (<F>) {
-    chomp;
-    next if /^\s*#/;
-    s/\s+$//;
-    next if /^$/;
+    open F, "< $f" or die "error: unable to open $f: $!\n";
+    while (<F>) {
+        chomp;
+        next if /^\s*#/;
+        s/\s+$//;
+        next if /^$/;
 
-    my ( $k, $v ) = split ' ', $_, 2;
-    $h->{$k} = $v if $k and $v;
-  }
-  close F or warn "warning: problem closing $f: $!\n";
+        my ( $k, $v ) = split ' ', $_, 2;
+        $h->{$k} = $v if $k and $v;
+    }
+    close F or warn "warning: problem closing $f: $!\n";
 
-  return $h;
+    return $h;
 }
 
 sub remark {
-  my $priority   = shift;
-  my $message    = shift;
-  my $attributes = shift;
+    my $priority   = shift;
+    my $message    = shift;
+    my $attributes = shift;
 
-  chomp $message;
+    chomp $message;
 
-  my $attr_str;
-  if ($attributes) {
-    $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-      sort keys %$attributes;
-  }
+    my $attr_str;
+    if ($attributes) {
+        $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+          sort keys %$attributes;
+    }
 
-  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
-  return 1;
+    warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
+    return 1;
 }
 
 sub print_help {
-  warn <<"END_USAGE";
+    warn <<"END_USAGE";
 Usage: $0 [options] file [file2 ...]
 
 Command line shortcuts and file to URL mapping.
@@ -524,24 +524,6 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

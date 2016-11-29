@@ -14,10 +14,10 @@ my @du_cmd = split /\s+/, $ENV{DU_CMD} || 'du -k';
 my $du_re = qr/^(\d+) \s+ (\S+)/ox;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    die "error: problem closing STDOUT: $!\n";
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        die "error: problem closing STDOUT: $!\n";
+    }
 }
 
 use Getopt::Std;
@@ -28,7 +28,7 @@ print_help() if exists $opts{h} or exists $opts{'?'};
 
 # KLUGE pass through on -x "one filesystem" option to du
 if ( exists $opts{x} ) {
-  push @du_cmd, '-x';
+    push @du_cmd, '-x';
 }
 
 my $output_tmpl = '%{size} %{path} %{humansize}\n';
@@ -43,192 +43,186 @@ $output_tmpl .= "\n" unless $output_tmpl =~ m/ \s$ /x;
 # a literal space
 my %defaults;
 if ( exists $opts{d} ) {
-  my @pairs = split /(?<!(?<!\\)\\) /, $opts{d};
-  for my $token (@pairs) {
-    my ( $k, $v ) = $token =~ m/^ \s* ([\w.-]+) = (.*) /x;
-    $defaults{$k} = $v if defined $k;
-  }
+    my @pairs = split /(?<!(?<!\\)\\) /, $opts{d};
+    for my $token (@pairs) {
+        my ( $k, $v ) = $token =~ m/^ \s* ([\w.-]+) = (.*) /x;
+        $defaults{$k} = $v if defined $k;
+    }
 }
 
 my @directories;
 
 if ( exists $opts{c} ) {
-  my $prefs_fh;
-  open( $prefs_fh, '<', $opts{c} )
-    or remark(
-    'error',
-    'could not load prefs',
-    { file => $opts{c}, errno => $! }
-    ) and exit 74;
+    my $prefs_fh;
+    open( $prefs_fh, '<', $opts{c} )
+      or
+      remark( 'error', 'could not load prefs', { file => $opts{c}, errno => $! } )
+      and exit 74;
 
-  push @directories, load_dir_prefs($prefs_fh);
+    push @directories, load_dir_prefs($prefs_fh);
 } else {
-  push @ARGV, '.' unless @ARGV;
+    push @ARGV, '.' unless @ARGV;
 }
 
 if (@ARGV) {
-  # read from standard input if - last argument
-  if ( $ARGV[-1] eq '-' ) {
-    pop @ARGV;
-    push @directories, load_dir_prefs( \*STDIN );
-  }
+    # read from standard input if - last argument
+    if ( $ARGV[-1] eq '-' ) {
+        pop @ARGV;
+        push @directories, load_dir_prefs( \*STDIN );
+    }
 
-  # KLUGE default dirs on command line to do 'dir *' type searches
-  for (@ARGV) {
-    my @wanted = (
-      { subject => 'subpath', value => '^$',         op => 're' },
-      { subject => 'subpath', value => '^/[^/]+/?$', op => 're' }
-    );
-    push @directories, { parentdir => $_, wanted => \@wanted };
-  }
+    # KLUGE default dirs on command line to do 'dir *' type searches
+    for (@ARGV) {
+        my @wanted = (
+            { subject => 'subpath', value => '^$',         op => 're' },
+            { subject => 'subpath', value => '^/[^/]+/?$', op => 're' }
+        );
+        push @directories, { parentdir => $_, wanted => \@wanted };
+    }
 }
 
 for my $entry (@directories) {
-  rundu( $entry->{parentdir}, $entry->{wanted} );
+    rundu( $entry->{parentdir}, $entry->{wanted} );
 }
 
 exit;
 
 sub load_dir_prefs {
-  my $fh = shift;
-  my @dirs;
-  while (<$fh>) {
-    next if /^\s*$/;
-    s/^\s+//;
-    next if /^#/;
-    chomp;
-    s/\s+$//;
+    my $fh = shift;
+    my @dirs;
+    while (<$fh>) {
+        next if /^\s*$/;
+        s/^\s+//;
+        next if /^#/;
+        chomp;
+        s/\s+$//;
 
-    # extend lines ending with \
-    if (s/ \\ $ //x) {
-      $_ .= <DATA>;
-      redo unless eof;
-    }
-
-    my @tokens;
-  UBLE: {
-      # unquoted text
-      push( @tokens, $1 ), redo UBLE
-        if m/ \G ( [^"'\s]+ ) \s* /cgx;
-
-      # single or double quoted, allowing for backslashed internal escapes
-      push( @tokens, $2 ), redo UBLE
-        if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
-
-      last UBLE if / \G $ /gcx;
-    }
-
-    if (@tokens) {
-      # unescape things like "\ " or "\n"
-      @tokens = map { s/(\\.)/qq!"$1"!/eeg; $_ } @tokens;
-
-      my $dir = shift @tokens;
-
-      # TODO only subpath matching for output right now, could add more
-      my @wanted;
-
-      # default to printing for the parentdir, which has no subpath
-      push @wanted, { subject => 'subpath', value => '^$', op => 're' };
-
-      for (@tokens) {
-        # convert regex-free configuration entries to regex for cleaner
-        # configuration file format
-        unless ( m,\$$, or m,^\^, ) {
-          $_ = '^/' . $_ . '$';
+        # extend lines ending with \
+        if (s/ \\ $ //x) {
+            $_ .= <DATA>;
+            redo unless eof;
         }
-        s, \* ,[^/]+/?,gx;
-        push @wanted, { subject => 'subpath', value => $_, op => 're' };
-      }
 
-      push @dirs, { parentdir => $dir, wanted => \@wanted };
+        my @tokens;
+      UBLE: {
+            # unquoted text
+            push( @tokens, $1 ), redo UBLE
+              if m/ \G ( [^"'\s]+ ) \s* /cgx;
+
+            # single or double quoted, allowing for backslashed internal escapes
+            push( @tokens, $2 ), redo UBLE
+              if m/ \G (['"]) ((?: \\.|[^\\\1] )+) \1 \s* /cgx;
+
+            last UBLE if / \G $ /gcx;
+        }
+
+        if (@tokens) {
+            # unescape things like "\ " or "\n"
+            @tokens = map { s/(\\.)/qq!"$1"!/eeg; $_ } @tokens;
+
+            my $dir = shift @tokens;
+
+            # TODO only subpath matching for output right now, could add more
+            my @wanted;
+
+            # default to printing for the parentdir, which has no subpath
+            push @wanted, { subject => 'subpath', value => '^$', op => 're' };
+
+            for (@tokens) {
+                # convert regex-free configuration entries to regex for cleaner
+                # configuration file format
+                unless ( m,\$$, or m,^\^, ) {
+                    $_ = '^/' . $_ . '$';
+                }
+                s, \* ,[^/]+/?,gx;
+                push @wanted, { subject => 'subpath', value => $_, op => 're' };
+            }
+
+            push @dirs, { parentdir => $dir, wanted => \@wanted };
+        }
     }
-  }
-  return @dirs;
+    return @dirs;
 }
 
 sub rundu {
-  my $parentdir = shift;
-  my $wanted    = shift;
+    my $parentdir = shift;
+    my $wanted    = shift;
 
-  # trailing slashes lead to // in output, so evict, but leave leading
-  # slash (for / root) alone
-  $parentdir =~ s, (?<! ^ ) /+$ ,,x;
+    # trailing slashes lead to // in output, so evict, but leave leading
+    # slash (for / root) alone
+    $parentdir =~ s, (?<! ^ ) /+$ ,,x;
 
-  my $targetdir = $parentdir;
+    my $targetdir = $parentdir;
 
-  # KLUGE du will happily stat only a symlink instead of the actual
-  # target directory
-  #
-  # TODO warn about this and just change the parentdir?
-  $targetdir = readlink $parentdir if -l $parentdir;
+    # KLUGE du will happily stat only a symlink instead of the actual
+    # target directory
+    #
+    # TODO warn about this and just change the parentdir?
+    $targetdir = readlink $parentdir if -l $parentdir;
 
-  # KLUGE this is only a warning, as could be reading du output indirectly
-  # from a file...
-  if ( !-d $targetdir ) {
-    remark( 'warning', 'target not a directory', { dir => $parentdir } );
-  }
+    # KLUGE this is only a warning, as could be reading du output indirectly
+    # from a file...
+    if ( !-d $targetdir ) {
+        remark( 'warning', 'target not a directory', { dir => $parentdir } );
+    }
 
-  my $du_fh;
-  open( $du_fh, '-|' )
-    or exec @du_cmd, $targetdir
-    or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
-    and exit 102;
+    my $du_fh;
+    open( $du_fh, '-|' )
+      or exec @du_cmd, $targetdir
+      or remark( 'error', 'du failed', { errno => $!, dir => $parentdir } )
+      and exit 102;
 
-  my %dudefaults = ( %defaults, parentdir => $parentdir, epoch => time );
+    my %dudefaults = ( %defaults, parentdir => $parentdir, epoch => time );
 
-  while (<$du_fh>) {
-    chomp;
+    while (<$du_fh>) {
+        chomp;
 
-    # gather output into a hash for easy access of data
-    my %duinfo = (%dudefaults);
-    unless ( ( $duinfo{size}, $duinfo{path} ) = m/$du_re/ ) {
+        # gather output into a hash for easy access of data
+        my %duinfo = (%dudefaults);
+        unless ( ( $duinfo{size}, $duinfo{path} ) = m/$du_re/ ) {
 
-      # this should never be hit, unless output format of du changes
-      remark(
-        'error',
-        'invalid output from du',
-        { line => $., dir => $parentdir }
+            # this should never be hit, unless output format of du changes
+            remark( 'error', 'invalid output from du', { line => $., dir => $parentdir } );
+            exit 103;
+        }
+
+        # KLUGE fix reporting from du to be that of requested directory, not
+        # symlink target
+        if ( $targetdir ne $parentdir ) {
+            $duinfo{path} =~ s/^$targetdir/$parentdir/;
+        }
+
+        # determine path excluding leading root
+        $duinfo{subpath} = q{};
+        my $offset = index $duinfo{path}, $parentdir;
+        if ( $offset > -1 ) {
+            $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
+        }
+
+        # KLUGE this assumes 'du -k' is being used!
+        $duinfo{humansize} = humanize( $duinfo{size}, { base => 1024 } )
+          if $output_tmpl =~ m/%{humansize}/;
+
+        # DBG to see what template values are available
+        #use Data::Dumper; warn Dumper \%duinfo;
+
+        for my $entry (@$wanted) {
+            if ( $duinfo{ $entry->{subject} } =~ m/$entry->{value}/ ) {
+                my $str_out = $output_tmpl;
+                $str_out =~
+                  s/ \Q%{\E (\w+) \Q}\E / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
+                print $str_out;
+                last;
+            }
+        }
+    }
+
+    close $du_fh
+      or remark(
+        'warning',
+        'problem closing pipe from du',
+        { errno => $!, dir => $parentdir }
       );
-      exit 103;
-    }
-
-    # KLUGE fix reporting from du to be that of requested directory, not
-    # symlink target
-    if ( $targetdir ne $parentdir ) {
-      $duinfo{path} =~ s/^$targetdir/$parentdir/;
-    }
-
-    # determine path excluding leading root
-    $duinfo{subpath} = q{};
-    my $offset = index $duinfo{path}, $parentdir;
-    if ( $offset > -1 ) {
-      $duinfo{subpath} = substr $duinfo{path}, $offset + length $parentdir;
-    }
-
-    # KLUGE this assumes 'du -k' is being used!
-    $duinfo{humansize} = humanize( $duinfo{size}, { base => 1024 } )
-      if $output_tmpl =~ m/%{humansize}/;
-
-    # DBG to see what template values are available
-    #use Data::Dumper; warn Dumper \%duinfo;
-
-    for my $entry (@$wanted) {
-      if ( $duinfo{ $entry->{subject} } =~ m/$entry->{value}/ ) {
-        my $str_out = $output_tmpl;
-        $str_out =~
-          s/ \Q%{\E (\w+) \Q}\E / defined $duinfo{$1} ? $duinfo{$1} : q{} /egx;
-        print $str_out;
-        last;
-      }
-    }
-  }
-
-  close $du_fh
-    or remark(
-    'warning',
-    'problem closing pipe from du',
-    { errno => $!, dir => $parentdir }
-    );
 }
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
@@ -237,117 +231,116 @@ sub rundu {
 # takes a number, returns formatted string.  Optionally accepts
 # hash reference containing non-standard defaults.
 sub humanize {
-  my $num   = shift;
-  my $prefs = shift;
+    my $num   = shift;
+    my $prefs = shift;
 
-  # error checking on input...
-  return $num unless $num =~ m/^-?\d+$/;
+    # error checking on input...
+    return $num unless $num =~ m/^-?\d+$/;
 
-  # various parameters that adjust how the humanization is done
-  # these really should be able to be specified on the command line, or
-  # read in from a prefs file somewhere, as nobody will agree as to what
-  # "proper" human output should look like... :)
-  my %defaults = (
+    # various parameters that adjust how the humanization is done
+    # these really should be able to be specified on the command line, or
+    # read in from a prefs file somewhere, as nobody will agree as to what
+    # "proper" human output should look like... :)
+    my %defaults = (
 
-    # base numbers are in (1 is bytes, 1024 for K)
-    'base' => 1,
+        # base numbers are in (1 is bytes, 1024 for K)
+        'base' => 1,
 
-    # include decimals in output? (e.g. 25.8K vs. 26K)
-    'decimal' => 1,
+        # include decimals in output? (e.g. 25.8K vs. 26K)
+        'decimal' => 1,
 
-    # include .0 in decimal output?
-    'decimal_zero' => 1,
+        # include .0 in decimal output?
+        'decimal_zero' => 1,
 
-    # what to divide file sizes down by
-    # 1024 is generally "Kilobytes," while 1000 is
-    # "kilobytes," technically
-    'factor' => 1024,
+        # what to divide file sizes down by
+        # 1024 is generally "Kilobytes," while 1000 is
+        # "kilobytes," technically
+        'factor' => 1024,
 
-    # percentage above which will be bumped up
-    # (e.g. 999 bytes -> 1 K as within 5% of 1024)
-    # set to undef to turn off
-    'fudge' => 0.96,
+        # percentage above which will be bumped up
+        # (e.g. 999 bytes -> 1 K as within 5% of 1024)
+        # set to undef to turn off
+        'fudge' => 0.96,
 
-    # lengths above which decimals will not be included
-    # for better readability
-    'max_human_length' => 2,
+        # lengths above which decimals will not be included
+        # for better readability
+        'max_human_length' => 2,
 
-    # list of suffixes for human readable output
-    'suffix' => [ 'B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
-  );
+        # list of suffixes for human readable output
+        'suffix' => [ 'B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
+    );
 
-  # merge passed options with defaults
-  for my $k ( keys %$prefs ) {
-    if ( exists $defaults{$k} and defined $prefs->{$k} ) {
-      $defaults{$k} = $prefs->{$k};
+    # merge passed options with defaults
+    for my $k ( keys %$prefs ) {
+        if ( exists $defaults{$k} and defined $prefs->{$k} ) {
+            $defaults{$k} = $prefs->{$k};
+        }
     }
-  }
 
-  # some local working variables
-  my $count  = 0;
-  my $prefix = q{};
-  my $tmp    = q{};
+    # some local working variables
+    my $count  = 0;
+    my $prefix = q{};
+    my $tmp    = q{};
 
-  # handle negatives
-  if ( $num < 0 ) {
-    $num    = abs $num;
-    $prefix = '-';
-  }
-
-  # adjust number to proper base
-  $num *= $defaults{'base'};
-
-  # reduce number to something readable by factor specified
-  while ( $num > $defaults{'factor'} ) {
-    $num /= $defaults{'factor'};
-    $count++;
-  }
-
-  # optionally fudge "near" values up to next higher level
-  if ( $defaults{'fudge'} ) {
-    if ( $num > ( $defaults{'fudge'} * $defaults{'factor'} ) ) {
-      $count++;
-      $num /= $defaults{'factor'};
+    # handle negatives
+    if ( $num < 0 ) {
+        $num    = abs $num;
+        $prefix = '-';
     }
-  }
 
-  # no .[1-9] decimal on longer numbers for easier reading
-  # only show decimal if format say so
-  if ( length sprintf( "%.f", $num ) > $defaults{'max_human_length'}
-    || !$defaults{'decimal'} ) {
+    # adjust number to proper base
+    $num *= $defaults{'base'};
 
-    $tmp = sprintf( "%.0f", $num );
+    # reduce number to something readable by factor specified
+    while ( $num > $defaults{'factor'} ) {
+        $num /= $defaults{'factor'};
+        $count++;
+    }
 
-  } else {
-    $tmp = sprintf( "%.1f", $num );
+    # optionally fudge "near" values up to next higher level
+    if ( $defaults{'fudge'} ) {
+        if ( $num > ( $defaults{'fudge'} * $defaults{'factor'} ) ) {
+            $count++;
+            $num /= $defaults{'factor'};
+        }
+    }
 
-    # optionally hack trailing .0
-    $tmp =~ s/\.0$// unless $defaults{'decimal_zero'};
-  }
+    # no .[1-9] decimal on longer numbers for easier reading
+    # only show decimal if format say so
+    if ( length sprintf( "%.f", $num ) > $defaults{'max_human_length'}
+        || !$defaults{'decimal'} ) {
 
-  return $prefix . $tmp . $defaults{'suffix'}->[$count];
+        $tmp = sprintf( "%.0f", $num );
+
+    } else {
+        $tmp = sprintf( "%.1f", $num );
+
+        # optionally hack trailing .0
+        $tmp =~ s/\.0$// unless $defaults{'decimal_zero'};
+    }
+
+    return $prefix . $tmp . $defaults{'suffix'}->[$count];
 }
 
 sub remark {
-  my $priority   = shift;
-  my $message    = shift;
-  my $attributes = shift;
+    my $priority   = shift;
+    my $message    = shift;
+    my $attributes = shift;
 
-  chomp $message;
+    chomp $message;
 
-  my $attr_str;
-  if ($attributes) {
-    $attr_str = join ', ',
-      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-      sort keys %$attributes;
-  }
+    my $attr_str;
+    if ($attributes) {
+        $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+          sort keys %$attributes;
+    }
 
-  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
-  return 1;
+    warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
+    return 1;
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [options] [directory ..] [-]
 
 'du' output parser and reporter
@@ -366,7 +359,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 1;
@@ -521,24 +514,6 @@ du(1), perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

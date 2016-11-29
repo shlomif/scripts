@@ -8,11 +8,11 @@ use strict;
 use warnings;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 # how to match Top Level Domains (TLD)
@@ -23,63 +23,63 @@ my $domain_re = qr/( (?:[\w-]+\.)? $tld_re )/x;
 
 use Net::DNS;
 my $dns = Net::DNS::Resolver->new;
-$dns->defnames(0);  # do not search default domain
+$dns->defnames(0);    # do not search default domain
 
-chomp(@ARGV = readline *STDIN) unless @ARGV;
+chomp( @ARGV = readline *STDIN ) unless @ARGV;
 
 for my $input (@ARGV) {
-  my ($domain, $tld) = $input =~ / $domain_re \W* $ /x;
+    my ( $domain, $tld ) = $input =~ / $domain_re \W* $ /x;
 
-  unless ($tld) {
-    warn "error: no TLD found in: $input\n";
-    next;
-  }
-  $tld = '.'.$tld unless $tld =~ /^\./;
-  $domain = '.'.$domain unless $domain =~ /^\./;
-
-  # real TLD should have SOA records
-  unless ($dns->query($tld, 'SOA')) {
-    warn "notice: skipping as no SOA record: $tld\n";
-    next;
-  }
-
-  my $wildcard = '*' . $tld;
-  my @wc_ip    = get_ip_list($dns, $wildcard);
-
-  # no wildcards for this TLD
-  next unless @wc_ip;
-
-  if ($domain eq $tld) {
-    print "tld $tld wildcard @wc_ip\n";
-  } else {
-    my @dom_ip = get_ip_list($dns, $domain);
-    die "error: no addresses for domain $domain\n" unless @dom_ip;
-
-    my (%union, %isect);
-    for my $ip (@wc_ip, @dom_ip) { $union{$ip}++ && $isect{$ip}++ }
-
-    if (keys %isect) {
-      print "domain $domain wildcard ", join (" ", keys %isect), "\n";
+    unless ($tld) {
+        warn "error: no TLD found in: $input\n";
+        next;
     }
-  }
+    $tld    = '.' . $tld    unless $tld =~ /^\./;
+    $domain = '.' . $domain unless $domain =~ /^\./;
+
+    # real TLD should have SOA records
+    unless ( $dns->query( $tld, 'SOA' ) ) {
+        warn "notice: skipping as no SOA record: $tld\n";
+        next;
+    }
+
+    my $wildcard = '*' . $tld;
+    my @wc_ip = get_ip_list( $dns, $wildcard );
+
+    # no wildcards for this TLD
+    next unless @wc_ip;
+
+    if ( $domain eq $tld ) {
+        print "tld $tld wildcard @wc_ip\n";
+    } else {
+        my @dom_ip = get_ip_list( $dns, $domain );
+        die "error: no addresses for domain $domain\n" unless @dom_ip;
+
+        my ( %union, %isect );
+        for my $ip ( @wc_ip, @dom_ip ) { $union{$ip}++ && $isect{$ip}++ }
+
+        if ( keys %isect ) {
+            print "domain $domain wildcard ", join( " ", keys %isect ), "\n";
+        }
+    }
 }
 
 # Accepts Net::DNS::Resolver object and item to lookup for A records,
 # returns undef or list of ip addresses
 sub get_ip_list {
-  my $dns  = shift;
-  my $what = shift;
+    my $dns  = shift;
+    my $what = shift;
 
-  my $query = $dns->query($what, 'A');
-  return unless $query;
+    my $query = $dns->query( $what, 'A' );
+    return unless $query;
 
-  my @ips;
+    my @ips;
 
-  for my $rr ($query->answer) {
-    push @ips, $rr->address if $rr->type eq 'A';
-  }
+    for my $rr ( $query->answer ) {
+        push @ips, $rr->address if $rr->type eq 'A';
+    }
 
-  return @ips;
+    return @ips;
 }
 
 __END__
@@ -150,31 +150,16 @@ the addresses for the domain in question.
 
 perl(1), Net::DNS
 
+DNAME records may also be a problem, though moreso when attempting to
+update a zone that contains a DNAME than for client-side applications.
+
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
+Jeremy Mates
 
 Based heavily on code posted by John Rowan Littell to the MIMEDefang
 mailing list.
 
 http://lists.roaringpenguin.com/pipermail/mimedefang/2003-September/008061.html
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
 
 =cut

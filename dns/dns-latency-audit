@@ -21,8 +21,8 @@ use Net::DNS;
 use Time::HiRes qw(gettimeofday tv_interval);
 
 GetOptions(
-  'querytype=s' => \my $Query_Type,
-  'queryhost=s' => \my $Query_Host
+    'querytype=s' => \my $Query_Type,
+    'queryhost=s' => \my $Query_Host
 ) or die "could not parse options";
 
 my @Dns_Servers = @ARGV;
@@ -31,20 +31,20 @@ print_help() if !@Dns_Servers or !defined $Query_Host;
 $Query_Type //= 'A';
 
 for my $nsip ( shuffle @Dns_Servers ) {
-  my $res = Net::DNS::Resolver->new(
-    nameservers => [$nsip],
-    retrans     => 1,
-    retry       => 1,
-    tcp_timeout => 5,
-    udp_timeout => 5
-  );
+    my $res = Net::DNS::Resolver->new(
+        nameservers => [$nsip],
+        retrans     => 1,
+        retry       => 1,
+        tcp_timeout => 5,
+        udp_timeout => 5
+    );
 
-  my $start   = [gettimeofday];
-  my $result  = $res->query( $Query_Host, $Query_Type );
-  my $elapsed = tv_interval($start);
-  my @status  = $result ? qw(1) : ( qw(0), $res->errorstring );
-  my $epoch   = time();
-  print "$epoch $nsip $elapsed @status\n";
+    my $start   = [gettimeofday];
+    my $result  = $res->query( $Query_Host, $Query_Type );
+    my $elapsed = tv_interval($start);
+    my @status  = $result ? qw(1) : ( qw(0), $res->errorstring );
+    my $epoch   = time();
+    print "$epoch $nsip $elapsed @status\n";
 }
 
 exit 0;
@@ -54,18 +54,18 @@ exit 0;
 # SUBROUTINES
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 --queryhost=host [--querytype=A] dnsip1 [dnsip2 ..]
 
 Keep tabs on DNS request latency.
 HELP
-  exit 64;
+    exit 64;
 }
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }

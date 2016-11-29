@@ -7,18 +7,18 @@ use strict;
 use warnings;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 sub get_mx;
 sub print_help;
 
 # loose(?) match for domain names
-my $domain_re = qr/ ( [\w-]{1,63} \. \w{1,7} ) \.? /x;
+my $domain_re = qr/ ( [\w-]{1,63} \. \w{1,63} ) \.? /x;
 
 use Net::DNS;
 my $dns = Net::DNS::Resolver->new;
@@ -30,77 +30,76 @@ my @domains;
 
 my %opts;
 for (@ARGV) {
+    if (/^-([\w]+)$/) {
+        my $opts = $1;
+        for ( $opts =~ /(.)/g ) { $opts{$_} = 1 }
+        print_help if exists $opts{h} or exists $opts{'?'};
+        next;
+    }
 
-  if (/^-([\w]+)$/) {
-    my $opts = $1;
-    for ( $opts =~ /(.)/g ) { $opts{$_} = 1 }
-    print_help if exists $opts{h} or exists $opts{'?'};
-    next;
-  }
+    my ($domain) = / $domain_re \s* $ /x;
 
-  my ($domain) = / $domain_re \s* $ /x;
+    unless ($domain) {
+        warn "error: no domain found in: $_\n";
+        next;
+    }
 
-  unless ($domain) {
-    warn "error: no domain found in: $_\n";
-    next;
-  }
+    unless ( $dns->query( $domain, 'SOA' ) ) {
+        warn "warning: domain does not exist: $domain\n";
+        next;
+    }
 
-  unless ( $dns->query( $domain, 'SOA' ) ) {
-    warn "warning: domain does not exist: $domain\n";
-    next;
-  }
-
-  push @domains, $domain;
+    push @domains, $domain;
 }
 
 for my $domain (@domains) {
-  print +( @domains > 1 ? "$domain: " : q{} ), join ' ', get_mx $domain;
-  print "\n";
+    print +( @domains > 1 ? "$domain: " : q{} ), join ' ', get_mx $domain;
+    print "\n";
 }
 
 sub get_mx {
-  my $domain = shift;
+    my $domain = shift;
 
-  my @mx;
+    my @mx;
 
-  my $mx = $dns->query( $domain, 'MX' );
-  if ($mx) {
-    for my $rr ( $mx->answer ) {
-      push @mx, $rr->exchange if $rr->type eq 'MX';
+    my $mx = $dns->query( $domain, 'MX' );
+    if ($mx) {
+        for my $rr ( $mx->answer ) {
+            push @mx, $rr->exchange if $rr->type eq 'MX';
+        }
+    } else {
+
+        # if no MX use A record for domain (assumes domain exists!)
+        warn "notice: no MX records found, using A for $domain\n"
+          unless exists $opts{q};
+        push @mx, $domain;
     }
-  } else {
 
-    # if no MX use A record for domain (assumes domain exists!)
-    warn "notice: no MX records found, using A for $domain\n"
-      unless exists $opts{q};
-    push @mx, $domain;
-  }
+    if ( exists $opts{r} ) {
+        fisher_yates_shuffle( \@mx );
+    }
 
-  if ( exists $opts{r} ) {
-    fisher_yates_shuffle( \@mx );
-  }
+    if ( exists $opts{1} ) {
+        @mx = $mx[0];
+    }
 
-  if ( exists $opts{1} ) {
-    @mx = $mx[0];
-  }
-
-  return @mx;
+    return @mx;
 }
 
-# fisher_yates_shuffle( \@array ) : generate a random permutation
-# of @array in place
+# fisher_yates_shuffle( \@array ) : generate a random permutation of
+# @array in place
 sub fisher_yates_shuffle {
-  my $array = shift;
-  my $i;
-  for ( $i = @$array; --$i; ) {
-    my $j = int rand( $i + 1 );
-    next if $i == $j;
-    @$array[ $i, $j ] = @$array[ $j, $i ];
-  }
+    my $array = shift;
+    my $i;
+    for ( $i = @$array; --$i; ) {
+        my $j = int rand( $i + 1 );
+        next if $i == $j;
+        @$array[ $i, $j ] = @$array[ $j, $i ];
+    }
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [options] domain [domain2 ...]
 
 Returns MX server(s) for domain(s) in question.
@@ -116,7 +115,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 __END__
@@ -209,24 +208,6 @@ perl(1), Net::DNS
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

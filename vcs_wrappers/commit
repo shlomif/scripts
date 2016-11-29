@@ -28,9 +28,9 @@ getopts 'h?F:m:r:n', \%opts;
 
 $defaults{revision} = $opts{r} if exists $opts{r};
 if ( exists $opts{m} ) {
-  $defaults{msg} = $opts{m};
+    $defaults{msg} = $opts{m};
 } elsif ( exists $opts{F} ) {
-  $defaults{msgfile} = $opts{F};
+    $defaults{msgfile} = $opts{F};
 }
 
 # default to "current" directory if no args (to emulate 'cvs ci'
@@ -41,110 +41,109 @@ if ( exists $opts{m} ) {
 my ( %tocommit, @unknown );
 
 for my $file (@ARGV) {
-  my ( $filename, $filepath, undef ) = fileparse($file);
+    my ( $filename, $filepath, undef ) = fileparse($file);
 
-  # Might be problematic for mixed repositories, but I don't do that,
-  # so there.
-  if ( defined findup('.git') ) {
-    push @{ $tocommit{git} }, $file unless $file eq '.git';
+    # Might be problematic for mixed repositories, but I don't do that,
+    # so there.
+    if ( defined findup('.git') ) {
+        push @{ $tocommit{git} }, $file unless $file eq '.git';
 
-  } elsif ( defined findup('.p4config') ) {
-    push @{ $tocommit{perforce} }, $file unless $file eq '.p4config';
+    } elsif ( defined findup('.p4config') ) {
+        push @{ $tocommit{perforce} }, $file unless $file eq '.p4config';
 
-  } elsif ( -f File::Spec->catfile( $filepath, qw{CVS Root} ) ) {
-    push @{ $tocommit{cvs} }, $file unless $file eq 'CVS';
+    } elsif ( -f File::Spec->catfile( $filepath, qw{CVS Root} ) ) {
+        push @{ $tocommit{cvs} }, $file unless $file eq 'CVS';
 
-    # Current versions use a sole .svn file. Still mad at SVN for it
-    # eating my data and totally wedging on me, though.
-  } elsif ( defined findup('.svn') ) {
-    push @{ $tocommit{svn} }, $file unless $file eq '.svn';
+        # Current versions use a sole .svn file. Still mad at SVN for it
+        # eating my data and totally wedging on me, though.
+    } elsif ( defined findup('.svn') ) {
+        push @{ $tocommit{svn} }, $file unless $file eq '.svn';
 
-  } else {
-    push @unknown, $file;
-  }
+    } else {
+        push @unknown, $file;
+    }
 }
 
 for my $commit_type ( sort keys %tocommit ) {
 
-  my %tmp = ( %{ $prefs->{commit}->{$commit_type} }, %defaults );
+    my %tmp = ( %{ $prefs->{commit}->{$commit_type} }, %defaults );
 
-  # delete "whateveropt" where no "whatever" exists
-  for my $option ( keys %tmp ) {
-    delete $tmp{$option} if $option =~ /(\w+)opt$/ and not exists $tmp{$1};
-  }
+    # delete "whateveropt" where no "whatever" exists
+    for my $option ( keys %tmp ) {
+        delete $tmp{$option} if $option =~ /(\w+)opt$/ and not exists $tmp{$1};
+    }
 
-  my @command = map {
-    s/\Q%{\E(\w+)\Q}\E/$tmp{$1}||q{}/ge;
-    defined and $_ ne q{} ? $_ : ()
-  } split /\s+/, $tmp{exec};
+    my @command = map {
+        s/\Q%{\E(\w+)\Q}\E/$tmp{$1}||q{}/ge;
+        defined and $_ ne q{} ? $_ : ()
+    } split /\s+/, $tmp{exec};
 
-  # for "preview" mode, though this will not show required shell quotes
-  # around things like a -m commit message
-  unshift @command, 'echo' if exists $opts{n};
+    # for "preview" mode, though this will not show required shell quotes
+    # around things like a -m commit message
+    unshift @command, 'echo' if exists $opts{n};
 
-  unless ( system( @command, @{ $tocommit{$commit_type} } ) == 0 ) {
-    my $exit_status = $? >> 8;
-    remark(
-      'warning',
-      'bad exit status',
-      { value => $exit_status, type => $commit_type }
-    );
-  }
+    unless ( system( @command, @{ $tocommit{$commit_type} } ) == 0 ) {
+        my $exit_status = $? >> 8;
+        remark(
+            'warning',
+            'bad exit status',
+            { value => $exit_status, type => $commit_type }
+        );
+    }
 }
 
 if (@unknown) {
-  local $" = ',';
-  remark( 'warning', 'no method to handle', { files => "@unknown" } );
+    local $" = ',';
+    remark( 'warning', 'no method to handle', { files => "@unknown" } );
 }
 
 sub findup {
-  my $filename = shift;
-  my $cur_dir  = getcwd();
+    my $filename = shift;
+    my $cur_dir  = getcwd();
 
-  my $homedir = realpath( my_home() );
+    my $homedir = realpath( my_home() );
 
-  my @dirs = File::Spec->splitdir($cur_dir);
-  do {
-    my $work_dir = File::Spec->catdir(@dirs);
+    my @dirs = File::Spec->splitdir($cur_dir);
+    do {
+        my $work_dir = File::Spec->catdir(@dirs);
 
-    # Abort if hit homedir, as can find global .p4config or whatnot in
-    # this or higher directories.
-    my $real_work_dir = realpath($work_dir);
-    if ( $real_work_dir eq $homedir ) {
-      return;
-    }
+        # Abort if hit homedir, as can find global .p4config or whatnot in
+        # this or higher directories.
+        my $real_work_dir = realpath($work_dir);
+        if ( $real_work_dir eq $homedir ) {
+            return;
+        }
 
-    if ( -e File::Spec->catfile( $work_dir, $filename ) ) {
-      return $work_dir;
-    }
-    pop @dirs;
-  } until ( !@dirs );
+        if ( -e File::Spec->catfile( $work_dir, $filename ) ) {
+            return $work_dir;
+        }
+        pop @dirs;
+    } until ( !@dirs );
 
-  return;
+    return;
 }
 
 sub remark {
-  my $priority   = shift;
-  my $message    = shift;
-  my $attributes = shift;
+    my $priority   = shift;
+    my $message    = shift;
+    my $attributes = shift;
 
-  chomp $message;
+    chomp $message;
 
-  my $attr_str;
-  if ($attributes) {
-    $attr_str = join ', ',
-      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-      sort keys %$attributes;
-  }
+    my $attr_str;
+    if ($attributes) {
+        $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+          sort keys %$attributes;
+    }
 
-  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
-  return 1;
+    warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
+    return 1;
 }
 
 # expands ~username syntax to full home directory path
 sub tilde_expand {
-  for (@_) {
-    s{^ ~      # leading tilde
+    for (@_) {
+        s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
       $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
@@ -153,54 +152,50 @@ sub tilde_expand {
              { file => $_ })
         && exit 74;
      }ex;
-  }
-  return wantarray ? @_ : "@_";
+    }
+    return wantarray ? @_ : "@_";
 }
 
 sub load_prefs {
-  my $file = shift;
+    my $file = shift;
 
-  open my $fh, "< $file"
-    or remark( 'error', 'could not load preferences', { file => $file } )
-    and exit 78;
+    open my $fh, "< $file"
+      or remark( 'error', 'could not load preferences', { file => $file } )
+      and exit 78;
 
-  my %prefs;
-  my %tmp = %defaults;
+    my %prefs;
+    my %tmp = %defaults;
 
-  while (<$fh>) {
-    s/^\s+//;
-    next if /^#/;
-    chomp;
+    while (<$fh>) {
+        s/^\s+//;
+        next if /^#/;
+        chomp;
 
-    if (/^$/) {
-      pref_finish( \%tmp, \%prefs ) if exists $tmp{name};
-      %tmp = %defaults;
-      next;
+        if (/^$/) {
+            pref_finish( \%tmp, \%prefs ) if exists $tmp{name};
+            %tmp = %defaults;
+            next;
+        }
+
+        s/\s+$//;
+
+        my ( $k, $v ) = split /\s+/, $_, 2;
+        unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
+            remark( 'warning', 'skipping invalid data', { file => 'prefs', line => $. } );
+            next;
+        }
+        $tmp{$k} = $v;
     }
+    pref_finish( \%tmp, \%prefs ) if exists $tmp{name};
 
-    s/\s+$//;
-
-    my ( $k, $v ) = split /\s+/, $_, 2;
-    unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
-      remark(
-        'warning',
-        'skipping invalid data',
-        { file => 'prefs', line => $. }
-      );
-      next;
-    }
-    $tmp{$k} = $v;
-  }
-  pref_finish( \%tmp, \%prefs ) if exists $tmp{name};
-
-  return \%prefs;
+    return \%prefs;
 }
 
 sub pref_finish {
-  my $tmp   = shift;
-  my $prefs = shift;
+    my $tmp   = shift;
+    my $prefs = shift;
 
-  $prefs->{ $tmp->{class} }->{ $tmp->{name} } = {%$tmp};
+    $prefs->{ $tmp->{class} }->{ $tmp->{name} } = {%$tmp};
 }
 
 __DATA__

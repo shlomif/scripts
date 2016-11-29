@@ -17,7 +17,7 @@ open my $midfh, '>', $midi_dev
 binmode $midfh;
 $midfh->autoflush(1);
 
-for my $channel (0..15) {
-  printf $midfh "%c%c%c", $CONTROL_CHANGE | $channel, $ALL_NOTES_OFF,  0;
-  printf $midfh "%c%c%c", $CONTROL_CHANGE | $channel, $ALL_SOUNDS_OFF, 0;
+for my $channel ( 0 .. 15 ) {
+    printf $midfh "%c%c%c", $CONTROL_CHANGE | $channel, $ALL_NOTES_OFF,  0;
+    printf $midfh "%c%c%c", $CONTROL_CHANGE | $channel, $ALL_SOUNDS_OFF, 0;
 }

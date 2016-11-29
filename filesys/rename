@@ -19,100 +19,100 @@ use Getopt::Long qw/GetOptions/;
 my $MYNAME = basename($0);
 
 GetOptions(
-  '0'           => \my $Flag_Null,
-  'copy|c'      => \my $Flag_Copy,
-  'dry-run|n|p' => \my $Flag_Dry_Run,
-  'help|h|?'    => \&print_help,
-  'mkdir|M'     => \my $Flag_Mkdir,
-  'move|m'      => \my $Flag_Move,
-  'verbose|v'   => \my $Flag_Verbose,
+    '0'           => \my $Flag_Null,
+    'copy|c'      => \my $Flag_Copy,
+    'dry-run|n|p' => \my $Flag_Dry_Run,
+    'help|h|?'    => \&print_help,
+    'mkdir|M'     => \my $Flag_Mkdir,
+    'move|m'      => \my $Flag_Move,
+    'verbose|v'   => \my $Flag_Verbose,
 ) or print_help();
 
 if ( $Flag_Copy and $Flag_Move ) {
-  warn "$MYNAME: error: cannot both copy and move a file\n";
-  print_help();
+    warn "$MYNAME: error: cannot both copy and move a file\n";
+    print_help();
 }
 
 my $how = 'rename';
 if ($Flag_Copy) {
-  $how = 'copy';
+    $how = 'copy';
 } elsif ($Flag_Move) {
-  $how = 'move';
+    $how = 'move';
 }
 
 my $expr = shift;
 if ( !defined $expr ) {
-  warn
-    "$MYNAME: error: need Perl expression (and likely filenames to operate on)\n";
-  print_help();
+    warn
+      "$MYNAME: error: need Perl expression (and likely filenames to operate on)\n";
+    print_help();
 }
 
 my $exit_status = 0;
 
 if ( !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' ) ) {
-  $/ = "\0" if $Flag_Null;
-  while ( readline *STDIN ) {
-    chomp unless $Flag_Null;
-    handle_file();
-  }
+    $/ = "\0" if $Flag_Null;
+    while ( readline *STDIN ) {
+        chomp unless $Flag_Null;
+        handle_file();
+    }
 } else {
-  handle_file() for @ARGV;
+    handle_file() for @ARGV;
 }
 
 sub handle_file {
-  # loosen things up to ease off-the-cuff code on command line
-  no strict;
-  no warnings;
+    # loosen things up to ease off-the-cuff code on command line
+    no strict;
+    no warnings;
 
-  if ( !-e ) {
-    warn "$MYNAME: notice: skipping '$_' as does not exist\n"
-      if $Flag_Verbose;
-    $exit_status = 66;
-    return;
-  }
+    if ( !-e ) {
+        warn "$MYNAME: notice: skipping '$_' as does not exist\n"
+          if $Flag_Verbose;
+        $exit_status = 66;
+        return;
+    }
 
-  my $origfile = $_;
-  eval $expr;
-  die "$MYNAME: error: unable to eval expression: $@" if $@;
-  return if File::Spec->rel2abs($origfile) eq File::Spec->rel2abs($_);
+    my $origfile = $_;
+    eval $expr;
+    die "$MYNAME: error: unable to eval expression: $@" if $@;
+    return if File::Spec->rel2abs($origfile) eq File::Spec->rel2abs($_);
 
-  print join( ' ', $how, $origfile, $_ ), "\n"
-    if $Flag_Dry_Run
-    or $Flag_Verbose;
-  return if $Flag_Dry_Run;
+    print join( ' ', $how, $origfile, $_ ), "\n"
+      if $Flag_Dry_Run
+      or $Flag_Verbose;
+    return if $Flag_Dry_Run;
 
-  if ( $how eq 'copy' and !-f $origfile ) {
-    # since File::Copy doesn't know what to do with directories (there
-    # is a File::Copy::Recursive module...)
-    warn "$MYNAME: notice: refusing to copy non-file '$origfile'\n";
-    $exit_status = 65;
-    return;
-  }
+    if ( $how eq 'copy' and !-f $origfile ) {
+        # since File::Copy doesn't know what to do with directories (there
+        # is a File::Copy::Recursive module...)
+        warn "$MYNAME: notice: refusing to copy non-file '$origfile'\n";
+        $exit_status = 65;
+        return;
+    }
 
-  if ($Flag_Mkdir) {
-    my $output_dir = dirname($_);
-    File::Path::Tiny::mk($output_dir)
-      or die "$MYNAME: error: could not create path '$output_dir': $!\n";
-  }
+    if ($Flag_Mkdir) {
+        my $output_dir = dirname($_);
+        File::Path::Tiny::mk($output_dir)
+          or die "$MYNAME: error: could not create path '$output_dir': $!\n";
+    }
 
-  unless ( eval "$how(\$origfile, \$_)" ) {
-    warn "$MYNAME: warning: could not $how '$origfile' to '$_': $!\n";
-    $exit_status = 74;
-  }
+    unless ( eval "$how(\$origfile, \$_)" ) {
+        warn "$MYNAME: warning: could not $how '$origfile' to '$_': $!\n";
+        $exit_status = 74;
+    }
 }
 
 exit $exit_status;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "$MYNAME: error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "$MYNAME: error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $MYNAME [options] Perl-expression [file ..]|-
 
 Alters file names according to Perl expressions.
@@ -128,7 +128,7 @@ Alters file names according to Perl expressions.
 Run perldoc(1) on this program for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 __END__
@@ -293,10 +293,5 @@ Larry Wall, Daniel V. Klien, Jeremy Mates
 This is a hacked up version of Larry Wall's original C<rename> script
 distributed with perl under the C<eg> directory, improved by Daniel V.
 Klien (copy option), and then wrangled into this form by Jeremy Mates.
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
 
 =cut

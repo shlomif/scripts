@@ -12,11 +12,11 @@ use Time::Local qw(timelocal);
 use Time::HiRes qw(sleep gettimeofday tv_interval);
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 use Getopt::Std;
@@ -30,36 +30,36 @@ my ( %previous_clock, %previous_epoch, $random_seed, $speed_factor );
 # enable debugging output
 my $DEBUG;
 if ( exists $opts{d} ) {
-  $DEBUG = 1;
+    $DEBUG = 1;
 } else {
-  $DEBUG = 0;
+    $DEBUG = 0;
 }
 
 # increase playback speed
 if ( exists $opts{f} and defined $opts{f} and $opts{f} > 1 ) {
-  $speed_factor = $opts{f};
+    $speed_factor = $opts{f};
 } else {
-  $speed_factor = 1;
+    $speed_factor = 1;
 }
 
 # use random seed to determine delay for next log entry
-if (  exists $opts{r}
-  and defined $opts{r}
-  and $opts{r} > 0 ) {
+if (    exists $opts{r}
+    and defined $opts{r}
+    and $opts{r} > 0 ) {
 
-  $random_seed = $opts{r};
-  $previous_epoch{random} = time;
+    $random_seed = $opts{r};
+    $previous_epoch{random} = time;
 }
 
 # use custom output file
 if ( exists $opts{o} ) {
-  open STDOUT, '>', $opts{o}
-    or die "error: could not open: errno=$!, file=$opts{o}\n";
+    open STDOUT, '>', $opts{o}
+      or die "error: could not open: errno=$!, file=$opts{o}\n";
 }
 
 # leading delay (good if need time to get something else running)
 if ( exists $opts{s} and defined $opts{s} and $opts{s} > 0 ) {
-  sleep $opts{s};
+    sleep $opts{s};
 }
 
 # force flush on output for better replay of logs (under modern Perl,
@@ -67,92 +67,95 @@ if ( exists $opts{s} and defined $opts{s} and $opts{s} > 0 ) {
 $| = 1;
 
 while (<>) {
-  chomp;
+    chomp;
 
-  my ( $rawtime, $suffix ) =
-    $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
+    my ( $rawtime, $suffix ) = $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
 
-  # WindowServer spams system.log with multi-line entries :( but
-  # probably should check for valid input, regardless
-  if ( !defined $rawtime or !defined $suffix ) {
-    warn "notice: could not parse date and message from line $.: $_\n";
-    next;
-  }
-
-  # multiple log sources may have different local times, so track time
-  # per source (I try to set UTC everywhere to help avoid this and other
-  # problems with local timezones)
-  my ($logsource) = $suffix =~ m/^\s*(\S+)/;
-
-  my $epoch;
-  if ( defined $random_seed ) {
-    $logsource = 'random';
-    $epoch     = $previous_epoch{$logsource} + rand $random_seed;
-  } else {
-    $epoch = syslog_to_epoch($rawtime);
-  }
-
-  if ( defined $previous_epoch{$logsource} ) {
-    my $delay = ( $epoch - $previous_epoch{$logsource} ) / $speed_factor;
-
-    # sanity check - if negative for the source (daylight savings time
-    # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
-    # random positive delay (or no delay).
-    if ( $delay < 0 ) {
-      $delay = (defined $random_seed) ? rand( $random_seed || 3 ) : 0 ;
+    # WindowServer spams system.log with multi-line entries :( but
+    # probably should check for valid input, regardless
+    if ( !defined $rawtime or !defined $suffix ) {
+        warn "notice: could not parse date and message from line $.: $_\n";
+        next;
     }
 
-    # Sleep for the $delay time minus how much clock time we've already
-    # spent since we last saw this $logsource. This can happen due to
-    # buffering or network delays somewhere in a forwarding chain of
-    # syslog collector servers: device -> server1 -> server2 -> logfile
-    # and can be significant (tens of seconds) depending on the buffer sizes
-    if ( $epoch != $previous_epoch{$logsource} ) {
-      if ( defined $previous_clock{$logsource} ) {
-        my $now = gettimeofday();
-        my $already_spent = tv_interval( [$previous_clock{$logsource}], [$now] );
-        $DEBUG && warn "... already $already_spent since last $logsource on " .
-               epoch_to_str($previous_epoch{$logsource}) .
-               " (at " . epoch_to_str($previous_clock{$logsource}) . ")\n";
-        if ( $already_spent > $delay ) {
-          # we've fallen behind; catch up ASAP
-          $delay = 0;
-        } else {
-          $delay -= $already_spent;
+    # multiple log sources may have different local times, so track time
+    # per source (I try to set UTC everywhere to help avoid this and other
+    # problems with local timezones)
+    my ($logsource) = $suffix =~ m/^\s*(\S+)/;
+
+    my $epoch;
+    if ( defined $random_seed ) {
+        $logsource = 'random';
+        $epoch     = $previous_epoch{$logsource} + rand $random_seed;
+    } else {
+        $epoch = syslog_to_epoch($rawtime);
+    }
+
+    if ( defined $previous_epoch{$logsource} ) {
+        my $delay = ( $epoch - $previous_epoch{$logsource} ) / $speed_factor;
+
+        # sanity check - if negative for the source (daylight savings time
+        # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
+        # random positive delay (or no delay).
+        if ( $delay < 0 ) {
+            $delay = ( defined $random_seed ) ? rand( $random_seed || 3 ) : 0;
         }
-      }
+
+        # Sleep for the $delay time minus how much clock time we've already
+        # spent since we last saw this $logsource. This can happen due to
+        # buffering or network delays somewhere in a forwarding chain of
+        # syslog collector servers: device -> server1 -> server2 -> logfile
+        # and can be significant (tens of seconds) depending on the buffer sizes
+        if ( $epoch != $previous_epoch{$logsource} ) {
+            if ( defined $previous_clock{$logsource} ) {
+                my $now = gettimeofday();
+                my $already_spent = tv_interval( [ $previous_clock{$logsource} ], [$now] );
+                $DEBUG
+                  && warn "... already $already_spent since last $logsource on "
+                  . epoch_to_str( $previous_epoch{$logsource} ) . " (at "
+                  . epoch_to_str( $previous_clock{$logsource} ) . ")\n";
+                if ( $already_spent > $delay ) {
+                    # we've fallen behind; catch up ASAP
+                    $delay = 0;
+                } else {
+                    $delay -= $already_spent;
+                }
+            }
+        }
+
+        if ( $delay > 0 ) {
+            $DEBUG && warn "... sleep $delay \n";
+            sleep $delay;
+        }
+
     }
 
-    if ( $delay > 0) {
-      $DEBUG && warn "... sleep $delay \n";
-      sleep $delay;
+    # save the *current* time that we first saw this timestamp in the logs
+    # but not subsequent times for the same timestamp
+    my $previous = $previous_epoch{$logsource} || 0;
+    if ( $epoch != $previous ) {
+        $previous_clock{$logsource} = gettimeofday();
+        $DEBUG
+          && warn "... clock = "
+          . epoch_to_str( $previous_clock{$logsource} )
+          . " for $logsource on "
+          . epoch_to_str($epoch) . "\n";
     }
 
-  }
+    $previous_epoch{$logsource} = $epoch;
 
-  # save the *current* time that we first saw this timestamp in the logs
-  # but not subsequent times for the same timestamp
-  my $previous = $previous_epoch{$logsource} || 0;
-  if ( $epoch != $previous ) {
-    $previous_clock{$logsource} = gettimeofday();
-    $DEBUG && warn "... clock = " . epoch_to_str($previous_clock{$logsource}) .
-           " for $logsource on " . epoch_to_str($epoch) . "\n";
-  }
-
-  $previous_epoch{$logsource} = $epoch;
-
-  # original string, or rework with new timestamp based on the
-  # current time.
-  if ($random_seed) {
-    print epoch_to_str($epoch), $suffix, $/;
-  } else {
-    print $_, $/;
-  }
+    # original string, or rework with new timestamp based on the
+    # current time.
+    if ($random_seed) {
+        print epoch_to_str($epoch), $suffix, $/;
+    } else {
+        print $_, $/;
+    }
 }
 
 sub epoch_to_str {
-  # epoch may have .123 microseconds (squid logs), so whack that off
-  strftime "%b %d %H:%M:%S", localtime( int $_[0] || 0 );
+    # epoch may have .123 microseconds (squid logs), so whack that off
+    strftime "%b %d %H:%M:%S", localtime( int $_[0] || 0 );
 }
 
 # convert default syslog timestamp into epoch seconds. Uses current
@@ -160,22 +163,22 @@ sub epoch_to_str {
 # another rant). NOTE this whole mess might profitably be replaced with
 # use POSIX::strptime qw/strptime/
 sub syslog_to_epoch {
-  my $date = shift;
-  my $epoch;
+    my $date = shift;
+    my $epoch;
 
-  my %month_map;
-  @month_map{qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)} = 0 .. 11;
+    my %month_map;
+    @month_map{qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)} = 0 .. 11;
 
-  my ( $month, $day, $hour, $min, $sec ) =
-    $date =~ m/^(\w{3}) \s\s? (\d\d?) \s (\d\d):(\d\d):(\d\d)/x;
-  $epoch = timelocal $sec, $min, $hour, $day, $month_map{$month},
-    1900 + (localtime)[5];
+    my ( $month, $day, $hour, $min, $sec ) =
+      $date =~ m/^(\w{3}) \s\s? (\d\d?) \s (\d\d):(\d\d):(\d\d)/x;
+    $epoch = timelocal $sec, $min, $hour, $day, $month_map{$month},
+      1900 + (localtime)[5];
 
-  return $epoch;
+    return $epoch;
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [-o output-file] [-f factor] [-r random-seed] < input-file
 
 Replays logs, simulating the time delays present in the source data.
@@ -194,7 +197,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 __DATA__
@@ -296,26 +299,8 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
+Jeremy Mates
 
 plus patches from Dave Caplinger
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
 
 =cut

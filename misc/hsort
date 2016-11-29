@@ -15,11 +15,11 @@
 # ls | hsort
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 my @input = <>;
@@ -27,16 +27,12 @@ my %lookup;
 # presize hash based on data
 keys %lookup = scalar @input;
 
-@lookup{ map {
-  my $new;
-  ($new = $_) =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
-  lc $new
-} @input } = @input;
+@lookup{
+    map {
+        my $new;
+        ( $new = $_ ) =~ s/(\d+)/unpack "B32", pack "N",$1/eg;
+        lc $new
+    } @input
+} = @input;
 
-print @lookup{sort keys %lookup};
-
-=pod SCRIPT CATEGORIES
-
-Utilities
-
-=cut
+print @lookup{ sort keys %lookup };

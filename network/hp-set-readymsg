@@ -14,11 +14,11 @@ my $host     = shift;
 my $readymsg = "@ARGV";
 
 my $socket = IO::Socket::INET->new(
-  PeerAddr => $host,
-  PeerPort => 9100,
-  Proto    => "tcp",
-  Type     => SOCK_STREAM,
-  Timeout  => 7,
+    PeerAddr => $host,
+    PeerPort => 9100,
+    Proto    => "tcp",
+    Type     => SOCK_STREAM,
+    Timeout  => 7,
 );
 die "error: could not connect\n" unless $socket;
 

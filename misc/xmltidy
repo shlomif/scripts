@@ -32,81 +32,81 @@ my $error;
 # no args, read file from stdin, write to temp file, print results from
 # xmltidy to stdout
 unless (@ARGV) {
-  my ( $fh, $tmpfile ) = tempfile();
-  binmode( $fh, ':utf8' );
-  print $fh $_ while readline *STDIN;
+    my ( $fh, $tmpfile ) = tempfile();
+    binmode( $fh, ':utf8' );
+    print $fh $_ while readline *STDIN;
 
-  my $tfh = xmltidy($tmpfile);
-  unless ($tfh) {
-    remark( 'error', 'xmllint failed', { errno => $error } );
-    exit 101;
-  }
-  print while <$tfh>;
+    my $tfh = xmltidy($tmpfile);
+    unless ($tfh) {
+        remark( 'error', 'xmllint failed', { errno => $error } );
+        exit 101;
+    }
+    print while <$tfh>;
 
-  # Report problems when writing to stdout (perldoc perlopentut)
-  # TODO this results in a "Bad file descriptor" error
-  #unless ( close(STDOUT) ) {
-  # die "error: problem closing STDOUT: $!\n";
-  #}
+    # Report problems when writing to stdout (perldoc perlopentut)
+    # TODO this results in a "Bad file descriptor" error
+    #unless ( close(STDOUT) ) {
+    # die "error: problem closing STDOUT: $!\n";
+    #}
 
 } else {
-  for my $file (@ARGV) {
-    next unless -f $file;
+    for my $file (@ARGV) {
+        next unless -f $file;
 
-    my ($filemode) = ( stat _ )[2] & 07777;
+        my ($filemode) = ( stat _ )[2] & 07777;
 
-    my $tfh = xmltidy($file);
-    unless ($tfh) {
-      remark( 'error', 'xmllint failed', { errno => $error, file => $file } );
-      exit 101;
-    }
-
-    # read document to scalar as otherwise while() loop over $tfh has
-    # issues when writing to temporary file... buffering problems?
-    my $string = do { local $/ = undef; <$tfh> };
-    if ( length $string == 0 ) {
-      remark( 'error', 'no data from xmllint', { file => $file } );
-      exit 102;
-    }
-    chomp($string);
-    $string .= "\n";
-
-    eval {
-      File::AtomicWrite->write_file(
-        { file          => $file,
-          input         => \$string,
-          mode          => $filemode,
-          binmode_layer => ':utf8'
+        my $tfh = xmltidy($file);
+        unless ($tfh) {
+            remark( 'error', 'xmllint failed', { errno => $error, file => $file } );
+            exit 101;
         }
-      );
-    };
-    if ($@) {
-      chomp $@;
-      remark(
-        'error',
-        'problem writing temporary file',
-        { errstr => $@, file => $file }
-      );
-      exit 103;
+
+        # read document to scalar as otherwise while() loop over $tfh has
+        # issues when writing to temporary file... buffering problems?
+        my $string = do { local $/ = undef; <$tfh> };
+        if ( length $string == 0 ) {
+            remark( 'error', 'no data from xmllint', { file => $file } );
+            exit 102;
+        }
+        chomp($string);
+        $string .= "\n";
+
+        eval {
+            File::AtomicWrite->write_file(
+                {   file          => $file,
+                    input         => \$string,
+                    mode          => $filemode,
+                    binmode_layer => ':utf8'
+                }
+            );
+        };
+        if ($@) {
+            chomp $@;
+            remark(
+                'error',
+                'problem writing temporary file',
+                { errstr => $@, file => $file }
+            );
+            exit 103;
+        }
     }
-  }
 }
 
 # accepts filename to tidy up, returns filehandle to play with
 sub xmltidy {
-  my $tmpfile = shift;
+    my $tmpfile = shift;
 
-  undef $error;
+    undef $error;
 
-  open my $tidyfh,        "-|"
-    or exec @xmltidy_cmd, $tmpfile
-    or $error = $!;
+    open my $tidyfh,        "-|"
+      or exec @xmltidy_cmd, $tmpfile
+      or $error = $!;
 
-  return $tidyfh;
+    return $tidyfh;
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $basename [file [file ...]]
 
 Cleans up XML via the xmllint utility from the libxml2 project.
@@ -117,33 +117,32 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 sub remark {
-  my $priority   = shift;
-  my $message    = shift;
-  my $attributes = shift;
+    my $priority   = shift;
+    my $message    = shift;
+    my $attributes = shift;
 
-  chomp $message;
+    chomp $message;
 
-  my $attr_str;
-  if ($attributes) {
-    $attr_str = join ', ',
-      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-      sort keys %$attributes;
-  }
+    my $attr_str;
+    if ($attributes) {
+        $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+          sort keys %$attributes;
+    }
 
-  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
-  return 1;
+    warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
+    return 1;
 }
 
 END {
-  # catch disk full problems during command line redirection according
-  # to perlopentut
-  close STDOUT
-    or remark( 'error', 'could not close STDOUT', { errno => $! } )
-    and exit 104;
+    # catch disk full problems during command line redirection according
+    # to perlopentut
+    close STDOUT
+      or remark( 'error', 'could not close STDOUT', { errno => $! } )
+      and exit 104;
 }
 
 __END__
@@ -214,24 +213,6 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

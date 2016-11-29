@@ -1,0 +1,74 @@
+#!/usr/bin/env expect
+#
+# Like is-changed only simply via the file mtime and not the full file
+# contents. This requires that the editor does not needlessly update the
+# mtime, e.g. with vim(1) something like
+#
+#   map <Leader>g :update<CR>
+#
+# set and then "\g" will save only if there are changes, and a mtime
+# bump can still be accomplished if necessary via ":w" or similar. And
+# to recap from the is-changed docs, usage in the other terminal running
+# is this code would look something like:
+#
+#   is-changed-mtime 7s 'make foo && ./foo ...; echo' foo.c
+
+package require Tcl 8.5
+
+set prog_name [lindex [split $argv0 "/"] end]
+
+proc emit_help {} {
+    global prog_name
+    puts stderr "Usage: $prog_name duration command file \[file2 ..]"
+    exit 64
+}
+if {[llength $argv] < 3} { emit_help }
+
+set argv [lassign $argv duration]
+set argv [lassign $argv command]
+
+set delay 0
+array set factors {
+    s 1
+    m 60
+    h 3600
+    d 86400
+}
+set offset 0
+while {[regexp -start $offset {([0-9]+)([smdh])?} $duration mm value factor]} {
+    set offset [expr $offset + [string length $mm]]
+    if {$factor ne ""} {
+        set value [expr $value * $factors($factor)]
+    }
+    set delay [expr $delay + $value]
+}
+if {$delay == 0} {
+    puts stderr "nothing to die to sleep to sleep no more for"
+    exit 1
+}
+set delay [expr $delay * 1000]        ;# after uses milliseconds
+
+array set file_mtimes {}
+while 1 {
+    set changed {}
+    foreach file $argv {
+        # NOTE file mtime appears to lack sub-second resolution so may
+        # miss edits done in less than a second
+        if {![catch {set mtime [file mtime $file]}]} {
+            if {[array get file_mtimes $file] ne ""} {
+                if {$mtime > $file_mtimes($file)} {
+                    lappend changed $file
+                }
+            }
+            set file_mtimes($file) $mtime
+        }
+    }
+    if {[llength $changed] > 0} {
+        catch {exec /bin/sh -c $command >>& /dev/tty} cresult coptions
+        if {[dict get $coptions -code] != 0} {
+            puts stderr "$prog_name: command failed: $cresult"
+            exit 1
+        }
+    }
+    after $delay
+}

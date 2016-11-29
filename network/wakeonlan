@@ -38,7 +38,7 @@ if ($opt_f) { process_file($opt_f); }
 # The rest of the command line is a list of hardware addresses
 
 foreach (@ARGV) {
-  wake( $_, $opt_i, $opt_p, $opt_I );
+    wake( $_, $opt_i, $opt_p, $opt_I );
 }
 
 exit(0);
@@ -53,45 +53,45 @@ exit(0);
 # discard port (9).
 
 sub wake {
-  my $hwaddr = shift;
-  my $ipaddr = shift || $DEFAULT_IP;
-  my $port   = shift || $DEFAULT_PORT;
-  my $srcip  = shift;
+    my $hwaddr = shift;
+    my $ipaddr = shift || $DEFAULT_IP;
+    my $port   = shift || $DEFAULT_PORT;
+    my $srcip  = shift;
 
-  my ( $raddr, $them, $proto );
-  my ( $hwaddr_re, $pkt );
+    my ( $raddr, $them, $proto );
+    my ( $hwaddr_re, $pkt );
 
-  # Validate hardware address (ethernet address)
+    # Validate hardware address (ethernet address)
 
-  $hwaddr_re = join( ':', ('[0-9A-Fa-f]{1,2}') x 6 );
-  if ( $hwaddr !~ m/^$hwaddr_re$/ ) {
-    warn "Invalid hardware address: $hwaddr\n";
-    return undef;
-  }
+    $hwaddr_re = join( ':', ('[0-9A-Fa-f]{1,2}') x 6 );
+    if ( $hwaddr !~ m/^$hwaddr_re$/ ) {
+        warn "Invalid hardware address: $hwaddr\n";
+        return undef;
+    }
 
-  # Generate magic sequence
+    # Generate magic sequence
 
-  foreach ( split /:/, $hwaddr ) {
-    $pkt .= chr( hex($_) );
-  }
-  $pkt = chr(0xFF) x 6 . $pkt x 16;
+    foreach ( split /:/, $hwaddr ) {
+        $pkt .= chr( hex($_) );
+    }
+    $pkt = chr(0xFF) x 6 . $pkt x 16;
 
-  # Allocate socket and send packet
+    # Allocate socket and send packet
 
-  $raddr = gethostbyname($ipaddr);
-  $them  = pack_sockaddr_in( $port, $raddr );
-  $proto = getprotobyname('udp');
+    $raddr = gethostbyname($ipaddr);
+    $them  = pack_sockaddr_in( $port, $raddr );
+    $proto = getprotobyname('udp');
 
-  socket( S, AF_INET, SOCK_DGRAM, $proto ) or die "socket : $!";
-  # dynamic/private ports per http://www.iana.org/assignments/port-numbers
-  bind( S, sockaddr_in( 49152 + int( rand(16383) ), inet_aton($srcip) ) )
-    if defined $srcip;
-  setsockopt( S, SOL_SOCKET, SO_BROADCAST, 1 ) or die "setsockopt : $!";
+    socket( S, AF_INET, SOCK_DGRAM, $proto ) or die "socket : $!";
+    # dynamic/private ports per http://www.iana.org/assignments/port-numbers
+    bind( S, sockaddr_in( 49152 + int( rand(16383) ), inet_aton($srcip) ) )
+      if defined $srcip;
+    setsockopt( S, SOL_SOCKET, SO_BROADCAST, 1 ) or die "setsockopt : $!";
 
-  print "Sending magic packet to $ipaddr:$port with $hwaddr\n";
+    print "Sending magic packet to $ipaddr:$port with $hwaddr\n";
 
-  send( S, $pkt, 0, $them ) or die "send : $!";
-  close S;
+    send( S, $pkt, 0, $them ) or die "send : $!";
+    close S;
 }
 
 #########################################################################
@@ -99,17 +99,17 @@ sub wake {
 # process_file
 
 sub process_file {
-  my $filename = shift;
+    my $filename = shift;
 
-  open( my $fh, '<', $filename )
-    or die "$0: could not open '$filename': $!";
-  while (<$fh>) {
-    next if /^\s*#/;    # ignore comments
-    next if /^\s*$/;    # ignore empty lines
+    open( my $fh, '<', $filename )
+      or die "$0: could not open '$filename': $!";
+    while (<$fh>) {
+        next if /^\s*#/;    # ignore comments
+        next if /^\s*$/;    # ignore empty lines
 
-    chomp;
-    wake(split);
-  }
+        chomp;
+        wake(split);
+    }
 }
 
 #########################################################################
@@ -117,7 +117,7 @@ sub process_file {
 # Usage
 
 sub usage {
-  print <<__USAGE__;
+    print <<__USAGE__;
 Usage
     wakeonlan [-h] [-v] [-I srcip] [-i dstip] [-p port] [-f file] [[hardware_address] ...]
 

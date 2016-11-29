@@ -41,44 +41,44 @@ my $timestamp_template = "%Y-%m-%dT%H:%M:%S%z";
 # this is a custom template based on contents of %message hash for each
 # log entry
 my $message_template =
- '%{TIMESTAMP} <%{facility}.%{priority}> %{HOSTNAME} %{MSG}\n';
+  '%{TIMESTAMP} <%{facility}.%{priority}> %{HOSTNAME} %{MSG}\n';
 
 # syslog.h code->name mappings for better output
 my %syslog_priorities = (
-  0 => 'emerg',
-  1 => 'alert',
-  2 => 'crit',
-  3 => 'err',
-  4 => 'warning',
-  5 => 'notice',
-  6 => 'info',
-  7 => 'debug'
+    0 => 'emerg',
+    1 => 'alert',
+    2 => 'crit',
+    3 => 'err',
+    4 => 'warning',
+    5 => 'notice',
+    6 => 'info',
+    7 => 'debug'
 );
 
 # TODO some vendors (notably Apple) have fiddled with these to add
 # NETINFO and similar... support this by reading these definitions
 # from a file?
 my %syslog_facilities = (
-  0  => 'kern',
-  1  => 'user',
-  2  => 'mail',
-  3  => 'daemon',
-  4  => 'auth',
-  5  => 'syslog',
-  6  => 'lpr',
-  7  => 'news',
-  8  => 'uucp',
-  9  => 'cron',
-  10 => 'authpriv',
-  11 => 'ftp',
-  16 => 'local0',
-  17 => 'local1',
-  18 => 'local2',
-  19 => 'local3',
-  20 => 'local4',
-  21 => 'local5',
-  22 => 'local6',
-  23 => 'local7'
+    0  => 'kern',
+    1  => 'user',
+    2  => 'mail',
+    3  => 'daemon',
+    4  => 'auth',
+    5  => 'syslog',
+    6  => 'lpr',
+    7  => 'news',
+    8  => 'uucp',
+    9  => 'cron',
+    10 => 'authpriv',
+    11 => 'ftp',
+    16 => 'local0',
+    17 => 'local1',
+    18 => 'local2',
+    19 => 'local3',
+    20 => 'local4',
+    21 => 'local5',
+    22 => 'local6',
+    23 => 'local7'
 );
 
 # parse command-line options
@@ -90,12 +90,11 @@ print_help() if exists $opts{h} or exists $opts{'?'};
 
 # list known elements might be in %message for templating needs
 if ( $opts{l} ) {
-  print join(
-    "\n",
-    qw{raw MSG time_recv TIMESTAMP priority length HOSTNAME facility facility_code peerport HEADER priority_code peerhost PRI}
-   ),
-   "\n";
-  exit;
+    print join( "\n",
+        qw{raw MSG time_recv TIMESTAMP priority length HOSTNAME facility facility_code peerport HEADER priority_code peerhost PRI}
+      ),
+      "\n";
+    exit;
 }
 
 # no input checking as let IO::Socket handle any errors
@@ -105,122 +104,117 @@ $port = $opts{p} if exists $opts{p};
 $message_template   = $opts{f} if exists $opts{f};
 $timestamp_template = $opts{t} if exists $opts{t};
 
-$SIG{INT} = sub { exit 0 };  # control+c handler
+$SIG{INT} = sub { exit 0 };    # control+c handler
 
 # start up the syslog server
 my $sock = IO::Socket::INET->new(
-  Proto     => 'udp',
-  LocalPort => $port,
-  @bind
- )
- or die "error: could not start server: errno=$@\n";
+    Proto     => 'udp',
+    LocalPort => $port,
+    @bind
+) or die "error: could not start server: errno=$@\n";
 
 $| = 1;                        # autoflush output
 
 my ( %message, @errors );
 
 while (1) {
-  %message = ();
-  @errors  = ();
+    %message = ();
+    @errors  = ();
 
-  next unless $sock->recv( $message{raw}, $max_msg_len );
+    next unless $sock->recv( $message{raw}, $max_msg_len );
 
-  $message{time_recv} = strftime $timestamp_template, localtime time;
+    $message{time_recv} = strftime $timestamp_template, localtime time;
 
-  # get various info on the packet in question
-  $message{peerhost} = gethostbyaddr( $sock->peeraddr, AF_INET )
-   || $sock->peerhost;
-  $message{peerport} = $sock->peerport;
+    # get various info on the packet in question
+    $message{peerhost} = gethostbyaddr( $sock->peeraddr, AF_INET )
+      || $sock->peerhost;
+    $message{peerport} = $sock->peerport;
 
-  # see [RFC 3164] for syslog message format details
-  $message{length} = length( $message{raw} );
-  push @errors, "message exceeds length of $msg_len_warn"
-   if $message{length} > $msg_len_warn;
+    # see [RFC 3164] for syslog message format details
+    $message{length} = length( $message{raw} );
+    push @errors, "message exceeds length of $msg_len_warn"
+      if $message{length} > $msg_len_warn;
 
-  if ( $message{length} == 0 ) {
-    push @errors, 'message contains no data';
-    next;
-  }
-
-  my $header_msg = q{};
-
-  if ( $message{raw} =~ m/$PRI_data_re/o ) {
-    ( $message{PRI}, $header_msg ) = ( $1, $2 );
-
-    # decode facility/priority (see [RFC 2234] for PRI part values
-    if ( $message{PRI} ) {
-      $message{priority_code} = $message{PRI} % 8;
-      if ( exists $syslog_priorities{ $message{priority_code} } ) {
-        $message{priority} = $message{priority_code};
-        $message{priority} = $syslog_priorities{ $message{priority_code} };
-      } else {
-        push @errors, "no name for priority $message{priority_code}";
-      }
-
-      $message{facility_code} = int( $message{PRI} / 8 );
-      if ( exists $syslog_facilities{ $message{facility_code} } ) {
-        $message{facility} = $syslog_facilities{ $message{facility_code} };
-      } else {
-        $message{facility} = $message{facility_code};
-        push @errors, "no name for facility $message{facility_code}";
-      }
+    if ( $message{length} == 0 ) {
+        push @errors, 'message contains no data';
+        next;
     }
 
-  } else {
-    push @errors, 'could not parse PRI field';
-    next;
-  }
+    my $header_msg = q{};
 
-  # TODO is syslog-ng adding \n to the data already?
-  chomp $header_msg;
+    if ( $message{raw} =~ m/$PRI_data_re/o ) {
+        ( $message{PRI}, $header_msg ) = ( $1, $2 );
 
-  if ( $header_msg =~ m/$HEADER_MSG_re/o ) {
-    (
-      $message{HEADER},   $message{TIMESTAMP},
-      $message{HOSTNAME}, $message{MSG}
-    )
-     = ( $1, $2, $3, $4 );
+        # decode facility/priority (see [RFC 2234] for PRI part values
+        if ( $message{PRI} ) {
+            $message{priority_code} = $message{PRI} % 8;
+            if ( exists $syslog_priorities{ $message{priority_code} } ) {
+                $message{priority} = $message{priority_code};
+                $message{priority} = $syslog_priorities{ $message{priority_code} };
+            } else {
+                push @errors, "no name for priority $message{priority_code}";
+            }
 
-    my $epoch_time = str2time $message{TIMESTAMP};
-    if ($epoch_time) {
-      $message{TIMESTAMP} = strftime $timestamp_template,
-       localtime $epoch_time;
+            $message{facility_code} = int( $message{PRI} / 8 );
+            if ( exists $syslog_facilities{ $message{facility_code} } ) {
+                $message{facility} = $syslog_facilities{ $message{facility_code} };
+            } else {
+                $message{facility} = $message{facility_code};
+                push @errors, "no name for facility $message{facility_code}";
+            }
+        }
+
     } else {
-      push @errors, 'could not convert TIMESTAMP to epoch';
+        push @errors, 'could not parse PRI field';
+        next;
     }
-  } else {
-    push @errors, 'could not parse HEADER and MSG fields';
-  }
+
+    # TODO is syslog-ng adding \n to the data already?
+    chomp $header_msg;
+
+    if ( $header_msg =~ m/$HEADER_MSG_re/o ) {
+        ( $message{HEADER}, $message{TIMESTAMP}, $message{HOSTNAME}, $message{MSG} ) =
+          ( $1, $2, $3, $4 );
+
+        my $epoch_time = str2time $message{TIMESTAMP};
+        if ($epoch_time) {
+            $message{TIMESTAMP} = strftime $timestamp_template, localtime $epoch_time;
+        } else {
+            push @errors, 'could not convert TIMESTAMP to epoch';
+        }
+    } else {
+        push @errors, 'could not parse HEADER and MSG fields';
+    }
 
 } continue {
 
-  if ( $opts{v} and @errors ) {
-    warn "error: $_\n" for @errors;
-  }
+    if ( $opts{v} and @errors ) {
+        warn "error: $_\n" for @errors;
+    }
 
-  # converts '\n' and similar to actual character
-  ( my $output = $message_template ) =~ s/(\\.)/qq!"$1"!/eeg;
+    # converts '\n' and similar to actual character
+    ( my $output = $message_template ) =~ s/(\\.)/qq!"$1"!/eeg;
 
-  # replaces %{foo} keys from %message hash with values for log entry
-  $output =~ s/\Q%{\E(\w+)\Q}\E/$message{$1}||q{}/eg;
+    # replaces %{foo} keys from %message hash with values for log entry
+    $output =~ s/\Q%{\E(\w+)\Q}\E/$message{$1}||q{}/eg;
 
-  # sanitize anything naughty (see "TERMINAL EMULATOR SECURITY ISSUES"
-  # link in SEE ALSO section, below, for details; this will hexify
-  # anything non-ASCII printable and thus probably screw up any fancily
-  # encoded data, e.g. UTF-8.)
-  $output =~ s/([^\n\r -~])/sprintf "0x%02x", ord($1)/eg;
+    # sanitize anything naughty (see "TERMINAL EMULATOR SECURITY ISSUES"
+    # link in SEE ALSO section, below, for details; this will hexify
+    # anything non-ASCII printable and thus probably screw up any fancily
+    # encoded data, e.g. UTF-8.)
+    $output =~ s/([^\n\r -~])/sprintf "0x%02x", ord($1)/eg;
 
-  # template needs a line ending thingy!
-  print $output;
+    # template needs a line ending thingy!
+    print $output;
 }
 
 END {
-  $sock->close if $sock;
+    $sock->close if $sock;
 }
 
 # a generic help blarb
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [opts]
 
 Syslogd server for debugging or experimenting with syslog. Options:
@@ -239,7 +233,7 @@ Syslogd server for debugging or experimenting with syslog. Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 =head1 NAME
@@ -386,25 +380,7 @@ http://marc.info/?l=bugtraq&m=104612710031920&w=2
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =head1 HISTORY
 

@@ -11,11 +11,11 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-typedef char *(*fn_parser) (char *prefix, char *filepath);
+typedef char *(*fn_parser) (char *prefix, const char *filepath);
 
 void emit_help(void);
-char *parse_ext(char *unused, char *filename);
-char *parse_root(char *prefix, char *filename);
+char *parse_ext(char *unused, const char *filename);
+char *parse_root(char *prefix, const char *filename);
 
 char Flag_Delimiter = '.';
 bool Flag_NullSep;
@@ -71,15 +71,19 @@ int main(int argc, char *argv[])
         prefix = NULL;
         filename = *argv;
     } else {
-        prefix = strndup(*argv, lastslash - *argv + 1);
+        if ((prefix = strndup(*argv, lastslash - *argv + 1)) == NULL)
+            err(EX_OSERR, "could not strndup");
         filename = ++lastslash;
     }
 
-    if ((filepart = select_part(prefix, filename)) != NULL)
+    if ((filepart = select_part(prefix, filename)) != NULL) {
         printf("%s%c", filepart, Flag_NullSep ? '\0' : '\n');
+        free(filepart);
+        filepart = NULL;
+        if (prefix != NULL)
+            free(prefix);
+    }
 
-    /* NOTE there are several things that should be free()d but skip
-     * that since the next step is to */
     exit(EXIT_SUCCESS);
 }
 
@@ -89,39 +93,44 @@ void emit_help(void)
     exit(EX_USAGE);
 }
 
-char *parse_ext(char *unused, char *filename)
+char *parse_ext(char *unused, const char *filename)
 {
-    char *lastdot;
+    char *ext, *lastdot;
     if ((lastdot = strrchr(filename, Flag_Delimiter)) == NULL)
         return NULL;
     /* special case for "blah." */
     if (strlen(++lastdot) == 0)
         return NULL;
-    return lastdot;
+    if ((ext = strdup(lastdot)) == NULL)
+        err(EX_OSERR, "could not strdup");
+    return ext;
 }
 
-char *parse_root(char *prefix, char *filename)
+char *parse_root(char *prefix, const char *filename)
 {
-    char *fullpath, *lastdot;
+    char *fullpath, *lastdot, *root;
     size_t plen;
     size_t len = strlen(filename);
     if (len == 0)
         return prefix;
-    if ((lastdot = strrchr(filename, Flag_Delimiter)) == NULL)
+    if ((root = strdup(filename)) == NULL)
+        err(EX_OSERR, "could not strdup");
+    if ((lastdot = strrchr(root, Flag_Delimiter)) == NULL)
         goto FULLPATH;
     *lastdot = '\0';
     /* special case for ".blah" */
-    if ((len = strlen(filename)) == 0)
+    if ((len = strlen(root)) == 0)
         return prefix;
   FULLPATH:
     if (prefix) {
         plen = strlen(prefix);
+        len = strlen(root);
         if ((fullpath = malloc(plen + len + 1)) == NULL)
             err(EX_OSERR, "could not malloc space for path");
         strcpy(fullpath, prefix);
-        strcpy(fullpath + plen, filename);
+        strcpy(fullpath + plen, root);
         return fullpath;
     } else {
-        return filename;
+        return root;
     }
 }

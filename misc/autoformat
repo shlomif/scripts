@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
-# Wrapper for the Text::Autoformat Perl module. Can be called via a vi(1)
-# .exrc entry such as:
+# Wrapper for the Text::Autoformat Perl module. Can be called via a
+# vi(1) .exrc entry such as:
 #
 #   map T !Gautoformat
 #
@@ -16,11 +16,11 @@
 use Text::Autoformat;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 # these are the default preferences

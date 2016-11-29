@@ -12,11 +12,11 @@ use File::Find qw(find);
 use File::Spec ();
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 # what stat() column to read time from (9 mtime, 8 atime, 10 ctime)
@@ -27,36 +27,36 @@ my %opts;
 getopts( 'h?f:d:a:b:p:s:q', \%opts );
 
 if ( exists $opts{h} or exists $opts{'?'} or !@ARGV ) {
-  print_help();
-  exit 64;
+    print_help();
+    exit 64;
 }
 
 if ( exists $opts{d} and exists $opts{f} ) {
-  print_help();
-  exit 64;
+    print_help();
+    exit 64;
 }
 
 if ( !exists $opts{d} and !exists $opts{f} ) {
-  print_help();
-  exit 64;
+    print_help();
+    exit 64;
 }
 
 # epoch value to compare searched files against
 my $base_date;
 
 if ( exists $opts{d} ) {
-  $base_date = $opts{d};
+    $base_date = $opts{d};
 
-  # treat all numeric as epoch date, otherwise attempt to parse
-  if ( $base_date !~ m/^ \d+ $/x ) {
-    $base_date = str2time($base_date);
-  }
+    # treat all numeric as epoch date, otherwise attempt to parse
+    if ( $base_date !~ m/^ \d+ $/x ) {
+        $base_date = str2time($base_date);
+    }
 } elsif ( exists $opts{f} ) {
-  $base_date = ( lstat $opts{f} )[$TIME_INDEX];
+    $base_date = ( lstat $opts{f} )[$TIME_INDEX];
 }
 
 if ( !defined $base_date or $base_date !~ m/^ \d+ $/x ) {
-  die "error: could not determine base date\n";
+    die "error: could not determine base date\n";
 }
 
 my $skip  = $opts{s} if exists $opts{s};
@@ -66,121 +66,117 @@ my $prune = $opts{p} if exists $opts{p};
 my ( $fudge, $min_date, $max_date );
 
 if ( exists $opts{a} ) {
-  $fudge    = duration2seconds( $opts{a} );
-  $min_date = $base_date - $fudge;
-  $max_date = $base_date + $fudge;
+    $fudge    = duration2seconds( $opts{a} );
+    $min_date = $base_date - $fudge;
+    $max_date = $base_date + $fudge;
 }
 if ( exists $opts{b} ) {
-  $fudge    = duration2seconds( $opts{b} );
-  $min_date = $base_date - $fudge;
-  $max_date = $base_date unless defined $max_date;
+    $fudge    = duration2seconds( $opts{b} );
+    $min_date = $base_date - $fudge;
+    $max_date = $base_date unless defined $max_date;
 }
 
 my $exit_value = 0;
 
 for my $file (@ARGV) {
-  lstat $file;  # populate _ cache for future use
+    lstat $file;    # populate _ cache for future use
 
-  if ( !-e _ ) {
-    warn "warning: skipping non-existent file: file=$file\n";
-    $exit_value = 102;
-    next;
-  }
+    if ( !-e _ ) {
+        warn "warning: skipping non-existent file: file=$file\n";
+        $exit_value = 102;
+        next;
+    }
 
-  if ( -d _ ) {
-    find { no_chdir => 1, wanted => \&handle_dir }, $file;
-  } else {
-    handle_file( File::Spec->catfile( File::Spec->curdir(), $file ) );
-  }
+    if ( -d _ ) {
+        find { no_chdir => 1, wanted => \&handle_dir }, $file;
+    } else {
+        handle_file( File::Spec->catfile( File::Spec->curdir(), $file ) );
+    }
 }
 
 exit $exit_value;
 
 sub handle_file {
-  my $file = shift;
+    my $file = shift;
 
-  my $file_date = ( lstat _ )[$TIME_INDEX];
+    my $file_date = ( lstat _ )[$TIME_INDEX];
 
-  if (
-    ( defined $fudge
-      and ( $file_date >= $min_date and $file_date <= $max_date )
-    )
-    or ( $file_date == $base_date )
-    ) {
+    if (( defined $fudge and ( $file_date >= $min_date and $file_date <= $max_date ) )
+        or ( $file_date == $base_date ) ) {
 
-    if ( defined $skip ) {
-      my $result = eval "return 1 if (" . $skip . ");";
+        if ( defined $skip ) {
+            my $result = eval "return 1 if (" . $skip . ");";
 
-      if ($@) {
-        chomp $@;
-        die "error: skip eval failure: errno=$@\n";
-      }
+            if ($@) {
+                chomp $@;
+                die "error: skip eval failure: errno=$@\n";
+            }
 
-      if ($result) {
-        return;
-      }
+            if ($result) {
+                return;
+            }
+        }
+
+        print "$file\n";
     }
-
-    print "$file\n";
-  }
 }
 
 sub handle_dir {
-  if ( defined $prune and -d _ ) {
-    my $result = eval "return 1 if (" . $prune . ");";
+    if ( defined $prune and -d _ ) {
+        my $result = eval "return 1 if (" . $prune . ");";
 
-    if ($@) {
-      chomp $@;
-      die "error: prune eval failure: errno=$@";
+        if ($@) {
+            chomp $@;
+            die "error: prune eval failure: errno=$@";
+        }
+
+        if ($result) {
+            $File::Find::prune = 1;
+            return;
+        }
     }
 
-    if ($result) {
-      $File::Find::prune = 1;
-      return;
-    }
-  }
-
-  handle_file($File::Find::name);
+    handle_file($File::Find::name);
 }
 
 # takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
-  my $duration_str = shift;
-  my $seconds;
+    my $duration_str = shift;
+    my $seconds;
 
-  # how to convert short human durations into seconds
-  my %factor = (
-    w => 604800,
-    d => 86400,
-    h => 3600,
-    m => 60,
-    s => 1,
-  );
+    # how to convert short human durations into seconds
+    my %factor = (
+        w => 604800,
+        d => 86400,
+        h => 3600,
+        m => 60,
+        s => 1,
+    );
 
-  # assume raw seconds for plain number
-  if ( $duration_str =~ m/^\d+$/ ) {
-    $seconds = $duration_str * 60;
+    # assume raw seconds for plain number
+    if ( $duration_str =~ m/^\d+$/ ) {
+        $seconds = $duration_str * 60;
 
-  } elsif ( $duration_str =~ m/^ [wdhms\d\s]+ $/x ) {
+    } elsif ( $duration_str =~ m/^ [wdhms\d\s]+ $/x ) {
 
-    # match "2m 5s" style input and convert to seconds
-    while ( $duration_str =~ m/ (\d+) \s* ([wdhms]) /gx ) {
-      $seconds += $1 * $factor{$2};
+        # match "2m 5s" style input and convert to seconds
+        while ( $duration_str =~ m/ (\d+) \s* ([wdhms]) /gx ) {
+            $seconds += $1 * $factor{$2};
+        }
+    } else {
+        die "error: unknown characters in duration: value=$duration_str\n";
     }
-  } else {
-    die "error: unknown characters in duration: value=$duration_str\n";
-  }
 
-  if ( !defined $seconds or $seconds !~ m/^ \d+ $/x ) {
-    die "error: unable to parse duration: value=$duration_str\n";
-  }
+    if ( !defined $seconds or $seconds !~ m/^ \d+ $/x ) {
+        die "error: unable to parse duration: value=$duration_str\n";
+    }
 
-  return $seconds;
+    return $seconds;
 }
 
 # a generic help blarb
 sub print_help {
-  print <<"END_USAGE";
+    print <<"END_USAGE";
 Usage: $0 [-d date|-f file] [options] file [file ..]
 
 Finds files with similar date to specified date or file.
@@ -344,29 +340,6 @@ perl(1), Date::Parse
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
-
-=head1 SCRIPT CATEGORIES
-
-Utilities
-Unix/System_administration
+Jeremy Mates
 
 =cut

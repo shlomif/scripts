@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
 #
-# Performs various mathematical and statistical operations on input data. (Also
-# known as me being too lazy to use R, or for when I want something quick to
-# mess about with on the CLI, since I am terrible at doing math in my head.)
-# Not for any sort of unattended or non-interactive use, due to lack of input
-# sanity checking, etc.
+# Performs various mathematical and statistical operations on input
+# data. (Also known as me being too lazy to use R, or for when I want
+# something quick to mess about with on the CLI, since I am terrible at
+# doing math in my head.) Not for any sort of unattended or non-
+# interactive use, due to lack of input sanity checking, etc.
 
 use 5.10.0;
 use Math::BigInt;

@@ -11,7 +11,7 @@ my $default_spec = 'Yy:+ Nn:-';
 my $spec;
 
 # "true" is 0 for shell exits, 1 for "false"
-my $status_map = {'+' => 0, '-' => 1};
+my $status_map = { '+' => 0, '-' => 1 };
 
 # by default wait forever
 my $timeout = -1;
@@ -20,59 +20,59 @@ my $timeout = -1;
 my $timeout_status = 101;
 
 # use Unix tty device to avoid polluting regular output
-my ($readfrom, $writeto);
+my ( $readfrom, $writeto );
 open $writeto, "> /dev/tty"
- or remark('error', "could not open tty for writing: $!")
- and exit 100;
+  or remark( 'error', "could not open tty for writing: $!" )
+  and exit 100;
 open $readfrom, "< /dev/tty"
- or remark('error', "could not open tty for reading: $!")
- and exit 100;
+  or remark( 'error', "could not open tty for reading: $!" )
+  and exit 100;
 
 # command line option handling
 use Getopt::Std;
 my %opts;
-getopts('h?o:t:n', \%opts);
+getopts( 'h?o:t:n', \%opts );
 help() if exists $opts{h} or exists $opts{'?'};
 
-$spec = parse_spec(exists $opts{o} ? $opts{o} : $default_spec);
+$spec = parse_spec( exists $opts{o} ? $opts{o} : $default_spec );
 
-if (exists $opts{t}) {
-  $timeout = duration2seconds($opts{t});
+if ( exists $opts{t} ) {
+    $timeout = duration2seconds( $opts{t} );
 }
 
 # prompt (may not be formatted properly due to raw modes)
 print $writeto "@ARGV" if @ARGV;
 
 eval {
-  if ($timeout > 0) {
-    local $SIG{ALRM} = sub { die "alarm\n" };
-    alarm $timeout;
-  }
-
-  while (1) {
-    my $key = get_key($readfrom);
-    my $ref = $spec->{keys};
-
-    # KLUGE unset to avoid "Use of uninitialized value in string ne"
-    # warnings being printed
-    no warnings qw(uninitialized);
-
-    # check for specific key, default action, or default to nothing for
-    # the key in question
-    if (exists $ref->{$key} and $ref->{$key} ne q{}) {
-      print $writeto "\n" if exists $opts{n};
-      exit $ref->{$key};
-    } elsif (exists $spec->{default} and $spec->{default} ne q{}) {
-      print $writeto "\n" if exists $opts{n};
-      exit $spec->{default};
+    if ( $timeout > 0 ) {
+        local $SIG{ALRM} = sub { die "alarm\n" };
+        alarm $timeout;
     }
-  }
 
-  alarm 0 if $timeout > 0;
+    while (1) {
+        my $key = get_key($readfrom);
+        my $ref = $spec->{keys};
+
+        # KLUGE unset to avoid "Use of uninitialized value in string ne"
+        # warnings being printed
+        no warnings qw(uninitialized);
+
+        # check for specific key, default action, or default to nothing for
+        # the key in question
+        if ( exists $ref->{$key} and $ref->{$key} ne q{} ) {
+            print $writeto "\n" if exists $opts{n};
+            exit $ref->{$key};
+        } elsif ( exists $spec->{default} and $spec->{default} ne q{} ) {
+            print $writeto "\n" if exists $opts{n};
+            exit $spec->{default};
+        }
+    }
+
+    alarm 0 if $timeout > 0;
 };
 if ($@) {
-  die unless $@ eq "alarm\n";
-  exit $timeout_status;
+    die unless $@ eq "alarm\n";
+    exit $timeout_status;
 }
 
 ######################################################################
@@ -80,132 +80,132 @@ if ($@) {
 # SUBROUTINES
 
 sub get_key {
-  my $readfrom = shift;
-  my $first;
+    my $readfrom = shift;
+    my $first;
 
-  ReadMode(3, $readfrom);
+    ReadMode( 3, $readfrom );
 
-  do {
-    select undef, undef, undef, 0.25;
-    $first = ReadKey(-1, $readfrom);
-  } until defined $first;
+    do {
+        select undef, undef, undef, 0.25;
+        $first = ReadKey( -1, $readfrom );
+    } until defined $first;
 
-  ReadMode(0, $readfrom);
+    ReadMode( 0, $readfrom );
 
-  return $first;
+    return $first;
 }
 
 sub parse_spec {
-  my $string = shift;
-  my $spec;
+    my $string = shift;
+    my $spec;
 
-  for (reverse split /(?<!\\)[ ,]+/, $string) {
-    my ($keys, $status) = /(.+?):(.)?$/;
-    $status ||= q{};  # "do nothing" status, no return code
+    for ( reverse split /(?<!\\)[ ,]+/, $string ) {
+        my ( $keys, $status ) = /(.+?):(.)?$/;
+        $status ||= q{};    # "do nothing" status, no return code
 
-    $spec->{human}->{$status} .= $keys;
+        $spec->{human}->{$status} .= $keys;
 
-    if (exists $status_map->{$status}) {
-      $status = $status_map->{$status};
+        if ( exists $status_map->{$status} ) {
+            $status = $status_map->{$status};
+        }
+
+        # TODO warn about not getting numeric exit status
+        if ( $status ne q{} and $status !~ /^\d+$/ ) {
+            remark( 'warning', "non-numeric exit status for $_, defaulting to 0" );
+            $status = 0;
+        }
+
+        # unescaped * means "any key" e.g. the default action
+        if ( $keys =~ s/(?<!\\)\*// ) {
+            $spec->{default} = $status;
+        }
+
+        # unescape backwhacked things (\r, etc.)
+        $keys =~ s/(\\.)/qq("$1")/eeg;
+
+        # quick lookup map for key typed
+        for ( split //, $keys ) {
+            $spec->{keys}->{$_} = $status;
+        }
     }
 
-    # TODO warn about not getting numeric exit status
-    if ($status ne q{} and $status !~ /^\d+$/) {
-      remark('warning', "non-numeric exit status for $_, defaulting to 0");
-      $status = 0;
+    # sanity check on specification to prevent key-read stalls
+    unless ($spec) {
+        remark( 'error', "unable to parse specification '$string'" );
+        exit 78;
+    } else {
+        unless ( grep { defined and /^\d$/ } $spec->{default},
+            values %{ $spec->{keys} } ) {
+            remark( 'error', "no valid exit codes in specification '$string'" );
+            exit 78;
+        }
     }
 
-    # unescaped * means "any key" e.g. the default action
-    if ($keys =~ s/(?<!\\)\*//) {
-      $spec->{default} = $status;
-    }
-
-    # unescape backwhacked things (\r, etc.)
-    $keys =~ s/(\\.)/qq("$1")/eeg;
-
-    # quick lookup map for key typed
-    for (split //, $keys) {
-      $spec->{keys}->{$_} = $status;
-    }
-  }
-
-  # sanity check on specification to prevent key-read stalls
-  unless ($spec) {
-    remark('error', "unable to parse specification '$string'");
-    exit 78;
-  } else {
-    unless (grep { defined and /^\d$/ } $spec->{default},
-      values %{$spec->{keys}}) {
-      remark('error', "no valid exit codes in specification '$string'");
-      exit 78;
-    }
-  }
-
-  return $spec;
+    return $spec;
 }
 
 sub duration2seconds {
-  my $tmpdur = shift;
-  my $timeout;
+    my $tmpdur = shift;
+    my $timeout;
 
-  # how to convert short human durations into seconds
-  my %factor = (
-    'w' => 604800,
-    'd' => 86400,
-    'h' => 3600,
-    'm' => 60,
-    's' => 1,
-  );
+    # how to convert short human durations into seconds
+    my %factor = (
+        'w' => 604800,
+        'd' => 86400,
+        'h' => 3600,
+        'm' => 60,
+        's' => 1,
+    );
 
-  # assume raw seconds for plain number
-  if ($tmpdur =~ m/^\d+$/) {
-    $timeout = $tmpdur;
+    # assume raw seconds for plain number
+    if ( $tmpdur =~ m/^\d+$/ ) {
+        $timeout = $tmpdur;
 
-  } elsif ($tmpdur =~ m/^[wdhms\d\s]+$/) {
+    } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
 
-    # match "2m 5s" style input and convert to seconds
-    while ($tmpdur =~ m/(\d+)\s*([wdhms])/g) {
-      $timeout += $1 * $factor{$2};
+        # match "2m 5s" style input and convert to seconds
+        while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
+            $timeout += $1 * $factor{$2};
+        }
+    } else {
+        remark( 'error', 'unknown characters in duration' );
+        exit 102;
     }
-  } else {
-    remark('error', 'unknown characters in duration');
-    exit 102;
-  }
 
-  unless (defined $timeout and $timeout =~ m/^\d+$/) {
-    remark('error', 'unable to parse duration');
-    exit 102;
-  }
+    unless ( defined $timeout and $timeout =~ m/^\d+$/ ) {
+        remark( 'error', 'unable to parse duration' );
+        exit 102;
+    }
 
-  return $timeout;
+    return $timeout;
 }
 
 # generic log handler
 sub remark {
-  my ($facility, $priority, $message, $where);
-  $facility = 'user';
+    my ( $facility, $priority, $message, $where );
+    $facility = 'user';
 
-  if (@_ > 1) {
-    $priority = shift;
-    $message  = "@_";
-  } else {
-    $priority = 'info';
-    $message  = "@_";
-  }
+    if ( @_ > 1 ) {
+        $priority = shift;
+        $message  = "@_";
+    } else {
+        $priority = 'info';
+        $message  = "@_";
+    }
 
-  #  return 1 if exists $opts{q} and $priority eq 'info';
+    #  return 1 if exists $opts{q} and $priority eq 'info';
 
-  # try to send errors to tty if available, STDERR otherwise
-  $where = (defined $writeto and -t $writeto) ? $writeto : *STDERR;
+    # try to send errors to tty if available, STDERR otherwise
+    $where = ( defined $writeto and -t $writeto ) ? $writeto : *STDERR;
 
-  print $where $priority, ": ", $message, "\n";
+    print $where $priority, ": ", $message, "\n";
 
-  return 1;
+    return 1;
 }
 
 # a generic help blarb
 sub help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [opts] [prompt message]
 
 Means to prompt for human interaction.
@@ -223,7 +223,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 =head1 NAME
@@ -353,34 +353,11 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =head1 HISTORY
 
 Written based on talk Damian Conway gave about his own ~/bin/getraw
 program.  This version likely is substantially different.
 
-=head1 SCRIPT CATEGORIES
-
-Utilities
-
 =cut
-

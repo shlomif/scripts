@@ -1,32 +1,42 @@
 #!/usr/bin/env perl
 #
-# Somewhat improve the horrible /proc/net/rpc/nfsd "tr " output. Shows the
-# delta from the previous value instead of unreadable counters, "." if no
-# change in that column.
+# Somewhat improve the horrible /proc/net/rpc/nfsd "tr " output. Shows
+# the delta from the previous value instead of unreadable counters, "."
+# if no change in that column.
 
 use strict;
 use warnings;
 
-my $sleep_secs = shift || 60;
+my %factors = ( s => 1, m => 60, h => 3600, d => 86400 );
+my $duration = shift || 60;
+my $to_sleep;
+
+while ( $duration =~ m/([0-9]+)([smhd])?/g ) {
+    my $value = $1;
+    $value *= $factors{$2} if $2;
+    $to_sleep += $value;
+}
+die "nothing to die to sleep to sleep no more for\n" if $to_sleep == 0;
+
 my @prev;
 
 while (1) {
-  open my $fh, '<', "/proc/net/rpc/nfsd"
-    or die "could not open /proc/net/rpc/nfsd: $!\n";
-  while ( readline $fh ) {
-    if (m/^th /) {
-      my @data = split;
-      splice @data, 0, 2;
-      if (@prev) {
-        my @delta;
-        for my $i ( 0 .. $#data ) {
-          push @delta, sprintf "%.1f", $data[$i] - $prev[$i];
+    open my $fh, '<', "/proc/net/rpc/nfsd"
+      or die "could not open /proc/net/rpc/nfsd: $!\n";
+    while ( readline $fh ) {
+        if (m/^th /) {
+            my @data = split;
+            splice @data, 0, 2;
+            if (@prev) {
+                my @delta;
+                for my $i ( 0 .. $#data ) {
+                    push @delta, sprintf "%.1f", $data[$i] - $prev[$i];
+                }
+                print join( "\t", map { $_ == 0 ? '.' : $_ } @delta ), "\n";
+            }
+            @prev = @data;
+            last;
         }
-        print join( "\t", map { $_ == 0 ? '.' : $_ } @delta ), "\n";
-      }
-      @prev = @data;
-      last;
     }
-  }
-  sleep $sleep_secs;
+    sleep $to_sleep;
 }

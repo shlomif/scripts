@@ -1,28 +1,29 @@
 #!/usr/bin/env perl
 #
-# Generates a unique "word" not present in the input "words". This word will
-# most likely be as short as possible (unless all possible char->char
-# combinations are present in the input to the depth such are tracked). This
-# digression was motivated by the question "how can I find a unique and
-# ideally short string that does not exist in this here input data?" The quick
-# solution to the actual problem was to use "matlab_kluge" which is unique
-# given MATLAB filesystem paths as input. Oh, and to the programmer who made
-# MATLAB refuse to install add-ons on unix if the install path contains the
-# '.' character: wtf?
+# Generates a unique "word" not present in the input "words". This word
+# will most likely be as short as possible (unless all possible char-
+# >char combinations are present in the input to the depth such are
+# tracked). This digression was motivated by the question "how can I
+# find a unique and ideally short string that does not exist in this
+# here input data?" The quick solution to the actual problem was to use
+# "matlab_kluge" which is unique given MATLAB filesystem paths as input.
+# Oh, and to the programmer who made MATLAB refuse to install add-ons on
+# unix if the install path contains the '.' character: wtf?
 #
 # Example uses:
 #
 #   strings `which ls` | notin
 #   find . -type d | notin
 #
-# A (longer) unique solution would be to find the length of the longest word,
-# and then to emit "a"x($len+1) as a "notin" word. This method would be less
-# expensive, though may be problematic if the input contains very long words,
-# depending on how the data is being used.
+# A (longer) unique solution would be to find the length of the longest
+# word, and then to emit "a"x($len+1) as a "notin" word. This method
+# would be less expensive, though may be problematic if the input
+# contains very long words, depending on how the data is being used.
 #
-# (The word is "most likely" as short as possible due to weighted randomization
-# of the character selection for the unique string; deterministic approaches,
-# while faster, would more easily fall prey to crafted input attacks.)
+# (The word is "most likely" as short as possible due to weighted
+# randomization of the character selection for the unique string;
+# deterministic approaches, while faster, would more easily fall prey to
+# crafted input attacks.)
 
 use strict;
 use warnings;
@@ -38,26 +39,26 @@ my $max_word_len = 0;
 @freq{@out_chars} = (1) x @out_chars;
 
 while (<>) {
-  # NOTE this list of characters should probably agree with @out_chars
-  for my $word (m/[a-z]{2,}/g) {
-    next if $words{$word}++;
+    # NOTE this list of characters should probably agree with @out_chars
+    for my $word (m/[a-z]{2,}/g) {
+        next if $words{$word}++;
 
-    my @chars = split '', $word;
+        my @chars = split '', $word;
 
-    for my $i ( 0 .. $#chars - 1 ) {
-      $freq{ $chars[$i] }++;
+        for my $i ( 0 .. $#chars - 1 ) {
+            $freq{ $chars[$i] }++;
 
-      my $lim = $i + $GRAPH_DEPTH > $#chars ? $#chars : $i + $GRAPH_DEPTH;
-      my $ref = \%letter_graph;
-      for my $c ( @chars[ $i .. $lim ] ) {
-        $ref->{$c} = {} unless exists $ref->{$c};
-        $ref = $ref->{$c};
-      }
+            my $lim = $i + $GRAPH_DEPTH > $#chars ? $#chars : $i + $GRAPH_DEPTH;
+            my $ref = \%letter_graph;
+            for my $c ( @chars[ $i .. $lim ] ) {
+                $ref->{$c} = {} unless exists $ref->{$c};
+                $ref = $ref->{$c};
+            }
+        }
+
+        my $len = length $word;
+        $max_word_len = $len if $len > $max_word_len;
     }
-
-    my $len = length $word;
-    $max_word_len = $len if $len > $max_word_len;
-  }
 }
 
 # Simplistic weighted value picker. "the alias method" is likely more
@@ -68,12 +69,12 @@ while (<>) {
 # Though, with inverse odds so more commonly seen letters picked less often.
 my $freq_count;
 for my $count ( values %freq ) {
-  $freq_count += 1 / $count;
+    $freq_count += 1 / $count;
 }
 my $running_odds;
 for my $c (@out_chars) {
-  $running_odds += 1 / $freq{$c} / $freq_count;
-  $c = [ $running_odds, $c ];
+    $running_odds += 1 / $freq{$c} / $freq_count;
+    $c = [ $running_odds, $c ];
 }
 
 # Create a unique word, via the first character that steps off the graph
@@ -81,33 +82,33 @@ for my $c (@out_chars) {
 my $choice;
 my $rand = rand;
 for my $cr (@out_chars) {
-  if ( $cr->[0] >= $rand ) {
-    $choice = $cr->[1];
-    last;
-  }
+    if ( $cr->[0] >= $rand ) {
+        $choice = $cr->[1];
+        last;
+    }
 }
 
 my @walk = $choice;
 if ( exists $letter_graph{ $walk[-1] } ) {
-  my $whence = $letter_graph{ $walk[-1] };
+    my $whence = $letter_graph{ $walk[-1] };
 
-FOREVER: while (1) {
-    for my $cr (@out_chars) {
-      if ( !exists $whence->{ $cr->[1] } ) {
-        push @walk, $cr->[1];
-        last FOREVER;
-      }
+  FOREVER: while (1) {
+        for my $cr (@out_chars) {
+            if ( !exists $whence->{ $cr->[1] } ) {
+                push @walk, $cr->[1];
+                last FOREVER;
+            }
+        }
+        $rand = rand;
+        for my $cr (@out_chars) {
+            if ( $cr->[0] >= $rand ) {
+                $choice = $cr->[1];
+                last;
+            }
+        }
+        push @walk, $choice;
+        $whence = $whence->{ $walk[-1] };
     }
-    $rand = rand;
-    for my $cr (@out_chars) {
-      if ( $cr->[0] >= $rand ) {
-        $choice = $cr->[1];
-        last;
-      }
-    }
-    push @walk, $choice;
-    $whence = $whence->{ $walk[-1] };
-  }
 }
 
 print join( '', @walk ), "\n";

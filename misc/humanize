@@ -10,11 +10,11 @@ use warnings;
 my $regex = '(-?\d{4,})';
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 use Getopt::Std;
@@ -27,8 +27,8 @@ my $base;
 
 # set the base conversion factor
 if ( exists $opts{b} ) {
-  ($base) = $opts{b} =~ m/(\d+)/;
-  die "Error: base should be a positive integer\n" unless $base;
+    ($base) = $opts{b} =~ m/(\d+)/;
+    die "Error: base should be a positive integer\n" unless $base;
 }
 
 # TODO fail if multiple of these set...
@@ -44,17 +44,17 @@ $regex = '(' . $regex . ')' unless $regex =~ m/\(.+\)/;
 @ARGV = readline *STDIN unless @ARGV;
 
 for (@ARGV) {
-  if ( exists $opts{r} ) {
-    while (m/$regex/go) {
-      my $orig = $1;
-      my $human = humanize( $orig, { base => $base } );
-      s/$regex/' 'x(length($orig) - length($human)).$human/eo;
+    if ( exists $opts{r} ) {
+        while (m/$regex/go) {
+            my $orig = $1;
+            my $human = humanize( $orig, { base => $base } );
+            s/$regex/' 'x(length($orig) - length($human)).$human/eo;
+        }
+    } else {
+        s/$regex/humanize($1, {base => $base})/ego;
     }
-  } else {
-    s/$regex/humanize($1, {base => $base})/ego;
-  }
-  $_ .= "\n" unless m/\n$/;
-  print;
+    $_ .= "\n" unless m/\n$/;
+    print;
 }
 
 # Inspired from GNU's df -h output, which fixes 133456345 bytes
@@ -63,100 +63,100 @@ for (@ARGV) {
 # takes a number, returns formatted string.  Optionally accepts
 # hash reference containing non-standard defaults.
 sub humanize {
-  my $num   = shift;
-  my $prefs = shift;
+    my $num   = shift;
+    my $prefs = shift;
 
-  # error checking on input...
-  return $num unless $num =~ m/^-?\d+$/;
+    # error checking on input...
+    return $num unless $num =~ m/^-?\d+$/;
 
-  # various parameters that adjust how the humanization is done
-  # these really should be able to be specified on the command line, or
-  # read in from a prefs file somewhere, as nobody will agree as to what
-  # "proper" human output should look like... :)
-  my %defaults = (
+    # various parameters that adjust how the humanization is done
+    # these really should be able to be specified on the command line, or
+    # read in from a prefs file somewhere, as nobody will agree as to what
+    # "proper" human output should look like... :)
+    my %defaults = (
 
-    # base numbers are in (1 is bytes, 1024 for K)
-    'base' => 1,
+        # base numbers are in (1 is bytes, 1024 for K)
+        'base' => 1,
 
-    # include decimals in output? (e.g. 25.8K vs. 26K)
-    'decimal' => 1,
+        # include decimals in output? (e.g. 25.8K vs. 26K)
+        'decimal' => 1,
 
-    # include .0 in decimal output?
-    'decimal_zero' => 1,
+        # include .0 in decimal output?
+        'decimal_zero' => 1,
 
-    # what to divide file sizes down by
-    # 1024 is generally "Kilobytes," while 1000 is
-    # "kilobytes," technically
-    'factor' => 1024,
+        # what to divide file sizes down by
+        # 1024 is generally "Kilobytes," while 1000 is
+        # "kilobytes," technically
+        'factor' => 1024,
 
-    # percentage above which will be bumped up
-    # (e.g. 999 bytes -> 1 K as within 5% of 1024)
-    # set to undef to turn off
-    'fudge' => 0.96,
+        # percentage above which will be bumped up
+        # (e.g. 999 bytes -> 1 K as within 5% of 1024)
+        # set to undef to turn off
+        'fudge' => 0.96,
 
-    # lengths above which decimals will not be included
-    # for better readability
-    'max_human_length' => 2,
+        # lengths above which decimals will not be included
+        # for better readability
+        'max_human_length' => 2,
 
-    # list of suffixes for human readable output
-    'suffix' => [ 'B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
-  );
+        # list of suffixes for human readable output
+        'suffix' => [ 'B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' ],
+    );
 
-  # merge passed options with defaults
-  for my $k ( keys %$prefs ) {
-    if ( exists $defaults{$k} and defined $prefs->{$k} ) {
-      $defaults{$k} = $prefs->{$k};
+    # merge passed options with defaults
+    for my $k ( keys %$prefs ) {
+        if ( exists $defaults{$k} and defined $prefs->{$k} ) {
+            $defaults{$k} = $prefs->{$k};
+        }
     }
-  }
 
-  # some local working variables
-  my $count  = 0;
-  my $prefix = q{};
-  my $tmp    = q{};
+    # some local working variables
+    my $count  = 0;
+    my $prefix = q{};
+    my $tmp    = q{};
 
-  # handle negatives
-  if ( $num < 0 ) {
-    $num    = abs $num;
-    $prefix = '-';
-  }
-
-  # adjust number to proper base
-  $num *= $defaults{base};
-
-  # reduce number to something readable by factor specified
-  while ( $num > $defaults{factor} ) {
-    $num /= $defaults{factor};
-    $count++;
-  }
-
-  # optionally fudge "near" values up to next higher level
-  if ( $defaults{fudge} ) {
-    if ( $num > ( $defaults{fudge} * $defaults{factor} ) ) {
-      $count++;
-      $num /= $defaults{factor};
+    # handle negatives
+    if ( $num < 0 ) {
+        $num    = abs $num;
+        $prefix = '-';
     }
-  }
 
-  # no .[1-9] decimal on longer numbers for easier reading
-  # only show decimal if format say so
-  if ( length sprintf( "%.f", $num ) > $defaults{max_human_length}
-    || !$defaults{decimal} ) {
+    # adjust number to proper base
+    $num *= $defaults{base};
 
-    $tmp = sprintf( "%.0f", $num );
+    # reduce number to something readable by factor specified
+    while ( $num > $defaults{factor} ) {
+        $num /= $defaults{factor};
+        $count++;
+    }
 
-  } else {
-    $tmp = sprintf( "%.1f", $num );
+    # optionally fudge "near" values up to next higher level
+    if ( $defaults{fudge} ) {
+        if ( $num > ( $defaults{fudge} * $defaults{factor} ) ) {
+            $count++;
+            $num /= $defaults{factor};
+        }
+    }
 
-    # optionally hack trailing .0
-    $tmp =~ s/\.0$// unless $defaults{decimal_zero};
-  }
+    # no .[1-9] decimal on longer numbers for easier reading
+    # only show decimal if format say so
+    if ( length sprintf( "%.f", $num ) > $defaults{max_human_length}
+        || !$defaults{decimal} ) {
 
-  return $prefix . $tmp . $defaults{suffix}->[$count];
+        $tmp = sprintf( "%.0f", $num );
+
+    } else {
+        $tmp = sprintf( "%.1f", $num );
+
+        # optionally hack trailing .0
+        $tmp =~ s/\.0$// unless $defaults{decimal_zero};
+    }
+
+    return $prefix . $tmp . $defaults{suffix}->[$count];
 }
 
 # a generic help blarb
 sub help {
-  print <<"HELP";
+    print <<"HELP";
 Usage: $0 [options] [values]
 
 Script to humanize numbers in data.
@@ -175,7 +175,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 __END__
@@ -309,25 +309,7 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =head1 HISTORY
 
@@ -335,9 +317,5 @@ Inspired from the B<-h> option present in GNU df, which is sorely
 lacking in commercial variants of the same name.  (On the other hand,
 leaving the job of humanizing to an external script is probably more
 inline with the Unix philosophy of filters.)
-
-=head1 SCRIPT CATEGORIES
-
-Utilities
 
 =cut

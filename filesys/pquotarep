@@ -9,28 +9,28 @@ use warnings;
 use Data::Dumper;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 my ( $data, $cur_filesys, $cur_type );
 
-while (readline *STDIN) {
-  chomp;
+while ( readline *STDIN ) {
+    chomp;
 
-  # loose match on user/group list data
-  if (/^[a-z\d]+\s/) {
-    die "error: no current filesystem and type\n"
-     unless $cur_filesys and $cur_type;
+    # loose match on user/group list data
+    if (/^[a-z\d]+\s/) {
+        die "error: no current filesystem and type\n"
+          unless $cur_filesys and $cur_type;
 
-    # hash lookup of columns in quota report output
-    my %tmp;
-    @tmp{
-      qw(name block_limit file_limit blocks blocks-soft blocks-hard files files-soft files-hard)
-     } = m/^
+        # hash lookup of columns in quota report output
+        my %tmp;
+        @tmp{
+            qw(name block_limit file_limit blocks blocks-soft blocks-hard files files-soft files-hard)
+          } = m/^
      ([a-z\d]+) \s+   # username, groupname or numeric equiv
      ([-+])([-+]) \s+ # block or file soft limit exceeded indicators
      (\d+) \s+        # used (blocks, 1K)
@@ -43,36 +43,36 @@ while (readline *STDIN) {
                       # KLUGE empty files grace column?
      /x;
 
-    # sanity checks
-    next unless defined $tmp{blocks} and $tmp{blocks} =~ m/^\d+$/;
-    next unless defined $tmp{files}  and $tmp{files}  =~ m/^\d+$/;
+        # sanity checks
+        next unless defined $tmp{blocks} and $tmp{blocks} =~ m/^\d+$/;
+        next unless defined $tmp{files}  and $tmp{files} =~ m/^\d+$/;
 
-    print join( ' ',
-      "fs=$cur_filesys", "type=$cur_type",
-      map { $_ . '=' . $tmp{$_} } sort keys %tmp ),
-     "\n";
+        print join( ' ',
+            "fs=$cur_filesys", "type=$cur_type",
+            map { $_ . '=' . $tmp{$_} } sort keys %tmp ),
+          "\n";
 
-    # for debugging, reference
-    $tmp{orig} = $_;
+        # for debugging, reference
+        $tmp{orig} = $_;
 
-    $data->{$cur_filesys}->{$cur_type}->{ $tmp{name} } = \%tmp;
+        $data->{$cur_filesys}->{$cur_type}->{ $tmp{name} } = \%tmp;
 
-    next;
-  }
+        next;
+    }
 
-  # match block headers and update data structure pointers
-  if (/^\*\*\* Report for (user|group) quotas on (\S+) \(([^)]+)\)/) {
-    $cur_type                       = $1;
-    $cur_filesys                    = $2;
-    $data->{$cur_filesys}->{device} = $3;
+    # match block headers and update data structure pointers
+    if (/^\*\*\* Report for (user|group) quotas on (\S+) \(([^)]+)\)/) {
+        $cur_type                       = $1;
+        $cur_filesys                    = $2;
+        $data->{$cur_filesys}->{device} = $3;
 
-    # for debugging, reference
-    $data->{$cur_filesys}->{orig} = $_;
-    next;
-  }
+        # for debugging, reference
+        $data->{$cur_filesys}->{orig} = $_;
+        next;
+    }
 
-  # catch unmatched lines for debugging, reference
-  push @{ $data->{skipped} }, $_;
+    # catch unmatched lines for debugging, reference
+    push @{ $data->{skipped} }, $_;
 }
 
 #print Dumper $data;

@@ -9,7 +9,8 @@
 #
 # Alternatives include doing this from the editor, but that pulls you
 # out of fiddling around with the file, or using some sort of filesystem
-# change notification, but that's not portable...
+# change notification, but that's not portable... see is-changed-mtime
+# for a simpler version that only consults the file mtime.
 
 use strict;
 use warnings;
@@ -29,6 +30,7 @@ while ( $duration =~ m/([0-9]+)([smhd])?/g ) {
     $value *= $factors{$2} if $2;
     $seconds += $value;
 }
+die "nothing to die to sleep to sleep no more for\n" if $seconds == 0;
 
 my ( @changes, %prev );
 while (1) {
@@ -46,7 +48,7 @@ while (1) {
     }
     if (@changes) {
         # TWEAK or pass the changed files to the command, if need be
-        system $command;
+        system($command) == 0 or exit 1;
     }
     # TWEAK if the command takes awhile then that runtime might be
     # subtracted from this value

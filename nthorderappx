@@ -24,38 +24,38 @@ my $line_len     = 78;
 my ( %freq, %odds );
 
 while (<>) {
-  s/\R//g;
-  m/(.{1,$order})(.)(?{ $freq{$1}->{$2}++ })^/;
+    s/\R//g;
+    m/(.{1,$order})(.)(?{ $freq{$1}->{$2}++ })^/;
 }
 
 my @start = keys %freq;
 
 for ( 1 .. $output_lines ) {
-  my $prose = $start[ rand @start ];
-RESORT: while ( length $prose < $line_len ) {
-    my $token = '';
-    my $len   = -$order;
-    while ( !exists $freq{$token} ) {
-      $token = substr $prose, $len++;
-      last RESORT if $len >= 0;
+    my $prose = $start[ rand @start ];
+  RESORT: while ( length $prose < $line_len ) {
+        my $token = '';
+        my $len   = -$order;
+        while ( !exists $freq{$token} ) {
+            $token = substr $prose, $len++;
+            last RESORT if $len >= 0;
+        }
+        if ( !exists $odds{$token} ) {
+            my @keys   = keys %{ $freq{$token} };
+            my @values = values %{ $freq{$token} };
+            # "enrich" output with lower-order tokens (at lower-order
+            # weights on the odds) -- hmm, really need to adjust the weights
+            # so that they are no more than X% of the higher-order total, as
+            # they really can screw with the results, even at what I think
+            # are low odds...
+            #     for my $len (1..length($token)-1) {
+            #       my $lot = substr $token, -$len;
+            #       push @keys, keys %{ $freq{$lot} };
+            #       push @values, map { $_/200**(length($token)-length($lot)) } values %{ $freq{$lot} };
+            #     }
+            $odds{$token} = Math::Random::Discrete->new( \@values, \@keys );
+        }
+        my $choice = $odds{$token}->rand;
+        $prose .= $choice;
     }
-    if ( !exists $odds{$token} ) {
-      my @keys   = keys %{ $freq{$token} };
-      my @values = values %{ $freq{$token} };
-      # "enrich" output with lower-order tokens (at lower-order
-      # weights on the odds) -- hmm, really need to adjust the weights
-      # so that they are no more than X% of the higher-order total, as
-      # they really can screw with the results, even at what I think
-      # are low odds...
-      #     for my $len (1..length($token)-1) {
-      #       my $lot = substr $token, -$len;
-      #       push @keys, keys %{ $freq{$lot} };
-      #       push @values, map { $_/200**(length($token)-length($lot)) } values %{ $freq{$lot} };
-      #     }
-      $odds{$token} = Math::Random::Discrete->new( \@values, \@keys );
-    }
-    my $choice = $odds{$token}->rand;
-    $prose .= $choice;
-  }
-  say $prose;
+    say $prose;
 }

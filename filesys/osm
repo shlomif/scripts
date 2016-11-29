@@ -42,11 +42,11 @@ getopts 'h?qnpvc:d:', \%opts;
 print_help() if $opts{h} or $opts{'?'} or not @ARGV;
 
 if ( exists $opts{q} ) {
-  $defaults{quiet} = 1;
-  delete $defaults{verbose};
+    $defaults{quiet} = 1;
+    delete $defaults{verbose};
 } elsif ( exists $opts{v} ) {
-  delete $defaults{quiet};
-  $defaults{verbose} = 1;
+    delete $defaults{quiet};
+    $defaults{verbose} = 1;
 }
 
 $defaults{class}    = $opts{c} if exists $opts{c};
@@ -54,178 +54,171 @@ $defaults{dest}     = $opts{d} if exists $opts{d};
 $defaults{preserve} = 1        if exists $opts{p};
 
 FILE: for my $file (@ARGV) {
-  unless ( -e $file ) {
-    remark( 'notice', 'skipping as does not exist', { file => $file } )
-      unless exists $defaults{quiet};
-    next FILE;
-  }
-
-  my $file_quoted = quotemeta $file;
-
-  for my $suffix ( get_suffixes($file), '*' ) {
-    if ( exists $data->{_suffixmap}->{ $defaults{class} }->{$suffix} ) {
-      for my $index (
-        @{ $data->{_suffixmap}->{ $defaults{class} }->{$suffix} } ) {
-        next FILE
-          if handle_file(
-          { %defaults, file => $file_quoted },
-          $data->{ $defaults{class} }->[$index]
-          );
-      }
+    unless ( -e $file ) {
+        remark( 'notice', 'skipping as does not exist', { file => $file } )
+          unless exists $defaults{quiet};
+        next FILE;
     }
-  }
-  remark(
-    'notice',
-    'no means to handle file',
-    { file => $file, class => $defaults{class} }
-  ) unless exists $defaults{quiet};
+
+    my $file_quoted = quotemeta $file;
+
+    for my $suffix ( get_suffixes($file), '*' ) {
+        if ( exists $data->{_suffixmap}->{ $defaults{class} }->{$suffix} ) {
+            for my $index ( @{ $data->{_suffixmap}->{ $defaults{class} }->{$suffix} } ) {
+                next FILE
+                  if handle_file( { %defaults, file => $file_quoted },
+                    $data->{ $defaults{class} }->[$index] );
+            }
+        }
+    }
+    remark(
+        'notice',
+        'no means to handle file',
+        { file => $file, class => $defaults{class} }
+    ) unless exists $defaults{quiet};
 }
 
 sub handle_file {
-  my $param  = shift;
-  my $config = shift;
+    my $param  = shift;
+    my $config = shift;
 
-  my %tmp = %$config;
-  $tmp{file} = $param->{file};
-  for my $option (qw(quiet verbose preserve dest)) {
-    delete $tmp{$option} unless exists $param->{$option};
-  }
-  delete $tmp{destopt} unless exists $param->{dest};
+    my %tmp = %$config;
+    $tmp{file} = $param->{file};
+    for my $option (qw(quiet verbose preserve dest)) {
+        delete $tmp{$option} unless exists $param->{$option};
+    }
+    delete $tmp{destopt} unless exists $param->{dest};
 
-  $tmp{exec} =~ s/\Q%{\E (\w+) \Q}\E/$tmp{$1} || q{}/egx;
+    $tmp{exec} =~ s/\Q%{\E (\w+) \Q}\E/$tmp{$1} || q{}/egx;
 
-  if ( exists $opts{n} ) {
-    print "@{$tmp{exec}}\n";
-  } else {
-    system( $tmp{exec} ) == 0
-      or remark(
-      'warning',
-      'bad exit status',
-      { errno => $!, map { $_ => $tmp{$_} } qw(file name class) }
-      ) and return 0;
-  }
+    if ( exists $opts{n} ) {
+        print "@{$tmp{exec}}\n";
+    } else {
+        system( $tmp{exec} ) == 0
+          or remark(
+            'warning',
+            'bad exit status',
+            { errno => $!, map { $_ => $tmp{$_} } qw(file name class) }
+          ) and return 0;
+    }
 
-  return 1;
+    return 1;
 }
 
 # given filename such as "foo.zip" or "bar.tar.gz" returns list of
 # suffixes, longest first (e.g. qw(zip) or qw(tar.gz gz) for the
 # previous example filenames).
 sub get_suffixes {
-  my $file = shift;
+    my $file = shift;
 
-  my @portions = split /$suffix_re/, fileparse($file);
-  return unless @portions > 1;
+    my @portions = split /$suffix_re/, fileparse($file);
+    return unless @portions > 1;
 
-  return ( $portions[-1] ) if @portions == 2;
+    return ( $portions[-1] ) if @portions == 2;
 
-  my @suffixes;
-  local $" = $suffix_char;
-  for my $i ( 1 .. $#portions ) {
-    push @suffixes, "@portions[$i..$#portions]";
-  }
-  return @suffixes;
+    my @suffixes;
+    local $" = $suffix_char;
+    for my $i ( 1 .. $#portions ) {
+        push @suffixes, "@portions[$i..$#portions]";
+    }
+    return @suffixes;
 }
 
 sub load_prefs {
-  my $file = shift;
+    my $file = shift;
 
-  open FILE, "< $file"
-    or remark( 'error', 'could not load preferences', { file => $file } )
-    and exit 101;
+    open FILE, "< $file"
+      or remark( 'error', 'could not load preferences', { file => $file } )
+      and exit 101;
 
-  my %data;
-  my %tmp = %defaults;
+    my %data;
+    my %tmp = %defaults;
 
-  while (<FILE>) {
-    s/^\s+//;
-    next if /^#/;
-    chomp;
+    while (<FILE>) {
+        s/^\s+//;
+        next if /^#/;
+        chomp;
 
-    if (/^$/) {
-      pref_finish( \%tmp, \%data ) if exists $tmp{name};
-      next;
+        if (/^$/) {
+            pref_finish( \%tmp, \%data ) if exists $tmp{name};
+            next;
+        }
+
+        s/\s+$//;
+
+        my ( $k, $v ) = split /\s+/, $_, 2;
+        unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
+            remark( 'warning', 'skipping invalid data', { file => $file, line => $. } );
+            next;
+        }
+        $tmp{$k} = $v;
     }
+    pref_finish( \%tmp, \%data ) if exists $tmp{name};
+    close FILE;
 
-    s/\s+$//;
-
-    my ( $k, $v ) = split /\s+/, $_, 2;
-    unless ( defined $k and $k =~ /^[\w.-]+$/ and defined $v ) {
-      remark(
-        'warning',
-        'skipping invalid data',
-        { file => $file, line => $. }
-      );
-      next;
-    }
-    $tmp{$k} = $v;
-  }
-  pref_finish( \%tmp, \%data ) if exists $tmp{name};
-  close FILE;
-
-  return \%data;
+    return \%data;
 }
 
 sub pref_finish {
-  my $tmp  = shift;
-  my $data = shift;
+    my $tmp  = shift;
+    my $data = shift;
 
-  if ( exists $tmp->{suffix} ) {
-    $tmp->{suffix} = [ map { s/^\.//; $_ } split / /, $tmp->{suffix} ];
-  }
-
-  push @{ $data->{ $tmp->{class} } }, {%$tmp};
-
-  if ( exists $tmp->{suffix} ) {
-    for my $suffix ( @{ $tmp->{suffix} } ) {
-      push @{ $data->{_suffixmap}->{ $tmp->{class} }->{$suffix} },
-        $#{ $data->{ $tmp->{class} } };
+    if ( exists $tmp->{suffix} ) {
+        $tmp->{suffix} = [ map { s/^\.//; $_ } split / /, $tmp->{suffix} ];
     }
-  }
 
-  %$tmp = %defaults;
+    push @{ $data->{ $tmp->{class} } }, {%$tmp};
+
+    if ( exists $tmp->{suffix} ) {
+        for my $suffix ( @{ $tmp->{suffix} } ) {
+            push @{ $data->{_suffixmap}->{ $tmp->{class} }->{$suffix} },
+              $#{ $data->{ $tmp->{class} } };
+        }
+    }
+
+    %$tmp = %defaults;
 }
 
 sub init {
-  my $file = shift;
+    my $file = shift;
 
-  remark( 'notice', 'creating default preferences file', { file => $file } );
-  mkpath( dirname($file) );
-  open FILE,
-    "> $file"
-    or remark(
-    'error',
-    'could not create default preferences file',
-    { file => $file, errno => $! }
-    ) and exit 102;
-  print FILE <<"HEADER";
+    remark( 'notice', 'creating default preferences file', { file => $file } );
+    mkpath( dirname($file) );
+    open FILE,
+      "> $file"
+      or remark(
+        'error',
+        'could not create default preferences file',
+        { file => $file, errno => $! }
+      ) and exit 102;
+    print FILE <<"HEADER";
 # Documentation on this file and the associated script can be found by
 # running perldoc(1) on $0
 
 HEADER
 
-  # pull default preferences from POD to avoid duplication here
-  my $boundary = qr/^\s+# example config/;
-  while (<DATA>) {
-    if ( /$boundary/ .. /$boundary END/ ) {
-      next if /$boundary/;
-      s/^\s+// if /\S/;
-      print FILE $_;
+    # pull default preferences from POD to avoid duplication here
+    my $boundary = qr/^\s+# example config/;
+    while (<DATA>) {
+        if ( /$boundary/ .. /$boundary END/ ) {
+            next if /$boundary/;
+            s/^\s+// if /\S/;
+            print FILE $_;
+        }
     }
-  }
 
-  close FILE
-    or remark(
-    'warning',
-    'problem closing write to default preferences',
-    { file => $file, errno => $! }
-    );
+    close FILE
+      or remark(
+        'warning',
+        'problem closing write to default preferences',
+        { file => $file, errno => $! }
+      );
 }
 
 # expands ~username syntax to full home directory path
 sub tilde_expand {
-  for (@_) {
-    s{^ ~      # leading tilde
+    for (@_) {
+        s{^ ~      # leading tilde
       ([^/]*)  # preserve following data
      }{
       $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
@@ -234,12 +227,12 @@ sub tilde_expand {
 	     { file => $_ })
 	&& exit 67;
      }ex;
-  }
-  return wantarray ? @_ : "@_";
+    }
+    return wantarray ? @_ : "@_";
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [options] file [file2 ...]
 
 Generic interface to many archive formats.
@@ -259,25 +252,24 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 sub remark {
-  my $priority   = shift;
-  my $message    = shift;
-  my $attributes = shift;
+    my $priority   = shift;
+    my $message    = shift;
+    my $attributes = shift;
 
-  chomp $message;
+    chomp $message;
 
-  my $attr_str;
-  if ($attributes) {
-    $attr_str = join ', ',
-      map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-      sort keys %$attributes;
-  }
+    my $attr_str;
+    if ($attributes) {
+        $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
+          sort keys %$attributes;
+    }
 
-  warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
-  return 1;
+    warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
+    return 1;
 }
 
 __DATA__
@@ -572,24 +564,6 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

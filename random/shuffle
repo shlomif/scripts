@@ -7,11 +7,11 @@
 # (shuf, apparently, if you have that toolset)
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 # read from file(s) on command line, or stdin via <>.
@@ -19,24 +19,18 @@ my @input = <>;
 
 die "error: no data supplied to shuffle\n" unless @input;
 
-fisher_yates_shuffle(\@input);
+fisher_yates_shuffle( \@input );
 
 print for @input;
 
 # fisher_yates_shuffle( \@array ) : generate a random permutation
 # of @array in place
 sub fisher_yates_shuffle {
-  my $array = shift;
-  my $i;
-  for ($i = @$array; --$i;) {
-    my $j = int rand($i + 1);
-    next if $i == $j;
-    @$array[$i, $j] = @$array[$j, $i];
-  }
+    my $array = shift;
+    my $i;
+    for ( $i = @$array; --$i; ) {
+        my $j = int rand( $i + 1 );
+        next if $i == $j;
+        @$array[ $i, $j ] = @$array[ $j, $i ];
+    }
 }
-
-=pod SCRIPT CATEGORIES
-
-Utilities
-
-=cut

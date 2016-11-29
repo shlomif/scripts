@@ -40,23 +40,23 @@ my $MAX_DELAY = 10;
 
 use Getopt::Long qw(GetOptions);
 GetOptions(
-  "src|s=s"  => \$SRC_IP,
-  "dst|d=s"  => \$DST_IP,
-  "port|p=s" => \$PORT
+    "src|s=s"  => \$SRC_IP,
+    "dst|d=s"  => \$DST_IP,
+    "port|p=s" => \$PORT
 );
 
 if ( !defined $PORT and $DST_IP =~ m/^(.*?):(\d+)$/ ) {
-  $DST_IP = $1;
-  $PORT   = $2;
+    $DST_IP = $1;
+    $PORT   = $2;
 }
 
 $tcpdump_file = shift;
-if ( !defined $tcpdump_file
-  or !defined $SRC_IP
-  or !defined $DST_IP
-  or !defined $PORT ) {
-  warn "Usage: $0 -s src-ip -d dst-ip -p port traffic-tcpdump\n";
-  exit 64;
+if (   !defined $tcpdump_file
+    or !defined $SRC_IP
+    or !defined $DST_IP
+    or !defined $PORT ) {
+    warn "Usage: $0 -s src-ip -d dst-ip -p port traffic-tcpdump\n";
+    exit 64;
 }
 
 use List::Util qw/shuffle/;
@@ -79,31 +79,31 @@ $oDump = Net::Frame::Dump::Offline->new( file => $tcpdump_file );
 $oDump->start;
 
 DGRAM: while ( my $h = $oDump->next ) {
-  my $f = Net::Frame::Simple->new(
-    raw        => $h->{raw},
-    firstLayer => $h->{firstLayer},
-    timestamp  => $h->{timestamp},
-  );
+    my $f = Net::Frame::Simple->new(
+        raw        => $h->{raw},
+        firstLayer => $h->{firstLayer},
+        timestamp  => $h->{timestamp},
+    );
 
-  my $orig_ipv4;
+    my $orig_ipv4;
 
-  for my $l ( $f->layers ) {
-    if ( ref $l eq 'Net::Frame::Layer::IPv4' ) {
-      next DGRAM if $l->dst ne $SRC_IP;
-      $orig_ipv4 = $l;
+    for my $l ( $f->layers ) {
+        if ( ref $l eq 'Net::Frame::Layer::IPv4' ) {
+            next DGRAM if $l->dst ne $SRC_IP;
+            $orig_ipv4 = $l;
 
-    } elsif ( ref $l eq 'Net::Frame::Layer::TCP' ) {
-      if ( $l->flags & NF_TCP_FLAGS_SYN ) {
-        push @{ $seen{ $orig_ipv4->src . $l->src } },
-          { ip => $orig_ipv4, tcp => $l, ts => $h->{timestamp} };
-      } else {
-        if ( exists $seen{ $orig_ipv4->src . $l->src } ) {
-          push @{ $seen{ $orig_ipv4->src . $l->src } },
-            { ip => $orig_ipv4, tcp => $l, ts => $h->{timestamp} };
+        } elsif ( ref $l eq 'Net::Frame::Layer::TCP' ) {
+            if ( $l->flags & NF_TCP_FLAGS_SYN ) {
+                push @{ $seen{ $orig_ipv4->src . $l->src } },
+                  { ip => $orig_ipv4, tcp => $l, ts => $h->{timestamp} };
+            } else {
+                if ( exists $seen{ $orig_ipv4->src . $l->src } ) {
+                    push @{ $seen{ $orig_ipv4->src . $l->src } },
+                      { ip => $orig_ipv4, tcp => $l, ts => $h->{timestamp} };
+                }
+            }
         }
-      }
     }
-  }
 }
 $oDump->stop;
 warn "info: parsed ", scalar keys %seen, " full TCP connections\n";
@@ -119,51 +119,50 @@ $SIG{ALRM} = sub { die "timeout\n" };
 
 #while (1) {
 for my $conn ( shuffle values %seen ) {
-  my $max_wait = scalar(@$conn) * $MAX_DELAY;
+    my $max_wait = scalar(@$conn) * $MAX_DELAY;
 
-  eval {
-    alarm $max_wait;
+    eval {
+        alarm $max_wait;
 
-    my $io =
-      IO::Socket::INET->new( PeerAddr => "$DST_IP:$PORT", Proto => "tcp" )
-      || die "could not connect to $DST_IP:$PORT: $!\n";
-    my $prior_epoch = 0;
+        my $io = IO::Socket::INET->new( PeerAddr => "$DST_IP:$PORT", Proto => "tcp" )
+          || die "could not connect to $DST_IP:$PORT: $!\n";
+        my $prior_epoch = 0;
 
-    for my $frame (@$conn) {
-      my $cur_epoch = $frame->{ts} || 0;
-      if ( defined $frame->{tcp}->payload
-        and length $frame->{tcp}->payload > 0 ) {
+        for my $frame (@$conn) {
+            my $cur_epoch = $frame->{ts} || 0;
+            if ( defined $frame->{tcp}->payload
+                and length $frame->{tcp}->payload > 0 ) {
 
-        print time(), " ", $frame->{ip}->src, ":",
-          $frame->{tcp}->src,
-          " ipv4-id ",
-          $frame->{ip}->id, " tcp-seq ", $frame->{tcp}->seq, "\n";
-        $io->send( $frame->{tcp}->payload );
+                print time(), " ", $frame->{ip}->src, ":",
+                  $frame->{tcp}->src,
+                  " ipv4-id ",
+                  $frame->{ip}->id, " tcp-seq ", $frame->{tcp}->seq, "\n";
+                $io->send( $frame->{tcp}->payload );
 
-        my $delay = $cur_epoch - $prior_epoch;
-        if ( $delay <= 0 or $delay > $MAX_DELAY ) {
-          $delay = 0.1 + rand();
+                my $delay = $cur_epoch - $prior_epoch;
+                if ( $delay <= 0 or $delay > $MAX_DELAY ) {
+                    $delay = 0.1 + rand();
+                }
+                sleep $delay;
+            }
+            $prior_epoch = $cur_epoch;
         }
-        sleep $delay;
-      }
-      $prior_epoch = $cur_epoch;
+
+        alarm 0;
+
+        # Be a good network citizen (otherwise may see RST related logs on
+        # the server)
+        sleep 0.1 + rand();
+        $io->shutdown(2);
+        $io->close();
+    };
+    if ($@) {
+        # Could instead just warn here and keep hammering server. If so,
+        # consider a sleep to avoid frequent quick failures from running up
+        # the CPU. (Or similar if the script is being run in a loop from the
+        # command line.)
+        die $@;
     }
-
-    alarm 0;
-
-    # Be a good network citizen (otherwise may see RST related logs on
-    # the server)
-    sleep 0.1 + rand();
-    $io->shutdown(2);
-    $io->close();
-  };
-  if ($@) {
-    # Could instead just warn here and keep hammering server. If so,
-    # consider a sleep to avoid frequent quick failures from running up
-    # the CPU. (Or similar if the script is being run in a loop from the
-    # command line.)
-    die $@;
-  }
 }
 #}
 

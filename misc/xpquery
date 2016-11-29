@@ -22,65 +22,64 @@ my $query = shift || help();
 help() unless @ARGV;
 
 for my $document (@ARGV) {
-  my $target = URI->new($document);
-  my $file;
+    my $target = URI->new($document);
+    my $file;
 
-  # get document into filehandle
-  # TODO URL lookup needs more error checking
-  if ( $target->scheme ) {
-    $file =
-      ( File::Temp::tempfile( "xpquery.XXXXXXXXXX", DIR => File::Spec->tmpdir, ) )
-      [1];
+    # get document into filehandle
+    # TODO URL lookup needs more error checking
+    if ( $target->scheme ) {
+        $file =
+          ( File::Temp::tempfile( "xpquery.XXXXXXXXXX", DIR => File::Spec->tmpdir, ) )
+          [1];
 
-    my $ua =
-      LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
-    $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
-    my $response = $ua->get( $target->canonical, ':content_file' => $file );
-  } else {
-    $file = $target->canonical;
-  }
-
-  my $parser = XML::LibXML->new;
-
-  # try to allow for crummy *ML documents TODO make these command line
-  # arguments?
-  $parser->recover(2);
-  $parser->load_ext_dtd(0);
-  $parser->expand_entities(0);
-  $parser->complete_attributes(0);
-  #$parser->pedantic_parser(0);
-
-  my $doc;
-  eval {
-    my %parse_method = (
-      XML  => 'parse_file',
-      HTML => 'parse_html_file',
-      SGML => 'parse_sgml_file',
-    );
-
-    my $method = $parse_method{ uc $opts{p} } || 'parse_file';
-    $doc = $parser->$method($file);
-  };
-  if ($@) {
-    die "error: could not parse $document: $@\n";
-  }
-
-  # search resulting tree with XPath
-  my $xc = XML::LibXML::XPathContext->new($doc);
-  if ( exists $opts{'n'} ) {
-    for my $spec ( split ' ', $opts{'n'} ) {
-      $xc->registerNs( split ':', $spec, 2 );
+        my $ua = LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
+        $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
+        my $response = $ua->get( $target->canonical, ':content_file' => $file );
+    } else {
+        $file = $target->canonical;
     }
-  }
 
-  my $nodelist = $xc->find($query);
-  my $gotref   = ref $nodelist;
-  if ( $gotref ne 'XML::LibXML::NodeList' ) {
-    die "error: expected XML::LibXML::NodeList but got $gotref instead??\n";
-  }
-  for my $node ( $nodelist->get_nodelist ) {
-    print $node->toString, "\n";
-  }
+    my $parser = XML::LibXML->new;
+
+    # try to allow for crummy *ML documents TODO make these command line
+    # arguments?
+    $parser->recover(2);
+    $parser->load_ext_dtd(0);
+    $parser->expand_entities(0);
+    $parser->complete_attributes(0);
+    #$parser->pedantic_parser(0);
+
+    my $doc;
+    eval {
+        my %parse_method = (
+            XML  => 'parse_file',
+            HTML => 'parse_html_file',
+            SGML => 'parse_sgml_file',
+        );
+
+        my $method = $parse_method{ uc $opts{p} } || 'parse_file';
+        $doc = $parser->$method($file);
+    };
+    if ($@) {
+        die "error: could not parse $document: $@\n";
+    }
+
+    # search resulting tree with XPath
+    my $xc = XML::LibXML::XPathContext->new($doc);
+    if ( exists $opts{'n'} ) {
+        for my $spec ( split ' ', $opts{'n'} ) {
+            $xc->registerNs( split ':', $spec, 2 );
+        }
+    }
+
+    my $nodelist = $xc->find($query);
+    my $gotref   = ref $nodelist;
+    if ( $gotref ne 'XML::LibXML::NodeList' ) {
+        die "error: expected XML::LibXML::NodeList but got $gotref instead??\n";
+    }
+    for my $node ( $nodelist->get_nodelist ) {
+        print $node->toString, "\n";
+    }
 }
 
 ########################################################################
@@ -88,7 +87,7 @@ for my $document (@ARGV) {
 # SUBROUTINES
 
 sub help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [opts] xpath-query document1 [doc2 ..]
 
 Apply XPath expressions to the specified XML files or URLs specified.
@@ -100,15 +99,15 @@ Options:
   -n xx  Custom namespace to register "prefix:uri p2:u2 ..."
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 __DATA__
@@ -190,24 +189,6 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

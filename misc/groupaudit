@@ -32,36 +32,34 @@ die "$0: no members for '$group'\n"
 
 my %usercounts;
 for my $member ( split ' ', $members ) {
-  if ( exists $usercounts{$member} ) {
-    warn "notice: duplicate member in group [$group]: '$member'\n";
-    next;
-  }
-  $usercounts{$member}++;
+    if ( exists $usercounts{$member} ) {
+        warn "notice: duplicate member in group [$group]: '$member'\n";
+        next;
+    }
+    $usercounts{$member}++;
 }
 
 my %seen;
 shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
 while ( my $line = readline() ) {
-  chomp $line;
-  for my $member ( split ' ', $line ) {
-    if ( exists $seen{$members} ) {
-      warn "notice: duplicate member in input: '$member'\n";
-      next;
+    chomp $line;
+    for my $member ( split ' ', $line ) {
+        if ( exists $seen{$members} ) {
+            warn "notice: duplicate member in input: '$member'\n";
+            next;
+        }
+        if ( !exists $usercounts{$member} ) {
+            print "-$member\n";
+        } else {
+            $usercounts{$member}++;
+            $seen{$member} = 1;
+        }
     }
-    if ( !exists $usercounts{$member} ) {
-      print "-$member\n";
-    } else {
-      $usercounts{$member}++;
-      $seen{$member} = 1;
-    }
-  }
 }
 if ( !keys %seen ) {
-  warn "notice: no groups seen on input\n";
+    warn "notice: no groups seen on input\n";
 }
 
 for my $member ( keys %usercounts ) {
-  print "+$member\n" if $usercounts{$member} == 1;
+    print "+$member\n" if $usercounts{$member} == 1;
 }
-
-exit 0;

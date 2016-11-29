@@ -8,100 +8,100 @@ use warnings;
 
 # how to convert various time units to seconds
 my %factor = (
-  y => 31536000,
-  M => 2592000,
-  w => 604800,
-  d => 86400,
-  h => 3600,
-  m => 60,
-  s => 1,
+    y => 31536000,
+    M => 2592000,
+    w => 604800,
+    d => 86400,
+    h => 3600,
+    m => 60,
+    s => 1,
 );
 
 # tie y, M to current year and month if possible
 eval { require Date::Calc; };
 unless ($@) {
-  my ($month, $year) = (localtime)[4, 5];
-  $year += 1900;
-  $month++;
+    my ( $month, $year ) = (localtime)[ 4, 5 ];
+    $year += 1900;
+    $month++;
 
-  $factor{y} = Date::Calc::Days_in_Year($year, 12) * $factor{d}
-   or die "error: could not calculate days in year\n";
-  $factor{M} = Date::Calc::Days_in_Month($year, $month) * $factor{d}
-   or die "error: could not calculate days in month\n";
+    $factor{y} = Date::Calc::Days_in_Year( $year, 12 ) * $factor{d}
+      or die "error: could not calculate days in year\n";
+    $factor{M} = Date::Calc::Days_in_Month( $year, $month ) * $factor{d}
+      or die "error: could not calculate days in month\n";
 }
 
 my $factors = join q{}, keys %factor;
 
 use Getopt::Std;
 my %opts;
-getopts('h?', \%opts);
+getopts( 'h?', \%opts );
 print_help() if exists $opts{h} or exists $opts{'?'};
 
 my $duration;
 
 if (@ARGV) {
-  $_ = "@ARGV";
-  parse_line();
+    $_ = "@ARGV";
+    parse_line();
 
-  # already have input if stdin closed to tty; read from there if so
-  unless (-t *STDIN) {
-    parse_line() while readline *STDIN;
-  }
+    # already have input if stdin closed to tty; read from there if so
+    unless ( -t *STDIN ) {
+        parse_line() while readline *STDIN;
+    }
 } else {
-  parse_line() while readline *STDIN;
+    parse_line() while readline *STDIN;
 }
 
 sub parse_line {
- LINE: {
+  LINE: {
 
-    # match "3h" or "45 m"
-    $duration += $1 * $factor{$2}, redo LINE
-     if /\G(\d+) ?([$factors])(?=\b|\d)/gco;
+        # match "3h" or "45 m"
+        $duration += $1 * $factor{$2}, redo LINE
+          if /\G(\d+) ?([$factors])(?=\b|\d)/gco;
 
-    # treat unmatched numbers as seconds
-    $duration += $1, redo LINE if /\G(\d+)/gc;
+        # treat unmatched numbers as seconds
+        $duration += $1, redo LINE if /\G(\d+)/gc;
 
-    # skip decimals (TODO warn on them?)
-    redo LINE if /\G\.\d+(?![$factors])/gc;
+        # skip decimals (TODO warn on them?)
+        redo LINE if /\G\.\d+(?![$factors])/gc;
 
-    # or skip to next interesting bit
-    redo LINE if /\G\D+/gc;
-  }
+        # or skip to next interesting bit
+        redo LINE if /\G\D+/gc;
+    }
 }
 
 die "error: no parseable duration found\n"
- unless defined $duration
- and $duration =~ /^\d+$/;
+  unless defined $duration
+  and $duration =~ /^\d+$/;
 
 print deltatimefmt($duration), "\n";
 
 sub deltatimefmt {
-  my $difference = int(shift);
+    my $difference = int(shift);
 
-  return "0s" if $difference == 0;
+    return "0s" if $difference == 0;
 
-  my $seconds = $difference % 60;
-  $difference = ($difference - $seconds) / 60;
-  my $minutes = $difference % 60;
-  $difference = ($difference - $minutes) / 60;
+    my $seconds = $difference % 60;
+    $difference = ( $difference - $seconds ) / 60;
+    my $minutes = $difference % 60;
+    $difference = ( $difference - $minutes ) / 60;
 
-  #  my $hours = $difference;
-  my $hours = $difference % 24;
-  $difference = ($difference - $hours) / 24;
-  my $days  = $difference % 7;
-  my $weeks = ($difference - $days) / 7;
+    #  my $hours = $difference;
+    my $hours = $difference % 24;
+    $difference = ( $difference - $hours ) / 24;
+    my $days  = $difference % 7;
+    my $weeks = ( $difference - $days ) / 7;
 
-  # better way to do this?
-  my $temp = ($weeks) ? "${weeks}w " : q{};
-  $temp .= ($days)    ? "${days}d "    : q{};
-  $temp .= ($hours)   ? "${hours}h "   : q{};
-  $temp .= ($minutes) ? "${minutes}m " : q{};
-  $temp .= ($seconds) ? "${seconds}s"  : q{};
-  return $temp;
+    # better way to do this?
+    my $temp = ($weeks) ? "${weeks}w " : q{};
+    $temp .= ($days)    ? "${days}d "    : q{};
+    $temp .= ($hours)   ? "${hours}h "   : q{};
+    $temp .= ($minutes) ? "${minutes}m " : q{};
+    $temp .= ($seconds) ? "${seconds}s"  : q{};
+    return $temp;
 }
 
 sub print_help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0 [time specifications]
 
 Totals up short hand time durations.
@@ -111,15 +111,15 @@ Options:
 
 Run perldoc(1) on this script for additional documentation.
 HELP
-  exit 64;
+    exit 64;
 }
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 __END__
@@ -175,29 +175,11 @@ No known bugs.
 =head1 TODO
 
 Output formatting, e.g. raw seconds, or ability to select output time
-format (e.g. hours only, and so forth).  Ability to set a default
-input factor, e.g. when passing in unadorned hours or minutes.
+format (e.g. hours only, and so forth). Ability to set a default input
+factor, e.g. when passing in unadorned hours or minutes.
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

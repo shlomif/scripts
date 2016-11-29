@@ -22,11 +22,11 @@ use Term::ANSIColor;
 my $socket_class;
 eval { require IO::Socket::INET6 };
 if ($@) {
-  require IO::Socket;
-  $socket_class = 'IO::Socket::INET';
+    require IO::Socket;
+    $socket_class = 'IO::Socket::INET';
 } else {
-  require IO::Socket::INET6;
-  $socket_class = 'IO::Socket::INET6';
+    require IO::Socket::INET6;
+    $socket_class = 'IO::Socket::INET6';
 }
 
 use vars qw($Usage $Dflt_hostname $Dflt_domain $Root_check %Opts
@@ -81,23 +81,23 @@ $Comment       = defined $Opts{c} ? "$Opts{c}\n" : '';
 my $helo = $Opts{E} ? 'EHLO' : 'HELO';
 
 if ( defined $Opts{f} ) {
-  $MailFrom_addr = $Opts{f};
+    $MailFrom_addr = $Opts{f};
 } elsif ( $Target_host =~ /^\d+\.\d+\.\d+\.\d+$/ or $Target_host =~ m/:/ ) {
-  $MailFrom_addr = "nobody\@[${Target_host}]";
+    $MailFrom_addr = "nobody\@[${Target_host}]";
 } else {
-  $MailFrom_addr = "nobody\@${Target_host}";
+    $MailFrom_addr = "nobody\@${Target_host}";
 }
 
 if ( defined $Opts{s} ) {
-  $Hdr_to = $Opts{s};
+    $Hdr_to = $Opts{s};
 } else {
-  $Hdr_to = $RcptTo_addr;
+    $Hdr_to = $RcptTo_addr;
 }
 
 if ( defined $Opts{r} ) {
-  $Hdr_from = $Opts{r};
+    $Hdr_from = $Opts{r};
 } else {
-  $Hdr_from = $MailFrom_addr;
+    $Hdr_from = $MailFrom_addr;
 }
 
 #
@@ -144,11 +144,11 @@ print "Connecting to $Target_host ...\n";
 print color 'reset' if $Opts{m};
 system qw(getraw -o *:+) if $Opts{g};
 my $sock = $socket_class->new(
-  ( defined $Local_host ? ( LocalAddr => $Local_host ) : () ),
-  Proto    => "tcp",
-  PeerAddr => $Target_host,
-  PeerPort => $Port,
-  Timeout  => $Timeout,
+    ( defined $Local_host ? ( LocalAddr => $Local_host ) : () ),
+    Proto    => "tcp",
+    PeerAddr => $Target_host,
+    PeerPort => $Port,
+    Timeout  => $Timeout,
 ) or die "$0: socket failed: cannot connect to $Target_host: $@\n";
 
 $SIG{ALRM} = sub { die "$0: timeout waiting for socket I/O\n"; };
@@ -169,17 +169,16 @@ system qw(getraw -o *:+) if $Opts{g};
 write_command( $sock, $Mssg_body, "(message body)\n", 1 );
 
 if ( defined $Opts{S} and $Opts{S} =~ m/^\d+$/ ) {
-  my $str =
-    "QWxsIHdvcmsgYW5kIG5vIHBsYXkgbWFrZXMgSmFjayBhIER1bGwgQm95Cg==\r\n";
-  my $str_len    = length $str;
-  my $sent_bytes = length $Mssg_body;
-  while ( $sent_bytes < $Opts{S} ) {
-    alarm($Timeout);
-    $sock->print($str)
-      or die "$0: socket write failed [$!]\n";
-    alarm(0);
-    $sent_bytes += $str_len;
-  }
+    my $str = "QWxsIHdvcmsgYW5kIG5vIHBsYXkgbWFrZXMgSmFjayBhIER1bGwgQm95Cg==\r\n";
+    my $str_len    = length $str;
+    my $sent_bytes = length $Mssg_body;
+    while ( $sent_bytes < $Opts{S} ) {
+        alarm($Timeout);
+        $sock->print($str)
+          or die "$0: socket write failed [$!]\n";
+        alarm(0);
+        $sent_bytes += $str_len;
+    }
 }
 
 write_command( $sock, ".\n", "(message EOF)\n" );
@@ -196,69 +195,69 @@ exit($EX_RELAY_ACCEPTED);
 # usage: write_command($sock, $data_to_send[, $mssg_to_display])
 #
 sub write_command {
-  my $sock      = shift;
-  my $data      = shift;
-  my $mssg      = shift || $data;
-  my $skip_read = shift || 0;
-  print color 'bold red' if $Opts{m};
-  print ">>> $mssg";
-  print color 'reset' if $Opts{m};
-  $data =~ s/\n/\r\n/g;
-  alarm($Timeout);
-  $sock->print($data)
-    or die "$0: socket write failed [$!]\n";
-  alarm(0);
-  return read_response($sock) if !$skip_read;
+    my $sock      = shift;
+    my $data      = shift;
+    my $mssg      = shift || $data;
+    my $skip_read = shift || 0;
+    print color 'bold red' if $Opts{m};
+    print ">>> $mssg";
+    print color 'reset' if $Opts{m};
+    $data =~ s/\n/\r\n/g;
+    alarm($Timeout);
+    $sock->print($data)
+      or die "$0: socket write failed [$!]\n";
+    alarm(0);
+    return read_response($sock) if !$skip_read;
 }
 
 #
 # usage: $response_code = read_response($sock);
 #
 sub read_response {
-  my $sock = shift;
-  my ( $code, $cont, $mssg );
+    my $sock = shift;
+    my ( $code, $cont, $mssg );
 
-  do {
+    do {
+        alarm($Timeout);
+        chop( $_ = $sock->getline() );
+        alarm(0);
+        ( $code, $cont, $mssg ) = /(\d\d\d)(.)(.*)/;
+
+        if ( $Opts{S} and $mssg =~ m/SIZE\s(\d+)/ ) {
+            $Opts{S} = $1 * 2;
+        }
+
+        print color 'bold blue' if $Opts{m};
+        print "<<< ", $_, "\n";
+        print color 'reset' if $Opts{m};
+    } while ( $cont eq "-" );
+    return $code
+      if ( $code >= 200 && $code < 400 );
+
     alarm($Timeout);
-    chop( $_ = $sock->getline() );
+    $sock->print("QUIT\r\n");
     alarm(0);
-    ( $code, $cont, $mssg ) = /(\d\d\d)(.)(.*)/;
-
-    if ( $Opts{S} and $mssg =~ m/SIZE\s(\d+)/ ) {
-      $Opts{S} = $1 * 2;
-    }
-
-    print color 'bold blue' if $Opts{m};
-    print "<<< ", $_, "\n";
-    print color 'reset' if $Opts{m};
-  } while ( $cont eq "-" );
-  return $code
-    if ( $code >= 200 && $code < 400 );
-
-  alarm($Timeout);
-  $sock->print("QUIT\r\n");
-  alarm(0);
-  warn "$0: relay rejected - final response code $code\n";
-  exit($EX_RELAY_REJECTED);
+    warn "$0: relay rejected - final response code $code\n";
+    exit($EX_RELAY_REJECTED);
 }
 
 #
 # usage: $hostname = calculate_fqdn();
 #
 sub calculate_fqdn {
-  return $Dflt_hostname
-    if ($Dflt_hostname);
-  my $host = hostname();
-  warn "notice: using hostname $host\n";
-  return $host;
+    return $Dflt_hostname
+      if ($Dflt_hostname);
+    my $host = hostname();
+    warn "notice: using hostname $host\n";
+    return $host;
 }
 
 #
 # usage: $date_header = arpa_date($secs_since_epoch)
 #
 sub arpa_date {
-  my $epoch = shift || 0;
-  strftime "%a, %d %b %Y %H:%M:%S GMT", gmtime $epoch;
+    my $epoch = shift || 0;
+    strftime "%a, %d %b %Y %H:%M:%S GMT", gmtime $epoch;
 }
 
 __END__

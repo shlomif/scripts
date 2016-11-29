@@ -11,11 +11,11 @@ open my $fh, '>', $ttydev or die "could not open '$ttydev': $!\n";
 $fh->autoflush(1);
 
 while (<>) {
-  my $orig = $_;
-  chomp;
-  s/\\e/\e/g;
-  s/\\a/\a/g;
-  print $fh $_;
-  print $orig;
-  sleep .1;
+    my $orig = $_;
+    chomp;
+    s/\\e/\e/g;
+    s/\\a/\a/g;
+    print $fh $_;
+    print $orig;
+    sleep .1;
 }

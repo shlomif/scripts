@@ -1,27 +1,84 @@
-#!/bin/sh
+#!/usr/bin/env expect
 #
 # Wrapper to preview and play lilypond music,
 
-set -e
+package require Tcl 8.5
+# NOTE probably requires tcllib package (or exec out to mktemp instead)
+package require fileutil
 
-LYFILE=`glf --exclude='[.](?!ly$)' '\.ly$' .`
+set prog_name [lindex [split $argv0 "/"] end]
 
-if [ -z "$LYFILE" ]; then
-    echo >&2 "no *.ly found (or glf problem)"
-    exit 1
-fi
+if {[llength $argv] == 0} {
+    set lyfile ""
+    set lymtime 0
+    foreach file [glob *.ly] {
+        # TWEAK exclude foo.bar.ly as for me these are part files that
+        # should not be played
+        if {[regexp {\.[^.]+\.ly$} $file]} { continue }
+        set mtime [file mtime $file]
+        if {$mtime > $lymtime} {
+            set lyfile $file
+            set lymtime $mtime
+        }
+    }
+    if {$lyfile eq ""} {
+        puts stderr "$prog_name: no *.ly file found"
+        exit 1
+    }
+} else {
+    set lyfile [lindex $argv 0]
+    set lymtime [file mtime $lyfile]
+}
 
-ROOTNAME=`fdsplit root "$LYFILE"`
-PDF="$ROOTNAME.pdf"
+set rootname [regsub {\.ly$} $lyfile ""]
+set pdffile "$rootname.pdf"
+set tmpfile ""
 
-if command test ! -e "$PDF" -o "$LYFILE" -nt "$PDF"; then
-    lilypond --silent -dno-point-and-click "$LYFILE"
-    mopen "$PDF"
-fi
+stty raw
 
-set +e
+proc bail_out {{code 0}} {
+    global tmpfile
+    if {$tmpfile ne ""} {
+        file delete $tmpfile
+    }
+    stty -raw
+    exit $code
+}
 
-is-mute -q
-if [ $? -eq 1 ]; then
-    tlymidity "$ROOTNAME.midi"
-fi
+if {![file exists $pdffile] || $lymtime > [file mtime $pdffile]} {
+    send_user "\rbuilding PDF..."
+    set tmpfile [::fileutil::tempfile "$prog_name-out"]
+    if {[catch {exec lilypond -dno-point-and-click -o $rootname --pdf $lyfile >& $tmpfile} results options]} {
+        # whoopsie doodle! (TODO :cnext in vim probably better for this,
+        # how would we tell between that and a !playit % run? or would
+        # have to always use the vim thingy, and ensure that the MIDI
+        # player output does not cause any false warnings...)
+        spawn $env(PAGER) $tmpfile
+        interact
+        bail_out 1
+    }
+    exec mopen $pdffile &
+}
+
+if {[catch {exec is-mute -q} results options]} {
+    send_user "\rplaying MIDI...\n"
+    # TWEAK what player to use may vary...
+    spawn -noecho exec tlymidity "$rootname.midi"
+    # this complication waits for MIDI player to exit or allows the user
+    # via the "any key" to abort the playback; low timeout is for better
+    # interactivity with the "any key"
+    set timeout .15
+    while 1 {
+        expect { eof { bail_out } }
+        expect_user {
+            -re "." {
+                send_user "\r"
+                exec kill [exp_pid]
+                bail_out
+            }
+        }
+    }
+}
+
+# NOTREACHED
+bail_out 1

@@ -8,14 +8,14 @@ use Archive::Tar 1.80;
 
 for my $tarfile (@ARGV) {
     my $tar = Archive::Tar->new($tarfile) // die "failed to read '$tarfile'\n";
-    for my $archivefile ($tar->list_files) {
-        $tar->chown($archivefile, 'root:root');
+    for my $archivefile ( $tar->list_files ) {
+        $tar->chown( $archivefile, 'root:root' );
     }
     my @compression;
-    if ($tarfile =~ m/gz$/) {
+    if ( $tarfile =~ m/gz$/ ) {
         @compression = COMPRESS_GZIP;
-    } elsif ($tarfile =~ m/bz$/) {
+    } elsif ( $tarfile =~ m/bz$/ ) {
         @compression = COMPRESS_BZIP;
     }
-    $tar->write($tarfile, @compression);
+    $tar->write( $tarfile, @compression );
 }

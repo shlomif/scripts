@@ -22,31 +22,31 @@ my $CRON_TIME_FORMAT = '%M %H %d %m *';
 my $SECONDS_IN_ADVANCE = 99;
 
 END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 my ( $use_gmtime, $comment, $time_format, $pad_time );
 GetOptions(
-  'help|?|h'    => \&print_help,
-  'comment|c=s' => \$comment,
-  'format|f=s'  => \$time_format,
-  'gmtime|g'    => \$use_gmtime,
-  'lead|l=s'    => \$pad_time,
+    'help|?|h'    => \&print_help,
+    'comment|c=s' => \$comment,
+    'format|f=s'  => \$time_format,
+    'gmtime|g'    => \$use_gmtime,
+    'lead|l=s'    => \$pad_time,
 );
 
 if ( defined $pad_time ) {
-  $SECONDS_IN_ADVANCE = duration2seconds($pad_time);
-  if ( !defined $SECONDS_IN_ADVANCE or $SECONDS_IN_ADVANCE !~ m/^\d+$/ ) {
-    die "error: invalid lead time: $pad_time\n";
-  }
+    $SECONDS_IN_ADVANCE = duration2seconds($pad_time);
+    if ( !defined $SECONDS_IN_ADVANCE or $SECONDS_IN_ADVANCE !~ m/^\d+$/ ) {
+        die "error: invalid lead time: $pad_time\n";
+    }
 }
 
 if ( defined $time_format ) {
-  $CRON_TIME_FORMAT = $time_format;
+    $CRON_TIME_FORMAT = $time_format;
 }
 
 # Read optional command to insert after cron time specification either
@@ -54,22 +54,21 @@ if ( defined $time_format ) {
 # being piped something (e.g. ":.!kronsoon" in vi).
 my $command;
 if (@ARGV) {
-  $command = @ARGV ? "@ARGV" : '';
+    $command = @ARGV ? "@ARGV" : '';
 } elsif ( !-t ) {
-  $command = do { local $/; readline *STDIN };
-  chomp($command);
+    $command = do { local $/; readline *STDIN };
+    chomp($command);
 }
 
 my $current_epoch = time();
 
 # Add remainder seconds to advance time if "late" in the current minute
-my $run_epoch =
-  $current_epoch + $SECONDS_IN_ADVANCE + ( $current_epoch % 60 );
+my $run_epoch = $current_epoch + $SECONDS_IN_ADVANCE + ( $current_epoch % 60 );
 
 my @run_time = $use_gmtime ? gmtime($run_epoch) : localtime($run_epoch);
 
 if ( defined $comment and length $comment > 0 ) {
-  print "# $comment\n";
+    print "# $comment\n";
 }
 print strftime( $CRON_TIME_FORMAT, @run_time )
   . ( defined $command ? " $command" : '' ) . "\n";
@@ -78,35 +77,35 @@ exit 0;
 
 # takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
-  my $tmpdur = shift;
-  my $lead_seconds;
+    my $tmpdur = shift;
+    my $lead_seconds;
 
-  # how to convert short human durations into seconds
-  my %factor = (
-    'w' => 604800,
-    'd' => 86400,
-    'h' => 3600,
-    'm' => 60,
-    's' => 1,
-  );
+    # how to convert short human durations into seconds
+    my %factor = (
+        'w' => 604800,
+        'd' => 86400,
+        'h' => 3600,
+        'm' => 60,
+        's' => 1,
+    );
 
-  # assume raw seconds for plain number
-  if ( $tmpdur =~ m/^\d+$/ ) {
-    $lead_seconds = $tmpdur;
+    # assume raw seconds for plain number
+    if ( $tmpdur =~ m/^\d+$/ ) {
+        $lead_seconds = $tmpdur;
 
-  } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
+    } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
 
-    # match "2m 5s" style input and convert to seconds
-    while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
-      $lead_seconds += $1 * $factor{$2};
+        # match "2m 5s" style input and convert to seconds
+        while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
+            $lead_seconds += $1 * $factor{$2};
+        }
     }
-  }
 
-  return $lead_seconds;
+    return $lead_seconds;
 }
 
 sub print_help {
-  warn <<"END_HELP";
+    warn <<"END_HELP";
 Usage: $0 [options] [cron command]
 
 Generate cron timestamp for single run in the near future.
@@ -122,7 +121,7 @@ Options:
   
 END_HELP
 
-  exit 64;
+    exit 64;
 }
 
 =head1 NAME
@@ -217,24 +216,6 @@ perl(1), crontab(5)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

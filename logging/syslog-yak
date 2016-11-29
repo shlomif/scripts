@@ -10,51 +10,51 @@ use Carp;
 use Getopt::Std;
 
 my @facility = qw(
-auth
-authpriv
-cron
-daemon
-ftp
-kern
-lpr
-mail
-news
-security
-syslog
-user
-uucp
-local0
-local1
-local2
-local3
-local4
-local5
-local6
-local7
+  auth
+  authpriv
+  cron
+  daemon
+  ftp
+  kern
+  lpr
+  mail
+  news
+  security
+  syslog
+  user
+  uucp
+  local0
+  local1
+  local2
+  local3
+  local4
+  local5
+  local6
+  local7
 );
 
 my @level = qw(
-emerg
-alert
-crit
-err
-warning
-notice
-info
-debug
+  emerg
+  alert
+  crit
+  err
+  warning
+  notice
+  info
+  debug
 );
 
 for my $l (@level) {
-  for my $f (@facility) {
-    system 'logger', @ARGV, '-p', "$f.$l", '--', "yakking to $f.$l";
-  }
+    for my $f (@facility) {
+        system 'logger', @ARGV, '-p', "$f.$l", '--', "yakking to $f.$l";
+    }
 }
 
 exit;
 
 # a generic help blarb
 sub help {
-  warn <<"HELP";
+    warn <<"HELP";
 Usage: $0
 
 Tests what levels/facilities are handled by syslog.
@@ -65,7 +65,7 @@ Options:
 Run perldoc(1) on this script for additional documentation.
 
 HELP
-  exit 64;
+    exit 64;
 }
 
 =head1 NAME
@@ -114,24 +114,6 @@ perl(1)
 
 =head1 AUTHOR
 
-thrig - Jeremy Mates (cpan:JMATES) C<< <jmates at cpan.org> >>
-
-=head1 COPYRIGHT
-
-Copyright (c) 2015 Jeremy Mates
-
-     Permission to use, copy, modify, and/or distribute this software for
-     any purpose with or without fee is hereby granted, provided that the
-     above copyright notice and this permission notice appear in all
-     copies.
-
-     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-     OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-     PERFORMANCE OF THIS SOFTWARE.
+Jeremy Mates
 
 =cut

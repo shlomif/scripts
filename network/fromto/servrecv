@@ -12,10 +12,10 @@ die "Usage: $0 port > outfile\n" if @ARGV != 1;
 my $port = shift;
 
 my $sock = IO::Socket::INET->new(
-  Listen    => 1,
-  LocalPort => $port,
-  Proto     => 'tcp',
-  ReuseAddr => 1,
+    Listen    => 1,
+    LocalPort => $port,
+    Proto     => 'tcp',
+    ReuseAddr => 1,
 ) or die "$0: could not listen on *:$port: $@\n";
 
 my $reader = $sock->accept;
@@ -26,10 +26,10 @@ binmode STDOUT;
 
 my $buf;
 while (1) {
-  my $buflen = sysread( $reader, $buf, 1440 );
-  die "sysread() failed: $!\n" if !defined $buflen;
-  last if $buflen == 0;    # EOF
-  syswrite STDOUT, $buf, $buflen;
+    my $buflen = sysread( $reader, $buf, 1440 );
+    die "sysread() failed: $!\n" if !defined $buflen;
+    last if $buflen == 0;    # EOF
+    syswrite STDOUT, $buf, $buflen;
 }
 
 exit 0;

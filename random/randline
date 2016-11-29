@@ -3,12 +3,12 @@
 # Returns random line from input.  perldoc -q 'random line'
 
 END {
-  print $line;
+    print $line;
 
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
 }
 
 rand $. < 1 && ( $line = $_ ) while <>

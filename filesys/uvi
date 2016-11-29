@@ -7,17 +7,17 @@ my $ret = 0;
 
 my @files;
 for my $in (@ARGV) {
-  next unless -f $in;
-  push @files, [ ( stat($in) )[ 8, 9 ], $in ];
+    next unless -f $in;
+    push @files, [ ( stat($in) )[ 8, 9 ], $in ];
 }
 
 system( $ENV{'EDITOR'} || 'vi', @ARGV );
 
 for my $f (@files) {
-  if ( !utime(@$f) ) {
-    warn "could not restore ", $f->[-1], " to orig times: $!\n";
-    $ret = 1;
-  }
+    if ( !utime(@$f) ) {
+        warn "could not restore ", $f->[-1], " to orig times: $!\n";
+        $ret = 1;
+    }
 }
 
 exit $ret;
