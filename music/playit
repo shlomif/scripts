@@ -3,82 +3,123 @@
 # Wrapper to preview and play lilypond music,
 
 package require Tcl 8.5
-# NOTE probably requires tcllib package (or exec out to mktemp instead)
+# NOTE probably requires tcllib package
 package require fileutil
+
+# TWEAK these can be changed via the ~/.playitrc file
+set lily_cmd {lilypond -dno-point-and-click}
+set midi_cmd {tlymidity}
+set view_cmd {mopen}
+
+if {[array get env PAGER] eq ""} {
+    set env(PAGER) less
+}
+
+proc maybe_latest {newfile file mtime} {
+    upvar 1 $file  lyfile
+    upvar 1 $mtime lymtime
+
+    # exclude foo.bar.ly as for me these are part files that should not
+    # be played
+    if {[regexp {\.[^.]+\.ly$} $newfile]} { return }
+
+    set newmtime [file mtime $newfile]
+    if {$newmtime > $lymtime} {
+        set lyfile  $newfile
+        set lymtime $newmtime
+    }
+}
+
+catch {source $env(HOME)/.playitrc} msg options
 
 set prog_name [lindex [split $argv0 "/"] end]
 
+if {[dict get $options -code] != 0} {
+    if {![string match "POSIX ENOENT *" [dict get $options -errorcode]]} {
+        warn [dict get $options -errorinfo]
+        puts stderr "$prog_name: could not source ~/.playitrc"
+        exit 1
+    }
+}
+
 if {[llength $argv] == 0} {
-    set lyfile ""
+    set lyfile  ""
     set lymtime 0
+    set feature ""
     foreach file [glob *.ly] {
-        # TWEAK exclude foo.bar.ly as for me these are part files that
-        # should not be played
-        if {[regexp {\.[^.]+\.ly$} $file]} { continue }
-        set mtime [file mtime $file]
-        if {$mtime > $lymtime} {
-            set lyfile $file
-            set lymtime $mtime
-        }
+        maybe_latest $file lyfile lymtime
     }
     if {$lyfile eq ""} {
         puts stderr "$prog_name: no *.ly file found"
         exit 1
     }
 } else {
-    set lyfile [lindex $argv 0]
-    set lymtime [file mtime $lyfile]
+    set lyfile  [lindex $argv 0]
+    if {[catch {set lymtime [file mtime $lyfile]} msg options]} {
+        puts stderr "$prog_name: $msg"
+        exit 1
+    }
+    set feature [lindex $argv 1]
 }
 
 set rootname [regsub {\.ly$} $lyfile ""]
-set pdffile "$rootname.pdf"
-set tmpfile ""
-
-stty raw
+set midifile "$rootname.midi"
+set pdffile  "$rootname.pdf"
+set tmpfile  ""
 
 proc bail_out {{code 0}} {
     global tmpfile
-    if {$tmpfile ne ""} {
-        file delete $tmpfile
-    }
-    stty -raw
+    if {$tmpfile ne ""} { file delete $tmpfile }
+    stty -raw echo
     exit $code
 }
 
+trap {bail_out 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
+
 if {![file exists $pdffile] || $lymtime > [file mtime $pdffile]} {
-    send_user "\rbuilding PDF..."
+    send_user "building $pdffile...\n"
     set tmpfile [::fileutil::tempfile "$prog_name-out"]
-    if {[catch {exec lilypond -dno-point-and-click -o $rootname --pdf $lyfile >& $tmpfile} results options]} {
-        # whoopsie doodle! (TODO :cnext in vim probably better for this,
-        # how would we tell between that and a !playit % run? or would
-        # have to always use the vim thingy, and ensure that the MIDI
-        # player output does not cause any false warnings...)
-        spawn $env(PAGER) $tmpfile
-        interact
+    if {[catch {exec {*}$lily_cmd -o $rootname --pdf $lyfile >& $tmpfile} msg options]} {
+        if {![regexp "nopager" $feature]} {
+            if {[catch {spawn $env(PAGER) $tmpfile} msg options]} {
+                puts stderr "$prog_name: could not spawn PAGER: $msg"
+            } else { interact }
+        } else {
+            set tmpfh [open $tmpfile r]
+            while {[gets $tmpfh line] >= 0} { puts $line }
+        }
         bail_out 1
     }
-    exec mopen $pdffile &
 }
 
-if {[catch {exec is-mute -q} results options]} {
-    send_user "\rplaying MIDI...\n"
-    # TWEAK what player to use may vary...
-    spawn -noecho exec tlymidity "$rootname.midi"
-    # this complication waits for MIDI player to exit or allows the user
-    # via the "any key" to abort the playback; low timeout is for better
-    # interactivity with the "any key"
-    set timeout .15
-    while 1 {
-        expect { eof { bail_out } }
-        expect_user {
-            -re "." {
-                send_user "\r"
-                exec kill [exp_pid]
-                bail_out
+if {[catch {exec {*}$view_cmd $pdffile &} msg options]} {
+    puts stderr "$prog_name: could not exec $view_cmd: $msg"
+    bail_out 1
+}
+
+stty raw -echo
+
+if {[catch {exec is-mute -q} msg options]} {
+    send_user "playing $midifile...\n"
+    if {[catch {spawn -noecho {*}$midi_cmd "$midifile"} msg options]} {
+        puts stderr "$prog_name: could not spawn $midi_cmd: $msg"
+        bail_out 1
+    }
+    # this complication waits for the MIDI player to exit or allows the
+    # user via the "any key" to abort the playback; low timeout is for
+    # better interactivity with the "any key"
+    catch {
+        set timeout .15
+        while 1 {
+            expect { eof { break } }
+            expect_user {
+                -re "." {
+                    exec kill [exp_pid]
+                    break
+                }
             }
         }
-    }
+    } msg options
 }
 
-# NOTREACHED
-bail_out 1
+bail_out

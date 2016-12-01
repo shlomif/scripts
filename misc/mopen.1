@@ -1,0 +1,22 @@
+.Dd November 30 2016
+.Dt MOPEN 1
+.nh
+.Os
+.Sh NAME
+.Nm mopen
+.Nd opens a PDF file, once
+.Sh SYNOPSIS
+.Nm mopen
+.Ar pdf-file
+.Sh DESCRIPTION
+.Nm
+opens a PDF using
+.Xr mupdf 1
+unless the PDF is already open, in which case a refresh signal is sent
+to the PDF viewer.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr mupdf 1
+.Sh AUTHOR
+.An Jeremy Mates

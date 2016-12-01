@@ -1,0 +1,26 @@
+.Dd November 29 2016
+.Dt IS-MUTE 1
+.nh
+.Os
+.Sh NAME
+.Nm is-mute
+.Nd is the system volume mute?
+.Sh SYNOPSIS
+.Nm is-mute
+.Op Fl q
+.Sh DESCRIPTION
+.Nm
+determines whether or not the system volume is muted, and if so prints
+.Qq mute
+to standard out and exits without failure. If the system is not mute, a
+non-zero exit status is returned, and nothing printed. Options:
+.Bl -tag -width Ds
+.It Fl q
+omit the
+.Qq mute
+thing. Good for code that only need check the exit status.
+.El
+.Sh EXIT STATUS
+0 if the system volume is mute and 1 if it is not mute.
+.Sh AUTHOR
+.An Jeremy Mates

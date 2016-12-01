@@ -1,0 +1,63 @@
+.Dd December  1 2016
+.Dt TLYMIDITY 1
+.nh
+.Os
+.Sh NAME
+.Nm tlymidity
+.Nd wrapper for timidity with lilypond magic
+.Sh SYNOPSIS
+.Nm tlymidity
+.Op Ar midi-file
+.Sh DESCRIPTION
+.Nm
+passes the given
+.Ar midi-file
+to
+.Xr timidity 1 ,
+or lacking one, searches for the most recently modified
+.Pa *.midi
+file in the current working directory and passes that to
+.Xr timidity 1 .
+.Pp
+If a corresponding
+.Pa *.ly
+file is found, the first
+.Qq % timidity ...
+line is searched for in that file, and options listed there added to the
+command line arguments for
+.Xr timidity 1 .
+.Sh EXIT STATUS
+.Nm
+replaces itself with
+.Xr timidity 1
+if all goes well, though will exit with a non-zero code if
+something goes awry.
+.Sh EXAMPLES
+Sample 
+.Cm % timidity
+lines to place in the corresponding lilypond file. Only the first such
+matching line will be considered.
+.Pp
+.Dl % timidity --config-file=foo.cfg
+.Dl \eversion \&"2.18.2\&"
+.Dl ...
+.Pp
+Where the
+.Pa foo.cfg
+might contain
+.Pp
+.Dl soundfont /usr/local/share/timidity/inst/jeux_d_orgues2.sf2
+.Pp
+To temporarily disable the entry, comment it out via
+.Pp
+.Dl %% timidity ...
+.Pp
+Use the
+.Fl x
+flag to pass arbitrary configuration strings to
+.Xr timidity 1 .
+.Sh SEE ALSO
+.Xr lilypond 1 ,
+.Xr timidity 1
+.Sh AUTHOR
+.An Jeremy Mates

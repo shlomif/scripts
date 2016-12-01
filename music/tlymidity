@@ -1,14 +1,6 @@
 #!/usr/bin/env perl
 #
 # Wrap timidity, reading *.ly files for extra command line arguments.
-# This is mostly to allow the use of custom soundfont files without
-# needing to muck up a Makefile or go off editing timidity.cfg all the
-# time. The *.ly files should include a single line such as:
-#
-# % timidity --config-file=blabla ...
-#
-# Any text after timidity will be split on whitespace and then prepended
-# to the list of arguments passed to timidity.
 
 use 5.14.0;
 use warnings;
@@ -16,6 +8,7 @@ use warnings;
 use File::Basename qw(dirname);
 use File::stat qw(stat);
 use List::UtilsBy qw(max_by);
+use Text::ParseWords qw(shellwords);
 
 my @TIMIDITY_CMD = qw/timidity -A90a --quiet=1/;
 
@@ -41,7 +34,7 @@ sub parse_ly {
     while ( readline $lyfh ) {
         # which I disable when needed with a %% prefix...
         if (m/^%\s+timidity\s+([^%]+)/) {
-            push @argv_additions, split ' ', $1;
+            push @argv_additions, shellwords($1);
             last;
         }
     }

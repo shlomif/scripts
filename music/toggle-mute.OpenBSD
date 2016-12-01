@@ -1,3 +1,2 @@
 #!/bin/sh
-# for OpenBSD
 exec mixerctl -t outputs.master.mute
