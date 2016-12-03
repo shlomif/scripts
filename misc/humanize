@@ -1,72 +1,71 @@
 #!/usr/bin/env perl
 #
 # Humanize file sizes in input, like the new -h option to various Unix
-# commands. Run perldoc(1) on this file for additional documentation.
+# commands. (-h being new may help date when this code was written.)
 
 use strict;
 use warnings;
+use Getopt::Long qw(GetOptions);
 
-# default to working on runs of 4 or more digits
-my $regex = '(-?\d{4,})';
+my $base = 1 << 10;
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
+Getopt::Long::Configure("bundling");
+GetOptions(
+    'base|b=i' => \$base,
+    'k'        => sub { $base = 1 << 10 },
+    'M'        => sub { $base = 1 << 20 },
+    'G'        => sub { $base = 1 << 30 },
+    'T'        => sub { $base = 1 << 40 },
+    'P'        => sub { $base = 1 << 50 },
+    'help|h|?' => \&emit_help,
+    'n=i'      => \my $num_digits,
+    'right|r'  => \my $Flag_Right,
+) or exit 65;
+
+die "humanize: base must be a positive integer\n" if $base < 1;
+
+$num_digits = 4 if !defined $num_digits or $num_digits < 1;
+
+shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
+
+while (readline) {
+    while (m/(-?[0-9]{$num_digits,})/g) {
+        my $number     = $1;
+        my $human      = humanize( $number, { base => $base } );
+        my $pad_length = length($number) - length($human);
+        my $pad        = $pad_length > 0 ? ' ' x $pad_length : '';
+        $human = $Flag_Right ? $pad . $human : $human . $pad;
+        s//$human/;
     }
-}
-
-use Getopt::Std;
-my %opts;
-getopts( 'h?kb:m:rMG', \%opts );
-
-help() if exists $opts{h} or exists $opts{'?'};
-
-my $base;
-
-# set the base conversion factor
-if ( exists $opts{b} ) {
-    ($base) = $opts{b} =~ m/(\d+)/;
-    die "Error: base should be a positive integer\n" unless $base;
-}
-
-# TODO fail if multiple of these set...
-$base = 1073741824 if exists $opts{G};
-$base = 1048576    if exists $opts{M};
-$base = 1024       if exists $opts{k};
-
-# set different regex if required, add matching parens if none
-# detected in input, as we need to match *something*
-$regex = $opts{m} if exists $opts{m};
-$regex = '(' . $regex . ')' unless $regex =~ m/\(.+\)/;
-
-@ARGV = readline *STDIN unless @ARGV;
-
-for (@ARGV) {
-    if ( exists $opts{r} ) {
-        while (m/$regex/go) {
-            my $orig = $1;
-            my $human = humanize( $orig, { base => $base } );
-            s/$regex/' 'x(length($orig) - length($human)).$human/eo;
-        }
-    } else {
-        s/$regex/humanize($1, {base => $base})/ego;
-    }
-    $_ .= "\n" unless m/\n$/;
     print;
 }
 
-# Inspired from GNU's df -h output, which fixes 133456345 bytes
-# to be something human readable.
+sub emit_help {
+    print <<"END_USAGE";
+Usage: humanize [options] [files|-]
+
+Humanizes numbers.
+
+  -b nn            Custom base, e.g. 512 or 4096 or whatever.
+  -k -M -G -T -P   Base is in kilobytes, megabytes, gig, etc.
+                   Default is kilobytes (e.g. df -k | humanize -r)
+
+  -n num  Require that numbers match this many digits (4 by default).
+  -r      Align humanized numbers to the right instead of the left.
+
+END_USAGE
+    exit 64;
+}
+
+# Inspired from GNU's df -h output, which fixes 133456345 bytes to be
+# something human readable.
 #
-# takes a number, returns formatted string.  Optionally accepts
-# hash reference containing non-standard defaults.
+# Takes a number, returns formatted string. Optionally accepts hash
+# reference containing non-standard defaults.
 sub humanize {
     my $num   = shift;
     my $prefs = shift;
 
-    # error checking on input...
     return $num unless $num =~ m/^-?\d+$/;
 
     # various parameters that adjust how the humanization is done
@@ -109,12 +108,10 @@ sub humanize {
         }
     }
 
-    # some local working variables
     my $count  = 0;
     my $prefix = q{};
     my $tmp    = q{};
 
-    # handle negatives
     if ( $num < 0 ) {
         $num    = abs $num;
         $prefix = '-';
@@ -137,8 +134,8 @@ sub humanize {
         }
     }
 
-    # no .[1-9] decimal on longer numbers for easier reading
-    # only show decimal if format say so
+    # no .[1-9] decimal on longer numbers for easier reading; only show
+    # decimal if format say so
     if ( length sprintf( "%.f", $num ) > $defaults{max_human_length}
         || !$defaults{decimal} ) {
 
@@ -146,176 +143,8 @@ sub humanize {
 
     } else {
         $tmp = sprintf( "%.1f", $num );
-
-        # optionally hack trailing .0
         $tmp =~ s/\.0$// unless $defaults{decimal_zero};
     }
 
     return $prefix . $tmp . $defaults{suffix}->[$count];
 }
-
-# a generic help blarb
-sub help {
-    print <<"HELP";
-Usage: $0 [options] [values]
-
-Script to humanize numbers in data.
-
-Options:
-  -h/-?  Display this message
-
-  -b nn  Integer to offset incoming data by.
-  -k     Default incoming data to Kilobtyes.  Default: bytes.
-  -M     Default to Megabytes.
-  -G     Default to Gigabytes.
-
-  -m rr  Regex to match what to operate on.  Default: $regex.
-  -r     Align humanized numbers to right.  Default: left.
-
-Run perldoc(1) on this script for additional documentation.
-
-HELP
-    exit 64;
-}
-
-__END__
-
-=head1 NAME
-
-humanize - humanizes file sizes in data
-
-=head1 SYNOPSIS
-
-Make df(1) output readable on systems lacking the human output option:
-
-  $ df -k | humanize -rk
-
-Figure out what 3655004 is in bytes:
-
-  $ humanize 3655004
-
-=head1 DESCRIPTION
-
-Intended as a quick way to humanize the output from random programs
-that displays unreadable file sizes, such as df(1) on large file
-systems:
-
-  $ df -k | grep nfs
-  nfs:/mbt    1026892400 704296472 322595928    69%    /mbt
-
-While certain utilities now support humanized output internally, not
-all systems have those utilities.  Hence, this perl script is intended
-to fill that gap until more utilities support humanization routines
-directly.  This will become more important as file systems continue to
-grow, and the exact number of bytes something takes up less meaningful
-to the user.
-
-The data munged by this script is less accurate, in that rounding is
-done in an effort to make the numbers more readable by a human.  In
-the above case, the munged data would look like:
-
-  $ df -k | grep nfs | humanize -k
-  nfs:/mbt    1.0T 672G 308G    69%    /mbt
-
-=head2 Normal Usage
-
-  $ humanize [options] [values]
-
-See L<"OPTIONS"> for details on the command line switches supported.
-
-Data to be humanized may either be specified on the command line, or
-piped in via standard input.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note about the script.
-
-=item B<-b> I<base>
-
-Optional integer to factor the incoming data by.  The humanizing
-routine operates on bytes by default, so numbers of different formats
-will have to be adjusted accordingly.
-
-The value should be one that adjusts the incoming data to be in bytes
-format; for example, incoming data in Kilobytes would need a base of
-1024 to be converted properly to bytes, as there are 1024 bytes in
-each Kilobyte.
-
-=item B<-k>
-
-Overrides B<-b> and treats the incoming data as if in Kilobytes.
-
-=item B<-M>
-
-Treat incoming data as if in Megabytes.
-
-=item B<-G>
-
-Treat incoming data as if in Gigabytes.
-
-=item B<-m> I<regex>
-
-Optional perl regex to specify what in the incoming data should be
-operated on; the default of digit runs of four or more characters
-should be reasonable in most cases.
-
-Your regex should match integers of some kind; otherwise, the script
-will generally do nothing with your data and not print any warnings.
-If you are matching numbers inside of a more complicated regex, you
-will need to put parentheses around the number you want changed, and
-use non-capturing parentheses for preceding items, as only $1 is
-passed to the humanizing routine.  See perlre(1) for more details.
-
-If you leave parentheses out of your regex, they will be added around
-it by default.  This lets you supply regex like '\d{7,}' and have it
-work, which is the same as saying '(\d{7,})' in this case.
-
-=item B<-r>
-
-Align humanized numbers to the right by padding them with spaces.  Good
-to preserve columns from utilities such as df(1).
-
-=back
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-No known issues.
-
-=head1 TODO
-
-Option to read humanizing prefs from a external location would be a
-nice idea.
-
-=head1 SEE ALSO
-
-perl(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=head1 HISTORY
-
-Inspired from the B<-h> option present in GNU df, which is sorely
-lacking in commercial variants of the same name.  (On the other hand,
-leaving the job of humanizing to an external script is probably more
-inline with the Unix philosophy of filters.)
-
-=cut

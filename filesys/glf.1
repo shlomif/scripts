@@ -1,0 +1,36 @@
+.Dd December  7 2016
+.Dt GLF 1
+.nh
+.Os
+.Sh NAME
+.Nm glf
+.Nd get latest file
+.Sh SYNOPSIS
+.Nm glf
+.Op Fl e Ar exclude-regex
+.Op file-regex
+.Op Ar directory
+.Sh DESCRIPTION
+.Nm
+gets the most recently modified file in the given directory, matching
+all file and using the current working directory by default.
+Options:
+.Bl -tag -width Ds
+.It Fl e Ar exclude-regex
+A regular expression that will be used to exclude otherwise
+matching files.
+.El
+.Sh EXIT STATUS
+.Ex -std glf
+An exit code of 2 indicates that no latest file was found.
+.Sh EXAMPLES
+Get the latest lilypond file, minus sub-part files that use a
+.Pa piece.subpart.ly
+convention.
+.Pp
+.Dl $ Ic glf -e '\.[^.]+\.ly$' '\.ly$'
+.Sh SEE ALSO
+.Xr find 1 ,
+.Xr ls 1
+.Sh AUTHOR
+.An Jeremy Mates

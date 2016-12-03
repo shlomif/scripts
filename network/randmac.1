@@ -47,6 +47,8 @@ flags, the default is to generate a public, non-multicast address.
 sets the private MAC bit (very unlikely to be assigned by IEEE, but
 see below).
 .El
+.Sh EXIT STATUS
+.Ex -std
 .Sh EXAMPLES
 Public random 48-bit MAC.
 .Pp
@@ -74,7 +76,6 @@ afterwards to workaround this limitation, for example to generate a
 random filename for use under the pxelinux.cfg directory:
 .Pp
 .Dl $ Ic randmac -p XX-XX-XX-XX-XX-XX \&| sed 's/^/01-/'
-.Pp
 .Sh RUMINATIONS
 A digression on bits, the contents of out.txt as provided by IEEE, and
 IP multicast specifics follows.
@@ -110,9 +111,6 @@ IPv4 broadcast sets all ones (low odds of randomly rolling if given all
 XXs); IPv4 multicast uses a prefix of 01:00:5e, and IPv6 multicast the
 prefix 33:33. This tool at present takes no effort not to generate
 something inside these various ranges.
-.Pp
-.Sh EXIT STATUS
-.Ex -std
 .Sh SEE ALSO
 .Xr ifconfig 8
 on OpenBSD can randomize the MAC address.

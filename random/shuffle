@@ -6,16 +6,7 @@
 # streaming over the input, similar to "print random line from file?"
 # (shuf, apparently, if you have that toolset)
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-
-# read from file(s) on command line, or stdin via <>.
-my @input = <>;
+my @input = readline;
 
 die "error: no data supplied to shuffle\n" unless @input;
 
@@ -32,5 +23,13 @@ sub fisher_yates_shuffle {
         my $j = int rand( $i + 1 );
         next if $i == $j;
         @$array[ $i, $j ] = @$array[ $j, $i ];
+    }
+}
+
+END {
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
     }
 }

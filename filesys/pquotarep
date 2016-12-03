@@ -8,14 +8,6 @@ use warnings;
 
 use Data::Dumper;
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-
 my ( $data, $cur_filesys, $cur_type );
 
 while ( readline *STDIN ) {
@@ -76,3 +68,12 @@ while ( readline *STDIN ) {
 }
 
 #print Dumper $data;
+
+END {
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
+}
+

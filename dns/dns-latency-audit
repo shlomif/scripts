@@ -55,7 +55,7 @@ exit 0;
 
 sub print_help {
     warn <<"HELP";
-Usage: $0 --queryhost=host [--querytype=A] dnsip1 [dnsip2 ..]
+Usage: dns-latency-audit --queryhost=host [--querytype=A] dnsip1 [dnsip2 ..]
 
 Keep tabs on DNS request latency.
 HELP

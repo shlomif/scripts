@@ -1,306 +1,82 @@
 #!/usr/bin/env perl
 #
-# Replays logs, simulating the time delays present in the source data.
-# Only supports the standard Unix syslogd(8) format at present. Run
-# perldoc(1) on this script for additional documentation.
+# Replays logs with simulated delays.
 
 use strict;
 use warnings;
+use Getopt::Long qw(GetOptions);
+use Time::HiRes qw(sleep);
 
-use POSIX qw(strftime);
-use Time::Local qw(timelocal);
-use Time::HiRes qw(sleep gettimeofday tv_interval);
+my $previous_epoch;
+my $randomness = -1;
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
+GetOptions(
+    'help|h|?'        => \&emit_help,
+    'keeptimestamp|k' => \my $Flag_Keep_Timestamp,
+    'mindelay|m=f'    => \my $Flag_Min_Delay,
+    'maxdelay|M=f'    => \my $Flag_Max_Delay,
+    'speedup|f=f'     => \my $Flag_Speedup,
+    'startdelay|s=f'  => \my $Flag_Start_Delay,
+    'random|r=f'      => sub {
+        $previous_epoch = time();
+        $randomness     = $_[1];
+    },
+) or exit 65;
 
-use Getopt::Std;
-my %opts;
-getopts 'h?dr:f:o:s:', \%opts;
+$Flag_Min_Delay = 0  if !defined $Flag_Min_Delay;
+$Flag_Max_Delay = ~0 if !defined $Flag_Max_Delay;
 
-print_help() if exists $opts{h} or exists $opts{'?'};
+$Flag_Speedup = 1 if !defined $Flag_Speedup or $Flag_Speedup <= 0;
 
-my ( %previous_clock, %previous_epoch, $random_seed, $speed_factor );
+sleep $Flag_Start_Delay if defined $Flag_Start_Delay and $Flag_Start_Delay > 0;
 
-# enable debugging output
-my $DEBUG;
-if ( exists $opts{d} ) {
-    $DEBUG = 1;
-} else {
-    $DEBUG = 0;
-}
-
-# increase playback speed
-if ( exists $opts{f} and defined $opts{f} and $opts{f} > 1 ) {
-    $speed_factor = $opts{f};
-} else {
-    $speed_factor = 1;
-}
-
-# use random seed to determine delay for next log entry
-if (    exists $opts{r}
-    and defined $opts{r}
-    and $opts{r} > 0 ) {
-
-    $random_seed = $opts{r};
-    $previous_epoch{random} = time;
-}
-
-# use custom output file
-if ( exists $opts{o} ) {
-    open STDOUT, '>', $opts{o}
-      or die "error: could not open: errno=$!, file=$opts{o}\n";
-}
-
-# leading delay (good if need time to get something else running)
-if ( exists $opts{s} and defined $opts{s} and $opts{s} > 0 ) {
-    sleep $opts{s};
-}
-
-# force flush on output for better replay of logs (under modern Perl,
-# instead use STDOUT->autoflush(1))
+# unbuffer STDOUT regardless of where it is going (see setbuf(3) for the
+# underlying details of buffering on unix). Less efficient, but more
+# suitable to the needs of timing specific log replay.
 $| = 1;
 
-while (<>) {
-    chomp;
+shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
+while (readline) {
+    my ($epoch) = $_ =~ m/^([^ ]+) /;
+    s/// if !$Flag_Keep_Timestamp;
 
-    my ( $rawtime, $suffix ) = $_ =~ m/^ (\w{3} \s\s? \d\d? \s [\d:]{8}) (.*) $/x;
+    # assume that lines without a timestamp belong to some sort of
+    # multiline logspam (e.g. Java stack vomits); send those through
+    # directly to replicate the log experience of such a dump
+    next if !defined $epoch or $epoch !~ m/^(?:[0-9]+\.?|\.[0-9])[0-9]*$/;
 
-    # WindowServer spams system.log with multi-line entries :( but
-    # probably should check for valid input, regardless
-    if ( !defined $rawtime or !defined $suffix ) {
-        warn "notice: could not parse date and message from line $.: $_\n";
-        next;
-    }
+    $epoch = $previous_epoch + rand $randomness if $randomness > 0;
 
-    # multiple log sources may have different local times, so track time
-    # per source (I try to set UTC everywhere to help avoid this and other
-    # problems with local timezones)
-    my ($logsource) = $suffix =~ m/^\s*(\S+)/;
+    if ( defined $previous_epoch ) {
+        my $delay = $epoch - $previous_epoch;
 
-    my $epoch;
-    if ( defined $random_seed ) {
-        $logsource = 'random';
-        $epoch     = $previous_epoch{$logsource} + rand $random_seed;
-    } else {
-        $epoch = syslog_to_epoch($rawtime);
-    }
-
-    if ( defined $previous_epoch{$logsource} ) {
-        my $delay = ( $epoch - $previous_epoch{$logsource} ) / $speed_factor;
-
-        # sanity check - if negative for the source (daylight savings time
-        # wobble? ntpdate(8) or time(1) yanking time to new value?) use a
-        # random positive delay (or no delay).
+        # KLUGE around a negative delta: daylight savings time wobble?
+        # Logs with different timezones in the input? ntpdate(8) or
+        # time(1) yanking time to new value? Virt clock skew? Mmm pie.
         if ( $delay < 0 ) {
-            $delay = ( defined $random_seed ) ? rand( $random_seed || 3 ) : 0;
+            $delay = rand 3.14;
+            undef $epoch;
         }
 
-        # Sleep for the $delay time minus how much clock time we've already
-        # spent since we last saw this $logsource. This can happen due to
-        # buffering or network delays somewhere in a forwarding chain of
-        # syslog collector servers: device -> server1 -> server2 -> logfile
-        # and can be significant (tens of seconds) depending on the buffer sizes
-        if ( $epoch != $previous_epoch{$logsource} ) {
-            if ( defined $previous_clock{$logsource} ) {
-                my $now = gettimeofday();
-                my $already_spent = tv_interval( [ $previous_clock{$logsource} ], [$now] );
-                $DEBUG
-                  && warn "... already $already_spent since last $logsource on "
-                  . epoch_to_str( $previous_epoch{$logsource} ) . " (at "
-                  . epoch_to_str( $previous_clock{$logsource} ) . ")\n";
-                if ( $already_spent > $delay ) {
-                    # we've fallen behind; catch up ASAP
-                    $delay = 0;
-                } else {
-                    $delay -= $already_spent;
-                }
-            }
-        }
+        $delay /= $Flag_Speedup;
+        $delay = $Flag_Min_Delay if $delay < $Flag_Min_Delay;
+        $delay = $Flag_Max_Delay if $delay > $Flag_Max_Delay;
 
-        if ( $delay > 0 ) {
-            $DEBUG && warn "... sleep $delay \n";
-            sleep $delay;
-        }
-
+        sleep $delay;
     }
 
-    # save the *current* time that we first saw this timestamp in the logs
-    # but not subsequent times for the same timestamp
-    my $previous = $previous_epoch{$logsource} || 0;
-    if ( $epoch != $previous ) {
-        $previous_clock{$logsource} = gettimeofday();
-        $DEBUG
-          && warn "... clock = "
-          . epoch_to_str( $previous_clock{$logsource} )
-          . " for $logsource on "
-          . epoch_to_str($epoch) . "\n";
-    }
+    $previous_epoch = $epoch;
 
-    $previous_epoch{$logsource} = $epoch;
-
-    # original string, or rework with new timestamp based on the
-    # current time.
-    if ($random_seed) {
-        print epoch_to_str($epoch), $suffix, $/;
-    } else {
-        print $_, $/;
-    }
+} continue {
+    print;
 }
 
-sub epoch_to_str {
-    # epoch may have .123 microseconds (squid logs), so whack that off
-    strftime "%b %d %H:%M:%S", localtime( int $_[0] || 0 );
-}
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: replay-log [options] [files|-]
 
-# convert default syslog timestamp into epoch seconds. Uses current
-# year, as syslog does not record the year (nor the timezone, but that's
-# another rant). NOTE this whole mess might profitably be replaced with
-# use POSIX::strptime qw/strptime/
-sub syslog_to_epoch {
-    my $date = shift;
-    my $epoch;
+Replays logs with simulated delays.
 
-    my %month_map;
-    @month_map{qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)} = 0 .. 11;
-
-    my ( $month, $day, $hour, $min, $sec ) =
-      $date =~ m/^(\w{3}) \s\s? (\d\d?) \s (\d\d):(\d\d):(\d\d)/x;
-    $epoch = timelocal $sec, $min, $hour, $day, $month_map{$month},
-      1900 + (localtime)[5];
-
-    return $epoch;
-}
-
-sub print_help {
-    warn <<"HELP";
-Usage: $0 [-o output-file] [-f factor] [-r random-seed] < input-file
-
-Replays logs, simulating the time delays present in the source data.
-
-Options:
-  -h/-?  Display this message.
-
-  -o ff  Write output to this file instead of standard out.
-  
-  -f nn  Numeric factor to speed replay up by, such as 3600.
-  -r nn  Specify random seed to rand() for random replay speed.
-  -s nn  Sleep this long before starting.
-
-  -d     Enable debugging output.
-
-Run perldoc(1) on this script for additional documentation.
-
-HELP
+END_USAGE
     exit 64;
 }
-
-__DATA__
-
-=head1 NAME
-
-replay-log - replays logs with simulated time delays
-
-=head1 SYNOPSIS
-
-Replay logs from C</var/log/messages> (may take some time!):
-
-  $ replay-log </var/log/messages
-
-A three second random seed causes faster playback:
-
-  $ </var/log/messages replay-log -r 3
-
-As does using a higher replay factor:
-
-  $ replay-log -f 3600 </var/log/messages
-
-Send C<sshd> logs to a named pipe, read them with C<sec.pl>:
-
-  $ mkfifo logfile
-  $ grep sshd </var/log/messages | replay-log -f 1000 -o logfile &
-  $ sec.pl --conf=sshd.conf --input=logfile
-
-=head1 DESCRIPTION
-
-=head2 Overview
-
-Replays log data, simulating the time delays of the log data. Faster
-playback possible via the random seed and factor options. Good for
-replaying logs to tools such as C<swatch> or SEC:
-
-http://swatch.sourceforge.net/
-
-http://kodu.neti.ee/~risto/sec/
-
-Only supports Unix syslogd(8) data at present.
-
-=head2 Normal Usage
-
-  $ replay-log [-o output-file] [-f factor] [-r random-seed] < input-file
-
-See L<"OPTIONS"> for details on the command line switches supported.
-
-Log data is read from standard input, and sent to standard output,
-unless a custom output file is specified. Errors or warnings (e.g. the
-inability to parse a log line) will appear on standard error.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note about the script.
-
-=item B<-o> I<filename>
-
-Send output to I<filename> instead of standard out.
-
-=item B<-r> I<random-seed>
-
-Use I<random-seed> as the random seed to C<rand()>; logs will playback
-using a random delay (in seconds, floating point) based on the seed; the
-timestamp in the message will be ignored.
-
-=item B<-f> I<factor>
-
-Speed playback of logs. I<factor> must be a number greater than one;
-higher values lead to faster replays.
-
-=item B<-s> I<leading-sleep>
-
-Sleep I<leading-sleep> seconds before replaying any logs.
-
-=back
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-Only supports Unix syslogd(8) data at present. Output could be formatted
-in different ways and offer better control of timestamp display.
-
-=head1 SEE ALSO
-
-perl(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-plus patches from Dave Caplinger
-
-=cut

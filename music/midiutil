@@ -18,12 +18,12 @@ my %actions = (
 );
 my $EXIT_OK = 0;
 
-my $action = shift // die "Usage: $0 <action> <action-args ..>\n";
+my $action = shift // die "Usage: midiutil <action> <action-args ..>\n";
 die "error: no such action: $action\n" if !exists $actions{$action};
 exit $actions{$action}->(@ARGV);
 
 sub handle_decompose {
-    my $filename = shift // die "Usage: $0 decompose midi-file\n";
+    my $filename = shift // die "Usage: midiutil decompose midi-file\n";
 
     my $opus = MIDI::Opus->new(
         {   'from_file'                => $filename,
@@ -46,7 +46,7 @@ sub handle_decompose {
 }
 
 sub handle_dump {
-    my $filename = shift // die "Usage: $0 decompose midi-file\n";
+    my $filename = shift // die "Usage: midiutil decompose midi-file\n";
 
     my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
     $opus->dump( { dump_tracks => 1 } );
@@ -58,7 +58,7 @@ sub handle_dump {
 # what a particular sound font sounds like. (This is perhaps easier than
 # templating the lilypond and then...)
 sub handle_instrumentate {
-    my $filename = shift // die "Usage: $0 nixcc midi-file\n";
+    my $filename = shift // die "Usage: midiutil nixcc midi-file\n";
 
     my $in_opus = MIDI::Opus->new( { 'from_file' => $filename, } );
 
@@ -101,7 +101,7 @@ sub handle_instrumentate {
 # organ work in which case there may be no volume change or pedal
 # effects.)
 sub handle_nixcc {
-    my $filename = shift // die "Usage: $0 nixcc midi-file [midi-file-out]\n";
+    my $filename = shift // die "Usage: midiutil nixcc midi-file [midi-file-out]\n";
     my $outfile  = shift // $filename;
 
     my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );

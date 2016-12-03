@@ -17,15 +17,15 @@
 use strict;
 use warnings;
 
-my $group = shift // die "Usage: $0 group file|-\n";
+my $group = shift // die "Usage: groupaudit group file|-\n";
 my $getgroup =
   ( $group =~ m/^[0-9]+$/ ) ? sub { getgruid(shift) } : sub { getgrnam(shift) };
 
 my ( $grname, $members ) = ( $getgroup->($group) )[ 0, -1 ];
-die "$0: no such group '$group'\n"
+die "groupaudit: no such group '$group'\n"
   if !defined $grname
   or length $grname == 0;
-die "$0: no members for '$group'\n"
+die "groupaudit: no members for '$group'\n"
   if !defined $members
   or length $members == 0
   or $members =~ m/^\s+$/;

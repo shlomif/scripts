@@ -4,26 +4,20 @@
 # particular columns (all by default) and joining by line number. May or
 # may not be faster than using paste(1) and then doing something with
 # those joined columns, elsewhere.
-#
-# Run perldoc(1) on this file for additional documentation.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the same terms as Perl itself.
 
 use 5.14.0;
 use warnings;
-
 use Getopt::Long qw(GetOptions);
 
 GetOptions(
-  'autocol|ac' => \my $Flag_AutoCol,
-  'ifs=s'      => \my $Flag_IFS,
-  'ofs=s'      => \my $Flag_OFS,
-  'rs=s'       => \my $Flag_RS,
-  'help|h|?'   => \&print_help,
-) or exit 64;
+    'autocol|ac' => \my $Flag_AutoCol,
+    'help|h|?'   => \&emit_help,
+    'ifs=s'      => \my $Flag_IFS,
+    'ofs=s'      => \my $Flag_OFS,
+    'rs=s'       => \my $Flag_RS,
+) or exit 65;
 
-print_help() if !@ARGV;
+emit_help() if !@ARGV;
 
 $Flag_IFS //= ' ';
 $Flag_OFS //= ' ';
@@ -37,82 +31,83 @@ my @fhs;
 my $seen_stdin = 0;
 
 for my $arg (@ARGV) {
-  # "file" (no spec) or "file:" (no spec but colon) or "file:spec"
-  # where no spec means "print all columns and do not preserve column
-  # positions as will not try to guess that"
-  my ( $file, $spec );
-  if ( $arg =~ m/^([^:]+)$/ ) {
-    $file = $1;
-  } elsif ( $arg =~ m/^(.+):([^:]*)$/ ) {
-    $file = $1;
-    $spec = $2;
-  }
-  die "could not parse file from '$arg'\n" if !defined $file;
+    # "file" (no spec) or "file:" (no spec but colon) or "file:spec"
+    # where no spec means "print all columns and do not preserve column
+    # positions as will not try to guess that"
+    my ( $file, $spec );
+    if ( $arg =~ m/^([^:]+)$/ ) {
+        $file = $1;
+    } elsif ( $arg =~ m/^(.+):([^:]*)$/ ) {
+        $file = $1;
+        $spec = $2;
+    }
+    die "could not parse file from '$arg'\n" if !defined $file;
 
-  my $fh;
-  if ( $file eq '-' and !$seen_stdin ) {
-    $fh         = \*STDIN;
-    $seen_stdin = 1;
-  } else {
-    open $fh, '<', $file or die "could not open $file: $!\n";
-  }
-  push @fhs, [ $fh, defined $spec ? specify($spec) : undef ];
+    my $fh;
+    if ( $file eq '-' and !$seen_stdin ) {
+        $fh         = \*STDIN;
+        $seen_stdin = 1;
+    } else {
+        open $fh, '<', $file or die "could not open '$file': $!\n";
+    }
+    push @fhs, [ $fh, defined $spec ? specify($spec) : undef ];
 }
 
 my $have_fhs = @fhs;
+
 while ($have_fhs) {
-  my $pad_col = 0;
-  for my $i ( 0 .. $#fhs ) {
-    if ( defined $fhs[$i]->[0] ) {
-      my $line = readline $fhs[$i]->[0];
-      if ( !defined $line ) {
-        # EOF on an input file
-        $fhs[$i]->[0] = undef;
-        $have_fhs--;
-        $pad_col += @{ $fhs[$i]->[1] } if defined $fhs[$i]->[1];
-        next;
-      }
+    my $pad_col = 0;
+    for my $i ( 0 .. $#fhs ) {
+        if ( defined $fhs[$i]->[0] ) {
+            my $line = readline $fhs[$i]->[0];
+            if ( !defined $line ) {
+                # EOF on an input file
+                $fhs[$i]->[0] = undef;
+                $have_fhs--;
+                $pad_col += @{ $fhs[$i]->[1] } if defined $fhs[$i]->[1];
+                next;
+            }
 
-      # Complicated due to not wanting to print the empty columns if
-      # there's nothing else on the line to print (works around getting
-      # an ultimate blank line that messes up the shell prompt)
-      if ($pad_col) {
-        print( ($Flag_OFS) x $pad_col );
-        $pad_col = 0;
-      }
+            # Complicated due to not wanting to print the empty columns
+            # if there's nothing else on the line to print (works
+            # around getting an ultimate blank line that messes up the
+            # shell prompt)
+            if ($pad_col) {
+                print( ($Flag_OFS) x $pad_col );
+                $pad_col = 0;
+            }
 
-      chomp $line;
-      my @fields = split /$Flag_IFS/, $line;
+            chomp $line;
+            my @fields = split /$Flag_IFS/, $line;
 
-      # Set field count from the first line of input (may cause
-      # subsequent uninit warnings if the number of columns then drops)
-      if ( $Flag_AutoCol and !defined $fhs[$i]->[1] ) {
-        $fhs[$i]->[1] = [ 0 .. $#fields ];
-      }
+            # Set field count from the first line of input (may cause
+            # subsequent uninit warnings if the number of columns
+            # then drops)
+            if ( $Flag_AutoCol and !defined $fhs[$i]->[1] ) {
+                $fhs[$i]->[1] = [ 0 .. $#fields ];
+            }
 
-      if ( defined $fhs[$i]->[1] ) {
-        print join( $Flag_OFS, @fields[ @{ $fhs[$i]->[1] } ] );
-      } else {
-        print join( $Flag_OFS, @fields );
-      }
-      print $Flag_OFS if $i != $#fhs;
+            if ( defined $fhs[$i]->[1] ) {
+                print join( $Flag_OFS, @fields[ @{ $fhs[$i]->[1] } ] );
+            } else {
+                print join( $Flag_OFS, @fields );
+            }
+            print $Flag_OFS if $i != $#fhs;
 
-    } elsif ( defined $fhs[$i]->[1] ) {
-      $pad_col += @{ $fhs[$i]->[1] };
+        } elsif ( defined $fhs[$i]->[1] ) {
+            $pad_col += @{ $fhs[$i]->[1] };
+        }
     }
-  }
-  print $Flag_RS if $have_fhs;
+    print $Flag_RS if $have_fhs;
 }
-
-exit 0;
 
 ########################################################################
 #
 # SUBROUTINES
 
-sub print_help {
-  warn <<"HELP";
-Usage: stitch [--ac] [--ifs=s] [--ofs=s] [--rs=s] file[:spec] [file[:spec] ...]
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: stitch [--ac] [--ifs=s] [--ofs=s] [--rs=s] file[:spec] [file[:spec] ..]
 
 Joins columns from multiple input files.
 
@@ -121,153 +116,43 @@ Joins columns from multiple input files.
   --ofs=s           Output field separator (" ")
   --rs=s            Output record separator ("\n")
 
-The file must be a filename, or - for standard input (once). The optional
-column specification must consist of columns to select (numbers, commas,
-and .. for a range), and for stdin requires the getopt(3) guard, e.g.
+The file must be a filename, or - for standard input (once). The
+optional column specification must consist of columns to select
+(numbers, commas, and .. for a range), and for stdin requires the
+getopt(3) guard, e.g.
 
   ... | stitch -- -:1,2,5..9 foo:3
 
 To select the first, second, and fifth through ninth columns of stdin
 followed by the third column from the file 'foo'.
 
-Run perldoc(1) on this program for additional documentation.
-
-HELP
-  exit 64;
+END_USAGE
+    exit 64;
 }
 
 # Parse 1,2,3,5..9 type input into Perl array indices
 sub specify {
-  my $spec = shift;
-  my @indices;
+    my $spec = shift;
+    my @indices;
 
-SPEC: {
-    if ( $spec =~ m/\G(\d+)\.\.(\d+),?/acg ) {
-      push @indices, $1 .. $2;
-      redo SPEC;
+  SPEC: {
+        if ( $spec =~ m/\G(\d+)\.\.(\d+),?/acg ) {
+            push @indices, $1 .. $2;
+            redo SPEC;
+        }
+        if ( $spec =~ m/\G(\d+),?/acg ) {
+            push @indices, $1;
+            redo SPEC;
+        }
+        if ( $spec =~ m/\G(.)/cg ) {
+            warn "unknown character '$1' in spec '$spec'\n";
+            exit 65;
+        }
     }
-    if ( $spec =~ m/\G(\d+),?/acg ) {
-      push @indices, $1;
-      redo SPEC;
-    }
-    if ( $spec =~ m/\G(.)/cg ) {
-      warn "unknown character '$1' in spec '$spec'\n";
-      exit 65;
-    }
-  }
 
-  # Assume user will use awk- or cut-like column numbers from 1, shift
-  # these to perl count-from-zero internally.
-  $_-- for @indices;
+    # Assume user will use awk- or cut-like column numbers from 1, shift
+    # these to perl count-from-zero internally.
+    $_-- for @indices;
 
-  return \@indices;
+    return \@indices;
 }
-
-__END__
-
-#
-
-
-=head1 NAME
-
-stitch - joins columns from multiple input files
-
-=head1 SYNOPSIS
-
-   $ cat a
-   a b c
-   $ cat b
-   1 2 3
-   4 5 6
-   7 8 9
-   $ stitch --ofs=\\t a:2 b:1,3
-   b       1       3
-           4       6
-           7       9
-
-That is, column two from the first file, and columns one and three from
-the second. The range operator C<..> may also be used to select a range
-of columns, e.g. C<1,4..6,8>.
-
-=head1 DESCRIPTION
-
-This program joins columns by line number from multiple input files.
-
-=head1 USAGE
-
-  $ stitch [--ac] [--ifs=s] [--ofs=s] [--rs=s] file[:spec] [file[:spec] ..]
-
-Use C<-> to select columns from standard input; otherwise, specify files
-to read input from, along with the optional column specification (by
-default, all columns will be selected).
-
-This program supports the following command line switches:
-
-=over 4
-
-=item B<--autocol> | B<--ac>
-
-Set the number of columns from the first line of input seen from a
-C<file> if a column specification was not provided for said C<file>.
-Influences empty field padding (which only happens with a column
-specification should a file run short before the others).
-
-=item B<--help> | B<-h> | B<-?>
-
-Prints a brief usage note about the script then exits.
-
-=item B<--ifs>=I<s>
-
-Specify the input field separator (space by default). A C<\t> will be
-expanded to the actual character:
-
-  $ perl -E 'say join("\t", qw/a b c/)' | stitch --ifs=\\t -- -:2
-
-Or, use a regex:
-
-  $ perl -E 'say join("\t", qw/a b c/)' | stitch --ifs='\s+' -- -:2
-
-=item B<--ofs>=I<s>
-
-Output field separator (space by default). Similar expansion done as
-for B<--ifs>, though also C<\n> and C<\r> are allowed.
-
-=item B<--rs>=I<s>
-
-Output record separator (newline by default). Expansion done as
-for B<--ofs>.
-
-=back
-
-=head1 SECURITY
-
-Probably should not be run under elevated privs due to user-supplied
-input to the L<perlfunc/"split"> function.
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this program may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-Passing a user-supplied regex to L<perlfunc/"split"> might be a bit
-sketchy especially if L<sudo(1)> or the like is involved. It might be
-nice to have per-file IFS (so one could split on spaces on stdin, and
-C<:> from C<passwd>), but that would add complications.
-
-=head1 SEE ALSO
-
-awk(1), comm(1), cut(1), join(1), perl(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut

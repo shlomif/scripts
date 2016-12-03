@@ -2,7 +2,7 @@
 #
 # Break out escape codes to see what control sequences are being used e.g.
 # by roguelikes.
-while (<>) {
+while (readline) {
     s/\e/\n\\e/g;    # ESC
     s/\a/\\a/g;      # BEL (used by set-term-title things)
     print;

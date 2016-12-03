@@ -52,6 +52,10 @@ available to
 These could instead be passed in via standard input:
 .Pp
 .Dl % Ic print -l $fpath \&| findin _pgrep -
+.Sh EXIT STATUS
+.Ex -std
+In particular, 2 indicates that no files were found and that no other
+error occurred.
 .Sh EXAMPLES
 List manual pages that begin with
 .Ar ls .
@@ -62,10 +66,6 @@ A contrived example to illustrate the use of
 .Fl 0 .
 .Pp
 .Dl % Ic echo -n /etc$'\e0'/usr \&| findin -0 's*' \&| xargs -0 echo
-.Sh EXIT STATUS
-.Ex -std
-In particular, 2 indicates that no files were found and that no other
-error occurred.
 .Sh SEE ALSO
 .Xr find 1 ,
 .Xr findup 1 ,

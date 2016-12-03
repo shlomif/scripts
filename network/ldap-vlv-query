@@ -22,7 +22,7 @@ GetOptions( 'host|h' => \$host, 'base|b' => \$base );
 $filter = shift;
 
 if ( !defined $host or !defined $base or !$defined $filter ) {
-    warn "Usage: $0 -h host -b searchbase ldapfilter\n";
+    warn "Usage: ldap-vlv-query -h host -b searchbase ldapfilter\n";
     exit 64;
 }
 

@@ -1,150 +1,57 @@
 #!/usr/bin/env perl
 #
 # Finds files with same (or similar) modification times as specified
-# file or user-supplied date. Run perldoc(1) on this script for
-# additional documentation.
+# file (or a user-supplied date).
 
 use strict;
 use warnings;
-
-use Date::Parse qw(str2time);
 use File::Find qw(find);
-use File::Spec ();
+use Getopt::Long qw(GetOptions);
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
+GetOptions(
+    'around|a=s'  => \my $Flag_AroundAbout,
+    'before|b=s'  => \my $Flag_Before,
+    'epoch|e=s'   => \my $Flag_ReferenceEpoch,
+    'file|f=s'    => \my $Flag_ReferenceFile,
+    'help|h|?'    => \&emit_help,
+    'statfield=i' => \my $Flag_StatField,
+) or exit 65;
+
+$Flag_StatField //= 9;    # mtime
+if ( $Flag_StatField < 8 or $Flag_StatField > 10 ) {
+    die "statfield must be one of 8 9 10 (perldoc -f stat)\n";
 }
 
-# what stat() column to read time from (9 mtime, 8 atime, 10 ctime)
-my $TIME_INDEX = 9;
+my ( $min_epoch, $max_epoch, $reference_epoch );
 
-use Getopt::Std qw(getopts);
-my %opts;
-getopts( 'h?f:d:a:b:p:s:q', \%opts );
-
-if ( exists $opts{h} or exists $opts{'?'} or !@ARGV ) {
-    print_help();
-    exit 64;
+if ($Flag_ReferenceFile) {
+    $reference_epoch = ( lstat($Flag_ReferenceFile) )[$Flag_StatField];
+} elsif ($Flag_ReferenceEpoch) {
+    # advanced date parsing: make someone else do it
+    die "epoch must be non-negative integer\n"
+      if $Flag_ReferenceEpoch !~ m/^[0-9]+$/;
+    $reference_epoch = $Flag_ReferenceEpoch;
+} else {
+    $reference_epoch = time();
 }
 
-if ( exists $opts{d} and exists $opts{f} ) {
-    print_help();
-    exit 64;
+if ($Flag_AroundAbout) {
+    my $fudge = duration2seconds($Flag_AroundAbout);
+    $min_epoch = $reference_epoch - $fudge;
+    $max_epoch = $reference_epoch + $fudge;
+}
+if ($Flag_Before) {    # makes AroundAbout "After"
+    my $fudge = duration2seconds($Flag_Before);
+    $min_epoch = $reference_epoch - $fudge;
+    $max_epoch = $reference_epoch unless defined $max_epoch;
 }
 
-if ( !exists $opts{d} and !exists $opts{f} ) {
-    print_help();
-    exit 64;
-}
+@ARGV = '.' if !@ARGV;
+find( \&handle_file, @ARGV );
 
-# epoch value to compare searched files against
-my $base_date;
-
-if ( exists $opts{d} ) {
-    $base_date = $opts{d};
-
-    # treat all numeric as epoch date, otherwise attempt to parse
-    if ( $base_date !~ m/^ \d+ $/x ) {
-        $base_date = str2time($base_date);
-    }
-} elsif ( exists $opts{f} ) {
-    $base_date = ( lstat $opts{f} )[$TIME_INDEX];
-}
-
-if ( !defined $base_date or $base_date !~ m/^ \d+ $/x ) {
-    die "error: could not determine base date\n";
-}
-
-my $skip  = $opts{s} if exists $opts{s};
-my $prune = $opts{p} if exists $opts{p};
-
-# fudge - plus or minus tolerance range
-my ( $fudge, $min_date, $max_date );
-
-if ( exists $opts{a} ) {
-    $fudge    = duration2seconds( $opts{a} );
-    $min_date = $base_date - $fudge;
-    $max_date = $base_date + $fudge;
-}
-if ( exists $opts{b} ) {
-    $fudge    = duration2seconds( $opts{b} );
-    $min_date = $base_date - $fudge;
-    $max_date = $base_date unless defined $max_date;
-}
-
-my $exit_value = 0;
-
-for my $file (@ARGV) {
-    lstat $file;    # populate _ cache for future use
-
-    if ( !-e _ ) {
-        warn "warning: skipping non-existent file: file=$file\n";
-        $exit_value = 102;
-        next;
-    }
-
-    if ( -d _ ) {
-        find { no_chdir => 1, wanted => \&handle_dir }, $file;
-    } else {
-        handle_file( File::Spec->catfile( File::Spec->curdir(), $file ) );
-    }
-}
-
-exit $exit_value;
-
-sub handle_file {
-    my $file = shift;
-
-    my $file_date = ( lstat _ )[$TIME_INDEX];
-
-    if (( defined $fudge and ( $file_date >= $min_date and $file_date <= $max_date ) )
-        or ( $file_date == $base_date ) ) {
-
-        if ( defined $skip ) {
-            my $result = eval "return 1 if (" . $skip . ");";
-
-            if ($@) {
-                chomp $@;
-                die "error: skip eval failure: errno=$@\n";
-            }
-
-            if ($result) {
-                return;
-            }
-        }
-
-        print "$file\n";
-    }
-}
-
-sub handle_dir {
-    if ( defined $prune and -d _ ) {
-        my $result = eval "return 1 if (" . $prune . ");";
-
-        if ($@) {
-            chomp $@;
-            die "error: prune eval failure: errno=$@";
-        }
-
-        if ($result) {
-            $File::Find::prune = 1;
-            return;
-        }
-    }
-
-    handle_file($File::Find::name);
-}
-
-# takes duration such as "2m3s" and returns number of seconds.
 sub duration2seconds {
-    my $duration_str = shift;
-    my $seconds;
+    my ($duration) = @_;
 
-    # how to convert short human durations into seconds
     my %factor = (
         w => 604800,
         d => 86400,
@@ -153,193 +60,39 @@ sub duration2seconds {
         s => 1,
     );
 
-    # assume raw seconds for plain number
-    if ( $duration_str =~ m/^\d+$/ ) {
-        $seconds = $duration_str * 60;
+    my $seconds;
 
-    } elsif ( $duration_str =~ m/^ [wdhms\d\s]+ $/x ) {
-
-        # match "2m 5s" style input and convert to seconds
-        while ( $duration_str =~ m/ (\d+) \s* ([wdhms]) /gx ) {
+    if ( $duration =~ m/^[0-9]+$/ ) {
+        $seconds = $duration * 60;    # default minutes for this app
+    } else {
+        while ( $duration =~ m/([0-9]+)([smhdw])/g ) {
             $seconds += $1 * $factor{$2};
         }
-    } else {
-        die "error: unknown characters in duration: value=$duration_str\n";
-    }
-
-    if ( !defined $seconds or $seconds !~ m/^ \d+ $/x ) {
-        die "error: unable to parse duration: value=$duration_str\n";
+        die "could not parse duration '$duration'" if !defined $seconds;
     }
 
     return $seconds;
 }
 
-# a generic help blarb
-sub print_help {
+sub emit_help {
     print <<"END_USAGE";
-Usage: $0 [-d date|-f file] [options] file [file ..]
+Usage: fbd [-e epoch|-f file] [options] file [file ..]
 
-Finds files with similar date to specified date or file.
-
-Options:
-  -h/-?  Display this message.
-
-  -f ff  Read modify time to compare with from specified file.
-  -d dd  Specify modify time manually.
-
-  -a xx  Allow xx seconds or shorthand duration fuzz around lookup time.
-  -b yy  Allow xx seconds before lookup (makes -a "after time")
-
-  -s xx  Perl expression to skip files.
-  -p xx  Perl expression to prune directories from search.
-
-Run perldoc(1) on this script for additional documentation.
+Finds files with a date the same as or similar to specified epoch or file.
 
 END_USAGE
 }
 
-__END__
+sub handle_file {
+    return if $_ eq '.' or $_ eq '..';
 
-=head1 NAME
+    my $file_epoch = ( lstat _ )[$Flag_StatField];
 
-fbd - find files by date
-
-=head1 SYNOPSIS
-
-Find files in /etc with the same modification date as /etc/passwd.
-
-  $ fbd -f /etc/passwd /etc
-
-List files under /tmp and /var/tmp modified within five minutes of the
-current date.
-
-  $ fbd -d "`date`" -a 5m /tmp /var/tmp
-
-=head1 DESCRIPTION
-
-=head2 Overview
-
-Provides means to list files that have or have similar modification
-(mtime) dates set.
-
-=head2 Normal Usage
-
-  $ fbd [-d date|-f file] [options] file [file ..]
-
-See L<"OPTIONS"> for details on the command line switches supported.
-
-At lease one file must be supplied. Each directory will be searched
-recursively. A date to search by must be supplied either from a file
-with B<-f> or manually with B<-d>.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note about the script.
-
-=item B<-f> I<file>
-
-Read modification time from the specified file via the lstat()
-function. Use of lstat() means that if the specified file is a soft
-link, the attributes of the soft link itself will be used, rather than
-the target file.
-
-=item B<-d> I<date>
-
-Uses specified time in epoch or Date::Parse-compatible format for the
-value to compare other files with.
-
-=item B<-a> I<duration>
-
-Without B<-b>, allows files modified within I<duration> to match. The
-duration can either be in raw seconds or a short-hand "2m5s" format.
-This means B<-a> I<3h> without B<-b> will match files modified within
-three hours either side of the target date.  Mnemonic: "around."
-
-With B<-b>, allows files modified I<duration> after the target
-date to match.
-
-The short-hand duration notation supports w for weeks, d for days, h for
-hours, m for minutes, and s for seconds. Multiple groups add together,
-such that 1m1s1s adds up to 62 seconds.
-
-=item B<-b> I<duration>
-
-Allows files modified I<duration> before the target date to match.
-Assuming no B<-a> is specified, B<-b> I<120> would match files modified
-at the target date, or up to 120 seconds before that time.
-
-=item B<-s> I<expression>
-
-Perl expression that will result in the current item (stored in $_)
-being skipped from being listed if the expression turns out to be true
-and the file in question would otherwise match. Example:
-
-  -s '-d _'
-
-Would exclude directories from being matched, via the cached stat
-information using the special _ notation.
-
-=item B<-p> I<expression>
-
-Perl expression that will result in the current directory (stored in
-$_) and anything below that directory being "pruned" from the search.
-
-For example, one can easily prune out all directories lower than the
-one supplied as an argument by using the special $parent variable to
-check against the current directory; essentially, this turns off the
-default recursive behavior of File::Find.
-
-  -p '$parent ne $_'
-
-=item B<-q>
-
-Become less chatty about various non-critical errors.
-
-See L<"BUGS"> for problems with making L<File::Find|File::Find> quiet.
-
-=back
-
-=head1 SECURITY
-
-Disable or remove the -s and -p options if the script is used to perform
-actions via sudo(8) or other user-changing methods, as the options in
-question execute arbitrary perl code.
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-The B<-q> option cannot make File::Find quiet about failures such as
-permission denied on opendir() calls. The most recent versions of
-File:Find in perl 5.8.0 and up request that the following be set:
-
-  no warnings 'File::Find';
-
-However, on previous versions of perl this causes BEGIN compile errors.
-Also, to make the C<no warnings> conditional to the B<-q> option, the
-find() call will need to be scoped under a "does -q exist?" if block.
-
-=head1 SEE ALSO
-
-perl(1), Date::Parse
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut
+    if ((   defined $max_epoch
+            and ( $file_epoch >= $min_epoch and $file_epoch <= $max_epoch )
+        )
+        or ( $file_epoch == $reference_epoch )
+      ) {
+        print "$File::Find::name\n";
+    }
+}

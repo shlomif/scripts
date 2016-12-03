@@ -1,194 +1,135 @@
 #!/usr/bin/env perl
 #
-# Applies XPath expressions to XML documents.
+# Applies XPath expressions to files or URLs.
 
-use strict;
+use 5.14.0;
 use warnings;
-
-use File::Temp ();
-use Getopt::Std;
+use File::Temp qw(tempfile);
+use Getopt::Long qw(GetOptions);
 use LWP::UserAgent ();
 use URI;
 use XML::LibXML               ();
 use XML::LibXML::XPathContext ();
 
-my %opts;
-getopts 'h?p:n:', \%opts;
-help() if exists $opts{h} or exists $opts{'?'};
+GetOptions(
+    'help|h|?'         => \&emit_help,
+    'namespace|ns|n=s' => \my @Der_Namespacen,
+    'parse|p=s'        => \my $Flag_Parse_Method,
+    'subquery|S=s'     => \my $Flag_Subquery,
+    'timeout|t=i'      => \my $Flag_Timeout,
+) or exit 65;
 
-$opts{p} = 'XML' unless exists $opts{p};
+emit_help() if @ARGV < 2;
 
-my $query = shift || help();
-help() unless @ARGV;
+$Flag_Parse_Method //= 'XML';
+my %Parse_Method = (
+    XML  => 'parse_file',
+    HTML => 'parse_html_file',
+    SGML => 'parse_sgml_file',
+);
+$Flag_Timeout //= 30;
+
+my $query = shift;
 
 for my $document (@ARGV) {
-    my $target = URI->new($document);
-    my $file;
+    my ( $fh, $file ) = get_file( URI->new($document), $document );
+    my $xpath = parse_xml( $file, $document );
+    my $nodelist = $xpath->find($query);
 
-    # get document into filehandle
-    # TODO URL lookup needs more error checking
-    if ( $target->scheme ) {
-        $file =
-          ( File::Temp::tempfile( "xpquery.XXXXXXXXXX", DIR => File::Spec->tmpdir, ) )
-          [1];
+    # this may fail if the module interface changes... (or did, hence
+    # the check)
+    my $nlref = ref $nodelist;
+    die "xpquery: want XML::LibXML::NodeList but got '$nlref' instead??\n"
+      if $nlref ne 'XML::LibXML::NodeList';
 
-        my $ua = LWP::UserAgent->new( env_proxy => 1, keep_alive => 0, timeout => 30 );
-        $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
-        my $response = $ua->get( $target->canonical, ':content_file' => $file );
-    } else {
-        $file = $target->canonical;
+    for my $node ( $nodelist->get_nodelist ) {
+        if ($Flag_Subquery) {
+            my $subnodelist = $xpath->find( $Flag_Subquery, $node );
+            for my $subnode ( $subnodelist->get_nodelist ) {
+                say $subnode->toString;
+            }
+        } else {
+            say $node->toString;
+        }
     }
+}
 
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: xpquery [options] xpath-query file-or-url [file-or-url2 ..]
+
+Applies XPath expressions to files or URLs.
+
+  -n ns        Register a custom namespace.
+  -p method    Parse using method XML, HTML, SGML. Default is XML.
+  -S subquery  Subquery to search for at each node found by the query.
+  -t timeout   Timeout for LWP::UserAgent requests.
+
+END_USAGE
+    exit 64;
+}
+
+sub get_file {
+    my ( $location, $document ) = @_;
+    my ( $fh, $file );
+    if ( $location->scheme ) {
+        ( $fh, $file ) = tempfile( "xpquery.XXXXXXXXXX", TMPDIR => 1, UNLINK => 1 );
+        my $ua = make_agent();
+        my $response = $ua->get( $location->canonical, ':content_file' => $file );
+        die "xpquery: could not get '$document': " . $response->status_line . "\n"
+          if !$response->is_success;
+    } else {
+        $file = $location->canonical;
+    }
+    return $fh, $file;
+}
+
+sub make_agent {
+    my $ua = LWP::UserAgent->new(
+        env_proxy  => 1,
+        keep_alive => 0,
+        timeout    => $Flag_Timeout
+    );
+    $ua->agent( $ENV{http_agent} ) if exists $ENV{http_agent};
+    return $ua;
+}
+
+sub parse_xml {
+    my ( $file, $document ) = @_;
     my $parser = XML::LibXML->new;
 
-    # try to allow for crummy *ML documents TODO make these command line
-    # arguments?
+    # try to allow for crummy *ML documents TODO make these command
+    # line options? (probably not, as this TODO has been here for at
+    # least a decade)
     $parser->recover(2);
     $parser->load_ext_dtd(0);
     $parser->expand_entities(0);
     $parser->complete_attributes(0);
     #$parser->pedantic_parser(0);
 
+    my $method = $Parse_Method{ uc $Flag_Parse_Method };
+    die "xpquery: unknown parse method '$Flag_Parse_Method'\n" if !defined $method;
+
     my $doc;
-    eval {
-        my %parse_method = (
-            XML  => 'parse_file',
-            HTML => 'parse_html_file',
-            SGML => 'parse_sgml_file',
-        );
+    eval { $doc = $parser->$method($file) };
+    die "xpquery: could not parse '$document' with '$Flag_Parse_Method': $@\n"
+      if $@;
 
-        my $method = $parse_method{ uc $opts{p} } || 'parse_file';
-        $doc = $parser->$method($file);
-    };
-    if ($@) {
-        die "error: could not parse $document: $@\n";
-    }
-
-    # search resulting tree with XPath
     my $xc = XML::LibXML::XPathContext->new($doc);
-    if ( exists $opts{'n'} ) {
-        for my $spec ( split ' ', $opts{'n'} ) {
-            $xc->registerNs( split ':', $spec, 2 );
+    set_namespace($xc);
+    return $xc;
+}
+
+sub set_namespace {
+    my ($xc) = @_;
+    state @ns;
+    if ( !@ns ) {
+        for my $string (@Der_Namespacen) {
+            for ( split ' ', $string ) {
+                push @ns, [ split ':', $_, 2 ];
+            }
         }
-    }
-
-    my $nodelist = $xc->find($query);
-    my $gotref   = ref $nodelist;
-    if ( $gotref ne 'XML::LibXML::NodeList' ) {
-        die "error: expected XML::LibXML::NodeList but got $gotref instead??\n";
-    }
-    for my $node ( $nodelist->get_nodelist ) {
-        print $node->toString, "\n";
+    } else {
+        $xc->registerNs(@$_) for @ns;
     }
 }
-
-########################################################################
-#
-# SUBROUTINES
-
-sub help {
-    warn <<"HELP";
-Usage: $0 [opts] xpath-query document1 [doc2 ..]
-
-Apply XPath expressions to the specified XML files or URLs specified.
-
-Options:
-  -h/-?  Display this message
-
-  -p xx  Parse using method xx (XML, HTML, SGML). Default is XML.
-  -n xx  Custom namespace to register "prefix:uri p2:u2 ..."
-
-HELP
-    exit 64;
-}
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-
-__DATA__
-
-=head1 NAME
-
-xpquery - apply XPath queries to XML data.
-
-=head1 SYNOPSIS
-
-Return the C<intro> section of a DocBook XML article:
-
-  $ xpquery '/article/section[@id="intro"]' operations-manual.xml
-
-For more information on XPath, see:
-
-http://www.w3.org/TR/xpath
-
-=head1 DESCRIPTION
-
-=head2 Overview
-
-The C<xpquery> script allows quick application of XPath expressions
-to XML data.
-
-=head2 Normal Usage
-
-  $ xpquery [options] xpath-expression files|URLs...
-
-See L<"OPTIONS"> for details on the command line switches supported.
-
-Quote the XPath expression to prevent unwanted shell interpolation of it.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note about the script.
-
-=item B<-p> I<method>
-
-Parse using the specified method: C<XML> (default), C<HTML>, or C<SGML>. 
-
-=item B<-n> I<namespace prefix and uri>
-
-Provide custom namespace to prefix mapping. Accepts a list of space
-separated prefix:uri pairs, for example:
-
-  -n 'a:http://example.org/foo b:http://example.org/bar'
-
-Which can then be referenced in the XPath expression:
-
-  xpquery -n a:http://example.org/foo //a:fooelement foo.xml
-
-=back
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-No known issues.
-
-=head1 SEE ALSO
-
-perl(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut

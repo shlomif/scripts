@@ -17,7 +17,7 @@ GetOptions(
     "subsearch|s=s"        => \my $SUBSEARCH,
     "with-filename|H"      => \my $show_filename,
 );
-my $SEARCH = shift || die "Usage: $0 search-regex\n";
+my $SEARCH = shift || die "Usage: dslogdelve search-regex\n";
 
 $instance_glob = 'slapd-*' unless defined $instance_glob;
 
@@ -35,7 +35,7 @@ $show_filename = 1 if @ARGV > 1;
 $show_filename = 0 if $no_filename;
 
 my ( %conns, $this_conn, $is_match, %printed_filenames );
-while (<>) {
+while (readline) {
     chomp;
 
     $is_match = 0;

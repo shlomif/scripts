@@ -1,0 +1,79 @@
+.Dd December  7 2016
+.Dt PARSEPATH 1
+.nh
+.Os
+.Sh NAME
+.Nm parsepath
+.Nd file path parser and checker
+.Sh SYNOPSIS
+.Nm parsepath
+.Op Fl gru
+.Op Fl ilRv
+.Op Cm +rwx
+.Op Cm user= Ns Ar user
+.Op Cm group= Ns Ar group
+.Op Cm file= Ns Ar path
+.Op Ar
+.Sh DESCRIPTION
+.Nm
+displays file path permissions and ownerships, or checks whether the
+specified user or group has particular access rights to the given files.
+Options (in any order):
+.Bl -tag -width Ds
+.It Fl g
+Use current group(s) if constraining.
+.It Fl i
+Show dev.inode numbers in output.
+.It Fl l
+Chase tail symlink targets.
+.It Fl r
+Attempt to use realpath() to file.
+.It Fl R
+Use real user/group instead of effective if constraining.
+.It Fl u
+Use current user if constraining.
+.It Fl v
+Verbose list of path to file (default if nothing else).
+.It Cm +r +w +x
+Check whether read, write, or execute access possible (constrains the
+permissions).
+.It Cm user= Ns Ar user
+Specify user to constrain to (default: current user).
+.It Cm group= Ns Ar group
+Specify group to constrain to (default: current group).
+.It Cm file= Ns Ar file
+Qualified form of filename, in the event the filename conflicts with
+some other option.
+.It Ar
+Any files given will be checked.
+.El
+.Pp
+The permission flags may by combined;
+.Cm +rwx
+checks that the final
+file can be read, written, and executed. Parent directories leading up
+to the final file are checked for read and execute permission.
+.Sh EXIT STATUS
+.Ex -std parsepath
+.Sh EXAMPLES
+List permissions for the current working directory:
+.Pp
+.Dl $ Ic parsepath
+.Pp
+Check whether the current user has write access to
+.Pa /var/tmp :
+.Pp
+.Dl $ Ic parsepath +w /var/tmp
+.Pp
+Confirm that the
+.Ar www
+group can read and execute a script:
+.Pp
+.Dl $ Ic parsepath +rx /var/www/cgi-bin/printenv group=www
+.Sh SEE ALSO
+.Xr chmod 1 ,
+.Xr chown 1 ,
+.Xr find 1 ,
+.Xr ls 1
+.Sh AUTHOR
+.An Jeremy Mates

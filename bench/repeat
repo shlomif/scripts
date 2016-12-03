@@ -1,0 +1,12 @@
+#!/usr/bin/env perl
+#
+# Something like the ZSH reserved word.
+$repeat = shift;
+die "Usage: repeat how-many-times cmd [cmd args..]\n"
+  if !defined $repeat
+  or !@ARGV
+  or $repeat !~ m/^[0-9]+$/;
+while ( $repeat-- ) {
+    $ENV{N} = ++$n;
+    system(@ARGV) == 0 or die "could not exec @ARGV: $?\n";
+}

@@ -27,7 +27,7 @@ GetOptions(
     'channel|c=i' => \my $Flag_Channel,
     'delay|d=i'   => \my $Flag_Delay,
     'help|h|?'    => sub {
-        warn "Usage: $0 [-n] [-d delay] [-r ros] [-s] [-v vol] [mididev]\n";
+        warn "Usage: midimax [-n] [-d delay] [-r ros] [-s] [-v vol] [mididev]\n";
         exit 64;
     },
     'nanoseconds|nanosec|n' => \my $Flag_NS,

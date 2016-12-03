@@ -25,7 +25,7 @@ my $ALL_NOTES_OFF  = 123;
 GetOptions(
     'channel|c=i' => \my $Flag_Channel,
     'help|h|?'    => sub {
-        warn "Usage: $0 [-c channel] [--notemin=x] [--notemax=y] [-v velocity]\n";
+        warn "Usage: patchaudit [-c channel] [--notemin=x] [--notemax=y] [-v velocity]\n";
         exit 64;
     },
     'notemin=i'           => \my $Flag_Min,

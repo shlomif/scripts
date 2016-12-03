@@ -1,0 +1,22 @@
+.Dd December  3 2016
+.Dt SHUFFLE 1
+.nh
+.Os
+.Sh NAME
+.Nm shuffle
+.Nd shuffles input lines
+.Sh SYNOPSIS
+.Nm shuffle
+.Op Ar file1 file2 ..
+.Sh DESCRIPTION
+.Nm
+shuffles the lines from the given files or from standard input if no
+files are given. This is an in-memory shuffle that uses the Fisher Yates
+algorithm.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr coinflip 1 ,
+.Xr randline 1
+.Sh AUTHOR
+.An Jeremy Mates

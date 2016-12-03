@@ -15,14 +15,6 @@
 
 use Text::Autoformat;
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-
 # these are the default preferences
 $default = { right => 72, squeeze => 1, all => 0 };
 
@@ -39,3 +31,12 @@ $out = autoformat $options;
 chomp $out;
 
 print $out;
+
+END {
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
+}
+

@@ -14,15 +14,7 @@
 # hsort file1 file2 file3
 # ls | hsort
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-
-my @input = <>;
+my @input = readline;
 my %lookup;
 # presize hash based on data
 keys %lookup = scalar @input;
@@ -36,3 +28,12 @@ keys %lookup = scalar @input;
 } = @input;
 
 print @lookup{ sort keys %lookup };
+
+END {
+    # Report problems when writing to stdout (perldoc perlopentut)
+    unless ( close(STDOUT) ) {
+        warn "error: problem closing STDOUT: $!\n";
+        exit 74;
+    }
+}
+

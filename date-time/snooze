@@ -9,7 +9,7 @@ use Term::ReadKey qw(ReadMode);
 
 my %factors = ( s => 1, m => 60, h => 3600, d => 86400 );
 
-my $arg = shift or die "Usage: $0 sleep-time [label]\n";
+my $arg = shift or die "Usage: snooze sleep-time [label]\n";
 my $to_sleep = 0;
 while ( $arg =~ m/([0-9]+)([smhd])?/g ) {
     my $value = $1;

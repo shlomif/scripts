@@ -1,0 +1,32 @@
+.Dd December  3 2016
+.Dt SETSID 1
+.nh
+.Os
+.Sh NAME
+.Nm setsid
+.Nd run a command in a new session
+.Sh SYNOPSIS
+.Nm setsid
+.Ar command
+.Ar arg1
+.Op Ar arg2 ..
+.Sh DESCRIPTION
+.Nm
+forks the given command under a new session via the
+.Xr setsid 2
+system call. Practical uses include disassociating
+.Xr mupdf 1
+from an existing session (e.g. that of
+.Xr vim 1 )
+so that suspending
+.Xr vim 1
+does not then freeze
+.Xr mupdf 1 .
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr mupdf 1 ,
+.Xr playit 1 ,
+.Xr setsid 2
+.Sh AUTHOR
+.An Jeremy Mates

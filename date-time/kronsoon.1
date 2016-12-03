@@ -1,0 +1,85 @@
+.Dd December 10 2016
+.Dt KRONSOON 1
+.nh
+.Os
+.Sh NAME
+.Nm kronsoon
+.Nd run a cron job, soon
+.Sh SYNOPSIS
+.Nm kronsoon
+.Op Cm --gmtime
+.Op Cm --padby= Ns Ar secs
+.Op Ar cron-command|-
+.Sh DESCRIPTION
+.Nm
+generates a cron job with a timestamp in the near future, around a
+minute and a half out by default. This cron job will run once per year.
+Options:
+.Bl -tag -width Ds
+.It Cm --gmtime Op Cm --gmt | Fl g
+Use
+.Cm gmtime
+instead of the default
+.Cm localtime
+call to obtain the near future timestamp. If possible, double check what
+timezone is set in the
+.Pa cron
+environment and the one set while running this command.
+.It Cm --padby= Ns secs Op Fl p Ar secs
+Pad the cron run by this many seconds. The value must be somewhere
+between 60 and 300. Do note that some amount of padding is necessary for
+the cron edits to be saved and
+.Pa cron
+to notice the changes.
+.El
+.Pp
+The
+.Xr at 1
+system would also make sense for "near future" jobs, except where jobs
+must run from cron to replicate environment there. It is also perhaps
+easier to duplicate a line while editing the crontab data over trying to
+figure how to feed that line into
+.Xr at 1 ,
+however closely the environments do match.
+.Sh EXIT STATUS
+.Ex -std kronsoon
+.Sh EXAMPLES
+.Dl 15 2 * * 0 /some/important/job
+.Pp
+With 
+.Xr vi 1
+editing the above cron job line in command mode, type
+.Cm yyp
+.Pp
+.Dl 15 2 * * 0 /some/important/job
+.Dl 15 2 * * 0 /some/important/job
+.Pp
+then delete to the start of the job, here via
+.Cm dt/
+.Pp
+.Dl 15 2 * * 0 /some/important/job
+.Dl /some/important/job
+.Pp
+Then run
+.Nm
+as a line filter by typing
+.Cm :.!kronsoon
+.Pp
+.Dl 15 2 * * 0 /some/important/job
+.Dl 30 18 10 12 * /some/important/job
+.Pp
+And then save. Once the near future job has run, be sure to remove it
+(unless you do want it to run in future years).
+.Pp
+As an aside, two in the morning on a Sunday can be a very, very bad time
+to schedule a cron job, unless you like the risk of that job running
+twice or not at all some weeks of the year. This risk is eliminated by
+eliminating timezones afflicted by daylight savings time.
+.Sh SEE ALSO
+.Xr at 1 ,
+.Xr cron 8 ,
+.Xr crontab 5 ,
+.Xr date 1 ,
+.Xr vi 1
+.Sh AUTHOR
+.An Jeremy Mates

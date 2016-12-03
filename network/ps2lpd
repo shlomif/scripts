@@ -11,7 +11,7 @@ use Sys::Hostname qw(hostname);
 GetOptions(
   'help|h|?' => sub {
     warn <<"END_OF_HELP";
-Usage $0 [options] printer[:port] [file|-]
+Usage ps2lpd [options] printer[:port] [file|-]
 
 Options include:
 
@@ -37,7 +37,7 @@ if ( !defined $Flag_Format ) {
 
 $Flag_Queue = '' if !defined $Flag_Queue;
 
-my $printer_addr = shift or die "Usage: $0 host[:port] [file|-]\n";
+my $printer_addr = shift or die "Usage: ps2lpd host[:port] [file|-]\n";
 my $file = shift;
 
 my $client_host = substr hostname(), 0, 31;    # 31 is per the RFC
@@ -53,7 +53,7 @@ my $sock = IO::Socket::INET->new(
   ( $printer_addr =~ m/:[0-9]+$/ ) ? () : ( PeerPort => 515 ),
   Proto     => 'tcp',
   ReuseAddr => 1,
-) or die "$0: could not connect to $printer_addr: $@\n";
+) or die "ps2lpd: could not connect to $printer_addr: $@\n";
 
 my $control_file = <<"END_CONTROL_FILE";
 H$client_host
@@ -65,7 +65,7 @@ my $control_file_size = length $control_file;
 
 my ( $data_file_size, $fh );
 if ( defined $file and $file ne '-' ) {
-  open $fh, '<', $file or die "$0: could not open '$file': $!\n";
+  open $fh, '<', $file or die "ps2lpd: could not open '$file': $!\n";
   $data_file_size = -s $file;
 } else {
   $fh             = \*STDIN;
@@ -108,9 +108,9 @@ sub sendcmd {
   syswrite $sock, $cmd, length $cmd;
   sysread $sock, $response, 1;
   chomp $cmd;
-  die "$0: unexpected lack of response to '$cmd'\n"
+  die "ps2lpd: unexpected lack of response to '$cmd'\n"
     if !defined $response;
-  die sprintf "$0: not-zero response to '$cmd': %vx\n", $response
+  die sprintf "ps2lpd: not-zero response to '$cmd': %vx\n", $response
     if $response ne "\0";
 }
 

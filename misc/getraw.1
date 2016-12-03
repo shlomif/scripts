@@ -1,0 +1,122 @@
+.Dd December  9 2016
+.Dt GETRAW 1
+.nh
+.Os
+.Sh NAME
+.Nm getraw
+.Nd means to prompt for human interaction
+.Sh SYNOPSIS
+.Nm getraw
+.Op Fl d Ar delay
+.Op Fl o Ar spec
+.Op Fl rn
+.Op Fl S Ar sigstatus
+.Op Fl T Ar timeoutstatus
+.Op Fl t Ar timeout
+.Op Ar prompt message
+.Sh DESCRIPTION
+.Nm
+provides a means to prompt for input; one use would be while performing
+some loop to stop after each step, possibly using the exit code from
+.Nm
+to decide on the subsequent course of action.
+.Pp
+.Nm
+requires access to a terminal device to function. Options:
+.Bl -tag -width Ds
+.It Cm --delay= Ns Ar delay Op Fl d Ar delay
+Fractional seconds to delay before reading the key. Any pending input
+will be drained at the end of this wait. This value ideally should be
+much less than the
+.Cm --timeout
+duration.
+.It Cm --newline Op Fl n
+Emit a newline to the terminal device before exiting.
+.It Cm --return Op Fl r
+Emit a return to the terminal device before exiting.
+.It Cm --sigstatus= Ns Ar int Op Fl S Ar int 
+Exit code to use if
+.Nm
+eats a handled signal. 3 by default.
+.It Cm --spec= Ns Ar spec Op Fl o Ar spec 
+Customize what keys produce what exit codes. See the
+.Qq EXAMPLES
+section for details. By default,
+.Cm yY
+cause a zero return code (success) and
+.Cm nN
+cause a non-zero return code (failure, 2 by default).
+.It Cm --tostatus= Ns Ar int Op Fl T Ar int 
+Exit code to use if
+.Nm
+times out. 4 by default.
+.It Cm --timeout= Ns Ar duration Op Fl t Ar duration 
+Raw seconds or a shorthand 1m3s duration after which
+.Nm
+will time itself out.
+.El
+.Sh EXIT STATUS
+The exit code for
+.Nm
+varies depending on some combination of the specification, key pressed,
+signals, timeout, or other unexpected errors. 0 should be considered
+success, 1 or those from
+.Xr sysexits 3
+some sort of failure, 2 by default indicating
+.Qq no ,
+3 that
+.Nm
+ate a handled fatal signal, and 4 that
+.Nm
+timed out waiting for input.
+.Sh EXAMPLES
+The key to exit status specification consists of a space delimited list of
+.Cm keys:code
+pairs. Space itself may be specified by proceeding it with a backslash, and the various literal
+.Cm \er
+will be converted to return and so forth.
+.Pp
+.Cm *
+is special, and represents the
+.Qq any key ;
+backslash it like space to match that literal character.
+.Pp
+The code should be an exit status; that is, an integer somewhere between
+and 255, inclusive. If left blank the keys will do nothing, which is
+otherwise the default for an unspecified key.
+.Pp
+Actual examples may help.
+.Pp
+.Dl Ic alias anykey="getraw -o '*:0'"
+.Pp
+This sets a shell alias that waits for
+.Qq any key
+to be pressed. If the user is too eager with their key presses, add a
+delay to slow them down.
+.Pp
+.Dl Ic getraw -d 0.25 -o '*:0'
+.Pp
+Message, timeout, and newline handling to keep the terminal clean; also,
+different exit codes for each possible case:
+.Pp
+.Dl Ic getraw -n -t 3 -o 'r:0 *:2' press r within three seconds
+.Dl Ic RET=$?
+.Dl Ic ...
+.Pp
+Probably as close to a killer application this code will get:
+.Pp
+.Dl Ic ... | while read line; do
+.Dl \& \& \& \&  # ... something that requires a review here
+.Dl Ic \& \& \& \&  anykey -d 0.1 -n
+.Dl Ic done
+.Sh SEE ALSO
+.Xr stty 1 ,
+.Xr sysexits 3 ,
+.Xr termios 4 ,
+.Xr Term::ReadKey 3pm
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh HISTORY
+Written based on talk Damian Conway gave about his own
+.Nm 
+program. This version is likely quite different from that.

@@ -23,7 +23,7 @@ my $line_len     = 78;
 
 my ( %freq, %odds );
 
-while (<>) {
+while (readline) {
     s/\R//g;
     m/(.{1,$order})(.)(?{ $freq{$1}->{$2}++ })^/;
 }

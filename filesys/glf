@@ -1,180 +1,41 @@
 #!/usr/bin/env perl
 #
 # Get latest file in a directory by mtime, optionally limiting the files
-# to those that match a particular regular expression, or also
-# optionally reading the filenames from standard input.
-#
-# Run perldoc(1) on this script for additional documentation.
-#
-# Usage:  glf [regex] [directory|-]
-#
-#  glf
-#  glf '^'
-#  glf '^' .                # these are equivalent usages. ^ is the fastest
-#                           # regex to match any filename.
-#
-# NOTE that glf operates differently if the directory is not supplied,
-# depending on whether STDIN is connected to a terminal. Therefore, if
-# glf is run from cron, the full arguments should always be supplied, to
-# ensure that glf does not try to read from STDIN.
+# to those that match a particular regular expression.
 
 use strict;
 use warnings;
-use File::Basename qw(basename);
-use File::Spec ();
 use Getopt::Long qw(GetOptions);
 
-my $DEBUG = 0;
+GetOptions( 'exclude|e=s' => \my $Flag_Exclude ) or exit 64;
 
-GetOptions( 'exclude|e=s' => \my $exclude ) || exit 64;
+my $file_regex = shift // qr/^/;
+my $directory  = shift // '.';
 
-my $file_regex = shift;
-my $directory  = shift;
+opendir( my $dh, $directory )
+  or die "glf: could not open '$directory': $!\n";
 
-if ( !defined $file_regex ) {
-  $file_regex = qr/^/;
-}
-
-# This assumes one wants the current directory if STDIN is connected to
-# a terminal, or assumes the files are being passed in on STDIN
-# otherwise. See NOTE above if glf is run from cron (where STDIN will
-# not be connected to a terminal).
-if ( !defined $directory ) {
-  if ( -t *STDIN ) {
-    $directory = '.';
-  } else {
-    $directory = '-';
-  }
-}
-
-$directory = File::Spec->rel2abs($directory) unless $directory eq '-';
-warn "info: checking directory $directory\n" if $DEBUG;
-
-my $latest_mtime;
 my $latest_file;
+# TODO stat module that supports 'struct timespec' for sub-second
+# resolution on mtime?
+my $latest_mtime = -1;
 
-if ( $directory eq '-' ) {
-  while ( my $file = readline *STDIN ) {
-    chomp($file);
-    warn "info: considering file $file\n" if $DEBUG;
-    handle_file($file);
-  }
-} else {
-  # So that unqualified file paths relative to directory supplied, and
-  # not whatever random directory the CWD inherits. Less expensive than
-  # applying File::Spec->catfile() to each filename?
-  chdir($directory) or die "error: cannot chdir $directory: $!\n";
-
-  my $dir_handle;
-  opendir( $dir_handle, "$directory" )
-    or die "error: cannot open $directory: $!\n";
-
-  while ( my $file = readdir($dir_handle) ) {
-    warn "info: considering file $file\n" if $DEBUG;
-    handle_file($file);
-  }
+while ( my $file = readdir($dh) ) {
+    next if $file eq '.' or $file eq '..';
+    next unless $file =~ m/$file_regex/;
+    if ( defined $Flag_Exclude ) {
+        next if $file =~ m/$Flag_Exclude/;
+    }
+    my $file_mtime = ( stat($file) )[9];
+    if ( $file_mtime > $latest_mtime ) {
+        $latest_mtime = $file_mtime;
+        $latest_file  = $file;
+    }
 }
 
+my $exit_status = 2;
 if ( defined $latest_file ) {
-  print $latest_file, $/;
-  exit 0;
-
-} else {
-  exit 1;
+    print $latest_file, "\n";
+    $exit_status = 0;
 }
-
-sub handle_file {
-  my $file = shift;
-  return unless defined $file and length $file > 0;
-  # STDIN might pass fully qualified paths, though want regex only on
-  # the filename, not any parent directory file names.
-  my $file_basename = basename($file);
-  return unless $file_basename =~ m/$file_regex/;
-  if ( defined $exclude ) {
-    return if $file_basename =~ m/$exclude/;
-  }
-  return unless -f $file;
-
-  my $file_mtime = ( stat($file) )[9];
-
-  warn "info: file $file mtime $file_mtime\n" if $DEBUG;
-
-  if ( !defined $latest_mtime or $file_mtime > $latest_mtime ) {
-    $latest_mtime = $file_mtime;
-    $latest_file  = $file;
-  }
-}
-
-END {
-  # Report problems when writing to stdout (perldoc perlopentut)
-  unless ( close(STDOUT) ) {
-    warn "error: problem closing STDOUT: $!\n";
-    exit 74;
-  }
-}
-
-__END__
-
-=head1 NAME
-
-glf - get latest file
-
-=head1 SYNOPSIS
-
-Get the most recently modified file in the current working directory:
-
-  $ glf
-
-Or limit by regex:
-
-  $ glf '\.midi$'
-
-Or use some other directory besides the current one (searching for any
-file via the always-matches C<^> regex):
-
-  $ glf '^' /etc/
-
-Or pass the filenames in via standard input:
-
-  $ find /var/log -name "mail*" | glf
-
-=head1 DESCRIPTION
-
-Finds the most recently modified file, either in the current directory,
-optionally limited by a Perl regular expression, or from some other
-directory, or from a list of files supplied via standard input.
-
-  $ glf [regex] [directory|-]
-
-Equivalent invocations to list the most recently modified file in the
-current working directory:
-
-  $ glf
-  $ glf '^'
-  $ glf '^' .
-
-NOTE that glf operates differently if the directory is not supplied,
-depending on whether STDIN is connected to a terminal. Therefore, if
-glf is run from cron, the full arguments should always be supplied, to
-ensure that glf does not try to read from STDIN.
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-None.
-
-=head1 SEE ALSO
-
-prelretut(1), perlre(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut
+exit $exit_status;

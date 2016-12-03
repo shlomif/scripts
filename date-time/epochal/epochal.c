@@ -59,13 +59,16 @@ int main(int argc, char *argv[])
      * include the date to skip back to a date in the previous month. */
     When.tm_mday = 1;
 
-    while ((ch = getopt(argc, argv, "f:gh?o:syY:")) != -1) {
+    while ((ch = getopt(argc, argv, "f:gh?lo:syY:")) != -1) {
         switch (ch) {
         case 'f':
             Flag_Input_Format = optarg;
             break;
         case 'g':
             Flag_Global = true;
+            break;
+        case 'l':
+            setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
             break;
         case 'o':
             Flag_Output_Format = optarg;

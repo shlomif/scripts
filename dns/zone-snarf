@@ -43,7 +43,9 @@ my $Exit_Status = 0;
 GetOptions(
     'outputdir|od=s'  => \my $Output_Dir,
     'nameserver|ns=s' => \my $Name_Server
-) or die "Usage: $0 [--od=outputdir] [--ns=nameserver] listofzonesfile ..\n";
+  )
+  or die
+  "Usage: zone-snarf [--od=outputdir] [--ns=nameserver] listofzonesfile ..\n";
 
 if ( defined $Output_Dir ) {
     eval { make_path($Output_Dir) };    # file creates will blow up if this unable
@@ -53,14 +55,14 @@ if ( defined $Output_Dir ) {
 
 my $Resolver = Net::DNS::Resolver->new;
 
-while (<>) {
+while (readline) {
     next if m/^\s*(#|$)/;               # comments, blank lines
 
     chomp;
     my ( $zone, $zns ) = split ' ', $_, 2;
 
     my $ns = defined $zns ? $zns : $Name_Server;
-    die "$0: no nameserver to use for $zone\n" unless defined $ns;
+    die "zone-snarf: no nameserver to use for $zone\n" unless defined $ns;
     $Resolver->nameservers($ns);
 
     my @zone_data = $Resolver->axfr($zone);
@@ -78,7 +80,7 @@ while (<>) {
 
     my $output_file = File::Spec->catfile( $Output_Dir, $zone_fname );
     open my $ofh, '>', $output_file
-      or die "$0: could not write '$output_file' for '$zone': $!\n";
+      or die "zone-snarf: could not write '$output_file' for '$zone': $!\n";
 
     # XXX might go with default order, assuming that is stable?
     foreach my $rr ( sort { $a->string cmp $b->string } @zone_data ) {

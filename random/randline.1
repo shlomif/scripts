@@ -1,0 +1,34 @@
+.Dd December  3 2016
+.Dt RANDLINE 1
+.nh
+.Os
+.Sh NAME
+.Nm randline
+.Nd emits a random line from the input
+.Sh SYNOPSIS
+.Nm randline
+.Ar [file-or-files|-]
+.Sh DESCRIPTION
+.Nm
+emits a random line from up to
+.Dv UINT32_MAX
+worth of lines passed in either by file or from standard input. A
+reservoir-sampling algorithm is used so that the lines need not all be
+stored in memory.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+A trailing newline will always be printed.
+.Pp
+.Dl $ Ic (echo a; echo -n c) \&| randline
+.Pp
+This helps avoid data loss should a buggy shell loop be used:
+.Pp
+.Dl $ Ic echo -n data loss \&| while read line; do echo $line; done
+.Dl $
+.Sh SEE ALSO
+.Xr arc4random_uniform 3 ,
+.Xr coinflip 1 ,
+.Xr shuffle 1
+.Sh AUTHOR
+.An Jeremy Mates

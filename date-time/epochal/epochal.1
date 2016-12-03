@@ -1,4 +1,4 @@
-.Dd November 15 2016
+.Dd December 11 2016
 .Dt EPOCHAL 1
 .nh
 .Os
@@ -8,7 +8,7 @@
 .Sh SYNOPSIS
 .Nm epochal
 .Bk -words
-.Op Fl gsy
+.Op Fl glsy
 .Op Fl Y Ar year
 .Op Fl o Ar output-format
 .Fl f Ar input-format
@@ -21,7 +21,6 @@ attempts to convert timestamps in standard input via a user-supplied
 function to an output format (epoch by default, or customized via the
 .Fl o
 option), and emits the data to standard out.
-.Pp
 Options:
 .Bl -tag -width Ds
 .It Fl f Ar input-format
@@ -36,6 +35,9 @@ can cause issues, and may be best avoided or otherwise worked around.
 .It Fl g
 Multiple timestamps will be searched for and replaced on a line, instead
 of just the first.
+.It Fl l
+Line buffer standard output. The default behavior is detailed in
+.Xr setbuf 3 .
 .It Fl o Ar output-format
 Output format. The default is epoch time via
 .Qq Dv %s .
@@ -52,6 +54,8 @@ Fill in the specified year if the parsed
 .Qq Dv tm_year
 field is zero. Last mentioned y-flag wins.
 .El
+.Sh EXIT STATUS
+.Ex -std epochal
 .Sh EXAMPLES
 Parse 
 .Xr syslogd(8)
@@ -72,6 +76,24 @@ timezone option, or may not support various conversion specifications:
 .Pp
 Though usually converting enough of the timestamp to epoch suffices for
 subsequent awk/perl munging of the data.
+.Pp
+Note that the above will use line-based buffering as the output is to
+a terminal.
+.Nm
+in pipelines may require the
+.Fl l
+flag to enable line-based buffering. See
+.Xr setbuf 3
+for details if this seems surprising.
+.Sh SEE ALSO
+.Xr date 1 ,
+.Xr date2epoch 1 ,
+.Xr epoch2date 1 ,
+.Xr setbuf 3 ,
+.Xr strftime 3 ,
+.Xr strptime 3
+.Sh AUTHOR
+.An Jeremy Mates
 .Sh CAVEATS
 The various 
 .Xr strftime 3
@@ -96,13 +118,3 @@ missing from the
 parse into the zero-by-default struct, for example if the month or day
 of month is not parsed from the input. Patches welcome for such an
 edge case.
-.Sh EXIT STATUS
-.Ex -std epochal
-.Sh SEE ALSO
-.Xr date 1 ,
-.Xr date2epoch 1 ,
-.Xr epoch2date 1 ,
-.Xr strftime 3 ,
-.Xr strptime 3
-.Sh AUTHOR
-.An Jeremy Mates

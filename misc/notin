@@ -38,7 +38,7 @@ my $max_word_len = 0;
 
 @freq{@out_chars} = (1) x @out_chars;
 
-while (<>) {
+while (readline) {
     # NOTE this list of characters should probably agree with @out_chars
     for my $word (m/[a-z]{2,}/g) {
         next if $words{$word}++;

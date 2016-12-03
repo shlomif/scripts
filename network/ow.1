@@ -1,0 +1,103 @@
+.Dd December 12 2016
+.Dt OW 1
+.nh
+.Os
+.Sh NAME
+.Nm ow
+.Nd shortcuts and directory to URL mapping
+.Sh SYNOPSIS
+.Nm ow
+.Op Fl dl
+.Op Fl o Ar method
+.Nm wv
+.Op Fl l
+.Op Fl o Ar method
+.Sh DESCRIPTION
+.Nm
+uses various configuration files to map either shortcuts or the current
+working directory to a fully qualified URL, then passes that URL off to
+what usually is a web browser.
+Options:
+.Bl -tag -width Ds
+.It Cm --directory Op Fl d
+Enables
+.Nm
+to act in
+.Nm wv
+mode, that is, to map the current working directory to a URL and to pass
+that URL to a browser.
+.It Cm --list Op Fl l
+List the URL to standard out and exit instead of calling a browser.
+.It Cm --open= Ns Ar method Op Fl o Ar method
+Use the browser specified by the given
+.Ar method
+to visit the URL. The method may be set within the
+.Pa ~/.ow/browsers
+file or can be a full command to execute. The generated URL will be
+given as the last argument to the
+.Ar method .
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ~/.ow/browsers
+A list of names to browser command mappings, for example
+.Pp
+.Dl copycat sgrax copycat
+.Dl lwp lwp-request -f -t 7 -u -s -E
+.Dl open open --background
+.Dl # for the dict:// KLUGE (see source)
+.Dl openfg open
+.Dl safari open -a Safari --background
+.Dl # must enable_socket
+.Dl xombrero xombrero -n
+.It Pa ~/.ow/dirmap
+A list of directory path fragments to URLs used by the
+.Nm wv
+mode. Matching is done by the longest matching directory first (first
+match wins) and a file:// URL will be generated if no match is found. A
+.Ar %1
+in the URL will be filled in with the directory fragment. Example:
+.Pp
+.Dl co/scripts https://github.com/thrig/scripts/tree/master/%1
+.Pp
+This indicates that if the current working directory contains
+.Pa co/scripts
+then the directory fragment thereunder should be appended to the github
+URL, and then passed off to the browser.
+.It Pa ~/.ow/shortcuts
+Shortcut to URL mapping. Shortcuts that take arguments must be
+followed by a
+.Ar @ .
+For these,
+.Ar %@
+and the numbered
+.Ar %1
+will be filled in from the arguments given on the command line. Some
+examples may help.
+.Pp
+.Dl # Apple Dictionary.app kluge (see source)
+.Dl d@ dict://%1
+.Dl # man -k
+.Dl man@ http://man.openbsd.org/?query=%@&apropos=1
+.Dl # positional arguments direct to a page (ow mansect 1 ls)
+.Dl mansect@ http://man.openbsd.org/man%1/%2.%1
+.Dl # no argument, visit URL directly
+.Dl metacpan    http://search.metacpan.org/
+.Dl # with %@ arguments will be + joined and passed along
+.Dl metacpan@   https://metacpan.org/search?q=%@
+.El
+.Sh EXIT STATUS
+.Ex -std ow
+.Sh EXAMPLES
+.Dl $ Ic fgrep 'g@' ~/.ow/shortcuts
+.Dl g@ https://duckduckgo.com/html?q=%@
+.Dl $ Ic ow -l g web search
+.Dl https://duckduckgo.com/html?q=web+search
+.Dl $
+.Sh SEE ALSO
+.Xr ftp 1 ,
+.Xr lwp-request 1 ,
+.Xr open 1 ,
+.Xr w3m 1
+.Sh AUTHOR
+.An Jeremy Mates

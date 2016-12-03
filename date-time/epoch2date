@@ -1,45 +1,28 @@
 #!/usr/bin/env perl
 #
-# Converts epoch times to human parsable dates. Accepts list of epoch
-# dates (integers) usually via arguments:
-#
-#   epoch2date `perl -E 'say time'`
-#   echo 1059673440 | xargs epoch2date
-#   echo 1059673440 1404433529 | epoch2date -
-#
-# Run perldoc(1) on this file for additional documentation.
+# Converts epoch times to strings perhaps more readable by humans.
 
-use strict;
+use 5.14.0;
 use warnings;
-
 use File::Basename qw(basename);
+use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);
 
-my $basename    = basename $0;
-my $epoch_guess = 0;
+my $prog_name = basename($0);
+my $timefunc = $prog_name eq 'epoch2gmdate' ? \&time_gmt : \&time_loco;
 
-use Getopt::Std;
-my %opts;
-getopts( 'h?f:gl', \%opts );
-print_help() if exists $opts{h} or exists $opts{'?'};
+GetOptions(
+    'format|f=s'           => \my $Flag_Format,
+    'gmtime|g'             => sub { $timefunc = \&time_gmt },
+    'help|h|?'             => \&emit_help,
+    'localtime|locotime|l' => sub { $timefunc = \&time_loco },
+) or exit 65;
 
-if ( not @ARGV or exists $opts{h} or exists $opts{'?'} ) {
-    warn "Usage: $basename [-f strftime] [-g|-l] [epoch [epoch ...]|-]\n";
-    exit 64;
-}
+emit_help() unless @ARGV;
 
-my $format = $opts{f} || '%Y-%m-%d %H:%M:%S %Z';
-$format =~ s/(\\.)/qq!"$1"!/eeg;
+$Flag_Format //= '%Y-%m-%d %H:%M:%S %Z';
+$Flag_Format =~ s/(\\.)/qq!"$1"!/eeg;    # '\n' to "\n", essentially
 
-my $timefunc = sub { localtime $_[0] };
-$timefunc = sub { gmtime $_[0] }
-  if $basename eq 'epoch2gmdate';
-$timefunc = sub { localtime $_[0] }
-  if exists $opts{l};
-$timefunc = sub { gmtime $_[0] }
-  if exists $opts{g};
-
-# but use xargs or the like if there is lots of input
 @ARGV = readline *STDIN if $ARGV[0] eq '-';
 
 for my $entry (@ARGV) {
@@ -47,118 +30,38 @@ for my $entry (@ARGV) {
     for my $epoch ( $entry =~ m/(-?[0-9]+)/g ) {
         # NOTE systemtap apparently uses a microseconds-based epoch
         # (1475682078014325 -> 1475682078 014325) without being sensible
-        # enough to put a dot or something between the elements, sigh.
-        # KLUGE guess which is which
+        # enough to put a dot or something between the elements. Sigh.
+        # KLUGE smart guess which is which
         if ( length $epoch > 11 ) {
-            warn "notice: guess microseconds for $epoch\n" unless $epoch_guess;
+            warn_once("notice: guess microseconds for $epoch\n");
             $epoch /= 1e6;
-            $epoch_guess = 1;
         }
-        print strftime( $format, $timefunc->($epoch) ), "\n";
+        say strftime( $Flag_Format, $timefunc->($epoch) );
     }
 }
 
-sub print_help {
-    warn <<"HELP";
-Usage: $0 [opts] [epoch [epoch ...]|-]
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: $prog_name [options] epoch-numbers|-
 
 Converts unix epoch to human readable dates.
-
-Options:
-  -h/-?   Display this message
 
   -f fmt  strftime(3) format for output date.
 
   -g      Use gmtime() call.
   -l      Use localtime() call (default).
 
-Run perldoc(1) on this script for additional documentation.
-HELP
+END_USAGE
     exit 64;
 }
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
+# loco (crazy) on account of the horrible daylight savings time thing
+sub time_loco { localtime $_[0] }
+sub time_gmt  { gmtime $_[0] }
+
+sub warn_once {
+    state $has_warned;
+    return if $has_warned;
+    warn $_[0];
+    $has_warned = 1;
 }
-
-__END__
-
-=head1 NAME
-
-epoch2date - converts unix epoch to human readable dates
-
-=head1 SYNOPSIS
-
-  $ epoch2date `perl -E 'say time'`
-  $ echo 1059673440 | xargs epoch2date
-  $ echo 1059673440 1404433529 | epoch2date -
-
-  $ epoch2date -g 1404662217
-  $ epoch2date -l 1404662217
-  $ TZ=US/Pacific epoch2date 1404662217
-
-=head1 DESCRIPTION
-
-Converts unix epoch seconds to human readable dates. Will attempt to
-guess if the timestamp appears to be in microseconds.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-f> I<format>
-
-L<strftime(3)> format for output date. Default is something ISO 8601ish.
-
-=item B<-g>
-
-Use the L<gmtime()> function (a.k.a. UTC or Zulu or +0000).
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note.
-
-=item B<-l>
-
-Use the C<localtime> function. This is the default. However, the author
-now sets all systems to use UTC (to avoid the various pitfalls of
-timezones that suffer from Daylight Saving Time), and obtains the local
-time zone when necessary via:
-
-  $ TZ=US/Pacific epoch2date ...
-
-This is explicit (danger! a timezone that wobbles!) and provides for
-better documentation than a short option flag does.
-
-=back
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-No known bugs but probably lots.
-
-=head1 SEE ALSO
-
-L<strftime(3)>
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut

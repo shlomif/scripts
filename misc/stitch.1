@@ -1,0 +1,86 @@
+.Dd December  7 2016
+.Dt STITCH 1
+.nh
+.Os
+.Sh NAME
+.Nm stitch
+.Nd piece together input files
+.Sh SYNOPSIS
+.Nm stitch
+.Op Cm --autocol
+.Op Cm --ifs= Ns Ar sep
+.Op Cm --ofs= Ns Ar sep
+.Op Cm --rs= Ns Ar sep
+.Op Ar file1 Ns Op :spec1
+.Op Ar file2 Ns Op :spec2
+.Op Ar ...
+.Sh DESCRIPTION
+.Nm
+joins columns from input files (as named) or standard input (-) together
+by line. An optional column specification may follow each file argument.
+Options:
+.Bl -tag -width Ds
+.It Cm --autocol
+Set the number of columns from the first line of input from the first
+.Ar file
+if a column specification was not provided with that
+.Ar file .
+Influences empty field padding (which only happens with a column
+specification should a file run short before the others).
+.It Cm --ifs= Ns Ar sep
+Specify the input field separator (space by default).
+.Ar '\et'
+will be expanded to the actual character.
+.It Cm --ofs= Ns Ar sep
+Output field separator (space by default). Similar expansion done as
+for
+.Cm --ifs ,
+though also
+.Ar '\en'
+and
+.Ar '\er'
+are allowed.
+.It Cm --rs= Ns Ar sep
+Output record separator (newline by default). Expansion done as
+for
+.Cm --ofs .
+.El
+.Sh EXIT STATUS
+.Ex -std stitch
+.Sh EXAMPLES
+.Dl $ Ic cat a
+.Dl a b c
+.Dl $ Ic cat b
+.Dl 1 2 3
+.Dl 4 5 6
+.Dl 7 8 9
+.Dl $ Ic (echo i1; echo i2) \&| stitch --ofs=\e\et a:2 b:1,3 -
+.Dl b Ta 1 Ta 3 Ta i1
+.Dl \  Ta 4 Ta 6 Ta i2
+.Dl \  Ta 7 Ta 9 Ta       
+.Dl $
+.Pp
+That is, column two from the first file, and columns one and three from
+the second, plus all columns from standard input. The range
+operator
+.Cm ..
+may also be used to select a range of columns:
+.Cm foofile:1,4..6,8 .
+.Pp
+If selecting specific columns from standard input, the usual
+.Fl -
+guard may be necessary:
+.Pp
+.Dl $ Ic ... | stitch --ac -- -:2,4 ...
+.Sh SEE ALSO
+.Xr comm 1 ,
+.Xr cut 1 ,
+.Xr join 1 ,
+.Xr paste 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh SECURITY CONSIDERATIONS
+Probably should not be run under elevated privileges due to user-supplied
+input being passed to the Perl
+.Cm split
+function.

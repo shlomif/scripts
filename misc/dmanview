@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Copy and preview a man page (e.g. while writing it, install it and
+# review that the docs look good).
+
+set -e
+
+FILE=$1
+if [ -z "$FILE" ]; then
+    echo >&2 "Usage: $0 manfile.1"
+    exit 64
+fi
+
+SECTION=`fdsplit ext "$FILE"`
+if [ -z "$SECTION" ]; then
+    echo >&2 "no section extension from input file '$FILE'"
+    exit 65
+fi
+
+if [ ! -d "$HOME/usr/share/man/man$SECTION" ]; then
+    echo >&2 "notice: mkdir $HOME/usr/share/man/man$SECTION"
+    sleep 1
+    mkdir -p $HOME/usr/share/man/man$SECTION
+fi
+
+cp $FILE $HOME/usr/share/man/man$SECTION
+
+PAGE=`fdsplit root "$FILE"`
+exec man "$SECTION" "$PAGE"

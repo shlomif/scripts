@@ -1,82 +1,38 @@
 #!/usr/bin/env perl
 #
-# Totals up short-hand time durations such as 3h20m. Run perldoc(1) on
-# this file for additional documentation.
+# Totals up short-hand time durations such as 3h20m.
 
-use strict;
+use 5.14.0;
 use warnings;
+use Getopt::Long qw(GetOptions);
+GetOptions(
+    'compact|c' => \my $Flag_Compact,
+    'help|h|?'  => \&emit_help,
+) or exit 65;
 
-# how to convert various time units to seconds
-my %factor = (
-    y => 31536000,
-    M => 2592000,
+my %factors = (
     w => 604800,
     d => 86400,
     h => 3600,
     m => 60,
     s => 1,
 );
+my $factor_char = qr/[smhdw]/;
 
-# tie y, M to current year and month if possible
-eval { require Date::Calc; };
-unless ($@) {
-    my ( $month, $year ) = (localtime)[ 4, 5 ];
-    $year += 1900;
-    $month++;
+my $Time_Sum;
 
-    $factor{y} = Date::Calc::Days_in_Year( $year, 12 ) * $factor{d}
-      or die "error: could not calculate days in year\n";
-    $factor{M} = Date::Calc::Days_in_Month( $year, $month ) * $factor{d}
-      or die "error: could not calculate days in month\n";
-}
-
-my $factors = join q{}, keys %factor;
-
-use Getopt::Std;
-my %opts;
-getopts( 'h?', \%opts );
-print_help() if exists $opts{h} or exists $opts{'?'};
-
-my $duration;
-
-if (@ARGV) {
-    $_ = "@ARGV";
-    parse_line();
-
-    # already have input if stdin closed to tty; read from there if so
-    unless ( -t *STDIN ) {
-        parse_line() while readline *STDIN;
-    }
+if ( !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' ) ) {
+    sumtime() while readline *STDIN;
 } else {
-    parse_line() while readline *STDIN;
+    $_ = "@ARGV";
+    sumtime();
 }
+die "did not parse any duration\n" if !defined $Time_Sum;
 
-sub parse_line {
-  LINE: {
-
-        # match "3h" or "45 m"
-        $duration += $1 * $factor{$2}, redo LINE
-          if /\G(\d+) ?([$factors])(?=\b|\d)/gco;
-
-        # treat unmatched numbers as seconds
-        $duration += $1, redo LINE if /\G(\d+)/gc;
-
-        # skip decimals (TODO warn on them?)
-        redo LINE if /\G\.\d+(?![$factors])/gc;
-
-        # or skip to next interesting bit
-        redo LINE if /\G\D+/gc;
-    }
-}
-
-die "error: no parseable duration found\n"
-  unless defined $duration
-  and $duration =~ /^\d+$/;
-
-print deltatimefmt($duration), "\n";
+say deltatimefmt($Time_Sum);
 
 sub deltatimefmt {
-    my $difference = int(shift);
+    my ($difference) = @_;
 
     return "0s" if $difference == 0;
 
@@ -85,101 +41,43 @@ sub deltatimefmt {
     my $minutes = $difference % 60;
     $difference = ( $difference - $minutes ) / 60;
 
-    #  my $hours = $difference;
     my $hours = $difference % 24;
     $difference = ( $difference - $hours ) / 24;
     my $days  = $difference % 7;
     my $weeks = ( $difference - $days ) / 7;
 
-    # better way to do this?
     my $temp = ($weeks) ? "${weeks}w " : q{};
     $temp .= ($days)    ? "${days}d "    : q{};
     $temp .= ($hours)   ? "${hours}h "   : q{};
     $temp .= ($minutes) ? "${minutes}m " : q{};
     $temp .= ($seconds) ? "${seconds}s"  : q{};
+    $temp =~ tr/ //d if $Flag_Compact;
     return $temp;
 }
 
-sub print_help {
-    warn <<"HELP";
-Usage: $0 [time specifications]
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: sumtime [time-specifications|-]
 
-Totals up short hand time durations.
+Totals up time durations (such as 194) in the short-hand form of 3m14s.
 
-Options:
-  -h/-?  Display this message
-
-Run perldoc(1) on this script for additional documentation.
-HELP
+END_USAGE
     exit 64;
 }
 
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
+sub sumtime {
+    {
+        # shorthand 3m
+        $Time_Sum += $1 * $factors{$2}, redo
+          if /\G(\d+)($factor_char)/acg;
+
+        # raw seconds 180
+        $Time_Sum += $1, redo if /\G(\d+)/acg;
+
+        # skip .decimals (TODO warn about them?)
+        redo if /\G\.\d+/acg;
+
+        # otherwise skip to the next interesting bit
+        redo if /\G\D+/acg;
     }
 }
-
-__END__
-
-=head1 NAME
-
-sumtime - totals up short-hand time durations
-
-=head1 SYNOPSIS
-
-  $ sumtime 27h 71s
-  1d 3h 1m 11s
-
-  $ (echo 1m 2m; echo 3m 4m) | sumtime
-  10m
-
-=head1 DESCRIPTION
-
-Sums up short-hand time durations. Usage:
-
-  $ sumtime [options] [time specifications]
-
-Input is either taken from the data on the command line, or failing
-that, from STDIN.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note.
-
-=back
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-No known bugs.
-
-=head1 TODO
-
-Output formatting, e.g. raw seconds, or ability to select output time
-format (e.g. hours only, and so forth). Ability to set a default input
-factor, e.g. when passing in unadorned hours or minutes.
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut

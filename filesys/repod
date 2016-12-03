@@ -78,7 +78,7 @@ proc git_remote_add {name newurl} {
     if {$oldurl eq ""} {
         set means "add"
     } elseif {$oldurl ne $newurl} {
-        warn "notice: $hostname changes $oldurl to $newurl"
+        warn "notice: $name changes $oldurl to $newurl"
         set means "set-url"
     } else {
         exit

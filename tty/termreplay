@@ -10,7 +10,7 @@ my $ttydev = shift // die "Usage: tty-dev ...\n";
 open my $fh, '>', $ttydev or die "could not open '$ttydev': $!\n";
 $fh->autoflush(1);
 
-while (<>) {
+while (readline) {
     my $orig = $_;
     chomp;
     s/\\e/\e/g;

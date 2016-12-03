@@ -1,297 +1,118 @@
 #!/usr/bin/env perl
 #
 # Alters file names according to Perl expressions, with various other
-# options available. Run perldoc(1) on this file for additional
-# documentation.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the same terms as Perl itself.
+# options available. This program is free software; you can redistribute
+# it and/or modify it under the same terms as Perl itself.
 
 use strict;
 use warnings;
-
-use File::Basename qw/basename dirname/;
-use File::Copy qw/copy move/;
+use File::Basename qw(dirname);
+use File::Copy       ();
 use File::Path::Tiny ();
 use File::Spec       ();
-use Getopt::Long qw/GetOptions/;
+use Getopt::Long qw(GetOptions);
 
-my $MYNAME = basename($0);
-
+Getopt::Long::Configure("bundling");
 GetOptions(
     '0'           => \my $Flag_Null,
     'copy|c'      => \my $Flag_Copy,
     'dry-run|n|p' => \my $Flag_Dry_Run,
-    'help|h|?'    => \&print_help,
+    'help|h|?'    => \&emit_help,
     'mkdir|M'     => \my $Flag_Mkdir,
     'move|m'      => \my $Flag_Move,
     'verbose|v'   => \my $Flag_Verbose,
-) or print_help();
+) or exit 65;
 
 if ( $Flag_Copy and $Flag_Move ) {
-    warn "$MYNAME: error: cannot both copy and move a file\n";
-    print_help();
+    warn "rename: cannot both copy and move a file\n";
+    emit_help();
 }
 
-my $how = 'rename';
+my $how     = \&CORE::rename;
+my $how_str = 'rename';
 if ($Flag_Copy) {
-    $how = 'copy';
+    $how     = \&File::Copy::copy;
+    $how_str = 'copy';
 } elsif ($Flag_Move) {
-    $how = 'move';
+    $how     = \&File::Copy::move;
+    $how_str = 'move';
 }
 
-my $expr = shift;
-if ( !defined $expr ) {
-    warn
-      "$MYNAME: error: need Perl expression (and likely filenames to operate on)\n";
-    print_help();
-}
+my $expr = shift || emit_help();
 
 my $exit_status = 0;
 
 if ( !@ARGV or ( @ARGV == 1 and $ARGV[0] eq '-' ) ) {
-    $/ = "\0" if $Flag_Null;
+    local $/ = "\0" if $Flag_Null;
     while ( readline *STDIN ) {
-        chomp unless $Flag_Null;
+        chomp;
         handle_file();
     }
 } else {
     handle_file() for @ARGV;
 }
 
+exit $exit_status;
+
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: rename [options] perl-expression [file ..]|-
+
+Alters file names according to Perl expressions.
+
+  -0     Assume input on stdin null delimited.
+  -c     Copy instead of rename.
+  -M     Make directories if necessary.
+  -m     Move instead of rename.
+  -n/-p  Dry run (preview changes only).
+  -v     Be verbose.
+
+END_USAGE
+    exit 64;
+}
+
 sub handle_file {
-    # loosen things up to ease off-the-cuff code on command line
+    # loosen things up to ease off-the-cuff code on command line a.k.a.
+    # more than enough rope...
     no strict;
     no warnings;
 
     if ( !-e ) {
-        warn "$MYNAME: notice: skipping '$_' as does not exist\n"
+        warn "rename: skipping '$_' as does not exist\n"
           if $Flag_Verbose;
-        $exit_status = 66;
+        $exit_status = 2;
         return;
     }
 
     my $origfile = $_;
+
     eval $expr;
-    die "$MYNAME: error: unable to eval expression: $@" if $@;
+    die "rename: unable to eval expression: $@\n" if $@;
+
     return if File::Spec->rel2abs($origfile) eq File::Spec->rel2abs($_);
 
-    print join( ' ', $how, $origfile, $_ ), "\n"
+    print "$how_str $origfile $_\n"
       if $Flag_Dry_Run
       or $Flag_Verbose;
+
     return if $Flag_Dry_Run;
 
-    if ( $how eq 'copy' and !-f $origfile ) {
-        # since File::Copy doesn't know what to do with directories (there
-        # is a File::Copy::Recursive module...)
-        warn "$MYNAME: notice: refusing to copy non-file '$origfile'\n";
-        $exit_status = 65;
+    if ( $how_str eq 'copy' and !-f $origfile ) {
+        # since File::Copy doesn't know what to do with directories
+        # (there is a File::Copy::Recursive module...)
+        warn "rename: will not copy non-file '$origfile'\n";
+        $exit_status = 3;
         return;
     }
 
     if ($Flag_Mkdir) {
         my $output_dir = dirname($_);
         File::Path::Tiny::mk($output_dir)
-          or die "$MYNAME: error: could not create path '$output_dir': $!\n";
+          or die "rename: could not create path '$output_dir': $!\n";
     }
 
-    unless ( eval "$how(\$origfile, \$_)" ) {
-        warn "$MYNAME: warning: could not $how '$origfile' to '$_': $!\n";
-        $exit_status = 74;
+    unless ( $how->( $origfile, $_ ) ) {
+        warn "rename: could not $how '$origfile' to '$_': $!\n";
+        $exit_status = 4;
     }
 }
-
-exit $exit_status;
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "$MYNAME: error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-
-sub print_help {
-    warn <<"HELP";
-Usage: $MYNAME [options] Perl-expression [file ..]|-
-
-Alters file names according to Perl expressions.
-
-  -0     Assume input on stdin null delimited
-  -c     Copy instead of rename
-  -h/-?  Display this message
-  -M     Make directories if necessary
-  -m     Move instead of rename
-  -n/-p  Dry run (preview changes only)
-  -v     Be verbose
-
-Run perldoc(1) on this program for additional documentation.
-
-HELP
-    exit 64;
-}
-
-__END__
-
-=head1 NAME
-
-rename - alters file names according to Perl expressions
-
-=head1 SYNOPSIS
-
-Rename all files to end with C<.old>:
-
-  $ rename 's/$/.old/' *
-
-Preview a lower-case conversion of all C<*.C> files:
-
-  $ rename -p 'tr/A-Z/a-z/' *.C
-
-=head1 DESCRIPTION
-
-A file renamer that uses user-supplied Perl expressions to rename files.
-Optionally, the C<copy> or C<move> routines from L<File::Copy> may be
-used instead of the built-in C<rename> function. A preview mode is also
-available, to allow testing of expressions before changes are made.
-
-Note that C<rename> is primarily aimed at dealing with the files in the
-current working directory, given that the C<rename> function does not
-work across filesystem boundaries (nor are any checks done for such
-boundaries; enable the C<move> option if unsure). Renaming parent
-directories before dealing with any files deeper in the filesystem tree
-will not work by default (see L<"EXAMPLES"> for solutions).
-
-The exit status is C<0> if all goes well, or >0 on error. The error
-codes often come from L<sysexits(3)>. C<rename> may not abort in some
-cases if files fail to be handled; the exit status will be non-zero in
-such cases, and standard error will contain message(s) as to which files
-failed for what reasons.
-
-=head1 USAGE
-
-  $ rename [options] expression [file1 ...]|-
-
-If no files are mentioned on the command line (or if the sole filename
-argument is a hyphen), C<rename> will read file names from standard
-input. For example, to change C<.htm> files to C<.html>:
-
-  $ find . -type f -name "*.htm" | rename '$_ .= "l"'
-
-This program supports the following command line switches:
-
-=over 4
-
-=item B<-0>
-
-Assume the file names on standard input are null delimited. Helps
-interoperate with C<find ... -print0> or the like in the event the file
-names contain spaces or other troublesome data.
-
-=item B<-c>
-
-Copy files instead of renaming them, using C<copy> from L<File::Copy>.
-
-=item B<-h> | B<-?>
-
-Prints a brief usage note about the script then exits.
-
-=item B<-M>
-
-Attempts to create a target file path, if necessary. May require B<-c>
-or B<-m>, as C<rename> does not work across filesystem boundaries.
-
-=item B<-m>
-
-Move files instead of renaming them. Uses C<move> from L<File::Copy>.
-
-=item B<-n> | B<-p>
-
-Dry run, no changes will be made.
-
-=item B<-v>
-
-Be verbose.
-
-=back
-
-=head1 EXAMPLES
-
-Remove upper case from all files in the working directory:
-
-  $ rename '$_ = lc' *
-
-Dealing with deep directories full of files to be changed can be tricky,
-especially if the pattern in question is renaming directories, which
-will throw off the rename of deeper files. One solution is to first
-change all the directories, then go after the files. For example, to
-swap out certain characters with C<_> in a deep file tree:
-
-  $ find .   -type d -print0 | rename -0 's{[^A-Za-z0-9./_-]}{_}g'
-  $ find . ! -type d -print0 | rename -0 's{[^A-Za-z0-9./_-]}{_}g'
-
-A find-by-depth file search would also prevent directory rename
-problems, though the invocation of this depends on the flavor of
-L<find(1)>.
-
-=head1 SECURITY
-
-C<rename> must not be allowed to be run under elevated privileges, as it
-accepts and runs arbitrary user-supplied Perl code fragments.
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this program may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-Bugs are left as an exercise to the expression writer.
-
-See the documentation for the C<rename> function being used for any
-relevant warnings or limitations.
-
-=head1 SEE ALSO
-
-L<find(1)>, L<sysexits(3)>
-
-There are a variety of other tools in this space that may better
-suit your needs (or conflict with this program):
-
-=over 4
-
-=item *
-
-C<rename> that ships with RedHat Linux but is totally different from
-this tool.
-
-=item *
-
-C<zmv> of the Z Shell (ZSH).
-
-=back
-
-Another approach is to load a list of filenames and their replacement
-into C<$EDITOR> and then to perform whatever substitutions are necessary
-in that editor. This may suit those more comfortable with their editor
-than the command line. A subsequent program then must apply whatever
-filename changes are necessary, having saved the original filenames
-somewhere, then iterating line-for-line over the original filename list
-and the (presumably but possibly not) altered filenames from the editor.
-
-=head1 AUTHORS
-
-Larry Wall, Daniel V. Klien, Jeremy Mates
-
-=head1 HISTORY
-
-This is a hacked up version of Larry Wall's original C<rename> script
-distributed with perl under the C<eg> directory, improved by Daniel V.
-Klien (copy option), and then wrangled into this form by Jeremy Mates.
-
-=cut

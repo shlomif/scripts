@@ -1,154 +1,97 @@
 #!/usr/bin/env perl
 #
-# Means of prompting where human interaction required.
+# Means to prompt for human interaction.
 
 use strict;
 use warnings;
+use Getopt::Long qw(GetOptions);
+use Term::ReadKey qw(ReadKey ReadMode);
 
-use Term::ReadKey;
+open my $ttyfh, '+<', '/dev/tty' or die "getraw: could not open tty: $!\n";
+# NOTE olden versions of perl may require IO::Handle loaded for this
+$ttyfh->autoflush(1);
 
-my $default_spec = 'Yy:+ Nn:-';
-my $spec;
+Getopt::Long::Configure("bundling");
+GetOptions(
+    'delay|d=f'     => \my $Flag_Delay,
+    'help|h|?'      => \&emit_help,
+    'newline|n'     => \my $Flag_Newline,
+    'return|r'      => \my $Flag_Return,
+    'sigstatus|S=i' => \my $Flag_Signal_Status,
+    'spec|o=s'      => \my $Flag_Spec,
+    'tostatus|T=i'  => \my $Flag_Timeout_Status,
+    'timeout|t=s'   => \my $Flag_Timeout,
+) or exit 65;
 
-# "true" is 0 for shell exits, 1 for "false"
-my $status_map = { '+' => 0, '-' => 1 };
+$Flag_Delay          = -1 if !defined $Flag_Delay;
+$Flag_Signal_Status  = 3  if !defined $Flag_Signal_Status;
+$Flag_Timeout_Status = 4  if !defined $Flag_Timeout_Status;
 
-# by default wait forever
-my $timeout = -1;
+my $keys2exit = parse_spec( defined $Flag_Spec ? $Flag_Spec : 'Yy:0 Nn:2' );
 
-# return value for timeout
-my $timeout_status = 101;
+print $ttyfh "@ARGV" if @ARGV;
 
-# use Unix tty device to avoid polluting regular output
-my ( $readfrom, $writeto );
-open $writeto, "> /dev/tty"
-  or remark( 'error', "could not open tty for writing: $!" )
-  and exit 100;
-open $readfrom, "< /dev/tty"
-  or remark( 'error', "could not open tty for reading: $!" )
-  and exit 100;
+my $timeout = defined $Flag_Timeout ? duration2seconds($Flag_Timeout) : -1;
 
-# command line option handling
-use Getopt::Std;
-my %opts;
-getopts( 'h?o:t:n', \%opts );
-help() if exists $opts{h} or exists $opts{'?'};
+for my $s (qw/HUP INT TERM USR1 USR2/) { $SIG{$s} = \&sig_bail }
+ReadMode( 3, $ttyfh );
 
-$spec = parse_spec( exists $opts{o} ? $opts{o} : $default_spec );
-
-if ( exists $opts{t} ) {
-    $timeout = duration2seconds( $opts{t} );
-}
-
-# prompt (may not be formatted properly due to raw modes)
-print $writeto "@ARGV" if @ARGV;
-
+my $exit_status = -1;
 eval {
     if ( $timeout > 0 ) {
-        local $SIG{ALRM} = sub { die "alarm\n" };
+        $SIG{ALRM} = sub { die "alarm\n" };
         alarm $timeout;
     }
 
-    while (1) {
-        my $key = get_key($readfrom);
-        my $ref = $spec->{keys};
-
-        # KLUGE unset to avoid "Use of uninitialized value in string ne"
-        # warnings being printed
-        no warnings qw(uninitialized);
-
-        # check for specific key, default action, or default to nothing for
-        # the key in question
-        if ( exists $ref->{$key} and $ref->{$key} ne q{} ) {
-            print $writeto "\n" if exists $opts{n};
-            exit $ref->{$key};
-        } elsif ( exists $spec->{default} and $spec->{default} ne q{} ) {
-            print $writeto "\n" if exists $opts{n};
-            exit $spec->{default};
-        }
+    # eat up leading input within the timeout to avoid an infinite
+    # wait in the (unlikely?) case there is infinite input being fed
+    # in fast enough
+    if ( $Flag_Delay > 0 ) {
+        select( undef, undef, undef, $Flag_Delay );
+        # eager beaver prevention: drain everything queued
+        my $key;
+        do {
+            # NOTE PORTABILITY may die with fatal error (see docs for function)
+            $key = ReadKey( -1, $ttyfh );
+        } until !defined $key;
     }
 
+    while (1) {
+        my $key = ReadKey( 0, $ttyfh );
+        my $code = $keys2exit->{$key};
+        $code = $keys2exit->{any} if !defined $code;
+        if ( defined $code ) {
+            $exit_status = $code;
+            last;
+        }
+    }
     alarm 0 if $timeout > 0;
 };
 if ($@) {
-    die unless $@ eq "alarm\n";
-    exit $timeout_status;
+    if ( $@ eq "alarm\n" ) {
+        $exit_status = $Flag_Timeout_Status;
+    } else {
+        die "getraw: unexpected failure: $@";
+    }
+}
+exit $exit_status;
+
+END {
+    if ( defined $ttyfh ) {
+        print $ttyfh "\r" if $Flag_Return;
+        print $ttyfh "\n" if $Flag_Newline;
+        ReadMode( 0, $ttyfh );
+        close $ttyfh;
+    }
 }
 
 ######################################################################
 #
 # SUBROUTINES
 
-sub get_key {
-    my $readfrom = shift;
-    my $first;
-
-    ReadMode( 3, $readfrom );
-
-    do {
-        select undef, undef, undef, 0.25;
-        $first = ReadKey( -1, $readfrom );
-    } until defined $first;
-
-    ReadMode( 0, $readfrom );
-
-    return $first;
-}
-
-sub parse_spec {
-    my $string = shift;
-    my $spec;
-
-    for ( reverse split /(?<!\\)[ ,]+/, $string ) {
-        my ( $keys, $status ) = /(.+?):(.)?$/;
-        $status ||= q{};    # "do nothing" status, no return code
-
-        $spec->{human}->{$status} .= $keys;
-
-        if ( exists $status_map->{$status} ) {
-            $status = $status_map->{$status};
-        }
-
-        # TODO warn about not getting numeric exit status
-        if ( $status ne q{} and $status !~ /^\d+$/ ) {
-            remark( 'warning', "non-numeric exit status for $_, defaulting to 0" );
-            $status = 0;
-        }
-
-        # unescaped * means "any key" e.g. the default action
-        if ( $keys =~ s/(?<!\\)\*// ) {
-            $spec->{default} = $status;
-        }
-
-        # unescape backwhacked things (\r, etc.)
-        $keys =~ s/(\\.)/qq("$1")/eeg;
-
-        # quick lookup map for key typed
-        for ( split //, $keys ) {
-            $spec->{keys}->{$_} = $status;
-        }
-    }
-
-    # sanity check on specification to prevent key-read stalls
-    unless ($spec) {
-        remark( 'error', "unable to parse specification '$string'" );
-        exit 78;
-    } else {
-        unless ( grep { defined and /^\d$/ } $spec->{default},
-            values %{ $spec->{keys} } ) {
-            remark( 'error', "no valid exit codes in specification '$string'" );
-            exit 78;
-        }
-    }
-
-    return $spec;
-}
-
 sub duration2seconds {
-    my $tmpdur = shift;
-    my $timeout;
+    my ($duration) = @_;
 
-    # how to convert short human durations into seconds
     my %factor = (
         'w' => 604800,
         'd' => 86400,
@@ -157,207 +100,63 @@ sub duration2seconds {
         's' => 1,
     );
 
-    # assume raw seconds for plain number
-    if ( $tmpdur =~ m/^\d+$/ ) {
-        $timeout = $tmpdur;
+    my $seconds;
 
-    } elsif ( $tmpdur =~ m/^[wdhms\d\s]+$/ ) {
-
-        # match "2m 5s" style input and convert to seconds
-        while ( $tmpdur =~ m/(\d+)\s*([wdhms])/g ) {
-            $timeout += $1 * $factor{$2};
+    if ( $duration =~ m/^[0-9]+$/ ) {
+        $seconds = $duration;
+    } else {
+        while ( $duration =~ m/([0-9]+)([smhdw])/g ) {
+            $seconds += $1 * $factor{$2};
         }
-    } else {
-        remark( 'error', 'unknown characters in duration' );
-        exit 102;
+        die "getraw: could not parse duration '$duration'" if !defined $seconds;
     }
 
-    unless ( defined $timeout and $timeout =~ m/^\d+$/ ) {
-        remark( 'error', 'unable to parse duration' );
-        exit 102;
-    }
-
-    return $timeout;
+    return $seconds;
 }
 
-# generic log handler
-sub remark {
-    my ( $facility, $priority, $message, $where );
-    $facility = 'user';
-
-    if ( @_ > 1 ) {
-        $priority = shift;
-        $message  = "@_";
-    } else {
-        $priority = 'info';
-        $message  = "@_";
-    }
-
-    #  return 1 if exists $opts{q} and $priority eq 'info';
-
-    # try to send errors to tty if available, STDERR otherwise
-    $where = ( defined $writeto and -t $writeto ) ? $writeto : *STDERR;
-
-    print $where $priority, ": ", $message, "\n";
-
-    return 1;
-}
-
-# a generic help blarb
-sub help {
-    warn <<"HELP";
-Usage: $0 [opts] [prompt message]
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: getraw [options] [prompt message]
 
 Means to prompt for human interaction.
 
-Options:
-  -h/-?  Display this message
+  -d ff  Delay readkey by this many fractional seconds.
+  -n     Emit newline to tty before exit.
+  -r     Emit return to tty before exit.
+  -o ss  Use custom key to exit code specification.
+  -t dur Timeout getraw after this many seconds (or 1m2s shorthand).
 
-  -o ss  Key mapping specification
-
-  -r     Require return key (default: on keystroke)
-  -t dd  Timeout after dd seconds
-
-  -n     Print newline after accepting character (default not to)
-
-Run perldoc(1) on this script for additional documentation.
-
-HELP
+END_USAGE
     exit 64;
 }
 
-=head1 NAME
+sub parse_spec {
+    my ($string) = @_;
+    my %keys2exit;
 
-getraw - means to prompt for human interaction
+    for ( split /(?<!\\)[ ]+/, $string ) {
+        my ( $keys, $status ) = /(.+?):([0-9]+)?$/;
+        die "getraw: could not parse specification '$_'" if !defined $keys;
 
-=head1 DESCRIPTION
+        if ( $keys =~ s/(?<!\\)\*// ) {
+            # default action via the so-called "any" key
+            $keys2exit{any} = $status;
+        }
 
-=head2 Overview
+        # unescape backwhacked things (\r, etc.)
+        $keys =~ s/(\\.)/qq("$1")/eeg;
 
-This script is intended to provide a means for other scripts to interact
-with a human, for example to choose from a list.
+        for my $k ( split //, $keys ) {
+            die "getraw: specification for key '$k' already exists\n"
+              if exists $keys2exit{$k};
+            $keys2exit{$k} = $status;
+        }
+    }
 
-=head2 Normal Usage
+    die "getraw: unable to parse specification '$string'"
+      if keys %keys2exit == 0;
 
-  $ getraw [options] [prompt message]
+    return \%keys2exit;
+}
 
-See L<"OPTIONS"> for details on the command line switches supported.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note.
-
-=item B<-o> I<specification>
-
-Custom keystroke option specification.  The format is groups of space or
-comma separated keystrokes and the exit status they correspond to.  A
-colon separates the keys from the exit status.
-
-  -o 'Yy:+ Nn:- *:'
-
-Maps Y and y to + (translated to a "true" value internally), N and n to
-a false value, and everything else to a null value.  Keys tied to a null
-exit do nothing.  Order is important; groups earlier in the list take
-precedence over later entries.  To specify a literal *, or special keys
-such as space, tab, or return, backslash the entry.
-
-  -o '\n:+ \ :-'    # newline yes, space no
-
-Bear in mind the specification will likely have to be enclosed in quotes
-to prevent shell interpolation.
-
-The + and - status values are easy, though a numeric code can be
-specified if the calling application is configured to support such.
-
-  -o 'asdf:0 zxcv:1 qwer:2 *:3'
-
-Says to exit with 0 for asdf, 1 for zxcv, and 2 for qwer.  Every other
-key will result with a 3 exit code.  This allows for complex choices
-beyond yes or no.
-
-=item B<-t> I<duration>
-
-Timeout wait-for-keypress after the specified time.  I<duration>
-may either be raw seconds, or a short hand human format "1m3s" for
-63 seconds.
-
-=item B<-n>
-
-Print a newline after accepting a character. Good when moving through a
-list of choices, rather than pausing something else for a keystroke.
-
-=back
-
-=head1 DIAGNOSTICS
-
-The exit status will usually depend on the specification used and the
-key pressed.  Errors from the script itself will have exit values of 100
-or higher; lower numbers are reserved for use in specifications.  Error
-messages will be sent to the tty device by default, STDERR if the tty
-device is not available.
-
-The following error codes are currently defined.
-
-=over 4
-
-=item B<0>
-
-Default "true" exit value.
-
-=item B<1>
-
-Default "false" exit value.
-
-=item B<100>
-
-Error reading or writing to tty device.
-
-=item B<101>
-
-Timeout exit status (may be 142, see L<"BUGS"> for details).
-
-=item B<102>
-
-Error parsing custom timeout duration.
-
-=item B<103>
-
-Error parsing key specification.
-
-=back
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-Newer versions of this script may be available from:
-
-http://github.com/thrig/scripts/tree/master
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-See source for TODO notes.
-
-=head1 SEE ALSO
-
-perl(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=head1 HISTORY
-
-Written based on talk Damian Conway gave about his own ~/bin/getraw
-program.  This version likely is substantially different.
-
-=cut
+sub sig_bail { exit $Flag_Signal_Status }    # and then to the END

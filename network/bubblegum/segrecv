@@ -19,7 +19,7 @@ $BUFSIZE = 1024;
 
 # TODO need to be able to read multiple files, so "outfile -" for stdin,
 # "outfile f1 f2..." otherwise; BUFSIZE must then be arg or env.
-die "Usage: ... | $0 outfile [BUFSIZE]\n" unless @ARGV;
+die "Usage: ... | segrecv outfile [BUFSIZE]\n" unless @ARGV;
 
 sysopen( FH, $ARGV[0], O_CREAT | O_RDWR )
   || die "could not open $ARGV[0]: $!\n";

@@ -8,7 +8,7 @@ use warnings;
 use IO::Socket;
 
 # though newer printers have bigger displays, or older smaller
-die "Usage: $0 printer 32charmaxmessage\n" if @ARGV < 2;
+die "Usage: hp-set-readymsg printer 32charmaxmessage\n" if @ARGV < 2;
 
 my $host     = shift;
 my $readymsg = "@ARGV";

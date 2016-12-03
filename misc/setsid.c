@@ -1,7 +1,5 @@
-/*
- * Testing purposes? Also handy to disassociate mupdf from vim session so
- * backgrounding vim doesn't then stall out the mupdf display...
- */
+/* Mostly handy to disassociate mupdf from vim session so backgrounding
+ * vim doesn't then stall out the mupdf display. */
 
 #include <err.h>
 #include <stdio.h>

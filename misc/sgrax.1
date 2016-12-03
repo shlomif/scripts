@@ -1,0 +1,49 @@
+.Dd December  3 2016
+.Dt SGRAX 1
+.nh
+.Os
+.Sh NAME
+.Nm sgrax
+.Nd reverse of xargs
+.Sh SYNOPSIS
+.Nm sgrax
+.Ar command
+.Ar arg1
+.Op Ar arg2 ..
+.Sh DESCRIPTION
+.Nm
+performs the reverse of
+.Xr xargs 1 ;
+that is, the first argument is taken to be a
+.Ar command
+to run, and the subsequent arguments are passed to the standard input of the
+.Ar command .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+A typical use would be to translate between an application that
+requires arguments on the command line, and another that takes input
+via standard input:
+.Pp
+.Dl $ Ic sgrax pbcopy a b c
+.Dl $ Ic pbpaste           
+.Dl a b c
+.Dl $ 
+.Pp
+If arguments need to be passed to the
+.Ar command ,
+write a wrapper script such as the following and call that instead.
+.Pp
+.Dl #!/bin/sh
+.Dl exec somecommand -arguments -for -command \&"$@\&"
+.Pp
+Or, see if the
+.Ar command
+accepts arguments via the environment or some other means.
+.Sh SEE ALSO
+.Xr ow 1 ,
+.Xr pbcopy 1 ,
+.Xr xargs 1 ,
+.Xr xsel 1
+.Sh AUTHOR
+.An Jeremy Mates

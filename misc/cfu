@@ -1,0 +1,143 @@
+#!/usr/bin/env perl
+#
+# Compiles and runs C code.
+
+use strict;
+use warnings;
+use File::Temp qw(tempfile);
+use Getopt::Long qw(GetOptions);
+use Text::ParseWords qw(shellwords);
+
+GetOptions(
+    'eargs|e=s'   => \my @eargs,
+    'globals|g=s' => \my @globals,
+    'help|h|?'    => \&emit_help,
+    'preserve|P'  => \my $Flag_Preserve,
+    'show-code|l' => \my $Flag_Show_Code,
+) or exit 65;
+
+emit_help() if !@ARGV;
+
+my $CC = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
+my @CFLAGS = shellwords(
+    exists $ENV{'CFLAGS'}
+    ? $ENV{'CFLAGS'}
+    : '-O2 -std=c99 -Wall -pedantic -pipe -lm'
+);
+
+# no *.c extension on tempfile so must hint the language
+push @CFLAGS, qw/-x c/ if !grep { $_ eq '-x' } @CFLAGS;
+
+for my $globals (@globals) {
+    $globals .= "\n" unless $globals =~ m/\n$/;
+}
+
+chomp( @ARGV = readline *STDIN ) if @ARGV == 1 and $ARGV[0] eq '-';
+
+my $uses_args = @eargs ? 1 : 0;
+for my $statement (@ARGV) {
+    $uses_args = 1 if !$uses_args and $statement =~ m/arg[cv]/;
+    $statement = "\t" . $statement;
+    $statement .= ";\n" unless $statement =~ m/;\s*$/;
+}
+# avoid unused variable warnings on arg[cv]
+my $main_args = $uses_args ? 'int argc, char *argv[]' : 'void';
+
+my $c_template = <<"END_TMPL";
+#ifdef __linux__
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+#include <linux/limits.h>
+#include <getopt.h>
+#else
+#include <sys/syslimits.h>
+#endif
+
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <arpa/inet.h>
+
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+
+#include <complex.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <fts.h>
+#include <grp.h>
+#include <libgen.h>
+#include <limits.h>
+#include <math.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
+
+@globals
+int main($main_args) {
+@ARGV
+\treturn 0;
+}
+END_TMPL
+
+my $exit_status = 0;
+
+if ($Flag_Show_Code) {
+    print $c_template;
+    exit;
+}
+
+my ( $code_fh, $code_fname ) = mktemp('src');
+my ( undef,    $executable ) = mktemp('obj');
+
+print $code_fh $c_template;
+$code_fh->flush;
+$code_fh->sync;    # potential PORTABILITY issue
+
+if ( system( $CC, @CFLAGS, '-o', $executable, $code_fname ) != 0 ) {
+    die "cfu: failed to exec '$CC': $?\n" if $? == -1;
+    $exit_status = $? >> 8;
+    exit;
+}
+if ( system( $executable, @eargs ) != 0 ) {
+    die "cfu: failed to exec code: $?\n" if $? == -1;
+    $exit_status = $? >> 8;
+}
+
+END {
+    if ( defined $code_fname ) {
+        if ($Flag_Preserve) {
+            print "$code_fname\n$executable\n";
+        } else {
+            unlink $code_fname, $executable;
+        }
+    }
+    $? = $exit_status;
+}
+
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: cfu [-e exeargs] [-g globals] [--preserve] [--show-code] c-statements|-
+
+Compiles and runs C code.
+
+END_USAGE
+    exit 64;
+}
+
+sub mktemp { tempfile( "cfu-$_[0]-$$.XXXXXXXXXX", TMPDIR => 1, UNLINK => 0 ) }

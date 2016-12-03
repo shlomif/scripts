@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use IO::Socket::INET;
 
-die "Usage: $0 port < infile\n" if @ARGV != 1;
+die "Usage: servsend port < infile\n" if @ARGV != 1;
 my $port = shift;
 
 my $sock = IO::Socket::INET->new(
@@ -16,10 +16,10 @@ my $sock = IO::Socket::INET->new(
     LocalPort => $port,
     Proto     => 'tcp',
     ReuseAddr => 1,
-) or die "$0: could not listen on *:$port: $@\n";
+) or die "servsend: could not listen on *:$port: $@\n";
 
 my $writer = $sock->accept();
-die "$0: could not accept() socket\n" if !defined $writer;
+die "servsend: could not accept() socket\n" if !defined $writer;
 
 binmode STDIN;
 binmode $writer;

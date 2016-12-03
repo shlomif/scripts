@@ -1,0 +1,113 @@
+.Dd December 11 2016
+.Dt XPQUERY 1
+.nh
+.Os
+.Sh NAME
+.Nm xpquery
+.Nd queries the given documents with XPath
+.Sh SYNOPSIS
+.Nm xpquery
+.Op Fl n Ar namespace 
+.Op Fl p Ar method 
+.Op Fl S Ar xpath-subquery
+.Op Fl t Ar timeout
+.Ar xpath-query
+.Ar file-or-url ..
+.Sh DESCRIPTION
+.Nm
+applies the given
+.Ar xpath-query
+to the given files or URL. Subqueries allow a secondary lookup from each
+node found by that first search. The resulting nodes are printed to
+standard out.
+.Pp
+Note that the XPath documentation and examples must be studied in
+detail for
+.Nm
+to be of any use.
+.Pp
+Options:
+.Bl -tag -width Ds
+.It Cm --namespace= Ns Ar namespace Op Cm --ns Ar ns | Fl n Ar ns
+Registers a custom XML namespace with the parser. Namespaces may be
+space separated, or this option may be specified multiple times.
+.It Cm --parse= Ns Ar method Op Fl p Ar method
+Parse method. One of
+.Ar html ,
+.Ar sgml ,
+or the default
+.Ar xml .
+.It Cm --subquery= Ns Ar xpath-subquery Op Fl S Ar xpath-subquery
+XPath subquery to apply at each node found by the global
+.Ar xpath-query .
+.It Cm --timeout= Ns Ar seconds Op Fl t Ar seconds
+Timeout for the HTTP agent, 30 seconds by default.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Cm http_agent
+Sets a custom
+.Qq User-Agent
+header for HTTP requests.
+.It Cm *_proxy
+If set, various proxy settings will be taken from the appropriate
+environment variables such as
+.Cm http_proxy
+and
+.Cm no_proxy .
+This is done via the
+.Cm env_proxy
+method of
+.Xr LWP::UserAgent 3pm .
+.El
+.Sh EXIT STATUS
+.Ex -std xpquery
+.Sh EXAMPLES
+A simple HTML example
+.Pp
+.Dl $ Ic xpquery -p HTML '//title' http://www.w3.org
+.Pp
+Given the following in the file
+.Pa test.xml
+.Pp
+.Dl <xip>
+.Dl <zop><zoot>cat</zoot></zop>
+.Dl <zop><zoot>dog</zoot></zop>
+.Dl <zop><zoot>fish</zoot></zop>
+.Dl </xip>
+.Pp
+The animals may be queried for directly
+.Pp
+.Dl $ Ic xpquery '//zop/*/text()' test.xml
+.Pp
+Or queried for via a subquery
+.Pp
+.Dl $ Ic xpquery -S 'text()' '//zoot' test.xml
+.Pp
+Subqueries will be increasingly necessary where the document structure
+is complicated, and expressing what is desired in a single query turns
+out to lie somewhere between impossible and far too lengthy to debug.
+.Pp
+Namespaces likewise complicate matters
+.Pp
+.Dl <doc xmlns:xlink="http://www.w3.org/1999/xlink">
+.Dl <foo xlink:href="http://example.org">bar</foo>
+.Dl </doc>
+.Pp
+which requires something like
+.Pp
+.Dl $ Ic xpquery -n 'xlink:http://www.w3.org/1999/xlink' \e
+.Dl \& \& Ic '//foo/@xlink:href' ...
+.Pp
+to query. It may be beneficial to hide standard namespace registrations
+in a shell alias or function definition.
+.Sh SEE ALSO
+http://www.w3.org/TR/xpath
+.Pp
+.Xr LWP::UserAgent 3pm
+.Pp
+An alternative is to instead use CSS selectors, e.g. via
+.Xr Mojo::DOM 3pm .
+This may better suit HTML documents, or those more familiar with CSS.
+.Sh AUTHOR
+.An Jeremy Mates

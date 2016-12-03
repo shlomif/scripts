@@ -8,18 +8,28 @@
 
 use 5.10.0;
 use Math::BigInt;
+use Math::Trig;
 use Getopt::Std;
 use List::Util qw(max sum);
 use Scalar::Util qw(looks_like_number);
 
 my $PHI = 1.6180339887498948482;
 
+# how to format output numbers with printf
+my $format = '%.2f';
+
+# width for binary stuff
+my $width = 32;
+
 my %ability = (
-    basic       => { handle => \&handle_basic, },
-    bisect      => { handle => \&handle_bisect, },
-    C           => { handle => \&handle_C, },
-    c2f         => { handle => \&handle_c2f, },
-    dec2bin     => { handle => \&handle_dec2bin, },
+    basic   => { handle => \&handle_basic, },
+    bisect  => { handle => \&handle_bisect, },
+    C       => { handle => \&handle_C, },
+    c2f     => { handle => \&handle_c2f, },
+    dec2bin => { handle => \&handle_dec2bin, },
+    deg2rad => {
+        handle => sub { printf "$format\n", deg2rad( shift @ARGV ) }
+    },
     derivative  => { handle => \&handle_derivative, },
     dist        => { handle => \&handle_distribution, },
     divisibleby => { handle => \&handle_divisibleby, },
@@ -33,19 +43,18 @@ my %ability = (
     min         => { handle => \&handle_min, },
     percent     => { handle => \&handle_percent, },
     polyfactor  => { handle => \&handle_polyfactor, },
-    range       => { handle => \&handle_range, },
-    ratio       => { handle => \&handle_ratio, },
-    sdev        => { handle => \&handle_sdev, },
-    slope       => { handle => \&handle_slope, },
-    sum         => { handle => \&handle_sum, },
-    zscore      => { handle => \&handle_zscore, },
+    rad2deg     => {
+        handle => sub {
+            printf "$format\n", rad2deg( shift @ARGV );
+        }
+    },
+    range  => { handle => \&handle_range, },
+    ratio  => { handle => \&handle_ratio, },
+    sdev   => { handle => \&handle_sdev, },
+    slope  => { handle => \&handle_slope, },
+    sum    => { handle => \&handle_sum, },
+    zscore => { handle => \&handle_zscore, },
 );
-
-# how to format output numbers with printf
-my $format = '%.2f';
-
-# width for binary stuff
-my $width = 32;
 
 # parse command-line options
 my %opts;
@@ -154,7 +163,7 @@ sub handle_bisect {
 sub handle_C {
     my ( $n, $r ) = @ARGV;
 
-    die "Usage: $0 C n r (where n>=r)\n" if $n < $r;
+    die "Usage: mathu C n r (where n>=r)\n" if $n < $r;
 
     printf "%d\n", factorial($n) / ( factorial($r) * factorial( $n - $r ) );
 }
@@ -184,7 +193,7 @@ sub handle_derivative {
     my @prev_vals;
     my $previous_x = 0;
     my $cols;
-    while (<>) {
+    while (readline) {
         chomp;
         my @input = grep looks_like_number $_, split /[\s,]+/, $_;
         if ( @input < 1 || @input > 2 ) {

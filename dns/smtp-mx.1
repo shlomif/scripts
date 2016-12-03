@@ -1,0 +1,40 @@
+.Dd December  4 2016
+.Dt SMTP-MX 1
+.nh
+.Os
+.Sh NAME
+.Nm smtp-mx
+.Nd returns MX server(s) for the given domain(s)
+.Sh SYNOPSIS
+.Nm smtp-mx
+.Op Fl 1qr
+.Op Ar list-of-domains|-
+.Sh DESCRIPTION
+.Nm
+prints the MX server(s) for the given domain(s). The output format will
+vary depending on whether one or multiple domains are to be looked up,
+as well as what options are provided. Should a domain have no MX
+records, the domain name will be listed, as this is what e.g. Mail
+Transport Agents do should there be no MX records.
+Options:
+.Bl -tag -width Ds
+.It Fl 1
+Only return the first MX for the domain.
+.It Fl q
+Emit fewer warning messages.
+.It Fl r
+Shuffles the list of MX. Default order is whatever
+.Xr Net::DNS 3pm
+returns.
+.El
+.Sh EXIT STATUS
+.Ex -std smtp-mx
+.Sh EXAMPLES
+.Dl $ Ic smtp-mx example.com hotmail.com
+.Dl $ Ic telnet `smtp-mx -1 gmail.com` 25
+.Sh SEE ALSO
+.Xr dig 1 ,
+.Xr host 1 ,
+.Xr Net::DNS 3pm
+.Sh AUTHOR
+.An Jeremy Mates

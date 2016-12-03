@@ -1,0 +1,105 @@
+.Dd December  7 2016
+.Dt rename 1
+.nh
+.Os
+.Sh NAME
+.Nm rename
+.Nd alters file names according to Perl expressions
+.Sh SYNOPSIS
+.Nm rename
+.Op Fl 0cnMmv
+.Ar expression
+.Op Ar files|-
+.Sh DESCRIPTION
+.Nm
+renames or copies or moves filenames according to the supplied perl
+expression and various options.
+.Bl -tag -width Ds
+.It Fl 0
+Files read from standard input are assumed to be '\e0' delimited.
+.It Cm --copy Op Fl c
+Copy the files instead of renaming them.
+.It Cm --dry-run Op Fl n Fl p
+Make no changes to the filesystem and only show what would be run.
+.It Cm --mkdir Op Fl M
+If necessary make the directory path if it does not exist.
+.It Cm --move Op Fl m
+Move the files instead of renaming them. This will be necessary if files
+need be moved across filesystem boundaries.
+.It Cm --verbose Op Fl v
+Be verbose about how the filesystem is being mangled.
+.El
+.Sh EXIT STATUS
+.Ex -std rename
+.Sh EXAMPLES
+Rename all files in the current working directory to end with
+.Pa *.old :
+.Pp
+.Dl $ Ic rename 's/$/.old/' *
+.Pp
+Preview a lower-case conversion of all 
+.Pa *.C
+files:
+.Pp
+.Dl $ Ic rename -p 'tr/A-Z/a-z/' *.C
+.Pp
+If no files are mentioned on the command line (or if the sole filename
+argument is a hyphen), C<rename> will read file names from standard
+input. For example, to change
+.Pa *.htm
+files to 
+.Pa *.html :
+.Pp
+.Dl $ Ic find \&. -type f -name \&"*.htm\&" -print0 \e
+.Dl \  Ic \&| rename -0 \&'$_ .= \&"l\&"\&'
+.Pp
+Deep directories can be tricky when the directory names must be changed,
+as a rename of a directory renders subsequent references to that file
+path invalid. One solution is to first change all the directory names,
+then the files.
+.Pp
+.Dl $ Ic find \&. \   -type d -print0 \&| rename -n0 '$_=lc'
+.Dl $ Ic find \&. \&! -type d -print0 \&| rename -n0 '$_=lc'
+.Pp
+A find-by-depth file search would also prevent directory rename
+problems, though this invocation depends on the flavor of
+.Cm find ,
+as BSD and others have different implementations.
+.Sh SEE ALSO
+.Xr File::Copy 3pm ,
+.Xr find 1 ,
+.Xr perl 1 ,
+.Xr rename 1 ,
+.Xr zshcontrib 1
+for
+.Cm zmv
+.Pp
+Note that there are various incompatible implementations disguised
+under the name
+.Nm .
+Check which version you are calling before subjecting a filesystem to
+any changes.
+.Pp
+Another approach is to load a list of filenames and their replacement
+into
+.Ev EDITOR
+and then to perform whatever substitutions are necessary in that editor.
+This may suit those more comfortable with their editor than the command
+line. A subsequent program then must apply whatever filename changes are
+necessary, having saved the original filenames somewhere, then iterating
+line-for-line over the original filename list and the (presumably but
+possibly not) altered filenames from the editor.
+.Sh AUTHORS
+.An Larry Wall
+.An Daniel V. Klien
+.An Jeremy Mates
+.Sh HISTORY
+This is a modified version of Larry Wall's original
+.Pa rename
+script
+distributed with perl under the C<eg> directory, improved by Daniel V.
+Klien (copy option), and wrangled into this form by Jeremy Mates.
+.Sh SECURITY CONSIDERATIONS
+.Nm
+.Sy must not be allowed to be run under elevated privileges ,
+as it accepts and runs arbitrary user-supplied Perl code fragments.

@@ -1,0 +1,31 @@
+.Dd December  4 2016
+.Dt SUMTIME 1
+.nh
+.Os
+.Sh NAME
+.Nm sumtime
+.Nd totals up time durations
+.Sh SYNOPSIS
+.Nm sumtime
+.Op Fl c
+.Op Ar time-specifications|-
+.Sh DESCRIPTION
+.Nm
+sums up time durations; these durations may be specified as raw seconds
+or in the short-hand form of
+.Ic 1w2d3h4m5s
+for weeks, days, hours, minutes, and seconds.
+Options:
+.Bl -tag -width Ds
+.It Fl c
+Compact display, do not print spaces between the duration fields.
+.El
+.Sh EXIT STATUS
+.Ex -std sumtime
+.Sh EXAMPLES
+.Dl $ Ic sumtime 8080
+.Dl $ Ic (echo 1m 2m; echo 3m 4m) \&| sumtime
+.Sh SEE ALSO
+.Xr date 1
+.Sh AUTHOR
+.An Jeremy Mates

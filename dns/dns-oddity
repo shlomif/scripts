@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# DNS oddities: check for *.foo wildcard records and whether there is a
+# DNAME record in foo.
+#
+#  * Verisign made a mess with wildcard records back in '03
+#    https://www.icann.org/news/advisory-2003-09-19-en
+#  * DNAME records can be problematical if one does not know such a
+#    record exists and edits are being made to the zone with that record
+#    pointing everything elsewhere.
+#
+# One might also check that the TTL is neither too high nor too low
+# (github parent DNS DDOS), but the suitable Goldilocks value will vary
+# by site.
+
+DOMAIN=$1
+if [ -z "$DOMAIN" ]; then
+    echo >&2 "Usage: $0 domain-name"
+    exit 64
+fi
+
+exit_status=0
+
+DNAME=`dig +short -t DNAME -q "$DOMAIN"`
+if [ -n "$DNAME" ]; then
+    echo "dname: $DNAME"
+    exit_status=1
+    # wildcard instead on what DNAME points to...
+    DOMAIN=$DNAME
+fi
+
+WCDNS=`dig +short -t ANY -q "*.$DOMAIN"`
+if [ -n "$WCDNS" ]; then
+    echo "wcdns: $WCDNS"
+    exit_status=1
+fi
+
+exit $exit_status

@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use IO::Socket::INET;
 
-die "Usage: $0 host port < infile\n" if @ARGV != 2;
+die "Usage: put host port < infile\n" if @ARGV != 2;
 my $host = shift;
 my $port = shift;
 
@@ -15,7 +15,7 @@ my $sock = IO::Socket::INET->new(
   PeerAddr => $host,
   PeerPort => $port,
   Proto    => 'tcp',
-) or die "$0: could not connect to $host:port: $@\n";
+) or die "put: could not connect to $host:port: $@\n";
 
 binmode $sock;
 binmode STDIN;

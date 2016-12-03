@@ -1,529 +1,156 @@
 #!/usr/bin/env perl
 #
-# Command line shortcuts and directory to URL mapping. Customize the
-# %open list (commands to handle URL with) and change the default_open
-# or OW_METHOD environment variable to set a default handler. Then
-# create shortcut mappings in ~/.ow/shortcuts, and ~/.ow/dirmap for the
-# wv mode of this script.
-#
-# Run perldoc(1) on this script for additional documentation.
-#
-# TODO messy script, need to cleanup and standardize more.
+# Shortcuts and directory to URL mapping.
 
-use URI;
+use 5.14.0;
+use warnings;
+use Cwd ();
+use File::Basename qw(basename);
+use File::HomeDir ();
+use File::Spec ();
+use Getopt::Long qw(GetOptions);
+use Text::ParseWords qw(shellwords);
+use URI ();
 
-# read method from env if possible (allows easy override)
-my $default_open = $ENV{OW_METHOD} || 'lynx';
+my $do_something = basename($0) eq 'wv' ? \&do_directory : \&do_shortcut;
 
-# what to launch URLs with (but see sub visit below)
-# TODO some means to pass options to say lwp-request and wget types?
-# TODO load these from prefs file?
-#
-# The pbcopy (Mac OS X cli clipboard command) method requires sgrax
-# (reverse of xargs), a shell script:
-# #!/bin/sh
-# COMMAND=$1
-# shift
-# echo "$@" | $COMMAND
+GetOptions(
+    'directory|d' => sub { $do_something = \&do_directory },
+    'help|h|?'    => \&emit_help,
+    'list|l'      => \my $Flag_ListURL,
+    'open|o=s'    => \my $Flag_Method,
+) or exit 65;
 
-my %open = (
-    firefox       => [qw(open -a Firefox --background)],
-    lwp           => [qw(lwp-request)],
-    'lwp-noproxy' => [qw(lwp-request -P)],
-    lynx          => [qw(lynx)],
-    open          => [qw(open --background)],
-    openfg        => [qw(open)],
-    pbcopy        => [qw(sgrax pbcopy)],
-    safari        => [qw(open -a Safari --background)],
-    wget          => [qw(wget)],
-    w3m           => [qw(w3m -M)],
-    xombrero      => [qw(xombrero -n)],                    # requires enable_socket
-);
+my $Open_With = loadconfig( path_to('browsers') );
+my $Browser_Command = env_option_or( 'OW_METHOD', $Flag_Method, 'w3m' );
 
-my %pfiles = (
-    shortcuts => '~/.ow/shortcuts',
-    dirmap    => '~/.ow/dirmap',
-);
+exit $do_something->();
 
-# parse command-line options
-use Getopt::Std;
-my %opts;
-getopts( 'h?dlo:T:', \%opts );
+sub do_directory {
+    my $dirmap = loadconfig( path_to('dirmap') );
 
-if ( exists $opts{h} or $opts{'?'} ) {
-    print_help();
+    my $dir = Cwd::getcwd;
+
+    for my $mapent ( sort { length $b <=> length $a } keys %$dirmap ) {
+        my $pos = index $dir, $mapent;
+        if ( $pos > -1 ) {
+            my $frag = substr( $dir, $pos + length $mapent ) || q{};
+
+            # prevent // issues
+            $frag =~ s{^/+}{} if $dirmap->{$mapent} =~ m{/%[@\d]}a;
+
+            $dirmap->{$mapent} =~ s{%(\@|\d+)/}{%$1}g if $frag eq q{};
+
+            visit( fill_in( $dirmap->{$mapent}, $frag ) );
+            return 0;
+        }
+    }
+    visit( 'file://' . $dir );
+    return 0;
+}
+
+sub do_shortcut {
+    emit_help() unless @ARGV;
+    my $shortcut = loadconfig( path_to('shortcuts') );
+
+    if ( @ARGV == 1 ) {
+        if ( exists $shortcut->{ $ARGV[0] } ) {
+            visit( $shortcut->{ $ARGV[0] } );
+        } elsif ( $ARGV[0] =~ m{^\w+://.} ) {
+            # NOTE above regex won't match foo+bar:// style URL, but I
+            # don't much use those, and not with this script.
+            visit( $ARGV[0] );
+        } elsif ( $ARGV[0] =~ m{\.} ) {
+            # e.g. openbsd.org -> website
+            visit( 'http://' . $ARGV[0] );
+        } elsif ( exists $shortcut->{'*'} ) {
+            visit( fill_in( $shortcut->{'*'}, $ARGV[0] ) );
+        } else {
+            die "not sure what to do with '$ARGV[0]'\n";
+        }
+    } else {
+        my $key = shift @ARGV;
+
+        # shortcuts that take parameters have a trailing @ on them, but
+        # user must not type that
+        $key .= '@';
+
+        if ( exists $shortcut->{$key} ) {
+            visit( fill_in( $shortcut->{$key}, @ARGV ) );
+        } else {
+            die "no such shortcut '$key'\n";
+        }
+    }
+    return 0;
+}
+
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: ow [options] site [site args ...]
+
+Shortcuts and file to URL mapping.
+
+  -d     Perform directory mapping instead of shortcut lookup ("wv").
+  -l     Print URL instead of calling web client.
+  -o oo  Use specified open method instead of the default.
+
+END_USAGE
     exit 64;
 }
 
-for ( keys %pfiles ) {
-    $pfiles{$_} = tilde_expand( $pfiles{$_} );
+sub env_option_or {
+    my ( $env, $option, $fallback ) = @_;
+    my @cmd = (
+          exists $ENV{$env} ? shellwords( $ENV{$env} )
+        : defined $option   ? shellwords($option)
+        :                     $fallback
+    );
+    if ( @cmd == 1 and exists $Open_With->{ $cmd[0] } ) {
+        @cmd = shellwords( $Open_With->{ $cmd[0] } );
+    }
+    return \@cmd;
 }
 
-# -d flag does directory->web map lookup ("wv" mode)
-# TODO rename to "file" instead of @dir !!
-if ( exists $opts{d} ) {
-    my $dirmap = loadconfig( $pfiles{dirmap} );
-
-    require Cwd;
-
-    if ( @ARGV == 1 and $ARGV[0] eq '-' ) {
-        chomp( @ARGV = readline *STDIN );
-    }
-
-    my @dir;
-    if (@ARGV) {
-        @dir = map { Cwd::abs_path($_) } @ARGV;
-    }
-
-    # default to current directory
-    push @dir, Cwd::getcwd() unless @dir;
-
-    for my $dir (@dir) {
-
-        my $got_url = 0;
-
-        # longest first, so subdirs can override parent
-        for ( sort { length $b <=> length $a } keys %$dirmap ) {
-
-            my $pos = index $dir, $_;
-            if ( $pos > -1 ) {
-                my $frag = substr( $dir, $pos + length $_ ) || q{};
-
-                # prevent // issues
-                $frag =~ s,^/+,, if $dirmap->{$_} =~ m,/%[@\d],;
-
-                $dirmap->{$_} =~ s,%(\@|\d+)/,%$1,g if $frag eq q{};
-
-                visit( expand( $dirmap->{$_}, [$frag] ) );
-                $got_url = 1;
-            }
-        }
-
-        if ( !$got_url ) {
-            visit( expand( 'file://' . $dir ) );
-        }
-    }
-
-    exit;
-}
-
-my $scuts = loadconfig( $pfiles{shortcuts} );
-
-# for _T_ab completion lookups on hash keys, e.g. for shell autocomplete
-if ( exists $opts{T} ) {
-    if ( $opts{T} eq 'open' ) {
-        print join "\n", sort keys %open;
-    } elsif ( $opts{T} eq 'shortcuts' ) {
-        # need to cut out the "*" and "google@" stuff
-        my %seen;
-        @seen{ map { /(\w+)/ } keys %$scuts } = ();
-        print join "\n", sort keys %seen;
-    }
-    print "\n";
-    exit;
-}
-
-if (@ARGV) {
-    parse_sc( [ \@ARGV ] );
-} else {
-    my $scs;
-    while ( readline *STDIN ) {
-        chomp;
-        push @$scs, [split];
-    }
-    parse_sc($scs);
-}
-
-sub parse_sc {
-    my $sc = shift;
-
-    for (@$sc) {
-        if ( @$_ == 1 ) {
-            if ( exists $scuts->{ $_->[0] } ) {
-
-                # assume vanilla shortcuts are urls...
-                visit( $scuts->{ $_->[0] } );
-
-            } elsif ( $_->[0] =~ m(^\w+://.) ) {
-
-                # visit url-ish resources directly
-                visit( $_->[0] );
-
-            } elsif ( $_->[0] =~ m/\./ ) {
-
-                visit( 'http://' . $_->[0] );
-
-            } elsif ( exists $scuts->{'*'} ) {
-
-                # * shortcut is for unmatched things, an example target would be
-                # http://www.%@.com/ to expand input to .com websites
-                visit( expand( $scuts->{'*'}, $_ ) );
-
-            } else {
-                die "not sure what to do with: $_->[0]\n";
-            }
-        } else {
-            my $key = shift @$_;
-
-            # shortcut names with parameters have a trailing @ on them,
-            # but user should not type that
-            $key .= '@';
-
-            # TODO check if two args whether second is actually a http:// URL,
-            # which should get fed to direct lookup instead of google search
-            # perhaps?
-            if ( exists $scuts->{$key} ) {
-                visit( expand( $scuts->{$key}, $_ ) );
-            } else {
-                die "no such shortcut: $key\n";
-            }
-        }
-    }
-}
-
-# takes URL pattern "http://www.%@.com/" and an array reference to insert
-# into said pattern.  Returns expanded string.
-sub expand {
-    my $pattern = shift;
-    my $terms   = shift;
-
-    $pattern =~ s/\Q%@/join '+', @$terms/ge;
-    $pattern =~ s/%(\d+)/$terms->[$1-1]||q{}/ge;
-
-    my $url = URI->new($pattern)->canonical;
-
-    warn "notice: could not convert to URL: $url\n" unless $url;
+sub fill_in {
+    my $template_url = shift;
+    # on the assumption that search sites use + to join terms...
+    $template_url =~ s/\Q%@/join '+', @_/ge;
+    $template_url =~ s/%(\d+)/$_[$1-1]||q{}/aeg;
+    my $url = URI->new($template_url)->canonical;
+    warn "notice: could not canonify URL '$template_url'\n" unless $url;
     return $url;
 }
 
-# expects URL to visit, handles launching what OS needs.
-sub visit {
-    my $url = shift;
-    return unless $url;
-
-    if ( exists $opts{l} ) {
-        print $url;
-        print "\n" if -t STDOUT;
-        return;
-    }
-
-    my $method = exists $opts{o} ? $opts{o} : $default_open;
-    die "error: unknown open method: $method\n" unless exists $open{$method};
-
-    # or otherwise a more complicated configuration that maps certain shortcuts
-    # to certain methods...
-    if ( $url =~ m{^dict://} ) {
-        $method = 'openfg';
-    }
-
-    # TODO dispatch table for this
-    if ( ref $open{$method} eq 'ARRAY' ) {
-
-        # TODO error checking
-        system @{ $open{$method} }, $url;
-    } else {
-        $open{$method}->($url);
-    }
-}
-
-sub open_omniweb_bg {
-    my $url = shift;
-
-    # for Mac OS X, use AppleScript to open pages in background, as
-    # open(1) brings the browser forward, which annoys me.
-    my $omniweb_open_script = <<"END_OMNIWEB_SCRIPT";
-set url_new to "$url"
-set AppleScript's text item delimiters to {"#"}
-tell application "OmniWeb"
-  set seen_url to false
-  repeat with bref in browsers
-    repeat with tref in tabs of bref
-      set url_cur to first text item of (address of tref as string)
-      if url_cur = url_new then
-        flush cache
-        reload tref
-        set seen_url to true
-        -- exit repeat
-      end if
-    end repeat
-  end repeat
-
-  if seen_url is false then
-    OpenURL url_new
-  end if
-end tell
-END_OMNIWEB_SCRIPT
-
-    # TODO error checking!
-    # TODO better handling of annoying output from osascript
-    close STDOUT;
-    open OSASCRIPT, "|-"
-      or exec 'osascript'
-      or die "problem with osascript: $!";
-    print OSASCRIPT $omniweb_open_script;
-    close OSASCRIPT;
-
-    return;
-}
-
-# expands ~username syntax to full home directory path
-sub tilde_expand {
-    my @pathes = @_;
-    for (@pathes) {
-        s{^ ~      # leading tilde
-      ([^/]*)  # preserve following data
-     }{
-      $1 ? (getpwnam $1)[7] : (getpwuid $<)[7] || $ENV{HOME}
-        || remark('error',
-             'could not lookup user or HOME not set',
-             { file => $_ })
-        && exit 67;
-     }ex;
-    }
-    return wantarray ? @pathes : "@pathes";
-}
-
-# accepts filename to load TSV from, returns hash reference
 sub loadconfig {
-    my $f = shift;
-    my $h;
-
-    open F, "< $f" or die "error: unable to open $f: $!\n";
-    while (<F>) {
+    my ($file) = @_;
+    my $hashref;
+    open my $fh, '<', $file or die "could not open '$file': $!\n";
+    while ( readline $fh ) {
         chomp;
         next if /^\s*#/;
         s/\s+$//;
         next if /^$/;
-
-        my ( $k, $v ) = split ' ', $_, 2;
-        $h->{$k} = $v if $k and $v;
+        my ( $key, $value ) = split ' ', $_, 2;
+        $hashref->{$key} = $value if $key and $value;
     }
-    close F or warn "warning: problem closing $f: $!\n";
-
-    return $h;
+    return $hashref;
 }
 
-sub remark {
-    my $priority   = shift;
-    my $message    = shift;
-    my $attributes = shift;
+sub path_to { File::Spec->catfile( File::HomeDir->my_home, '.ow', $_[0] ) }
 
-    chomp $message;
+sub visit {
+    my ($url) = @_;
 
-    my $attr_str;
-    if ($attributes) {
-        $attr_str = join ', ', map { $attributes->{$_} ||= q{}; "$_=$attributes->{$_}" }
-          sort keys %$attributes;
+    if ($Flag_ListURL) {
+        say $url;
+        return;
     }
 
-    warn "$priority: $message", ( $attr_str ? ": $attr_str" : q{} ), "\n";
-    return 1;
+    # KLUGE Target Dictionary.app on Mac OS X - otherwise would need a
+    # more complicated configuration that would map certain shortcuts to
+    # certain methods on certain OS...
+    $Browser_Command = ['open'] if $url =~ m{^dict://};
+
+    system( @$Browser_Command, $url ) == 0
+      or die "error calling '@$Browser_Command': $?\n";
 }
-
-sub print_help {
-    warn <<"END_USAGE";
-Usage: $0 [options] file [file2 ...]
-
-Command line shortcuts and file to URL mapping.
-
-Options:
-  -h/-?  Display this message.
-
-  -d     Perform directory mapping instead of shortcut lookup.
-
-  -l     Print URL instead of calling web client.
-
-  -o oo  Use specified open method instead of default.
-
-Run perldoc(1) on this script for additional documentation.
-
-END_USAGE
-}
-
-__END__
-
-=head1 NAME
-
-ow - command line shortcuts and directory to URL mapping
-
-=head1 SYNOPSIS
-
-Do a "Google" search for C<foo>. Assumes appropriate shortcut has
-been created.
-
-  $ ow g foo
-
-Translate current directory via directory map to web client. Assumes
-appropriate directory map entry has been created.
-
-  $ ow -d
-
-=head1 DESCRIPTION
-
-=head2 Overview
-
-Short for "Open Web", this tool allows quick access to websites from the
-command line. It is based on the "Shortcuts" feature of the OmniWeb
-browser, though has enhanced macro expansion, and works with any web
-browser that has a command line interface.
-
-By default, the browser alias set by the C<OW_METHOD> environment
-variable will be called to open up the expanded URL. This can be altered
-by changing the C<OW_METHOD> variable, or using the B<-o> command line
-option. Currently, browser aliases are set inside the script itself, and
-either call a subroutine or execute a command.
-
-=head2 Normal Usage
-
-See L<"OPTIONS"> for details on the command line switches supported.
-
-This script has two different usage modes: expansion of shortcuts, and a
-directory mapping mode.
-
-  $ ow [options] shortcut [parameter [parameter ...]]
-
-Use the shortcut mode to visit (no parameters) or possibly supply data
-to a website, e.g. to perform a web search.
-
-  $ ow -d [options] [directory]
-
-Filesystem directory to website mapping.
-
-=head1 OPTIONS
-
-This script currently supports the following command line switches:
-
-=over 4
-
-=item B<-h>, B<-?>
-
-Prints a brief usage note about the script.
-
-=item B<-d>
-
-Lookup directory instead of shortcut. This allows directory trees on a
-filesystem to be mapped to websites. I alias this as 'wv' in my shell
-for "Web View".
-
-  alias wv='ow -d'
-
-=item B<-l>
-
-Show expanded URL instead of calling web client. Good for copy and
-paste needs, for instance to copy the URL of a lookup on Mac OS X:
-
-  ow -l perldoc Term::CallEditor | pbcopy
-
-=item B<-o> I<browser-alias>
-
-Use specified browser alias instead of the default.
-
-=back
-
-=head1 SHORTCUTS
-
-These are stored in the C<~/.ow/shortcuts> file by default, and are key
-to value parameters with limited macro expansion on the URL contained in
-the value.
-
-  # example config BEGIN
-  # for unknown key, attempt *.com expansion
-  *       http://www.%@.com/
-
-  # quick access to site websites: 'ow example foo bar' brings up
-  # http://foo.example.org/bar
-  example http://%1.example.org/%2
-
-  # sample shortcuts. A trailing @ is required for parameters that will
-  # have macro expansion done on them.
-  ddg@    https://duckduckgo.com/html?q=%@
-  g@      https://duckduckgo.com/html?q=%@
-  gi@     http://images.google.com/images?q=%@&pws=0
-  google@ http://www.google.com/search?num=100&lr=lang_en&q=%@&pws=0
-
-  af      http://www.acronymfinder.com/
-  af@     http://www.acronymfinder.com/af-query.asp?String=exact&Acronym=%1&Find=Find
-
-  amazon  http://amazon.com/
-  amazon@ http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=%@
-  asin@   http://www.amazon.com/o/ASIN/%1
-  isbn@   http://www.amazon.com/o/ASIN/%1
-
-  cpan    http://search.metacpan.org/
-  cpan@   https://metacpan.org/search?q=%@
-
-  # But only on Mac OS X and via open(1) or write appropriate code
-  d@      dict://%1
-
-  imdb    http://www.imdb.com/
-  imdb@   http://www.imdb.com/find?s=all&q=%@
-
-  man     http://www.FreeBSD.org/cgi/man.cgi
-  man@    http://www.FreeBSD.org/cgi/man.cgi?query=%1
-
-  oeis    https://oeis.org/
-  oeis@   https://oeis.org/search?q=%@
-
-  perldoc@        http://perldoc.perl.org/%1.html
-  perlfunc@       http://perldoc.perl.org/functions/%1.html
-  perldist@       https://metacpan.org/release/%1
-
-  rfc@    http://www.faqs.org/rfcs/rfc%1.html
-  rhyme@  http://www.rhymezone.com/r/rhyme.cgi?Word=%1&typeofrhyme=perfect
-  rhyme   http://www.rhymezone.com/
-
-  # example config END
-
-=head1 DIRECTORY MAPS
-
-These are stored in the C<~/.ow/dirmap> file by default, and are key to
-value parameters with limited macro expansion on the URL contained in
-the value. The key is a directory fragment used in a substring match
-against the full directory name being considered.
-
-  # when in directory for a website...
-  dir/example.org/htdocs http://devo.example.org/%1
-
-  # github example...
-  co/scripts http://github.com/thrig/scripts/commits/master/%1
-
-=head1 TAB COMPLETION
-
-Use the B<-T> option to assist in tab completion needs. For example, the
-following ZSH completion definition allows tab completion on the open
-method and shortcut names.
-
-  #compdef ow
-
-  local expl ret=1
-
-  if [[ ${words[CURRENT-1]} = "-o" ]]; then
-    _wanted openmethod expl 'open method' compadd "$@" - \
-      $(_call_program openm ow -T open) && ret=0
-  else
-    _wanted shortcut expl 'shortcut' compadd "$@" - \
-      $(_call_program scs ow -T shortcuts) && ret=0
-  fi
-
-  return ret
-
-=head1 BUGS
-
-=head2 Reporting Bugs
-
-If the bug is in the latest version, send a report to the author.
-Patches that fix problems or add new features are welcome.
-
-=head2 Known Issues
-
-Messy code in need of cleanup.
-
-=head1 SEE ALSO
-
-perl(1)
-
-=head1 AUTHOR
-
-Jeremy Mates
-
-=cut

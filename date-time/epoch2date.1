@@ -1,0 +1,64 @@
+.Dd December  4 2016
+.Dt EPOCH2DATE 1
+.nh
+.Os
+.Sh NAME
+.Nm epoch2date
+.Nd formats epoch dates in human readable form 
+.Sh SYNOPSIS
+.Nm epoch2date
+.Op Fl gl
+.Op Fl f Ar format
+.Op Ar epoch-numbers|-
+.Sh DESCRIPTION
+.Nm
+converts unix epoch seconds to a human readable form. Will attempt to
+guess if the timestamp appears to be in microseconds.
+Options:
+.Bl -tag -width Ds
+.It Fl f Ar format
+Format for 
+.Xr strftime 3 ;
+the default is something ISO-8601ish.
+.It Fl g
+Uses the
+.Ic gmtime
+call. Also set if the application is named
+.Pa epoch2gmdate .
+The
+.Ev TZ
+environment variable can also set this:
+.Pp
+.Dl $ Ic env TZ=UTC epoch2date ...
+.Pp
+.It Fl l
+Uses the
+.Ic localtime
+call (the default).
+.El
+.Sh EXIT STATUS
+.Ex -std epoch2date
+.Sh EXAMPLES
+.Dl $ Ic epoch2date -f '%Y' `perl -E 'say time'`
+.Dl $ Ic (echo 1059673440; echo 1404433529) \&| xargs epoch2date
+.Dl $ Ic echo 1059673440 1404433529 \&| epoch2date -
+.Pp
+.Dl $ Ic epoch2date -g 1404662217
+.Dl $ Ic epoch2date -l 1404662217
+.Dl $ Ic TZ=US/Pacific epoch2date 1404662217
+.Pp
+.Dl $ Ic epoch2date 1475682078014325
+.Sh SEE ALSO
+.Xr date 1 ,
+.Xr date2epoch 1 ,
+.Xr epochal 1 ,
+.Xr POSIX 3pm ,
+.Xr strftime 3
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+Usual portability warnings regarding
+.Xr strftime 3
+and the Perl implementation thereof in
+.Xr POSIX 3pm .
+Consult that documentation for more details.

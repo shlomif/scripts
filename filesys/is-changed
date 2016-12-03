@@ -18,7 +18,7 @@ use Digest::SHA1;
 
 my $duration = shift;
 my $command  = shift;
-die "Usage: $0 duration command file [file2 ..]"
+die "Usage: is-changed duration command file [file2 ..]"
   if !defined $duration
   or !defined $command
   or !@ARGV;

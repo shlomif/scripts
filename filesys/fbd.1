@@ -1,0 +1,60 @@
+.Dd December  7 2016
+.Dt FBD 1
+.nh
+.Os
+.Sh NAME
+.Nm fbd
+.Nd find files with or near a particular time
+.Sh SYNOPSIS
+.Nm fbd
+.Op Fl a Ar around
+.Op Fl b Ar before
+.Op Fl e Ar epoch
+.Op Fl f Ar file
+.Op Ar
+.Sh DESCRIPTION
+.Nm
+prints file names with the exact (or a similar) epoch time as a given
+file, given epoch time, or lacking those the current time, searching the
+current directory or the given files recursively.
+Options:
+.Bl -tag -width Ds
+.It Cm --around= Ns Ar timespec Op Fl a Ar timespec
+Non-exact match of
+.Qq around
+plus or minus
+.Ar timespec
+seconds, specified in by default minutes or in shorthand
+.Ar 2m3s
+form. Becomes
+.Qq after
+if
+.Fl b
+specified.
+.It Cm --before= Ns Ar timespec Op Fl b Ar timespec
+Non-exact match before.
+.It Cm --epoch= Ns Ar epoch Op Fl e Ar epoch
+Epoch date to use to match against. Lower priority than
+.It Cm --file= Ns Ar file Op Fl f Ar file
+Epoch date to use will be taken from the given
+.Pa file .
+Higher priority than
+.Fl e
+if both are specified. If neither is specified, the current epoch
+time is used.
+.It Cm --statfield= Ns Ar 8|9|10
+Time field to use, by default the modification time (9); access time is
+8 and the inode change time 10.
+.El
+.Sh EXIT STATUS
+.Ex -std fbd
+.Sh EXAMPLES
+Find files in a given directory modified in the hour around a
+given file:
+.Pp
+.Dl $ Ic fbd -f /path/to/foo -a 1h /path/to
+.Sh SEE ALSO
+.Xr date 1 ,
+.Xr find 1
+.Sh AUTHOR
+.An Jeremy Mates

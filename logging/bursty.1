@@ -1,0 +1,99 @@
+.Dd December  9 2016
+.Dt BURSTY 1
+.nh
+.Os
+.Sh NAME
+.Nm bursty
+.Nd detects bursts or clumps in date-tagged data
+.Sh SYNOPSIS
+.Nm bursty
+.Op Fl -ithresh= Ns Ar float
+.Op Fl -bufsize= Ns Ar int
+.Op Fl -stats
+.Op Fl -verbose
+.Op Fl -Vthresh= Ns Ar float
+.Op Fl -Zthresh= Ns Ar float
+.Op Ar files|-
+.Sh DESCRIPTION
+.Nm
+detects bursts or clumps in date-tagged data, presumably from syslog or
+the like. The idea is to look for sequential sets of timed entries that
+have a standard deviation (variance, to spare
+.Cm sqrt
+calls) below a particular threshold. This can detect e.g. dirty
+spammers, who like to spam servers with simultaneous connections, or
+other misbehaving software applications--say, a set of cron jobs that
+all fire at the same time, most often at the top of the hour, given the
+common lack of imagination in scheduling such things.
+.Pp
+Input (from named files or via stdin) is expected to have a numeric
+timestamp (integer epochs or epoch with floating-point sub-seconds
+should be be acceptable) in the first column, and optional data in the
+second column.
+.Pp
+This code will not suit busy logfiles where the amount of traffic
+renders the statistical tests problematic, for example where there are
+multiple hits per second and only second resolution from the log
+timestamp. Tuning the various knobs to suit the log data will also take
+work, and may run afoul edge cases such as legitimate increased future
+traffic levels. That is to say: use the results with caution.
+Options:
+.Bl -tag -width Ds
+.It Fl -ithresh= Ns Ar float
+Interval threshold; new values whose delta from the previous value
+exceedes this setting will cause all the previous values to be
+discarded. This optimization will reduce the amount of stats math
+necessary at the cost of perhaps missing clumps smaller than the
+buffer size.
+.It Fl -bufsize= Ns Ar int
+Number of lines to perform the statistics on. Cannot be less than three,
+and probably should not be set too large.
+.It Fl -stats
+Shorthand for "turn on verbose and make all thresholds irrelevant" as
+seen in the 
+.Qq EXAMPLES
+section.
+.It Fl -verbose Op Fl v
+Be verbose. In particular, this prints out statistics prepended to each
+input line of data, which, when combined with certain other settings,
+may assist in tuning the various threshold flags.
+.It Fl -Vthresh= Ns Ar float
+Variance threshold (standard deviation squared, to avoid
+.Cm sqrt
+calls), which if the set of lines in the buffer has a lower value,
+those lines will likely be printed, unless some other threshold
+influences things.
+.It Fl -Zthresh= Ns Ar float
+Z squared threshold for the variance data of individual lines. Can be
+used to exclude outliers if
+.Fl -ithresh
+has been set high enough to allow such in the results.
+.El
+.Sh EXIT STATUS
+.Ex -std bursty
+.Sh EXAMPLES
+Some means to convert log timestamps to epoch is necessary, such as via
+.Xr epochal 1 .
+.Pp
+.Dl $ Ic epochal -y -f '%b %d %H:%M:%S' /var/log/maillog \&| bursty
+.Pp
+Disable various threshold limits and use verbose mode to print the
+statistics for the clumps found. This output may then be studied and
+appropriate thresholds determined to better match the required data.
+.Pp
+.Dl $ Ic ... \&| bursty --Vthresh=0 --Zthresh=0 --ithresh=0 --verbose
+.Pp
+A shorthand for the prior is the following, though the prior long form
+may still be useful if one wishes to fiddle with any of the thresholds
+while experimenting.
+.Pp
+.Dl $ Ic ... \&| bursty --stats
+.Pp
+Also be sure to experiment with the 
+.Fl -bufsize
+setting to see whether other values better suit the data being
+searched for.
+.Sh SEE ALSO
+.Xr epochal 1
+.Sh AUTHOR
+.An Jeremy Mates

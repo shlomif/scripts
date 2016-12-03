@@ -36,6 +36,8 @@ Print brief usage note.
 .It Fl q
 Emit fewer warning messages.
 .El
+.Sh EXIT STATUS
+.Ex -std myat
 .Sh EXAMPLES
 .Dl $ Ic echo not long now \&| myat 2038-01-19
 .Dl $ Ic echo all is lost  \&| myat 2038-01-19 03:14
@@ -46,8 +48,6 @@ Emit fewer warning messages.
 A shell function wrapper might look something like:
 .Pp
 .Dl Ic function myat { \&( builtin cd $HOME && command myat \&"$@\&" \&) }
-.Sh EXIT STATUS
-.Ex -std myat
 .Sh SEE ALSO
 .Xr at 1
 .Sh AUTHOR

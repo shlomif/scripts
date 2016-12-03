@@ -1,0 +1,51 @@
+.Dd December 10 2016
+.Dt humanize 1
+.nh
+.Os
+.Sh NAME
+.Nm humanize
+.Nd humanizes numbers
+.Sh SYNOPSIS
+.Nm humanize
+.Op Cm --base= Ns Ar base
+.Op Fl kMGTP
+.Op Fl n Ar numdigits
+.Op Cm --right
+.Op Ar file ...|-
+.Sh DESCRIPTION
+.Nm
+humanizes large numbers into a short-hand form similar to that
+provided by the
+.Fl h
+option to various (now) modern unix utilities.
+Options:
+.Bl -tag -width Ds
+.It Cm --base= Ns Ar base Op Fl b Ar base
+Specify a custom base to use. This must agree with the input data, so
+.Fl b Ar 512
+to match the
+.Pa df
+default, or so forth depending on the utility.
+.It Fl kMGTP
+Specify a base of kilobytes, megabytes, gigabytes, etc. Default is
+kilobytes.
+.It Fl n Ar numdigits
+How many digits to consider numbers as viable for humanization. 4 by
+default, which means the numbers 999 and lower will not be humanized.
+.It Cm --right Op Fl r
+Align humanized output to the right instead of the left.
+.El
+.Sh EXIT STATUS
+.Ex -std humanize
+.Sh EXAMPLES
+.Dl $ Ic df -k | humanize -r
+.Sh SEE ALSO
+.Xr df 1 ,
+.Xr du 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh HISTORY
+When this utility was first written (September 2000) many utilities
+lacked a builtin option to humanize the increasingly unwieldy file and
+file system sizes in their output. However, that lack has mostly been
+recified over the intervening years.

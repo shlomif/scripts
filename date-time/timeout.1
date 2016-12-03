@@ -36,6 +36,9 @@ makes
 .Nm
 emit less noise.
 .El
+.Sh EXIT STATUS
+.Ex -std
+In particular, the exit status is 2 on timeout.
 .Sh EXAMPLES
 The use of the double hyphens while optional is to prevent the option
 processing for
@@ -46,9 +49,6 @@ limits on what the numbers may be.
 .Pp
 .Dl $ Ic timeout -- 3 sleep 7
 .Dl $ Ic timeout -- 3m21s sleep 202
-.Sh EXIT STATUS
-.Ex -std
-In particular, the exit status is 2 on timeout.
 .Sh HISTORY
 Began as a (quite bad) Perl script in 2002 to deal with Apache FOP not
 exiting when building PDF via XSL-FO. Less bad implementation in C

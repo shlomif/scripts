@@ -52,6 +52,8 @@ it to emit output which in turn will likely result in a
 signal and
 .Nm
 being stopped.
+.Sh EXIT STATUS
+.Ex -std snooze
 .Sh EXAMPLES
 .Dl $ Ic snooze 3m; make-noise-somehow
 .Pp
@@ -62,8 +64,6 @@ Or alter the process name:
 And then in another terminal:
 .Pp
 .Dl $ Ic pkill -INFO snooze-bread
-.Sh EXIT STATUS
-.Ex -std snooze
 .Sh SEE ALSO
 .Xr pkill 1 ,
 .Xr signal 3 ,
