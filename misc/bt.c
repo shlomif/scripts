@@ -176,7 +176,8 @@ char **parse_debugger_args(char *progname, char *corefile)
         err(EX_OSERR, "could not malloc argument list");
 
     while ((token = strsep(&string, " ")) != NULL) {
-        dargs[cur_arg++] = token;
+        if ((dargs[cur_arg++] = strdup(token)) == NULL)
+            err(EX_OSERR, "could not duplicate token");
         if (cur_arg > max_arg - 3) {
             max_arg <<= 1;
             if ((dargs = realloc(dargs, sizeof(char *) * max_arg)) == NULL)

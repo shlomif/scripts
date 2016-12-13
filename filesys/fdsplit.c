@@ -11,19 +11,19 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-typedef char *(*fn_parser) (char *prefix, const char *filepath);
+typedef char *(*fn_parser) (char *parentdir, const char *filepath);
 
 void emit_help(void);
 char *parse_ext(char *unused, const char *filename);
-char *parse_root(char *prefix, const char *filename);
+char *parse_root(char *parentdir, const char *filename);
 
 char Flag_Delimiter = '.';
 bool Flag_NullSep;
 
 int main(int argc, char *argv[])
 {
-    char *filename, *filepart, *lastslash, *prefix;
-    fn_parser select_part;
+    char *filename, *filepart, *lastslash, *parentdir;
+    fn_parser select_part = parse_root;
     int ch;
 
     while ((ch = getopt(argc, argv, "0d:h?")) != -1) {
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     argv += optind;
 
     if (strcmp(*argv, "root") == 0) {
-        select_part = parse_root;
+        ;                       // set above to avoid compiler warnings
     } else if (strcmp(*argv, "ext") == 0) {
         select_part = parse_ext;
     } else {
@@ -68,20 +68,20 @@ int main(int argc, char *argv[])
      *   `x=/etc/cron.d/; echo ext $x:e; echo root $x:r`
      */
     if ((lastslash = strrchr(*argv, '/')) == NULL) {
-        prefix = NULL;
+        parentdir = NULL;
         filename = *argv;
     } else {
-        if ((prefix = strndup(*argv, lastslash - *argv + 1)) == NULL)
+        if ((parentdir = strndup(*argv, lastslash - *argv + 1)) == NULL)
             err(EX_OSERR, "could not strndup");
         filename = ++lastslash;
     }
 
-    if ((filepart = select_part(prefix, filename)) != NULL) {
+    if ((filepart = select_part(parentdir, filename)) != NULL) {
         printf("%s%c", filepart, Flag_NullSep ? '\0' : '\n');
         free(filepart);
         filepart = NULL;
-        if (prefix != NULL)
-            free(prefix);
+        if (parentdir != NULL)
+            free(parentdir);
     }
 
     exit(EXIT_SUCCESS);
@@ -106,13 +106,13 @@ char *parse_ext(char *unused, const char *filename)
     return ext;
 }
 
-char *parse_root(char *prefix, const char *filename)
+char *parse_root(char *parentdir, const char *filename)
 {
     char *fullpath, *lastdot, *root;
-    size_t plen;
+    size_t fullpath_len;
     size_t len = strlen(filename);
     if (len == 0)
-        return prefix;
+        return parentdir;
     if ((root = strdup(filename)) == NULL)
         err(EX_OSERR, "could not strdup");
     if ((lastdot = strrchr(root, Flag_Delimiter)) == NULL)
@@ -120,15 +120,14 @@ char *parse_root(char *prefix, const char *filename)
     *lastdot = '\0';
     /* special case for ".blah" */
     if ((len = strlen(root)) == 0)
-        return prefix;
+        return parentdir;
   FULLPATH:
-    if (prefix) {
-        plen = strlen(prefix);
-        len = strlen(root);
-        if ((fullpath = malloc(plen + len + 1)) == NULL)
+    if (parentdir) {
+        fullpath_len = strlen(parentdir) + strlen(root) + 1;
+        if ((fullpath = malloc(fullpath_len)) == NULL)
             err(EX_OSERR, "could not malloc space for path");
-        strcpy(fullpath, prefix);
-        strcpy(fullpath + plen, root);
+        strlcpy(fullpath, parentdir, fullpath_len);
+        strlcat(fullpath, root, fullpath_len);
         return fullpath;
     } else {
         return root;
