@@ -88,8 +88,34 @@ if {[catch {spawn -noecho {*}$argv} err]} {
 # TWEAK and here we try to figure out hopefully a 90% solution for feeding
 # of varied inputs to varied REPL
 set tocall [lindex $argv 0]
+                                                               # FORTH
+if {$tocall eq "pfe" || [string match "*forth*" $tocall]} {
+    # PFE is tricky as you have to wait for it to get up otherwise
+    # it ignores the input, hence check for "ok"
+    expect -ex ok
+
+    proc dosomethingwith {line} {
+        # \ as a comment and not a line extender, so strange!
+        if {[regexp {^[[:blank:]]*(\\.*)?$} $line]} { return }
+
+        send -- "$line\r"
+    }
+                                                               # GDB
+} elseif {$tocall eq "gdb"} {
+    proc dosomethingwith {line} {
+
+        if {[regexp {^[[:blank:]]*$} $line]} { return }
+        if {[regexp {^[#]} $line]} { return }
+
+        # TWEAK will need adjustment if `set prompt` has been
+        # customized in gdb; '>' is for "Breakpoint Command Lists"
+        # continuation lines
+        expect -re {\(gdb|>}
+
+        send -- "$line\r"
+    }
                                                                # LISP
-if {$tocall eq "clisp" || $tocall eq "sbcl"} {
+} elseif {$tocall eq "clisp" || $tocall eq "sbcl"} {
     proc dosomethingwith {line} {
         # both clisp and sbcl hang on ; comments so MUST skip those,
         # also skip blank lines as have yet to see them in lisp code...
@@ -132,20 +158,6 @@ if {$tocall eq "clisp" || $tocall eq "sbcl"} {
             # default "% " prompt or I've instead set tcl_prompt1 to "foo> "
             expect -re {[%>] }
         }
-
-        send -- "$line\r"
-    }
-                                                               # GDB
-} elseif {$tocall eq "gdb"} {
-    proc dosomethingwith {line} {
-
-        if {[regexp {^[[:blank:]]*$} $line]} { return }
-        if {[regexp {^[#]} $line]} { return }
-
-        # TWEAK will need adjustment if `set prompt` has been
-        # customized in gdb; '>' is for "Breakpoint Command Lists"
-        # continuation lines
-        expect -re {\(gdb|>}
 
         send -- "$line\r"
     }

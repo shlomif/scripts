@@ -20,10 +20,11 @@ fi
 if [ ! -d "$HOME/usr/share/man/man$SECTION" ]; then
     echo >&2 "notice: mkdir $HOME/usr/share/man/man$SECTION"
     sleep 1
-    mkdir -p $HOME/usr/share/man/man$SECTION
+    mkdir -p "$HOME/usr/share/man/man$SECTION"
 fi
 
-cp $FILE $HOME/usr/share/man/man$SECTION
+cp "$FILE" "$HOME/usr/share/man/man$SECTION"
 
 PAGE=`fdsplit root "$FILE"`
+PAGE=`basename "$PAGE"`
 exec man "$SECTION" "$PAGE"

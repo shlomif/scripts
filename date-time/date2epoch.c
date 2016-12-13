@@ -1,15 +1,4 @@
-/*
- * Converts YYYY-MM-DD HH:MM:SS into epoch time. Used to use Date::Manip, but
- * it is easier to standardize on a common format and only use that. Alas,
- * POSIX::strftime in Perl is a tale of bikeshedded woe.
- *
- * Granted, timezone parsing with strptime(3) is, uh, limited, so the input
- * probably should be in UTC, which is a sensible default timezone for an
- * Internet Plumber to use. This code whines if such is not the case.
- *
- *   % date2epoch -q `TZ=US/Pacific epoch2date 12348989`
- *   12323789
- */
+/* Converts YYYY-MM-DD HH:MM:SS into epoch time */
 
 #include <err.h>
 #include <stdbool.h>
@@ -36,7 +25,6 @@ int main(int argc, char *argv[])
         case 'q':
             Flag_Quiet = true;
             break;
-
         case 'h':
         case '?':
         default:
@@ -66,21 +54,17 @@ int main(int argc, char *argv[])
                 if (!strptime(*argv, "%H", &when))
                     errx(EX_DATAERR, "could not parse HH:MM[:SS]");
     }
-    if (argc > 2 && !Flag_Quiet) {
-        ++argv;
-        if (!((strncmp(*argv, "UTC", (size_t) 4) == 0)
-              || (strncmp(*argv, "GMT", (size_t) 4) == 0)))
-            warnx("use of unknown timezone %s may lead to incorrect epoch",
-                  *argv);
-    }
+    if (argc > 2 && !Flag_Quiet)
+        warnx("notice: set timezone via TZ env, not after the timestamp");
 
-    printf("%ld\n", (long) timegm(&when));
+    tzset();
+    printf("%ld\n", (long) timelocal(&when));
 
     exit(EXIT_SUCCESS);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: date2epoch [-q] YYYY-MM-DD [HH[:MM[:SS]]]\n");
+    fprintf(stderr, "Usage: [env TZ=...] date2epoch [-q] YYYY-MM-DD [HH[:MM[:SS]]]\n");
     exit(EX_USAGE);
 }

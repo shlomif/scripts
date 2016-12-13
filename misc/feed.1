@@ -1,4 +1,4 @@
-.Dd November 17 2016
+.Dd December 12 2016
 .Dt FEED 1
 .nh
 .Os
@@ -59,10 +59,11 @@ From a
 .Xr vi 1
 buffer containing LISP code, one could issue
 .Pp
-.Dl Ic :!feed % clisp -q -q
+.Dl Ic :!feed % sbcl --noinform
 .Pp
-to feed the contents of the buffer to clisp. Standard input is also
-supported as a source of input,
+to feed the contents of the buffer to
+.Pa sbcl .
+Standard input is also supported as a source of input,
 .Pp
 .Dl $ Ic echo run -al \&| feed - gdb -q ls
 .Pp

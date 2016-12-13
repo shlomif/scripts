@@ -21,7 +21,11 @@ proc getbatlevel {} {
     if {$maxval == 0} {
 	set batlevel "0?"
     } else {
-	set batlevel [format "%.0f" [expr $curval / $maxval * 100]]
+        if {![string is double -strict $curval]} {
+            set batlevel "??"
+        } else {
+            set batlevel [format "%.0f" [expr $curval / $maxval * 100]]
+        }
     }
     set batstate [lindex [split [exec sysctl -n hw.sensors.acpibat0.raw0] " "] 0]
     if {$batstate == 2} {
@@ -55,6 +59,6 @@ bind . <r> {
 }
 bind . <q> { exit }
 
-wm geometry . "${width}x${height}+493-4"
+wm geometry . "${width}x${height}+493-1"
 
 getbatlevel

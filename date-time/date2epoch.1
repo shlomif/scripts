@@ -1,4 +1,4 @@
-.Dd October 12 2016
+.Dd December 12 2016
 .Dt DATE2EPOCH 1
 .nh
 .Os
@@ -17,24 +17,37 @@ utility attempts to convert a
 timestamp via
 .Xr strptime 3
 to epoch time. The day, day and month, seconds, seconds and minutes,
-etc. are optional.
+etc. are optional. If necessary, set the timezone via the
+.Cm TZ
+environment variable; the default timezone will be whatever local zone
+.Xr tzset 3
+finds.
 .Pp
 Options:
 .Bl -tag -width Ds
 .It Fl h
 Print brief usage note.
 .It Fl q
-Do not print warning if non-UTC timezone detected in third argument
-to script.
+Do not print warning if a presumably timezone argument is present
+following the timestamp.
 .El
 .Sh EXIT STATUS
 .Ex -std date2epoch
 .Sh EXAMPLES
-.Dl $ Ic date2epoch 2003-07-31 17:44:00 UTC
+.Dl $ Ic date2epoch 2003-07-31 17:44:00
 .Dl $ Ic date2epoch 2014 15
+.Dl $ Ic env TZ=US/Pacific date2epoch 1970-04-26 10:46:39
+.Pp
+Note that in most shells the
+.Cm env
+command need not be used to set
+.Cm TZ .
+.Pp
+.Dl $ Ic TZ=US/Pacific date2epoch 1970-04-26 10:46:39
 .Sh SEE ALSO
 .Xr date 1 ,
 .Xr epoch2date 1 ,
-.Xr epochal 1
+.Xr epochal 1 ,
+.Xr tzset 3
 .Sh AUTHOR
 .An Jeremy Mates
