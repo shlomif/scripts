@@ -12,7 +12,7 @@ timeout: timeout.c
 depend:
 	cpanm --installdeps ..
 
-test: date2epoch
+test: date2epoch now
 	@prove
 
 clean:

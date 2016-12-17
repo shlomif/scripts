@@ -91,12 +91,13 @@ set tocall [lindex $argv 0]
                                                                # FORTH
 if {$tocall eq "pfe" || [string match "*forth*" $tocall]} {
     # PFE is tricky as you have to wait for it to get up otherwise
-    # it ignores the input, hence check for "ok"
-    expect -ex ok
+    # it ignores the input, hence check for "ok" -- but gforth does
+    # not print an "ok" at startup, argh.
+    expect -re {(ok|bye)}
 
     proc dosomethingwith {line} {
-        # \ as a comment and not a line extender, so strange!
-        if {[regexp {^[[:blank:]]*(\\.*)?$} $line]} { return }
+        # "\ " as a comment and not a line extender, so strange!
+        if {[regexp {^[[:blank:]]*(\\[[:blank:]].*)?$} $line]} { return }
 
         send -- "$line\r"
     }

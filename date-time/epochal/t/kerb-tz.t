@@ -1,12 +1,10 @@
 #!perl
 #
-# Those wacky Kerberos timestamps, the ones that cause segfaults on OpenBSD
-# that hopefully will be fixed in OpenBSD 5.7, or you can patch strptime.c of
-# libc fame.
+# Those wacky Kerberos timestamps, the ones that cause segfaults on
+# OpenBSD (though they did patch that, eventually).
 
 use strict;
 use warnings;
-
 use Test::Cmd;
 use Test::More tests => 4;
 
@@ -25,8 +23,8 @@ my $dates_only_epoch = <<'EODE';
 EODE
 
 my $test = Test::Cmd->new(
-  prog    => q{epochal -f '%a %b %d %H:%M:%S %Z %Y'},
-  workdir => '',
+    prog    => q{epochal -f '%a %b %d %H:%M:%S %Z %Y'},
+    workdir => '',
 );
 
 $test->run( stdin => $dates );
@@ -35,9 +33,9 @@ is( $test->stdout, $dates_epoch, 'dates converted to epoch' );
 is( $? >> 8,       0,            'exit status ok' );
 
 $test = Test::Cmd->new(
-  prog    => q{epochal -s -f '%a %b %d %H:%M:%S %Z %Y'},
-  workdir => '',
-  stdin   => $dates
+    prog    => q{epochal -s -f '%a %b %d %H:%M:%S %Z %Y'},
+    workdir => '',
+    stdin   => $dates
 );
 
 $test->run( stdin => $dates );

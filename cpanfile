@@ -1,3 +1,9 @@
 requires 'App::Prove';
+requires 'Expect';
+requires 'Getopt::Long';
+requires 'IO::Pty';
+requires 'POSIX';
+requires 'Term::ReadKey';
 requires 'Test::Cmd';
 requires 'Test::Most';
+requires 'Time::HiRes';

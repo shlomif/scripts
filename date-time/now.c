@@ -34,7 +34,6 @@ int main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
-
         case 'h':
         case '?':
         default:
@@ -45,14 +44,16 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc == 0) emit_help();
+    if (argc == 0)
+        emit_help();
 
     if (time(&epoch) == (time_t) - 1)
         err(EX_OSERR, "time() failed");
     if ((when = localtime(&epoch)) == NULL)
         err(EX_OSERR, "localtime() failed");
 
-    if (**argv == '+') ++*argv;
+    if (**argv == '+')
+        ++ * argv;
 
     /* limit of 2 here mostly because fermentation times rarely exceed a
      * small number of weeks, and also to prevent INT_MAX or such from
@@ -72,11 +73,9 @@ int main(int argc, char *argv[])
         switch (offset_type) {
         case 'd':
             break;
-
         case 'w':
             offset *= 7;
             break;
-
         default:
             warnx("count must be followed by 'd' or 'w' or nothing");
             emit_help();

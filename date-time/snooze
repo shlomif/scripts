@@ -16,7 +16,7 @@ while ( $arg =~ m/([0-9]+)([smhd])?/g ) {
     $value *= $factors{$2} if $2;
     $to_sleep += $value;
 }
-die "nothing to die to sleep to sleep no more for\n" if $to_sleep == 0;
+die "Usage: snooze time-duration [label]\n" if $to_sleep == 0;
 
 my $label = shift;
 $0 = $label ? "snooze-$label" : "snooze";
@@ -25,36 +25,11 @@ ReadMode 2;    # noecho to hide control+\s from gunking up the message
 
 my $total_time = $to_sleep;
 
-sub remainder {
-    warn sprintf "$0: %s remaining (%d%%)\n", deltatimefmt($to_sleep),
-      $to_sleep / $total_time * 100;
-}
+$SIG{$_} = \&remainder for qw/ALRM INFO QUIT/;
+$SIG{$_} = \&restore   for qw/HUP INT TERM USR1 USR2/;
+$SIG{TSTP} = 'IGNORE';
 
-sub restore {
-    ReadMode 0;
-    warn sprintf "$0: %s remainds  (%d%%)\n", deltatimefmt($to_sleep),
-      $to_sleep / $total_time * 100;
-    exit 1;
-}
-
-# expect user to mash on control+\ or whatever generates SIGINFO
-for my $name (qw/ALRM INFO QUIT/) {
-    $SIG{$name} = \&remainder;
-}
-
-# back to original term settings if get blown away
-for my $name (qw/HUP INT TERM USR1 USR2/) {
-    $SIG{$name} = \&restore;
-}
-
-$SIG{TSTP} = 'IGNORE';    # no Zees for you!
-
-while ( $to_sleep > 0 ) {
-    $to_sleep -= sleep $to_sleep;
-}
-
-ReadMode 0;
-exit;
+$to_sleep -= sleep $to_sleep while ( $to_sleep > 0 );
 
 sub deltatimefmt {
     my $difference = shift;
@@ -76,3 +51,16 @@ sub deltatimefmt {
     $temp .= ($seconds) ? "${seconds}s" : q{};
     return $temp;
 }
+
+sub remainder {
+    warn sprintf "$0: %s remaining (%d%%)\n", deltatimefmt($to_sleep),
+      $to_sleep / $total_time * 100;
+}
+
+sub restore {
+    warn sprintf "$0: %s remainds  (%d%%)\n", deltatimefmt($to_sleep),
+      $to_sleep / $total_time * 100;
+    exit 1;
+}
+
+END { ReadMode 0 }

@@ -1,4 +1,4 @@
-.Dd October 29 2016
+.Dd December 17 2016
 .Dt SNOOZE 1
 .nh
 .Os
@@ -7,12 +7,12 @@
 .Nd sleep for a given duration
 .Sh SYNOPSIS
 .Nm snooze
-.Ar duration
+.Ar time-duration
 .Op Ar label
 .Sh DESCRIPTION
 .Nm
 sleeps for the given
-.Ar duration
+.Ar time-duration
 which may either be a number of seconds or an abbreviated form. The optional
 .Ar label
 changes the process name so that
@@ -41,9 +41,7 @@ to generate the
 .Dv INFO
 signal; check
 .Xr stty 1
-for details. (Though note that the relevant
-.Cm kerninfo
-flag does not appear to do anything on Mac OS X 10.11.6).
+for details.
 .Pp
 .Nm
 should not be run in the background, as informational signals will cause
@@ -51,7 +49,7 @@ it to emit output which in turn will likely result in a
 .Dv SIGTTOU
 signal and
 .Nm
-being stopped.
+being stopped. This would defeat the point of using it.
 .Sh EXIT STATUS
 .Ex -std snooze
 .Sh EXAMPLES
