@@ -13,6 +13,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 
 # TODO how tight can this be vs. false positive risk? TODO also should
 # skew to allow for longer durations, but not shorter ones
+# also used in timeout.t
 my $tolerance = 0.15;
 
 my $test_prog = './snooze';
@@ -76,7 +77,8 @@ sub sig_info {
         "time remains message: " . $exp->before
     );
     is( $return, 'eof', "snooze exited" );
-    ok( $elapsed_error < $tolerance, "duration out of bounds: $elapsed_error" );
+    ok( $elapsed_error < $tolerance,
+        "duration variance out of bounds: $elapsed_error" );
 }
 
 sub sleep_for {

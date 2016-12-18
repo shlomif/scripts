@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env expect
 #
 # The current directory, minus the home directory (which may vary for a
 # user between different systems) so that e.g. scp or rsync commands can
@@ -8,15 +8,16 @@
 #   cd ~/...
 #   scp ... otherhost:`here`
 
-use strict;
-use warnings;
+if {[llength $argv] == 1} {
+    set workdir [lindex $argv 0]
+    if {[string length $workdir] == 0} {
+        puts stderr "Usage: here \[directory-path]"
+        exit 1
+    }
+} else {
+    set workdir [pwd]
+}
 
-use Cwd qw(getcwd);
-use File::HomeDir ();
-
-my $dir = @ARGV ? shift : getcwd;
-my $home = File::HomeDir->my_home;
-
-$dir =~ s{$home/}{};
-
-print "$dir\n";
+set workdir [file normalize $workdir]
+set homedir [file normalize ~]
+puts [regsub "^$homedir[file separator]" $workdir ""]

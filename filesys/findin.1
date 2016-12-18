@@ -1,4 +1,4 @@
-.Dd October 12 2016
+.Dd December 20 2016
 .Dt FINDIN 1
 .nh
 .Os
@@ -8,7 +8,7 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl 0hq
+.Op Fl 0q
 .Ar glob
 .Op Ar envvar|-
 .Ek
@@ -22,18 +22,16 @@ name, such as
 .Ev MANPATH .
 If 
 .Ar -
-is specified the list of directories to search is read from
-standard input.
-.Pp
+is specified the list of directories to search is read from standard
+input, one per line.
 Options:
 .Bl -tag -width -indent
 .It Fl 0
-specfies that the input directories and output will be NUL delimited.
-.It Fl h
-show help for
-.Nm .
+Specfies that the input directories given on standard input and output
+results will be NUL delimited. Environment variables will be colon-split,
+regardless.
 .It Fl q
-emit less noise from in particular
+Emit less noise from in particular
 .Xr glob 3
 calls at cost of perhaps missing errors.
 .El
@@ -67,18 +65,23 @@ A contrived example to illustrate the use of
 .Pp
 .Dl % Ic echo -n /etc$'\e0'/usr \&| findin -0 's*' \&| xargs -0 echo
 .Sh SEE ALSO
-.Xr find 1 ,
-.Xr findup 1 ,
-.Xr getpof 1 ,
-.Xr glob 3
-.Pp
-Using the Z shell, this utility might be replaced with
-expressions such as:
+Under the Z shell, this utility might be replaced with:
 .Pp
 .Dl % Ic print -l ${^fpath}/_pgrep(N)
 .Dl % Ic print -l ${^path}/perl(N)
 .Dl % Ic print -l ${^${(s.:.)PATH}}/perl(N)
 .Pp
+Otherwise,
+.Xr find 1
+itself may be used, possibly with a script to simplify the necessary
+redressing of the environment variable:
+.Pp
+.Dl % Ic find `echo $MANPATH \&| tr ':' ' '` -name ...
+.Pp
+.Xr find 1 ,
+.Xr findup 1 ,
+.Xr getpof 1 ,
+.Xr glob 3 ,
 .Xr zshexpn 1 ,
 .Xr zshparam 1
 .Sh AUTHOR
@@ -86,4 +89,10 @@ Jeremy Mates
 .Sh CAVEATS
 .Dv GLOB_LIMIT
 is not used; this utility must therefore not be exposed to attackers who
-can supply arbitrary patterns to glob.
+can supply arbitrary patterns to
+.Xr glob 3 .
+.Pp
+.Nm
+does not check the input for validity, that is, whether
+.Cm PATH
+contains elements, or that the elements even exist.

@@ -40,19 +40,15 @@ int main(int argc, char *argv[])
         case 'q':
             Flag_Quiet = true;
             break;
-
         case 'r':
             Flag_Recurse = true;
             break;
-
         case 'x':
             fts_options |= FTS_XDEV;
             break;
-
         case '0':
             Flag_Null = true;
             break;
-
         case 'h':
         case '?':
         default:

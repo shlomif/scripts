@@ -10,7 +10,7 @@ NO_ESCAPE_HOME=
 TEST_FLAG="-r"
 
 OPT=
-while getopts dfqH OPT; do
+while getopts dfhHq OPT; do
     case $OPT in
         d)
             TEST_FLAG="-d"
@@ -18,11 +18,15 @@ while getopts dfqH OPT; do
         f)
             TEST_FLAG="-f"
             ;;
-        q)
-            QUIET=1
+        h)
+            echo >&2 "Usage: findup [-d|-f] [-q] [-H] filename"
+            exit 64
             ;;
         H)
-            NO_ESCAPE_HOME=`dirname $HOME`
+            NO_ESCAPE_HOME=`dirname "$HOME"`
+            ;;
+        q)
+            QUIET=1
             ;;
     esac
 done
@@ -30,7 +34,7 @@ shift `expr $OPTIND - 1`
 
 WANTED=$1
 if [ -z "$WANTED" ]; then
-    echo >&2 "Usage: `basename $0` [-d|-f] [-q] [-H] filename"
+    echo >&2 "Usage: findup [-d|-f] [-q] [-H] filename"
     exit 64
 fi
 # special case for root dir, otherwise `findup /` matches `pwd`. there
@@ -44,7 +48,7 @@ SEARCHDIR=$2
 if [ -z "$SEARCHDIR" ]; then
     CURRENT_DIR=`pwd`
 else
-    CURRENT_DIR="$SEARCHDIR"
+    CURRENT_DIR=$SEARCHDIR
 fi
 
 EXIT_STATUS=1
@@ -52,13 +56,13 @@ EXIT_STATUS=1
 while :; do
     if [ $TEST_FLAG "$CURRENT_DIR/$WANTED" ]; then
         if [ $QUIET -eq 0 ]; then
-            echo $CURRENT_DIR
+            printf -- "$CURRENT_DIR\n"
         fi
         EXIT_STATUS=0
         break
     fi
 
-    NEW_DIR=`dirname $CURRENT_DIR`
+    NEW_DIR=`dirname "$CURRENT_DIR"`
 
     if [ "$NEW_DIR" = "$CURRENT_DIR" ]; then
         break

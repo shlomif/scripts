@@ -37,7 +37,6 @@ my $testcmd = Test::Cmd->new(
 );
 
 for my $test (@tests) {
-    $test->{args}        //= '';
     $test->{stderr}      //= '';
     $test->{exit_status} //= 0;
 
@@ -46,6 +45,7 @@ for my $test (@tests) {
         exists $test->{stdin} ? ( stdin => $test->{stdin} ) : ()
     );
 
+    $test->{args} //= '';
     is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
     eq_or_diff(
         [   map {
