@@ -6,7 +6,7 @@ use Cwd qw(getcwd);
 use File::Spec ();
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 1 + 3 * 9 + 6;
+use Test::Most tests => 1 + 3 * 10 + 6;
 
 my $test_prog = 'findin';
 
@@ -34,7 +34,6 @@ my $findin_path = File::Spec->catfile( $prog_dir, 'findin' );
 my $findin_dirpath1 = $ENV{FINDIN_PATH1} =~ s/:/\n/gr;
 my $findin_dirpath1_null = $ENV{FINDIN_PATH1} =~ s/:/\0/gr;
 
-# TODO stdin - tests as well...
 my @tests = (
     {   args   => 'ls',
         stdout => [$ls_path],
@@ -60,10 +59,15 @@ my @tests = (
         stdin  => $findin_dirpath1,
         stdout => ["$findin_path"],
     },
+    # are /path/ trailing slashes cleaned up?
+    {   args   => 'findin.1 -',
+        stdin  => "$findin_dirpath1/",
+        stdout => ["$findin_path.1"],
+    },
     # stdin read -0 also means stdin must be nullsep
-    {   args   => '-0 findin -',
+    {   args   => '-0 findin.c -',
         stdin  => $findin_dirpath1_null,
-        stdout => ["$findin_path\0"],
+        stdout => ["$findin_path.c\0"],
     },
     # ENV regardless splits on :
     {   args   => '-0 ls',

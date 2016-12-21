@@ -13,8 +13,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-// TODO need dirdel with updated parsing?
-#define DIR_DELIMITER '/'
 #define STDIN_DELIMITER '\n'
 #define STDOUT_DELIMITER '\n'
 
@@ -23,7 +21,7 @@
  * problematical on Mac OS X. */
 #define GLOB_FLAGS GLOB_BRACE | GLOB_TILDE
 
-void check_dir(char *directory, size_t dir_len, const char *file_expr,
+void check_dir(char *directory, size_t dir_len, const char *expr,
                char output_delim);
 void emit_help(void);
 void parse_env(const char *envname, const char *expr, char output_delim);
@@ -75,13 +73,17 @@ int main(int argc, char *argv[])
     exit(exit_status);
 }
 
-void check_dir(char *directory, size_t dir_len, const char *file_expr,
+void check_dir(char *directory, size_t dir_len, const char *expr,
                char output_delim)
 {
     glob_t g;
     int ret;
+    size_t tail = dir_len - 1;
 
-// TODO strip trailing / off of dir, if it has length
+    /* NOTE dir_len may be out of sync with directory afterwards, but is
+     * not presently relevant hence. */
+    while (tail > 0 && directory[tail] == '/')
+        directory[tail--] = '\0';
 
     if (chdir(directory) != 0) {
         if (errno != ENOENT && !Flag_Quiet) {
@@ -91,9 +93,9 @@ void check_dir(char *directory, size_t dir_len, const char *file_expr,
         return;
     }
 
-    if ((ret = glob(file_expr, GLOB_FLAGS, NULL, &g)) != 0) {
+    if ((ret = glob(expr, GLOB_FLAGS, NULL, &g)) != 0) {
         if (ret != GLOB_NOMATCH && !Flag_Quiet) {
-            warn("glob error (%d) for %s/%s", ret, directory, file_expr);
+            warn("glob error (%d) for %s/%s", ret, directory, expr);
             exit_status = EX_OSERR;
         }
     } else {
@@ -116,6 +118,7 @@ void emit_help(void)
 void parse_env(const char *envname, const char *expr, char output_delim)
 {
     char *directory, *envp, *string, *tofree;
+    size_t dir_len;
 
     if ((envp = getenv(envname)) == NULL)
         errx(EX_USAGE, "no such environment variable '%s'", envname);
@@ -124,7 +127,9 @@ void parse_env(const char *envname, const char *expr, char output_delim)
     tofree = string;
 
     while ((directory = strsep(&string, ":")) != NULL) {
-        check_dir(directory, strlen(directory), expr, output_delim);
+        dir_len = strlen(directory);
+        if (dir_len > 0)
+            check_dir(directory, dir_len, expr, output_delim);
     }
     free(tofree);
 }
@@ -133,10 +138,16 @@ void parse_stdin(const char *expr, char input_delim, char output_delim)
 {
     ssize_t numchars;
     char *line;
-    size_t line_len;
+    size_t linebuflen;
 
-    while ((numchars = getdelim(&line, &line_len, input_delim, stdin)) != -1) {
-        check_dir(line, line_len, expr, output_delim);
+    while ((numchars = getdelim(&line, &linebuflen, input_delim, stdin)) != -1) {
+        if (numchars > 1) {
+            /* NOTE line includes the delimiter, except when the caller
+             * fails to append the delimiter to the ultimate line. */
+            if (line[numchars - 1] == input_delim)
+                line[--numchars] = '\0';
+            check_dir(line, numchars, expr, output_delim);
+        }
     }
     if (ferror(stdin)) {
         warn("error reading from standard input");

@@ -5,9 +5,13 @@
 
 use strict;
 use warnings;
+use File::Spec ();
 use Getopt::Long qw(GetOptions);
 
-GetOptions( 'exclude|e=s' => \my $Flag_Exclude ) or exit 64;
+GetOptions(
+    'exclude|e=s' => \my $Flag_Exclude,
+    'help|h|?'    => \&emit_help,
+) or exit 64;
 
 my $file_regex = shift // qr/^/;
 my $directory  = shift // '.';
@@ -26,7 +30,7 @@ while ( my $file = readdir($dh) ) {
     if ( defined $Flag_Exclude ) {
         next if $file =~ m/$Flag_Exclude/;
     }
-    my $file_mtime = ( stat($file) )[9];
+    my $file_mtime = ( stat( File::Spec->catfile( $directory, $file ) ) )[9];
     if ( $file_mtime > $latest_mtime ) {
         $latest_mtime = $file_mtime;
         $latest_file  = $file;
@@ -39,3 +43,13 @@ if ( defined $latest_file ) {
     $exit_status = 0;
 }
 exit $exit_status;
+
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: glf [-e exclude_re] [file-regex] [directory]
+
+Get latest file.
+
+END_USAGE
+    exit 64;
+}

@@ -335,7 +335,7 @@ sub determine_role {
 
 sub emit_help {
     warn <<"END_USAGE";
-parsepath takes the following arguments in any order:
+Usage: parsepath takes the following arguments in any order:
 
   filepath - path(es) to parse (default current directory).
     -r  Attempt to use realpath() to file.

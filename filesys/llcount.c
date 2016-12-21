@@ -1,6 +1,4 @@
-/*
- * Length of line count thingy for non-binary files.
- */
+/* Length of line tool for text files */
 
 #include <err.h>
 #include <stdbool.h>
@@ -11,22 +9,18 @@
 #include <unistd.h>
 
 void emit_help(void);
+void read_lines(const char *file);
+
+char *Flag_Format = "% 3ld % 5ld % 4ld ";
 
 int main(int argc, char *argv[])
 {
-    char *fmt = "% 3ld % 5ld % 4ld ";
-    char *linep;
-    FILE *fh;
     int ch;
-    size_t len, slen = 0;
-    ssize_t lineno = 1;
-
     while ((ch = getopt(argc, argv, "f:h?x")) != -1) {
         switch (ch) {
         case 'x':
-            asprintf(&fmt, "%% 3ld %%# 5lx %% 4ld ");
+            Flag_Format = "% 3ld %# 5lx % 4ld ";
             break;
-
         case 'h':
         case '?':
         default:
@@ -41,19 +35,10 @@ int main(int argc, char *argv[])
         emit_help();
 
     if (argc == 0 || strncmp(*argv, "-", (size_t) 2) == 0) {
-        fh = stdin;
+        read_lines(NULL);
     } else {
-        if ((fh = fopen(*argv, "r")) == NULL)
-            err(EX_IOERR, "could not open '%s'", *argv);
+        read_lines(*argv);
     }
-
-    while ((linep = fgetln(fh, &len)) != NULL) {
-        dprintf(STDOUT_FILENO, fmt, lineno++, slen, len);
-        write(STDOUT_FILENO, linep, len);
-        slen += len;
-    }
-    if (ferror(fh))
-        err(EX_IOERR, "error reading file");
 
     exit(EXIT_SUCCESS);
 }
@@ -62,4 +47,30 @@ void emit_help(void)
 {
     fprintf(stderr, "Usage: llcount [-x] [file|-]\n");
     exit(EX_USAGE);
+}
+
+void read_lines(const char *file)
+{
+    FILE *fh;
+    char *line = NULL;
+    size_t linebuflen = 0;
+    ssize_t numchars;
+
+    ssize_t linenumber = 1;
+    ssize_t seenchars = 0;
+
+    if (file) {
+        if ((fh = fopen(file, "r")) == NULL)
+            err(EX_IOERR, "could not open '%s'", file);
+    } else {
+        fh = stdin;
+    }
+
+    while ((numchars = getline(&line, &linebuflen, fh)) > 0) {
+        printf(Flag_Format, linenumber++, seenchars, numchars);
+        fwrite(line, numchars, 1, stdout);
+        seenchars += numchars;
+    }
+    if (ferror(fh))
+        err(EX_IOERR, "error reading '%s'", file ? file : "-");
 }

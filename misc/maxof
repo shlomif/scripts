@@ -1,0 +1,46 @@
+#!/usr/bin/env expect
+#
+# Avoids `... | sort -rn | head -1` for what need only be a first-past-the-
+# post test.
+
+package require Tcl 8.5
+
+set prog_name [lindex [split $argv0 "/"] end]
+
+if {$prog_name eq "minof"} {
+    set threshold [expr {1.0 / 0}]
+    set comp <
+} else {
+    set threshold [expr {-1.0 / 0}]
+    set comp >
+}
+
+proc readfrom {fh} {
+    global comp threshold winner
+    while {[gets $fh line] >= 0} {
+        set count [scan $line {%f} num]
+        if {$count == 1 && [expr $num $comp $threshold]} {
+            set threshold $num
+            set winner $line
+        }
+    }
+}
+
+if {[llength $argv] == 0 || ([llength $argv] == 1 && [lindex $argv 0] eq "-")} {
+    readfrom stdin
+} else {
+    foreach file $argv {
+        if {[catch {set fh [open $file]} error]} {
+            puts stderr "$prog_name: $error"
+            exit 1
+        }
+        readfrom $fh
+    }
+}
+
+if {[info exists winner]} {
+    puts $winner
+} else {
+    puts stderr "$prog_name: parsed no number from first column of input"
+    exit 1
+}

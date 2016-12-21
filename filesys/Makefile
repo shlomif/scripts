@@ -14,7 +14,7 @@ unatomappend: unatomappend.c
 depend:
 	cpanm --installdeps ..
 
-test: fdsplit findin getpof
+test: fdsplit findin getpof llcount
 	@prove
 
 clean:

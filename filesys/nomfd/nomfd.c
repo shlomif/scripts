@@ -1,12 +1,4 @@
-/*
- * Opens potentially a lot of file descriptors on the specified file. Handy for
- * who knows what purpose, perhaps checking how write speeds change with this
- * many FD then open on the file... (Note: assumes only in,out,err open when
- * launched.)
- *
- * See also fuser(1) or lsof(8) to help diagnose situations where many open
- * file descriptors are suspected.
- */
+/* Opens a lot of file descriptors */
 
 #include <err.h>
 #include <fcntl.h>
@@ -32,7 +24,6 @@ int main(int argc, char *argv[])
         case 'f':
             Flag_FD_Max = (long) flagtoul(ch, optarg, 4UL, LONG_MAX);
             break;
-
         case 'h':
         case '?':
         default:
@@ -50,7 +41,7 @@ int main(int argc, char *argv[])
         Flag_FD_Max = LONG_MAX;
 
     if (Flag_FD_Max >= sysconf(_SC_OPEN_MAX))
-        warnx("notice: fd count %ld in excess of _SC_OPEN_MAX %ld",
+        warnx("fd count %ld in excess of _SC_OPEN_MAX %ld",
               Flag_FD_Max, sysconf(_SC_OPEN_MAX));
 
     /* start at three because of std{in,out,err} */

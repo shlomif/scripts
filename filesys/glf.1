@@ -1,4 +1,4 @@
-.Dd December  7 2016
+.Dd December 22 2016
 .Dt GLF 1
 .nh
 .Os
@@ -8,12 +8,16 @@
 .Sh SYNOPSIS
 .Nm glf
 .Op Fl e Ar exclude-regex
-.Op file-regex
+.Op Ar file-regex
 .Op Ar directory
 .Sh DESCRIPTION
 .Nm
 gets the most recently modified file in the given directory, matching
-all file and using the current working directory by default.
+all files unless a
+.Ar file-regex
+is given and using the current working directory unless a
+.Ar directory
+is given.
 Options:
 .Bl -tag -width Ds
 .It Fl e Ar exclude-regex
@@ -28,8 +32,9 @@ Get the latest lilypond file, minus sub-part files that use a
 .Pa piece.subpart.ly
 convention.
 .Pp
-.Dl $ Ic glf -e '\.[^.]+\.ly$' '\.ly$'
+.Dl $ Ic glf -e '\e.[^.]+\e.ly$' '\e.ly$'
 .Sh SEE ALSO
+.Xr fbd 1 ,
 .Xr find 1 ,
 .Xr ls 1
 .Sh AUTHOR

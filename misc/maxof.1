@@ -1,0 +1,32 @@
+.Dd December 22 2016
+.Dt maxof 1
+.nh
+.Os
+.Sh NAME
+.Nm maxof
+.Nd maximum of a list of input lines
+.Sh SYNOPSIS
+.Nm minof Op Ar
+.Nm maxof Op Ar
+.Sh DESCRIPTION
+.Nm
+finds the maximum (or minimum as
+.Nm minof )
+from standard input or the named files, using the number present in the
+first column of the input, if any.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Input may require pre-filtering to exclude undesirable matches
+.Pp
+.Dl $ Ic du -ak \&. \&| grep -v '\e.$' \&| maxof
+.Pp
+or rearranging so that the first column is a number
+.Pp
+.Dl $ Ic awk -F: '{print $3, $0}' /etc/passwd \&| maxof
+.Sh SEE ALSO
+.Xr awk 1 ,
+.Xr du 1 ,
+.Xr sort 1
+.Sh AUTHOR
+.An Jeremy Mates

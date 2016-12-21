@@ -1,0 +1,37 @@
+.Dd December 23 2016
+.Dt NOMFD 1
+.nh
+.Os
+.Sh NAME
+.Nm nomfd
+.Nd consumes file descriptors
+.Sh SYNOPSIS
+.Nm nomfd
+.Op Fl f Ar fd-count
+.Ar file
+.Sh DESCRIPTION
+.Nm
+opens as many file dscriptors as possible, then waits forever.
+Options:
+.Bl -tag -width Ds
+.It Fl f Ar fd-count
+Number of file descriptors to open, from 4 (because the three standard
+fd are presumably already open) to a very large number. The default is
+to attempt to open a number likely much higher than the OS allows.
+.El
+.Sh EXIT STATUS
+.Ex -std nomfd
+Though, again,
+.Nm
+will wait forever after opening as many file descriptors as possible.
+.Sh EXAMPLES
+.Dl $ Ic nomfd /etc/passwd
+.Dl nomfd: fd count 9223372036854775807 in excess of _SC_OPEN_MAX 256
+.Dl nomfd: open() failed at 256 of 9223372036854775807, ceasing opens on '/etc/passwd': Too many open files
+.Dl Ic ^C
+.Dl $
+.Sh SEE ALSO
+.Xr fstat 1 ,
+.Xr fuser 1
+.Sh AUTHOR
+.An Jeremy Mates

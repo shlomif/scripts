@@ -93,6 +93,9 @@ can supply arbitrary patterns to
 .Xr glob 3 .
 .Pp
 .Nm
-does not check the input for validity, that is, whether
-.Cm PATH
+does not much check the input for validity e.g. if
+.Ev PATH
 contains elements, or that the elements even exist.
+.Pp
+The paths generated are not checked whether they exceed
+.Dv PATH_MAX .

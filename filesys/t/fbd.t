@@ -1,0 +1,87 @@
+#!perl
+
+use 5.14.0;
+use warnings;
+use File::Spec;
+use File::Temp qw(tempdir);
+use Test::Cmd;
+# 3 tests per item in @tests plus any extras
+use Test::Most tests => 3 * 8 + 2;
+
+my $test_prog = 'fbd';
+
+my $test_epoch = 915148800;
+my $test_dir = tempdir( "fbd-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );
+
+my @test_files = ( [ 'test', 0 ], [ 'newer', 300 ], [ 'older', -900 ] );
+
+for my $tf (@test_files) {
+    $tf->[0] = File::Spec->catfile( $test_dir, $tf->[0] );
+    open my $fh, '>', $tf->[0], or die "could not create $tf->[0]: $!\n";
+    $tf->[1] += $test_epoch;
+    utime $tf->[1], $tf->[1], $tf->[0];
+}
+
+my @tests = (
+    {   args   => "-e $test_epoch $test_dir",
+        stdout => [ $test_files[0][0] ],
+    },
+    {   args   => "-f $test_files[0][0] $test_dir",
+        stdout => [ $test_files[0][0] ],
+    },
+    {   args   => "-e $test_epoch *",
+        chdir  => $test_dir,
+        stdout => ['./test'],
+    },
+    # was minutes for a raw number but that was too surprising when
+    # wrote the tests so seconds now
+    {   args   => "-a 600 -e $test_epoch",
+        chdir  => $test_dir,
+        stdout => [ './newer', './test' ],
+    },
+    {   args   => "-a 6m -e $test_epoch",
+        chdir  => $test_dir,
+        stdout => [ './newer', './test' ],
+    },
+    {   args   => "-a 1h -e $test_epoch",
+        chdir  => $test_dir,
+        stdout => [ './newer', './older', './test' ],
+    },
+    # only those before...
+    {   args   => "-b 1h -e $test_epoch",
+        chdir  => $test_dir,
+        stdout => [ './older', './test' ],
+    },
+    # -b with -a makes -a "after", not "around"
+    {   args   => "-b 5m -a 1h -e $test_epoch",
+        chdir  => $test_dir,
+        stdout => [ './newer', './test' ],
+    },
+);
+my $testcmd = Test::Cmd->new(
+    prog    => $test_prog,
+    verbose => 0,
+    workdir => '',
+);
+
+for my $test (@tests) {
+    $test->{exit_status} //= 0;
+    $test->{stderr}      //= '';
+
+    $testcmd->run(
+        args => $test->{args},
+        exists $test->{chdir} ? ( chdir => $test->{chdir} ) : ()
+    );
+
+    is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
+    # NOTE sort as cannot assume what order the files will be in
+    eq_or_diff( [ sort map { s/\s+$//r } split $/, $testcmd->stdout ],
+        $test->{stdout}, "STDOUT $test_prog $test->{args}" );
+    is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
+}
+
+# any extras
+
+$testcmd->run( args => '-h' );
+is( $? >> 8, 64, "EX_USAGE of sysexits(3) fame" );
+ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );

@@ -78,10 +78,9 @@ int main(int argc, char *argv[])
 
     if ((filepart = select_part(parentdir, filename)) != NULL) {
         printf("%s%c", filepart, Flag_NullSep ? '\0' : '\n');
-        free(filepart);
-        filepart = NULL;
-        if (parentdir != NULL)
-            free(parentdir);
+        /* NOTE really should free things but since exiting shortly and
+         * filepart might be the same as parentdir in one edge case,
+         * skip that complication */
     }
 
     exit(EXIT_SUCCESS);

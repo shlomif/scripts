@@ -1,17 +1,4 @@
 #!/usr/bin/env expect
-#
-# Like is-changed only simply via the file mtime and not the full file
-# contents. This requires that the editor does not needlessly update the
-# mtime, e.g. with vim(1) something like
-#
-#   map <Leader>g :update<CR>
-#
-# set and then "\g" will save only if there are changes, and a mtime
-# bump can still be accomplished if necessary via ":w" or similar. And
-# to recap from the is-changed docs, usage in the other terminal running
-# is this code would look something like:
-#
-#   is-changed-mtime 7s 'make foo && ./foo ...; echo' foo.c
 
 package require Tcl 8.5
 

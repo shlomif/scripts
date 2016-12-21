@@ -1,0 +1,52 @@
+.Dd December 22 2016
+.Dt IS-CHANGED-MTIME 1
+.nh
+.Os
+.Sh NAME
+.Nm is-changed-mtime
+.Nd runs command on file mtime change
+.Sh SYNOPSIS
+.Nm is-changed-mtime
+.Ar time-spec
+.Ar command
+.Ar
+.Sh DESCRIPTION
+.Nm
+checks every
+.Ar time-spec
+seconds whether the mtime of any of the given files have changed and if
+so runs the given
+.Ar command .
+The
+.Ar time-spec
+may be given in raw seconds or in the
+.Cm 1m3s
+shorthand form.
+.Pp
+The check interval is in addition to however long the
+.Ar command
+takes to run.
+.Sh EXIT STATUS
+Unless there is an error (and thus a non-zero exit),
+.Nm
+will loop forever.
+.Sh EXAMPLES
+.Dl $ Ic is-changed-mtime 3s 'make foo && ...' foo.c ...
+.Pp
+Note that the editor must not needlessly update the mtime of the files
+being watched for changes; this can be done in
+.Xr vim 1
+using the
+.Cm update
+command, which only writes and thus changes the mtime if the buffer
+has changes.
+.Pp
+.Dl map <Leader>g :update<CR>
+.Sh SEE ALSO
+.Xr is-changed 1 ,
+.Xr vim 1
+.Pp
+Various filesystem notification services may be more suitable, should
+those be available.
+.Sh AUTHOR
+.An Jeremy Mates
