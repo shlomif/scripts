@@ -131,8 +131,11 @@ variables may be passed through from the parent process.
 .Sh SEE ALSO
 .Xr expect 1 ,
 .Xr Tcl n ,
-.Xr vi 1 ,
 .Xr vim 1 ,
 .Xr zcomppoke 1
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+The history may need to be disabled for the REPL, as repeated
+.Nm
+runs may spam the history for the REPL with repeated entries.

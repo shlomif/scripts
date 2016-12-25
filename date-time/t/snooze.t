@@ -97,5 +97,6 @@ sub sleep_for {
 
     is( $return,               'eof', "snooze exits normally" );
     is( $exp->exitstatus >> 8, 0,     "exit code for normal exit" );
-    ok( $elapsed_error < $tolerance, "duration out of bounds: $elapsed_error" );
+    ok( $elapsed_error < $tolerance,
+        "duration variance out of bounds: $elapsed_error" );
 }

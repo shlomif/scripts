@@ -136,9 +136,9 @@ void parse_env(const char *envname, const char *expr, char output_delim)
 
 void parse_stdin(const char *expr, char input_delim, char output_delim)
 {
-    ssize_t numchars;
-    char *line;
+    char *line = NULL;
     size_t linebuflen;
+    ssize_t numchars;
 
     while ((numchars = getdelim(&line, &linebuflen, input_delim, stdin)) != -1) {
         if (numchars > 1) {

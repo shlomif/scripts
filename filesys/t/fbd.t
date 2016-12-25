@@ -6,14 +6,21 @@ use File::Spec;
 use File::Temp qw(tempdir);
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 8 + 2;
+use Test::Most tests => 1 + 3 * 8 + 2;
 
 my $test_prog = 'fbd';
 
-my $test_epoch = 915148800;
-my $test_dir = tempdir( "fbd-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );
+my $test_epoch     = 915148800;
+my $test_dir       = tempdir( "fbd-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );
+my $test_dir_epoch = $test_epoch - 86400;
 
-my @test_files = ( [ 'test', 0 ], [ 'newer', 300 ], [ 'older', -900 ] );
+my @test_files = (
+    [ 'test',        0 ],
+    [ 'newer',       300 ],
+    [ 'older',       -900 ],
+    [ 'false-early', -3605 ],
+    [ 'false-late',  3605 ],
+);
 
 for my $tf (@test_files) {
     $tf->[0] = File::Spec->catfile( $test_dir, $tf->[0] );
@@ -21,6 +28,21 @@ for my $tf (@test_files) {
     $tf->[1] += $test_epoch;
     utime $tf->[1], $tf->[1], $tf->[0];
 }
+utime $test_dir_epoch, $test_dir_epoch, $test_dir;
+
+my $testcmd = Test::Cmd->new(
+    prog    => $test_prog,
+    verbose => 0,
+    workdir => '',
+);
+
+# NOTE a File::Find bug may cause the mtime of the files to incorrectly
+# be that of the parent directory. Check for that condition first, as if
+# present it will make a bunch of the regular tests mysteriously fail.
+$testcmd->run( args => "-e $test_dir_epoch -a 5m", chdir => $test_dir );
+
+is( $testcmd->stdout, "", "cached mtime of parent dir afflicts subfiles" )
+  or die "abort remainder of tests due to File::Find issue\n";
 
 my @tests = (
     {   args   => "-e $test_epoch $test_dir",
@@ -57,11 +79,6 @@ my @tests = (
         chdir  => $test_dir,
         stdout => [ './newer', './test' ],
     },
-);
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
 );
 
 for my $test (@tests) {

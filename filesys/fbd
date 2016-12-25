@@ -47,6 +47,8 @@ if ($Flag_Before) {    # makes AroundAbout "After"
 }
 
 @ARGV = '.' if !@ARGV;
+# see NOTE below
+#$File::Find::dont_use_nlink = 1;
 find( \&handle_file, @ARGV );
 
 sub duration2seconds {
@@ -87,6 +89,8 @@ END_USAGE
 sub handle_file {
     return if $_ eq '.' or $_ eq '..';
 
+    # NOTE may need to use $_ or set $dont_use_nlink if File::Find flubs
+    # up (at a loss of efficiency over using cached _ form)
     my $file_epoch = ( lstat _ )[$Flag_StatField];
 
     if ((   defined $max_epoch
