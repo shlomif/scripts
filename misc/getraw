@@ -2,10 +2,11 @@
 #
 # Means to prompt for human interaction.
 
-use strict;
+use 5.14.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Term::ReadKey qw(ReadKey ReadMode);
+use Time::HiRes qw(alarm);
 
 open my $ttyfh, '+<', '/dev/tty' or die "getraw: could not open tty: $!\n";
 # NOTE olden versions of perl may require IO::Handle loaded for this
@@ -20,33 +21,41 @@ GetOptions(
     'sigstatus|S=i' => \my $Flag_Signal_Status,
     'spec|o=s'      => \my $Flag_Spec,
     'tostatus|T=i'  => \my $Flag_Timeout_Status,
-    'timeout|t=s'   => \my $Flag_Timeout,
+    'timeout|t=f'   => \my $Flag_Timeout,
 ) or exit 65;
 
-$Flag_Delay          = -1 if !defined $Flag_Delay;
-$Flag_Signal_Status  = 3  if !defined $Flag_Signal_Status;
-$Flag_Timeout_Status = 4  if !defined $Flag_Timeout_Status;
+if ( defined $Flag_Delay and $Flag_Delay <= 0 ) {
+    warn "getraw: delay must be a positive value\n";
+    exit 65;
+}
+if ( defined $Flag_Timeout and $Flag_Timeout <= 0 ) {
+    warn "getraw: timeout must be a positive value\n";
+    exit 65;
+}
+$Flag_Signal_Status  //= 3;
+$Flag_Timeout_Status //= 4;
 
-my $keys2exit = parse_spec( defined $Flag_Spec ? $Flag_Spec : 'Yy:0 Nn:2' );
+my $keys2exit = parse_spec(
+      defined $Flag_Spec       ? $Flag_Spec
+    : exists $ENV{GETRAW_SPEC} ? $ENV{GETRAW_SPEC}
+    :                            'Yy:0 Nn:2'
+);
 
 print $ttyfh "@ARGV" if @ARGV;
-
-my $timeout = defined $Flag_Timeout ? duration2seconds($Flag_Timeout) : -1;
 
 for my $s (qw/HUP INT TERM USR1 USR2/) { $SIG{$s} = \&sig_bail }
 ReadMode( 3, $ttyfh );
 
-my $exit_status = -1;
 eval {
-    if ( $timeout > 0 ) {
+    if ($Flag_Timeout) {
         $SIG{ALRM} = sub { die "alarm\n" };
-        alarm $timeout;
+        alarm $Flag_Timeout;
     }
 
     # eat up leading input within the timeout to avoid an infinite
     # wait in the (unlikely?) case there is infinite input being fed
     # in fast enough
-    if ( $Flag_Delay > 0 ) {
+    if ( defined $Flag_Delay ) {
         select( undef, undef, undef, $Flag_Delay );
         # eager beaver prevention: drain everything queued
         my $key;
@@ -60,21 +69,17 @@ eval {
         my $key = ReadKey( 0, $ttyfh );
         my $code = $keys2exit->{$key};
         $code = $keys2exit->{any} if !defined $code;
-        if ( defined $code ) {
-            $exit_status = $code;
-            last;
-        }
+        exit $code if defined $code;
     }
-    alarm 0 if $timeout > 0;
+    alarm 0 if $Flag_Timeout;
 };
 if ($@) {
     if ( $@ eq "alarm\n" ) {
-        $exit_status = $Flag_Timeout_Status;
+        exit $Flag_Timeout_Status;
     } else {
         die "getraw: unexpected failure: $@";
     }
 }
-exit $exit_status;
 
 END {
     if ( defined $ttyfh ) {
@@ -89,31 +94,6 @@ END {
 #
 # SUBROUTINES
 
-sub duration2seconds {
-    my ($duration) = @_;
-
-    my %factor = (
-        'w' => 604800,
-        'd' => 86400,
-        'h' => 3600,
-        'm' => 60,
-        's' => 1,
-    );
-
-    my $seconds;
-
-    if ( $duration =~ m/^[0-9]+$/ ) {
-        $seconds = $duration;
-    } else {
-        while ( $duration =~ m/([0-9]+)([smhdw])/g ) {
-            $seconds += $1 * $factor{$2};
-        }
-        die "getraw: could not parse duration '$duration'" if !defined $seconds;
-    }
-
-    return $seconds;
-}
-
 sub emit_help {
     warn <<"END_USAGE";
 Usage: getraw [options] [prompt message]
@@ -124,7 +104,7 @@ Means to prompt for human interaction.
   -n     Emit newline to tty before exit.
   -r     Emit return to tty before exit.
   -o ss  Use custom key to exit code specification.
-  -t dur Timeout getraw after this many seconds (or 1m2s shorthand).
+  -t dur Timeout getraw after this many fractional seconds.
 
 END_USAGE
     exit 64;
@@ -159,4 +139,4 @@ sub parse_spec {
     return \%keys2exit;
 }
 
-sub sig_bail { exit $Flag_Signal_Status }    # and then to the END
+sub sig_bail { exit $Flag_Signal_Status }

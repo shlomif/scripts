@@ -7,6 +7,7 @@ use File::Spec ();
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
 use Test::Most tests => 1 + 3 * 10 + 6;
+use Test::UnixExit;
 
 my $test_prog = 'findin';
 
@@ -89,7 +90,7 @@ for my $test (@tests) {
         exists $test->{stdin} ? ( stdin => $test->{stdin} ) : (),
     );
 
-    is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
+    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
     eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
@@ -98,13 +99,13 @@ for my $test (@tests) {
 # any extras
 
 $testcmd->run( args => '-h' );
-is( $? >> 8, 64, "EX_USAGE of sysexits(3) fame" );
+exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
 
 # Note, be sure to quote:
 # for the shell will glob
 $testcmd->run( args => q{'findin.*' FINDIN_PATH1} );
-is( $? >> 8, 0, "found files by glob" );
+exit_is( $?, 0, "found files by glob" );
 my $count;
 $count++ for $testcmd->stdout =~ m{.findin\.[1c]$}gm;
 is( $count, 2, "dot c and man page found" );

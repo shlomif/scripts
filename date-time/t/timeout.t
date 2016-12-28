@@ -6,6 +6,7 @@ use Test::Cmd;
 # 4 tests per item in @tests plus any extras
 use Test::Most tests => 4 * 3 + 3;
 use Time::HiRes qw(gettimeofday tv_interval);
+use Test::UnixExit;
 
 my $test_prog = 'timeout';
 
@@ -43,7 +44,7 @@ for my $test (@tests) {
     my $elapsed_error =
       abs( tv_interval($start) - $test->{duration} ) / $test->{duration};
 
-    is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
+    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
     eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     ok( $testcmd->stderr =~ m/$test->{stderr}/,
@@ -56,7 +57,7 @@ for my $test (@tests) {
 # any extras
 
 $testcmd->run( args => '-h' );
-is( $? >> 8, 64, "EX_USAGE of sysexits(3) fame" );
+exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
 
 ok( !-e "$test_prog.core", "$test_prog did not produce core" );

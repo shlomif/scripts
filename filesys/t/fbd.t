@@ -7,6 +7,7 @@ use File::Temp qw(tempdir);
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
 use Test::Most tests => 1 + 3 * 8 + 2;
+use Test::UnixExit;
 
 my $test_prog = 'fbd';
 
@@ -90,7 +91,7 @@ for my $test (@tests) {
         exists $test->{chdir} ? ( chdir => $test->{chdir} ) : ()
     );
 
-    is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
+    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
     # NOTE sort as cannot assume what order the files will be in
     eq_or_diff( [ sort map { s/\s+$//r } split $/, $testcmd->stdout ],
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
@@ -100,5 +101,5 @@ for my $test (@tests) {
 # any extras
 
 $testcmd->run( args => '-h' );
-is( $? >> 8, 64, "EX_USAGE of sysexits(3) fame" );
+exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );

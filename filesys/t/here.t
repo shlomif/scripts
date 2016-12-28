@@ -6,6 +6,7 @@ use File::Spec ();
 use Test::Cmd;
 # 3 tests per item in @tests
 use Test::Most tests => 3 * 2;
+use Test::UnixExit;
 
 my $test_prog = 'here';
 
@@ -30,7 +31,7 @@ for my $test (@tests) {
     $testcmd->run( exists $test->{args} ? ( args => $test->{args} ) : () );
 
     $test->{args} //= '';
-    is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
+    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
     ok( $testcmd->stdout =~ m/$test->{stdout}/,
         "STDOUT $test_prog $test->{args}: " . $testcmd->stdout );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );

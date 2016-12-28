@@ -1,8 +1,13 @@
-Various Perl and C and Shell scripts for unix. (And some TCL, if you
-look hard enough.)
+Various Perl and C and TCL and shell scripts for unix.
 
 https://github.com/thrig/zsh-compdef contains ZSH completions for some
 of the utilities herein.
 
-The C code is written for Mac OS X and OpenBSD; portability beyond that
-is largely untested.
+The C code is mostly written for Mac OS X and OpenBSD; portability
+beyond that is largely untested.
+
+There are sporadically unit tests, run
+
+  make depend; make test
+
+or the individual tests then with `prove t/foo.t`

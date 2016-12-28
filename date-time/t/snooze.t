@@ -10,6 +10,7 @@ use warnings;
 use Expect;
 use Test::Most tests => 16;
 use Time::HiRes qw(gettimeofday tv_interval);
+use Test::UnixExit;
 
 # TODO how tight can this be vs. false positive risk? TODO also should
 # skew to allow for longer durations, but not shorter ones
@@ -46,7 +47,7 @@ sub control_plus_c {
     );
 
     is( $return,               'eof', "snooze exits after control+c" );
-    is( $exp->exitstatus >> 8, 1,     "exit code for handled control+c" );
+    exit_is( $exp->exitstatus, 1,     "exit code for handled control+c" );
 }
 
 sub newexpect {
@@ -96,7 +97,7 @@ sub sleep_for {
     my $elapsed_error = abs( tv_interval($start) - $expected ) / $expected;
 
     is( $return,               'eof', "snooze exits normally" );
-    is( $exp->exitstatus >> 8, 0,     "exit code for normal exit" );
+    exit_is( $exp->exitstatus, 0,     "exit code for normal exit" );
     ok( $elapsed_error < $tolerance,
         "duration variance out of bounds: $elapsed_error" );
 }

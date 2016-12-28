@@ -8,5 +8,11 @@ muss-with-environ: muss-with-environ.c
 setsid: setsid.c
 threading: threading.c
 
+depend:
+	cpanm --installdeps ..
+
+test:
+	@prove
+
 clean:
 	@-rm -fr bt copycat muss-with-environ setsid threading *.core *.dSYM 2>/dev/null

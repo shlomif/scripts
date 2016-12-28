@@ -7,6 +7,7 @@ use strict;
 use warnings;
 use Test::Cmd;
 use Test::More tests => 4;
+use Test::UnixExit;
 
 $ENV{TZ} = 'UTC';
 
@@ -30,7 +31,7 @@ my $test = Test::Cmd->new(
 $test->run( stdin => $dates );
 
 is( $test->stdout, $dates_epoch, 'dates converted to epoch' );
-is( $? >> 8,       0,            'exit status ok' );
+exit_is( $?, 0, 'exit status ok' );
 
 $test = Test::Cmd->new(
     prog    => q{epochal -s -f '%a %b %d %H:%M:%S %Z %Y'},
@@ -41,4 +42,4 @@ $test = Test::Cmd->new(
 $test->run( stdin => $dates );
 
 is( $test->stdout, $dates_only_epoch, 'dates reduced to epoch' );
-is( $? >> 8, 0, 'exit status ok' );
+exit_is( $?, 0, 'exit status ok' );

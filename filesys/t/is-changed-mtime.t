@@ -6,7 +6,7 @@ use Expect;
 use File::Temp qw(tempfile);
 use Test::Most tests => 4;
 
-my $test_prog = 'is-changed-mtime';
+my $test_prog = './is-changed-mtime';
 
 my ( $tfh, $test_file );
 lives_ok(

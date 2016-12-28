@@ -6,6 +6,7 @@ use POSIX qw(strftime);
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
 use Test::Most tests => 3 * 4 + 5;
+use Test::UnixExit;
 
 my $test_prog = 'kronsoon';
 
@@ -46,7 +47,7 @@ for my $test (@tests) {
     );
 
     $test->{args} //= '';
-    is( $? >> 8, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
+    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
     eq_or_diff(
         [   map {
                 $_ =
@@ -69,14 +70,14 @@ for my $test (@tests) {
 # any extras
 
 $testcmd->run( args => '-h' );
-is( $? >> 8, 64, "EX_USAGE of sysexits(3) fame" );
+exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
 
 $testcmd->run( args => '--padtime=59' );
-is( $? >> 8, 65, "pad time too low" );
+exit_is( $?, 65, "pad time too low" );
 
 $testcmd->run( args => '--padtime=301' );
-is( $? >> 8, 65, "pad time too high" );
+exit_is( $?, 65, "pad time too high" );
 
 diag "time test may fail if system slow";
 my $now = time();

@@ -6,4 +6,5 @@ requires 'POSIX';
 requires 'Term::ReadKey';
 requires 'Test::Cmd';
 requires 'Test::Most';
+requires 'Test::UnixExit';
 requires 'Time::HiRes';

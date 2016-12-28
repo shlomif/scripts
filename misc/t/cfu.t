@@ -7,18 +7,17 @@ use Test::Cmd;
 use Test::Most tests => 3 * 3 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'sumtime';
+my $test_prog = 'cfu';
 
 my @tests = (
-    {   args   => '300',
-        stdout => ['5m'],
+    {   args   => qq{'puts("PID $$")'},
+        stdout => ["PID $$"],
     },
-    {   args   => '1w 3d 2h 6m 5s',
-        stdout => ['1w 3d 2h 6m 5s'],
+    {   args   => "-E $$ " . quotemeta 'printf("PID %s\n", *++argv)',
+        stdout => ["PID $$"],
     },
-    {   args   => '-c -',
-        stdin  => "1s 20m\n30m 40m\n",
-        stdout => ['1h30m1s'],
+    {   args   => qq{-g 'const char *pid="PID"' 'printf("%s $$", pid)'},
+        stdout => ["PID $$"],
     },
 );
 my $testcmd = Test::Cmd->new(
@@ -33,11 +32,12 @@ for my $test (@tests) {
 
     $testcmd->run(
         args => $test->{args},
-        exists $test->{stdin} ? ( stdin => $test->{stdin} ) : ()
+        exists $test->{chdir} ? ( chdir => $test->{chdir} ) : ()
     );
 
     exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
-    eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
+    # NOTE sort as cannot assume what order the files will be in
+    eq_or_diff( [ sort map { s/\s+$//r } split $/, $testcmd->stdout ],
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }

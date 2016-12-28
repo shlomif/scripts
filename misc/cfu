@@ -9,7 +9,7 @@ use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
 
 GetOptions(
-    'eargs|e=s'   => \my @eargs,
+    'eargs|E=s'   => \my @eargs,
     'globals|g=s' => \my @globals,
     'help|h|?'    => \&emit_help,
     'preserve|P'  => \my $Flag_Preserve,
@@ -28,8 +28,9 @@ my @CFLAGS = shellwords(
 # no *.c extension on tempfile so must hint the language
 push @CFLAGS, qw/-x c/ if !grep { $_ eq '-x' } @CFLAGS;
 
-for my $globals (@globals) {
-    $globals .= "\n" unless $globals =~ m/\n$/;
+for my $statement (@globals) {
+    $statement .= ';'  unless $statement =~ m/[;\s]$/;
+    $statement .= "\n" unless $statement =~ m/\n$/;
 }
 
 chomp( @ARGV = readline *STDIN ) if @ARGV == 1 and $ARGV[0] eq '-';
@@ -95,8 +96,6 @@ int main($main_args) {
 }
 END_TMPL
 
-my $exit_status = 0;
-
 if ($Flag_Show_Code) {
     print $c_template;
     exit;
@@ -111,23 +110,11 @@ $code_fh->sync;    # potential PORTABILITY issue
 
 if ( system( $CC, @CFLAGS, '-o', $executable, $code_fname ) != 0 ) {
     die "cfu: failed to exec '$CC': $?\n" if $? == -1;
-    $exit_status = $? >> 8;
-    exit;
+    exit $? >> 8;
 }
 if ( system( $executable, @eargs ) != 0 ) {
     die "cfu: failed to exec code: $?\n" if $? == -1;
-    $exit_status = $? >> 8;
-}
-
-END {
-    if ( defined $code_fname ) {
-        if ($Flag_Preserve) {
-            print "$code_fname\n$executable\n";
-        } else {
-            unlink $code_fname, $executable;
-        }
-    }
-    $? = $exit_status;
+    exit $? >> 8;
 }
 
 sub emit_help {
@@ -141,3 +128,13 @@ END_USAGE
 }
 
 sub mktemp { tempfile( "cfu-$_[0]-$$.XXXXXXXXXX", TMPDIR => 1, UNLINK => 0 ) }
+
+END {
+    if ( defined $code_fname ) {
+        if ($Flag_Preserve) {
+            print "$code_fname\n$executable\n";
+        } else {
+            unlink $code_fname, $executable;
+        }
+    }
+}

@@ -1,4 +1,4 @@
-.Dd December 22 2016
+.Dd December 25 2016
 .Dt GETRAW 1
 .nh
 .Os
@@ -16,16 +16,14 @@
 .Op Ar prompt message
 .Sh DESCRIPTION
 .Nm
-provides a means to prompt for input; one use would be while performing
-some loop to stop after each step, possibly using the exit code from
-.Nm
-to decide on the subsequent course of action.
+provides a means to prompt for input and alter the exit status depending
+on what key is pressed, if any.
 .Pp
 .Nm
 requires access to a terminal device to function.
 Options:
 .Bl -tag -width Ds
-.It Cm --delay= Ns Ar delay Op Fl d Ar delay
+.It Cm --delay= Ns Ar seconds Op Fl d Ar seconds
 Fractional seconds to delay before reading the key. Any pending input
 will be drained at the end of this wait. This value ideally should be
 much less than the
@@ -51,10 +49,10 @@ cause a non-zero return code (failure, 2 by default).
 Exit code to use if
 .Nm
 times out. 4 by default.
-.It Cm --timeout= Ns Ar duration Op Fl t Ar duration 
-Raw seconds or a shorthand 1m3s duration after which
+.It Cm --timeout= Ns Ar seconds Op Fl t Ar seconds 
+Fractional seconds after which
 .Nm
-will time itself out.
+will time itself out with the timeout exit status.
 .El
 .Sh EXIT STATUS
 The exit code for
