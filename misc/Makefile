@@ -11,7 +11,7 @@ threading: threading.c
 depend:
 	cpanm --installdeps ..
 
-test:
+test: bt copycat
 	@prove
 
 clean:

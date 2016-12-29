@@ -1,14 +1,7 @@
 #!/usr/bin/env expect
 #
 # Feeds the commands in the given input file (or stdin) to the
-# subsequent program; consult feed(1) for examples and usage notes.
-#
-# There is (not very tested) support for clisp, gdb, perl -d, R, sbcl,
-# tinyrepl, various TCL shell programs, and ZSH. These or other REPL may
-# require adjustments to the code--in particular what if any prompt is
-# looked for, and how to handle blank lines and comments--given that
-# this code is not very intelligent about what is passed through; look
-# for things to TWEAK.
+# subsequent program.
 
 package require Tcl 8.5
 # for Tcl version of mktemp(1) - NOTE probably requires tcllib package
@@ -20,19 +13,8 @@ if {[llength $argv] < 2} {
     exit 64
 }
 
-# TWEAK borrowed from autoexpect output, see expect man page for details
-# on how to slow things down if necessary
-#set send_human {.1 .3 1 .05 2}
-#proc send {ignore arg} {
-#    exp_send -h -- $arg
-#}
-
-# TWEAK a lowered timeout may be necessary depending on the input and
-# how well prompts can be detected (in particular whether the REPL
-# accepts only a single line of input (Perl) or allows for continuation
-# lines (LISP, TCL).
-#set timeout .1
-# A higher value will help spot mis-matching lines...
+# Somewhat high timeout to help spot when feed is not properly
+# feeding things
 set timeout 3
 
 # avoid doubled lines whereby both this program and what lines being fed
@@ -85,85 +67,37 @@ if {[catch {spawn -noecho {*}$argv} err]} {
     die $err
 }
 
-# TWEAK and here we try to figure out hopefully a 90% solution for feeding
-# of varied inputs to varied REPL
+# control+z will background feed (and whatever being run) while for
+# control+c that is passed through to the program being run.
+set CONTROL_C \003
+set CONTROL_Z \032
+trap {puts ""; exit 1} {SIGHUP SIGPIPE SIGTERM}
+#trap SIG_IGN SIGINT
+trap {send $CONTROL_C} SIGINT
+
+proc interactionby {} {
+    global CONTROL_C CONTROL_Z
+    interact {
+	$CONTROL_C {send -raw $CONTROL_C}
+	-reset $CONTROL_Z {exec kill -STOP [pid]}
+    }
+}
+
+# and here we try to figure out hopefully a 90% solution for feeding of
+# varied inputs to varied REPL
 set tocall [lindex $argv 0]
-                                                               # FORTH
-if {$tocall eq "pfe" || [string match "*forth*" $tocall]} {
-    # PFE is tricky as you have to wait for it to get up otherwise
-    # it ignores the input, hence check for "ok" -- but gforth does
-    # not print an "ok" at startup, argh.
-    expect -re {(ok|bye)}
 
-    proc dosomethingwith {line} {
-        # "\ " as a comment and not a line extender, so strange!
-        if {[regexp {^[[:blank:]]*(\\[[:blank:]].*)?$} $line]} { return }
+# ... except that buck now gets passed to the user to write
+catch {source $env(HOME)/.feedrc} cresult coptions
 
-        send -- "$line\r"
-    }
-                                                               # GDB
-} elseif {$tocall eq "gdb"} {
-    proc dosomethingwith {line} {
+# ... unless they screw that part up
+if {[dict get $coptions -code] != 0} {
+    warn [dict get $coptions -errorinfo]
+    die "feed: could not source ~/.feedrc"
+}
 
-        if {[regexp {^[[:blank:]]*$} $line]} { return }
-        if {[regexp {^[#]} $line]} { return }
-
-        # TWEAK will need adjustment if `set prompt` has been
-        # customized in gdb; '>' is for "Breakpoint Command Lists"
-        # continuation lines
-        expect -re {\(gdb|>}
-
-        send -- "$line\r"
-    }
-                                                               # LISP
-} elseif {$tocall eq "clisp" || $tocall eq "sbcl"} {
-    proc dosomethingwith {line} {
-        # both clisp and sbcl hang on ; comments so MUST skip those,
-        # also skip blank lines as have yet to see them in lisp code...
-        if {[regexp {^[[:blank:]]*(;.*)?$} $line]} { return }
-
-        # only expect prompt if line starts with ( presumably a new
-        # statement
-        if {[regexp {^\(} $line]} {
-            expect -re {[*>] }
-        }
-
-        send -- "$line\r"
-    }
-                                                               # Perl
-} elseif {($tocall eq "perl" && "-d" in $argv)
-  || $tocall eq "tinyrepl"} {
-    proc dosomethingwith {line} {
-
-        if {[regexp {^[[:blank:]]*(#.*)?$} $line]} { return }
-
-        # always expect prompt, as the perl REPL appear to only consume
-        # one line without continuation
-        expect -re {(  DB<|re\.pl\$ )}
-
-        send -- "$line\r"
-    }
-                                                               # TCL
-} elseif {$tocall eq "expect"
-  || [string match "tclsh*" $tocall]
-  || [string match "wish*" $tocall]} {
-    proc dosomethingwith {line} {
-
-        # TCL allows # or ;# as comments though the latter is usually
-        # only after some statement that must be noted as ended
-        if {[regexp {^[[:blank:]]*(;?#.*)?$} $line]} { return }
-
-        # don't wait for prompt if line looks like continuation (via the
-        # leading whitespace or closing curly of a block)
-        if {![regexp {^[[:blank:]]*\}?} $line]} {
-            # default "% " prompt or I've instead set tcl_prompt1 to "foo> "
-            expect -re {[%>] }
-        }
-
-        send -- "$line\r"
-    }
-                                                               # default
-} else {
+# ... though do need a fallback if nothing created the necessary proc
+if {[info commands dosomethingwith] eq ""} {
     # assume only leading # as comments and send the rest through;
     # probably adequate for shell scripts and doubtless other things
     # though does not wait for any prompt
@@ -175,20 +109,9 @@ if {$tocall eq "pfe" || [string match "*forth*" $tocall]} {
 
 while {[gets $input_fh line] >= 0} { dosomethingwith $line }
 
-# control+z will background feed (and whatever being run) while for
-# control+c that is passed through to the program being run.
-set CONTROL_C \003
-set CONTROL_Z \032
-trap {puts ""; exit 1} {SIGHUP SIGPIPE SIGTERM}
-#trap SIG_IGN SIGINT
-trap {send $CONTROL_C} SIGINT
-
 if {$tmpfile ne ""} { file delete $tmpfile }
 if {[catch {close $input_fh} err]} { die $err }
 
 # and hand REPL over to the bluberous fleshy mandibles of the user
 stty echo
-interact {
-    $CONTROL_C {send -raw $CONTROL_C}
-    -reset $CONTROL_Z {exec kill -STOP [pid]}
-}
+interactionby

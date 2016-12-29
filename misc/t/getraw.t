@@ -3,8 +3,7 @@
 use 5.14.0;
 use warnings;
 use Expect;
-use Test::Cmd;
-use Test::Most tests => 21;
+use Test::Most tests => 23;
 use Test::UnixExit;
 
 my $test_prog = './getraw';
@@ -65,14 +64,12 @@ eof_or_timeout( $exp, 3, \$eoft_result );
 is( $eoft_result, 'eof', "getraw exited" );
 exit_is( $exp->exitstatus, 4, "exit by timeout" );
 
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
-$testcmd->run( args => '-h' );
-exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
-ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
+$exp = newexpect();
+ok( $exp->spawn( $test_prog, '-h' ), "expect object spawned: $!" );
+eof_or_timeout( $exp, 3, \$eoft_result );
+is( $eoft_result, 'eof', "getraw exited" );
+exit_is( $exp->exitstatus, 64, "EX_USAGE of sysexits(3) fame" );
+ok( $exp->before =~ m/Usage/, "help mentions usage" );
 
 sub eof_or_timeout {
     my ( $e, $timeout, $resultref ) = @_;

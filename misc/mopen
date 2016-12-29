@@ -14,16 +14,27 @@ if [ ! -r "$FILE" ]; then
     exit 65
 fi
 
-USER=`id -un`
-# NOTE MacPorts calls this mupdf-x11
+USER_NAME=`id -un`
+# NOTE MacPorts calls this mupdf-x11 though regex below should handle that
 PDFREADER=mupdf
+
+# and a dance to fully qualify the path to the file, to avoid the edge
+# case of x.pdf being edited at the same time from two different
+# directories (I don't do this, but somebody might)
+set -e
+WHERE=`dirname "$FILE"`
+cd "$WHERE"
+FILE="`pwd`/$FILE"
+set +e
 
 trap 'exit 0' USR2
 ps xo pid,user,command | while read pid uc; do
-    if echo "$uc" | egrep -q -- "^$USER[[:blank:]]*$PDFREADER.*$FILE"; then
+    if echo "$uc" | egrep -q "^$USER_NAME[[:blank:]]*$PDFREADER.*$FILE"; then
         kill -HUP "$pid"
         kill -USR2 $$
+        # NOTE potential race condition if code moves on to the exec
+        # before the kill-of-self happens (haven't seen it in practice)
     fi
 done
 
-exec setsid $PDFREADER -- "$FILE" >$HOME/var/log/$PDFREADER 2>&1
+exec setsid $PDFREADER "$FILE" >$HOME/var/log/$PDFREADER 2>&1

@@ -1,0 +1,60 @@
+.Dd December 29 2016
+.Dt AUTOFORMAT 1
+.nh
+.Os
+.Sh NAME
+.Nm autoformat
+.Nd a wrapper around Text::Autoformat
+.Sh SYNOPSIS
+.Nm autoformat
+.Op Ar af-params
+.Sh DESCRIPTION
+.Nm
+is a wrapper for the
+.Xr Text::Autoformat 3pm
+module that filters text passed to it via standard input.
+.Sh EXIT STATUS
+.Ex -std autoformat
+.Sh EXAMPLES
+.Nm
+can be called via a
+.Xr vi 1
+.Pa .exrc
+entry such as:
+.Pp
+.Dl Ic map T !Gautoformat
+.Pp
+Or via a 
+.Xr vim 1
+6.3+
+.Pa .vimrc
+entry, using leader (by default backslash) to avoid taking over pre-defined
+keys:
+.Pp
+.Dl Ic map <Leader>A :.,$!autoformat
+.Dl Ic map <Leader>a :.,$!autoformat<CR>
+.Pp
+Optional parameters can be used to customize the formatting; these are
+evaluated and passed directly to
+.Xr Text::Autoformat 3pm .
+.Pp
+.Dl $ Ic (echo \&" 1. foo\&"; echo \&" 1. bar\&") \e
+.Dl \& \&  Ic \&| autoformat 'all=>1,case=>"upper"'; echo
+.Dl \&  1. FOO
+.Dl \&  2. BAR
+.Dl $ 
+.Sh SEE ALSO
+.Xr fmt 1 ,
+.Xr Text::Autoformat 3pm ,
+.Xr vi 1 ,
+.Xr vim 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+.Nm
+destroys tabs by default, so should be used with cuation in e.g.
+.Pa Makefile .
+.Sh SECURITY CONSIDERATIONS
+.Nm
+.Em must not
+be used under elevated privileges.

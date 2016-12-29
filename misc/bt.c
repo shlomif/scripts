@@ -89,7 +89,7 @@ char *core_of_prog(const char *filename)
     if ((corefile = malloc(sizeof(char) * (len + 6))) == NULL)
         err(EX_OSERR, "could not malloc corefile name");
     strncpy(corefile, filename, len);
-    strcat(corefile, ".core");
+    strncat(corefile, ".core", 5);
     return corefile;
 }
 

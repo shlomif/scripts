@@ -1,10 +1,15 @@
 requires 'App::Prove';
 requires 'Expect';
+requires 'File::Temp';
 requires 'Getopt::Long';
 requires 'IO::Pty';
+requires 'LWP::UserAgent';
 requires 'POSIX';
 requires 'Term::ReadKey';
 requires 'Test::Cmd';
 requires 'Test::Most';
 requires 'Test::UnixExit';
+requires 'Text::Autoformat';
 requires 'Time::HiRes';
+requires 'URI';
+requires 'XML::LibXML::XPathContext';

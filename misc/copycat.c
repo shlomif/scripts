@@ -19,13 +19,25 @@
  * called directly under vi(1). */
 #define CLIPBOARD "pbcopy"
 
-int main(void)
+void emit_help(void);
+
+int main(int argc, char *argv[])
 {
     char buf[BUFSIZE], *clippy, *shortname;
-    int fd[2];
+    int ch, fd[2];
     pid_t pid;
     sigset_t blockthese;
     ssize_t howmuch;
+
+    while ((ch = getopt(argc, argv, "h?")) != -1) {
+        switch (ch) {
+        case 'h':
+        case '?':
+        default:
+            emit_help();
+            /* NOTREACHED */
+        }
+    }
 
     if (pipe(fd) == -1)
         err(EX_OSERR, "pipe() failed");
@@ -83,4 +95,10 @@ int main(void)
     }
 
     exit(EXIT_SUCCESS);
+}
+
+void emit_help(void)
+{
+    fprintf(stderr, "Usage: ... | copycat\n");
+    exit(EX_USAGE);
 }

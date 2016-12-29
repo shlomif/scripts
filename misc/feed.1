@@ -1,4 +1,4 @@
-.Dd December 12 2016
+.Dd December 28 2016
 .Dt FEED 1
 .nh
 .Os
@@ -21,10 +21,9 @@ Once all the lines have been fed, the user will be able to
 .Ic interact
 with the REPL manually.
 .Pp
-Support for a REPL should ideally be written into the code. See the
-code for the supported REPL and default behavior, as for some commands
-some lines (comments, blank lines) may be skipped, prompts may be
-waited for, etc.
+Support for a REPL should ideally be written into
+.Pa ~/.feedrc .
+See the code for the default behavior.
 .Pp
 Input of
 .Ic control+z
@@ -38,6 +37,46 @@ will be relayed from
 .Nm
 to the 
 .Ar command .
+.Sh FILES
+The file
+.Pa ~/.feedrc
+must exist, and should contain TCL code that specifies a
+.Cm dosomethingwith
+proc that will be passed each line of the input in turn.
+.Pa ~/.feedrc
+will likely end up with a series of if/else statements along the lines
+of:
+.Pp
+.Dl # "tocall" contains the command name (2nd argument to feed)
+.Dl if {$tocall eq \&"pfe\&"} {
+.Dl \& \& \& \&  expect -re {(ok|bye)}
+.Dl \& \& \& \&  proc dosomethingwith {line} {
+.Dl \& \& \& \& \& \& \& \&  if {[regexp {^[[:blank:]]*(\e\e[[:blank:]].*)?$} $line]} {
+.Dl \& \& \& \& \& \& \& \& \& \& \& \& return
+.Dl \& \& \& \& \& \& \& \& }
+.Dl \& \& \& \& \& \& \& \&  send -- \&"$line\er\&"
+.Dl \& \& \& \&  }
+.Dl } elseif {$tocall eq \&"gdb\&"} {
+.Dl \& \& \& \&  ...
+.Pp
+There is a default
+.Cm dosomethingwith
+that will be used if 
+.Pa ~/.feedrc
+does not set one. If this is a problem, end
+.Pa ~/.feedrc
+with something like:
+.Pp
+.Dl if {[info commands dosomethingwith] eq \&"\&"} {
+.Dl \& \& \& \& puts stderr oops
+.Dl \& \& \& \& exit 1
+.Dl }
+.Pp
+Various other parts of the code of
+.Nm
+can be overridden from 
+.Pa ~/.feedrc .
+You get to keep all the pieces if you break something.
 .Sh EXIT STATUS
 .Ex -std
 The exit status once
@@ -130,6 +169,7 @@ with the task at hand, though do note that undesirable environment
 variables may be passed through from the parent process.
 .Sh SEE ALSO
 .Xr expect 1 ,
+.Xr regexp n ,
 .Xr Tcl n ,
 .Xr vim 1 ,
 .Xr zcomppoke 1
