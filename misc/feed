@@ -88,12 +88,14 @@ proc interactionby {} {
 set tocall [lindex $argv 0]
 
 # ... except that buck now gets passed to the user to write
-catch {source $env(HOME)/.feedrc} cresult coptions
+set feedrc [lindex [array get env FEEDRC] end]
+if {$feedrc eq ""} { set feedrc $env(HOME)/.feedrc }
+catch {source $feedrc} cresult coptions
 
 # ... unless they screw that part up
 if {[dict get $coptions -code] != 0} {
     warn [dict get $coptions -errorinfo]
-    die "feed: could not source ~/.feedrc"
+    die "feed: could not source $feedrc"
 }
 
 # ... though do need a fallback if nothing created the necessary proc
