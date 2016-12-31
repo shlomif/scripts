@@ -4,6 +4,7 @@ requires 'File::Temp';
 requires 'Getopt::Long';
 requires 'IO::Pty';
 requires 'LWP::UserAgent';
+requires 'Math::Random::Discrete';
 requires 'POSIX';
 requires 'Term::ReadKey';
 requires 'Test::Cmd';

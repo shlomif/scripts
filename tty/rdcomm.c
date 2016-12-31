@@ -50,9 +50,9 @@ void set_dev_termios(const int fd, const char *device);
 
 int main(int argc, char *argv[])
 {
-    int ch, device_fd, len;
+    int ch, device_fd;
     char *device = NULL;
-    const char *homedir, *result;
+    const char *homedir;
     char *serialdata, *tclshrc;
     glob_t devglob;
     ssize_t readret;
@@ -98,6 +98,43 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    if ((serialdata = malloc(sizeof(char) * (SERIAL_BUF_LEN + 1))) == NULL)
+        err(EX_OSERR, "could not malloc() serial data buffer");
+
+    if (Script) {
+        int ret;
+        Interp = Tcl_CreateInterp();
+        if (Tcl_PkgRequire(Interp, "Tcl", "8.5", 0) == NULL)
+            errx(1, "need TCL >= 8.5");
+
+        if ((homedir = getenv("HOME")) == NULL) {
+            homedir = getpwuid(getuid())->pw_dir;
+            if (!homedir)
+                errx(EX_OSERR, "could not determine HOME directory");
+        }
+        if (asprintf(&tclshrc, "%s/%s", homedir, ".tclshrc") == -1)
+            err(EX_OSERR, "could not asprintf() tclshrc path");
+        /* TODO better way to ignore rc file missing? */
+        if ((ret = Tcl_EvalFile(Interp, tclshrc)) != TCL_OK) {
+            char *msg;
+            int len;
+            Tcl_Obj *options = Tcl_GetReturnOptions(Interp, ret);
+            Tcl_Obj *key = Tcl_NewStringObj("-errorcode", -1);
+            Tcl_Obj *errcode;
+            Tcl_IncrRefCount(key);
+            Tcl_DictObjGet(NULL, options, key, &errcode);
+            Tcl_DecrRefCount(key);
+            msg = Tcl_GetStringFromObj(errcode, &len);
+            if (len > 12)
+                len = 12;
+            if (strncmp(msg, "POSIX ENOENT", len) != 0)
+                errx(1, "TCL error: %s", Tcl_GetStringResult(Interp));
+        }
+
+        Tcl_LinkVar(Interp, "_", (void *) &serialdata,
+                    TCL_LINK_STRING | TCL_LINK_READ_ONLY);
+    }
+
     if (argc == 0 || *argv == NULL) {
         /* Mac OS X - * in glob will be a bunch of digits, is created
          * on the fly; the tty.* device is read-only vs. the cu.* dev
@@ -105,9 +142,8 @@ int main(int argc, char *argv[])
          */
         if (glob("/dev/tty.usbmodem*", GLOB_NOSORT, NULL, &devglob) == 0) {
             if (devglob.gl_pathc > 0) {
-                if (devglob.gl_pathc > 1) {
+                if (devglob.gl_pathc > 1)
                     warnx("notice: >1 devices found, picking one of them");
-                }
                 device = devglob.gl_pathv[0];
             }
         }
@@ -115,13 +151,11 @@ int main(int argc, char *argv[])
          * sometimes it may jump to cuaU1 after plug/unplug things...).
          * User must be in the 'dialer' group as of OpenBSD 5.8. */
         else if (glob("/dev/cuaU0", 0, NULL, &devglob) == 0) {
-            if (devglob.gl_pathc > 0) {
+            if (devglob.gl_pathc > 0)
                 device = devglob.gl_pathv[0];
-            }
         }
-        if (device) {
+        if (device)
             warnx("info: using device '%s'", device);
-        }
     } else {
         if (strchr(*argv, '/') == NULL) {
             if (asprintf(&device, "%s%s", _PATH_DEV, *argv) == -1)
@@ -135,30 +169,6 @@ int main(int argc, char *argv[])
         warnx("no device file found to read from");
         emit_help();
         /* NOTREACHED */
-    }
-
-    if ((serialdata = malloc(sizeof(char) * (SERIAL_BUF_LEN + 1))) == NULL) {
-        err(EX_OSERR, "could not malloc() serial data buffer");
-    }
-
-    if (Script) {
-        Interp = Tcl_CreateInterp();
-
-        if ((homedir = getenv("HOME")) == NULL) {
-            homedir = getpwuid(getuid())->pw_dir;
-            if (!homedir) {
-                errx(EX_OSERR, "could not determine HOME directory");
-            }
-        }
-        if (asprintf(&tclshrc, "%s/%s", homedir, ".tclshrc") == -1) {
-            err(EX_OSERR, "could not asprintf() tclshrc path");
-        }
-        /* TODO how tell difference between "no such file" and the case
-         * where the user has most verily pooched their code? */
-        Tcl_EvalFile(Interp, tclshrc);
-
-        Tcl_LinkVar(Interp, "_", (void *) &serialdata,
-                    TCL_LINK_STRING | TCL_LINK_READ_ONLY);
     }
 
     /* Need non-block here so open does not stall forever. Olden unix
@@ -199,9 +209,8 @@ int main(int argc, char *argv[])
 
         if (Script) {
             serialdata[readret] = '\0';
-            if (Tcl_EvalObjEx(Interp, Script, TCL_EVAL_GLOBAL) != TCL_OK) {
+            if (Tcl_EvalObjEx(Interp, Script, TCL_EVAL_GLOBAL) != TCL_OK)
                 errx(1, "TCL error: %s", Tcl_GetStringResult(Interp));
-            }
         } else {
             write(STDOUT_FILENO, serialdata, (size_t) readret);
         }

@@ -1,4 +1,4 @@
-.Dd October 12 2016
+.Dd December 30 2016
 .Dt TIMEOUT 1
 .nh
 .Os
@@ -49,6 +49,24 @@ limits on what the numbers may be.
 .Pp
 .Dl $ Ic timeout -- 3 sleep 7
 .Dl $ Ic timeout -- 3m21s sleep 202
+.Sh SEE ALSO
+.Xr at 1
+.Pp
+The 
+.Xr at 1
+utility, with some risk, can also be used to timeout a command in the
+future. This avoids having the
+.Nm
+process in memory, but care must be taken that the command run via
+.Xr at
+kills the proper process, and not some random other process if the
+process to be killed has already exited and the PID been reused:
+.Pp
+.Dl $ Ic timeout 3h somecmd
+.Pp
+.Dl $ Ic somecmd &
+.Dl $ Ic at now + 3 hours
+.Dl Ic pkill ...
 .Sh HISTORY
 Began as a (quite bad) Perl script in 2002 to deal with Apache FOP not
 exiting when building PDF via XSL-FO. Less bad implementation in C

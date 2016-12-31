@@ -1,13 +1,22 @@
-Various Perl and C and TCL and shell scripts for unix.
-
-https://github.com/thrig/zsh-compdef contains ZSH completions for some
-of the utilities herein.
-
-The C code is mostly written for Mac OS X and OpenBSD; portability
-beyond that is largely untested.
+Various C and Perl and shell and TCL scripts for unix.
 
 There are sporadically unit tests, run
 
   make depend; make test
 
-or the individual tests then with `prove t/foo.t`
+or the individual tests then with `prove t/foo.t`. These require Perl,
+various Perl modules, and generally assume a Unix environment.
+
+ * C -- mostly written for Mac OS X and OpenBSD; portability beyond that
+   is largely untested. Most of it requires C99 and likely various
+   modern *BSD system calls.
+ * Perl verion 5.14 is assumed for the tests, though some of the scripts
+   will work on older versions.
+ * Shell code is generally tested against `sh` on OpenBSD and the
+   Heirloom Bourne Shell on Mac OS X.
+ * TCL lower than version 8.5 has not been tested for, and likely will
+   not work on account of the use of {*} and other such modern
+   constructs.
+
+https://github.com/thrig/zsh-compdef contains ZSH completions for some
+of the utilities herein (out of date as of late 2016).

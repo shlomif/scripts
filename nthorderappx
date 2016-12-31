@@ -13,31 +13,39 @@
 
 use 5.14.0;
 use warnings;
+use Getopt::Long qw(GetOptions);
 use Math::Random::Discrete;
 
-my $order = 3;
+GetOptions(
+    'columns|c=i' => \my $Flag_Columns,
+    'lines|l=i'   => \my $Flag_Lines,
+    'order|o=i'   => \my $Flag_Order,
+    'help|h|?'    => \&emit_help,
+) or exit 65;
 
-# to fill a standard terminal(TM) with results. Err, noise. Whatever.
-my $output_lines = 23;
-my $line_len     = 78;
+$Flag_Columns = 23 if !defined $Flag_Columns or $Flag_Columns < 1;
+$Flag_Lines   = 78 if !defined $Flag_Lines   or $Flag_Lines < 1;
+$Flag_Order   = 3  if !defined $Flag_Order   or $Flag_Order < 1;
 
 my ( %freq, %odds );
 
+shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
+
 while (readline) {
     s/\R//g;
-    m/(.{1,$order})(.)(?{ $freq{$1}->{$2}++ })^/;
+    m/(.{1,$Flag_Order})(.)(?{ $freq{$1}->{$2}++ })^/;
 }
 
 my @start = keys %freq;
 
-for ( 1 .. $output_lines ) {
+for ( 1 .. $Flag_Lines ) {
     my $prose = $start[ rand @start ];
-  RESORT: while ( length $prose < $line_len ) {
+  TOKEN: while ( length $prose < $Flag_Columns ) {
         my $token = '';
-        my $len   = -$order;
+        my $len   = -$Flag_Order;
         while ( !exists $freq{$token} ) {
             $token = substr $prose, $len++;
-            last RESORT if $len >= 0;
+            last TOKEN if $len >= 0;
         }
         if ( !exists $odds{$token} ) {
             my @keys   = keys %{ $freq{$token} };
@@ -58,4 +66,14 @@ for ( 1 .. $output_lines ) {
         $prose .= $choice;
     }
     say $prose;
+}
+
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: nthorderappx [options] files|-
+
+Nth order approximation after Shannon of whatever is input.
+
+END_USAGE
+    exit 64;
 }

@@ -6,17 +6,6 @@
  * command line a space will be written between each argument, and a
  * final newline written if the -N option is set.
  *
- * Example usage:
- *
- *   echo echo hi | sudo ttywrite $(tty) -
- *   echo echo hi | sudo ttywrite $(tty)
- *   sudo ttywrite           $(tty) echo hi
- *   sudo ttywrite -N        $(tty) echo hi
- *   sudo ttywrite -N -d 250 $(tty) echo hi
- *
- * Though more likely some other terminal besides the one running this
- * code should be the target...
- *
  * Notable codes (via ttytest.c testing on Mac OS X) include:
  *
  *   sudo ttywrite $(tty) $'\003'   # SIGINT
@@ -25,10 +14,6 @@
  *   sudo ttywrite $(tty) $'\020'   # SIGINFO
  *   sudo ttywrite $(tty) $'\020'   # SIGTSTP
  *   sudo ttywrite $(tty) $'\020'   # SIGQUIT
- *
- * On Linux, see also 'uinput'. To automate things under X11, xdotool.
- * Expect would be the more typical approach if the code or terminal in
- * question can be wrapped by that.
  */
 
 #include <sys/ioctl.h>

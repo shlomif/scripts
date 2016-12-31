@@ -1,0 +1,49 @@
+.Dd December 30 2016
+.Dt TTYWRITE 1
+.nh
+.Os
+.Sh NAME
+.Nm ttywrite
+.Nd writes to a tty via TIOCSTI ioctl
+.Sh SYNOPSIS
+.Nm ttywrite
+.Bk -words
+.Op Fl d Ar delay
+.Op Fl N
+.Ar device
+.Op Ar message ... | -
+.Ek
+.Sh DESCRIPTION
+.Nm
+writes to the given
+.Ar device
+any subsequent characters (or from standard input if the usual hyphen is
+given). This typically requires root or appropriate permissions
+otherwise granted.
+Options:
+.Bl -tag -width -indent
+.It Fl d Ar delay
+A delay in milliseconds between characters written. This may be useful
+to avoid overflowing any buffers, especially if large amounts of data is
+being passed.
+.It Fl N
+Causes a newline to be appended to the characters written. Handy if the
+shell does not allow a
+.Ic $'\en'
+to do just that.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl # Ic echo echo hi \&| ttywrite $(tty) -
+.Dl # Ic ttywrite -N -d 250 $(tty) echo hi
+.Sh SEE ALSO
+.Xr expect 1 ,
+.Xr torc 1 ,
+.Xr xdotool 1
+.Pp
+On linux
+.Cm uinput
+may also be an option.
+.Sh AUTHOR
+.An Jeremy Mates
