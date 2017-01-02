@@ -1,4 +1,4 @@
-.Dd December 11 2016
+.Dd January  6 2017
 .Dt REPLAY-LOG 1
 .nh
 .Os
@@ -6,7 +6,8 @@
 .Nm replay-log
 .Nd replays logs with simulated delays
 .Sh SYNOPSIS
-.Nm replay-log
+.Nm
+.Bk -words
 .Op Cm --keeptimestamp
 .Op Cm --mindelay= Ns num
 .Op Cm --maxdelay= Ns num
@@ -14,6 +15,7 @@
 .Op Cm --startdelay= Ns num
 .Op Cm --random= Ns num
 .Op Ar files|-
+.Ek
 .Sh DESCRIPTION
 .Nm
 replays logs with simulated delays taken from the epoch time in the

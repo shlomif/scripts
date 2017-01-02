@@ -76,7 +76,10 @@ trap {puts ""; exit 1} {SIGHUP SIGPIPE SIGTERM}
 trap {send $CONTROL_C} SIGINT
 
 proc interactionby {} {
-    global CONTROL_C CONTROL_Z
+    global CONTROL_C CONTROL_Z input_fh tmpfile
+    stty echo
+    if {$tmpfile ne ""} { file delete $tmpfile }
+    if {[catch {close $input_fh} err]} { die $err }
     interact {
 	$CONTROL_C {send -raw $CONTROL_C}
 	-reset $CONTROL_Z {exec kill -STOP [pid]}
@@ -87,7 +90,8 @@ proc interactionby {} {
 # varied inputs to varied REPL
 set tocall [lindex $argv 0]
 
-# ... except that buck now gets passed to the user to write
+# ... except that buck now gets passed to the user to write (there's an
+# example over in my dotfiles repo)
 set feedrc [lindex [array get env FEEDRC] end]
 if {$feedrc eq ""} { set feedrc $env(HOME)/.feedrc }
 catch {source $feedrc} cresult coptions
@@ -111,9 +115,7 @@ if {[info commands dosomethingwith] eq ""} {
 
 while {[gets $input_fh line] >= 0} { dosomethingwith $line }
 
-if {$tmpfile ne ""} { file delete $tmpfile }
-if {[catch {close $input_fh} err]} { die $err }
-
 # and hand REPL over to the bluberous fleshy mandibles of the user
-stty echo
+# (user .feedrc might call this directly e.g. if error condition in REPL
+# demands an immediate interact)
 interactionby

@@ -1,26 +1,26 @@
 #!/bin/sh
 #
-# Creates original copies of the specified file(s). TODO probably should
-# learn how to use git better...
+# Creates original copies of the specified file(s). Instead use version
+# control, sheesh!
+
+if [ $# -eq 0 ]; then
+    echo >&2 "Usage: orig file [file1 ..]"
+    exit 64
+fi
 
 STATUS=0
 
 for f in "$@"; do
-  if [ ! -r $f ]; then
-    echo "warning: cannot read file: $f" >&2
-    STATUS=1
-  elif [ -f $f ]; then
-    cp -p -f $f $f.orig
-    RETURN=$?
-    if [ $RETURN -ne 0 ]; then
-      echo "warning: non-zero exit from cp: $RETURN" >&2
-      STATUS=1
+    if [ ! -r "$f" ]; then
+        echo >&1 "orig: cannot read file '$f'"
+        STATUS=1
+    elif [ -f "$f" ]; then
+        cp -p -f -- "$f" "$f.orig"
+        STATUS=$?
+    else
+        echo >&2 "orig: no method to handle '$f'"
+        STATUS=1
     fi
-# TODO write handlers for directories, Mac OS X HFS+ infested files?
-  else
-    echo "warning: no handle method for: $f" >&2
-    STATUS=1
-  fi
 done
 
 exit $STATUS

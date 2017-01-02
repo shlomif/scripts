@@ -10,6 +10,7 @@ threading: threading.c
 
 depend:
 	cpanm --installdeps ..
+	@expect -c "package require Tcl 8.5; package require fileutil 1.14.11"
 
 test: bt copycat
 	@prove

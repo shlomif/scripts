@@ -14,5 +14,8 @@ torc: torc.c
 ttywrite: ttywrite.c
 ttytest: ttytest.c
 
+depend:
+	@expect -c "package require Tcl 8.5; package require fileutil 1.14.11"
+
 clean:
 	@-rm -f rdcomm ttywrite *.core >/dev/null 2>&1

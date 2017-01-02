@@ -1,50 +1,43 @@
 #!/bin/sh
 #
-# Somewhat smart "diff" utility, does CVS, Subversion, or git diff if
-# this seems relevant (by various file tests), or attempts regular diff
-# if possible. Requires 'findup', which is available elsewhere under the
-# sial.org scripts repository. See also 'ketchup' and 'commit'.
-
-PROG_NAME=`basename $0`
+# Somewhat smart "diff" utility, does VCS-appropriate diff if this seems
+# relevant (by various file tests), or attempts regular diff. Requires
+# `findup`, available elsewhere.
 
 findup -H -q .git && {
-  WHAT=
-  if [ $# -gt 0 ]; then
-    WHAT=$@
-  else
-    WHAT=.
-  fi
-  git diff --quiet --exit-code "$WHAT"
-  STATUS=$?
-  if [ $STATUS -eq 1 ]; then
-    exec git diff "$WHAT"
-  else
-    exit $STATUS
-  fi
+    WHAT=
+    if [ $# -gt 0 ]; then
+        WHAT=$@
+    else
+        WHAT=.
+    fi
+    git diff --quiet --exit-code "$WHAT"
+    STATUS=$?
+    if [ $STATUS -eq 1 ]; then
+        exec git diff "$WHAT"
+    else
+        exit $STATUS
+    fi
 }
 
 [ -f CVS/Root ] && exec cvs diff "$@"
-findup -H -q .svn/entries && exec svn diff "$@"
-findup -H -q .p4config && exec p4 diff -du "$@"
 
-# Otherwise, hunt for diffs based on various conventions I use
 if [ $# -eq 0 ]; then
-  echo "Usage: `basename $0` [file1 file2 .. fileN]" >&2
-  exit 64
+    echo >&2 "Usage: di [file1 ..]"
+    exit 64
 else
-  for input in "$@"; do
-    if [ ! -f "$input" ]; then
-      echo "$PROG_NAME: skipping non-file: $input" >&2
-      continue
-    fi
-    # *.orig and *.old common conventions I use for quick edits, *.orig
-    # for the orig command (probably should use git for such quick edits
-    # instead?)
-    for backup_suffix in .orig .old; do
-      if [ -f "$input$backup_suffix" ]; then
-        diff -u -- "$input$backup_suffix" "$input"
-        break
-      fi
+    for input in "$@"; do
+        if [ ! -f "$input" ]; then
+            echo >&2 "di: skipping non-file: '$input'"
+            continue
+        fi
+        # *.orig and *.old common conventions I use for quick edits, *.orig
+        # for the orig command
+        for backup_suffix in .orig .old; do
+            if [ -f "$input$backup_suffix" ]; then
+                diff -u -- "$input$backup_suffix" "$input"
+                break
+            fi
+        done
     done
-  done
 fi

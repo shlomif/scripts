@@ -1,149 +1,78 @@
 #!/bin/sh
 #
-# Wrapper to do CVS "update" or Subversion "status"/"update" on working
-# directories as appropriate. Add -f "force" argument to do cvs up -Ad
-# or svn update.
-#
-# Used to be called 'up' but that conflicts with a tool from OpenAFS.
-# See also 'di' and 'commit'.
+# Wrapper to do CVS "update" or equivalent on working directories as
+# appropriate. Add -f "force" argument to do `cvs up -Ad` or equivalent.
+# Requires that `findup` is available.
 
 EXIT_STATUS=0
 
-# for reference if recursed into some child directory
-START_DIR=`pwd`
-PROG_NAME=`basename $0`
-
-# update routines for specific packages
-# takes directory (already cd'ed into) and type of update
-
 update_cvs () {
-  CURRENT_DIR=`pwd`
-  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
-    echo "$PROG_NAME: running cvs update in $CURRENT_DIR" >&2
-  fi
-
-  CVSUPARGS=
-  if [ "is$FORCE" = "isyes" ]; then
-    CVSUPARGS=-Ad
-  fi
-  cvs up $CVSUPARGS
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo "$PROG_NAME: non-zero exit $STATUS from cvs update in $CURRENT_DIR" >&2
-    EXIT_STATUS=$STATUS
-  fi
-}
-
-update_svn () {
-  CURRENT_DIR=`pwd`
-  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
-    echo "$PROG_NAME: running svn update in $CURRENT_DIR" >&2
-  fi
-
-  COMMAND=
-  if [ "is$FORCE" = "isyes" ]; then
-    COMMAND="svn update"
-  else
-    COMMAND="svn status"
-  fi
-  $COMMAND
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo "$PROG_NAME: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR" >&2
-    EXIT_STATUS=$STATUS
-  fi
-}
-
-update_perforce () {
-  CURRENT_DIR=`pwd`
-
-  if [ "is$FORCE" = "isyes" ]; then
-    if [ "$START_DIR" != "$CURRENT_DIR" ]; then
-      echo "$PROG_NAME: running p4 sync in $CURRENT_DIR" >&2
+    CVSUPARGS=
+    if [ "is$FORCE" = "isyes" ]; then
+        CVSUPARGS=-Ad
     fi
-    p4 sync
-  fi
-
-  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
-    echo "$PROG_NAME: running p4 opened in $CURRENT_DIR" >&2
-  fi
-
-  p4 opened
+    cvs up $CVSUPARGS
+    STATUS=$?
+    if [ $STATUS -ne 0 ]; then
+        echo >&2 "ketchup: non-zero exit $STATUS from cvs update in $CURRENT_DIR"
+        EXIT_STATUS=$STATUS
+    fi
 }
 
 update_git () {
-  CURRENT_DIR=`pwd`
-  if [ "$START_DIR" != "$CURRENT_DIR" ]; then
-    echo "$PROG_NAME: running git status in $CURRENT_DIR" >&2
-  fi
+    COMMAND=
+    # NOTE this is a standard area that all not-my-projects get
+    # dumped into; changes are (generally) not made to them, so a
+    # pull makes sense.
+    if echo $CURRENT_DIR | grep third-party >/dev/null; then
+        COMMAND="git pull"
+    else
+        COMMAND="git status"
+    fi
 
-  COMMAND=
-  # standard area all not-my-project things get dumped into
-  if echo $CURRENT_DIR | grep third-party >/dev/null; then
-    COMMAND="git pull"
-  else
-    COMMAND="git status"
-  fi
-
-  $COMMAND
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo "$PROG_NAME: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR" >&2
-    EXIT_STATUS=$STATUS
-  fi
+    $COMMAND
+    STATUS=$?
+    if [ $STATUS -ne 0 ]; then
+        echo >&2 "ketchup: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR"
+        EXIT_STATUS=$STATUS
+    fi
 }
 
-# figure out how to handle the directory in question
-# TODO need means to specify the order of these...
 check_dir () {
-  findup -H -q .git
-  STATUS=$?
-  if [ $STATUS -eq 0 ]; then
-    update_git
-    return
-  fi
+    findup -H -q .git
+    STATUS=$?
+    if [ $STATUS -eq 0 ]; then
+        update_git
+        return
+    fi
 
-  if [ -f CVS/Root ]; then
-    update_cvs
-    return
-  fi
+    if [ -f CVS/Root ]; then
+        update_cvs
+        return
+    fi
 
-  findup -H -q .svn/entries
-  STATUS=$?
-  if [ $STATUS -eq 0 ]; then
-    update_svn
-    return
-  fi
-
-  findup -H -q .p4config
-  STATUS=$?
-  if [ $STATUS -eq 0 ]; then
-    update_perforce
-    return
-  fi
+    echo >&2 "ketchup: nothing to do in `pwd`"
 }
 
 OPT=
 FORCE=
 while getopts f OPT; do
-  case $OPT in
-    f)
-      FORCE=yes
-    ;;
-  esac
+    case $OPT in
+        f)
+            FORCE=yes
+        ;;
+    esac
 done
 shift `expr $OPTIND - 1`
 
 if [ $# -eq 0 ]; then
-  check_dir
+    check_dir
 else
-  for input in "$@"; do
-    if [ -d "$input" ]; then
-      (
-        cd -- "$input" && check_dir
-      )
-    fi
-  done
+    for input in "$@"; do
+        if [ -d "$input" ]; then
+            ( cd -- "$input" && check_dir )
+        fi
+    done
 fi
 
 exit $EXIT_STATUS

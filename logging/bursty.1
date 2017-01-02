@@ -1,4 +1,4 @@
-.Dd December  9 2016
+.Dd January  6 2017
 .Dt BURSTY 1
 .nh
 .Os
@@ -6,7 +6,8 @@
 .Nm bursty
 .Nd detects bursts or clumps in date-tagged data
 .Sh SYNOPSIS
-.Nm bursty
+.Nm
+.Bk -words
 .Op Fl -ithresh= Ns Ar float
 .Op Fl -bufsize= Ns Ar int
 .Op Fl -stats
@@ -14,6 +15,7 @@
 .Op Fl -Vthresh= Ns Ar float
 .Op Fl -Zthresh= Ns Ar float
 .Op Ar files|-
+.Ek
 .Sh DESCRIPTION
 .Nm
 detects bursts or clumps in date-tagged data, presumably from syslog or
