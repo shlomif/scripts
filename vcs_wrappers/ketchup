@@ -11,7 +11,7 @@ update_cvs () {
     if [ "is$FORCE" = "isyes" ]; then
         CVSUPARGS=-Ad
     fi
-    cvs up $CVSUPARGS
+    cvs -q update $CVSUPARGS
     STATUS=$?
     if [ $STATUS -ne 0 ]; then
         echo >&2 "ketchup: non-zero exit $STATUS from cvs update in $CURRENT_DIR"
@@ -56,10 +56,14 @@ check_dir () {
 
 OPT=
 FORCE=
-while getopts f OPT; do
+while getopts fh OPT; do
     case $OPT in
         f)
             FORCE=yes
+        ;;
+        h)
+            echo >&2 "Usage: ketchup [dir]"
+            exit 64
         ;;
     esac
 done
