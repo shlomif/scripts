@@ -1,0 +1,23 @@
+bruteln.c tries (a lot) to make a symlink, mainly as test for
+feasibility of /tmp symlink exploits (quite feasible!); these exploits
+would be much less of a thing if a) folks simply did not write files to
+such directories or b) instead used mktemp(3) or equivalent.
+
+Alas, learning from history is not something humans do, given that 2016
+saw such jaw-droppers as:
+
+ * CVE-2016-3100 - "kinit in KDE Frameworks before 5.23.0 uses weak
+   permissions (644) for /tmp/xauth-xxx-_y, which allows local users to
+   obtain X11 cookies of other users and consequently capture keystrokes
+   and possibly gain privileges by reading the file."
+ * CVE-2016-3992 - "cronic before 3 allows local users to write to
+   arbitrary files via a symlink attack on a (1) cronic.out.$$, (2)
+   cronic.err.$$, or (3) cronic.trace.$$ file in /tmp."
+
+against the fact that mktemp(1) first appeared in OpenBSD 2.1 two
+decades ago. Note also that while some OS do create private /tmp
+directories, this is by no means universal.
+
+Study of (reported!) /tmp failures can be done via:
+
+https://cve.mitre.org/data/downloads/index.html

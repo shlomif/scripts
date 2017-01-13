@@ -4,7 +4,7 @@
 # subsequent program.
 
 package require Tcl 8.5
-# for Tcl version of mktemp(1) - NOTE probably requires tcllib package
+# for Tcl version of mktemp(1) - NOTE requires tcllib package
 package require fileutil
 
 set prog_name [lindex [split $argv0 "/"] end]

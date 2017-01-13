@@ -19,4 +19,4 @@ various Perl modules, and generally assume a Unix environment.
    constructs.
 
 https://github.com/thrig/zsh-compdef contains ZSH completions for some
-of the utilities herein (out of date as of late 2016).
+of the utilities herein.
