@@ -4,6 +4,7 @@ use 5.14.0;
 use warnings;
 use Cwd qw(getcwd);
 use File::Spec ();
+use File::Which;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
 use Test::Most tests => 1 + 3 * 10 + 6;
@@ -16,7 +17,7 @@ my $prog_dir = getcwd;
 bail_on_fail;
 
 # NixOS in particular does not follow what limited conventions there are
-my $ls_path = whereis('ls');
+my $ls_path = which('ls');
 ok( defined $ls_path, "'ls' is in PATH" );
 
 restore_fail;
@@ -24,7 +25,7 @@ restore_fail;
 # assuming no race condition creation afterwards, or perhaps some sort
 # of OS-level "hey! let's run something else instead!" "feature"...
 my $nosuch;
-do { $nosuch = random_filename() } until !defined whereis($nosuch);
+do { $nosuch = random_filename() } until !defined which($nosuch);
 
 $ENV{FINDIN_PATH1} = join ':', 'findin-nodir', 'findin-nadadir', $prog_dir;
 $ENV{FINDIN_PATH2} = $prog_dir;
@@ -116,17 +117,4 @@ ok( !-e "$test_prog.core", "$test_prog did not produce core" );
 sub random_filename {
     my @allowed = ( 'A' .. 'Z', 'a' .. 'z', 0 .. 9, '_' );
     join '', map { $allowed[ rand @allowed ] } 1 .. 32;
-}
-
-sub whereis {
-    my ($what) = @_;
-    my $path;
-    for my $dir ( split ':', $ENV{PATH} ) {
-        my $tmp = File::Spec->catfile( $dir, $what );
-        if ( -x $tmp ) {
-            $path = $tmp;
-            last;
-        }
-    }
-    return $path;
 }

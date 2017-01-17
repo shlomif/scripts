@@ -1,4 +1,4 @@
-.Dd January  6 2017
+.Dd January 20 2017
 .Dt XPQUERY 1
 .nh
 .Os
@@ -103,13 +103,38 @@ which requires something like
 .Pp
 to query. It may be beneficial to hide standard namespace registrations
 in a shell alias or function definition.
+.Pp
+Namespaces can be made even more difficult by not having a name
+.Pp
+.Dl $ Ic cat hardns.xml 
+.Dl <foo><bar xmlns="http://example.org/">cat</bar></foo>
+.Dl $
+.Pp
+these either require first editing the XML to list a name
+.Pp
+.Dl $ Ic cat hardns.xml 
+.Dl <foo><bar xmlns:grr="http://example.org/">cat</bar></foo>
+.Dl $ Ic xpquery -n 'grr:http://example.org/' '//bar/text()' hardns.xml 
+.Dl cat
+.Dl $
+.Pp
+or to select, awkwardly, on
+.Cm local-name
+for each otherwise invisible namespace:
+.Pp
+.Dl $ Ic cat hardns.xml 
+.Dl <foo><bar xmlns="http://example.org/">cat</bar></foo>
+.Dl $ Ic xpquery '//*[local-name()="bar"]/text()' hardns.xml 
+.Dl cat
+.Dl $
+.Pp
+As to why such complexity was designed into the system, who knows?
 .Sh SEE ALSO
 http://www.w3.org/TR/xpath
 .Pp
-.Xr LWP::UserAgent 3pm
+Alternatives include
 .Pp
-An alternative is to instead use CSS selectors, e.g. via
-.Xr Mojo::DOM 3pm .
-This may better suit HTML documents, or those more familiar with CSS.
+.Xr Mojo::DOM58 3pm ,
+.Xr XML::Twig 3pm
 .Sh AUTHOR
 .An Jeremy Mates

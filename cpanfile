@@ -1,6 +1,7 @@
 requires 'App::Prove';
 requires 'Expect';
 requires 'File::Temp';
+requires 'File::Which';
 requires 'Getopt::Long';
 requires 'IO::Pty';
 requires 'LWP::UserAgent';

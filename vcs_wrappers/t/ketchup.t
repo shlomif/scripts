@@ -4,6 +4,7 @@ use 5.14.0;
 use warnings;
 use File::Spec ();
 use File::Temp qw(tempdir);
+use File::Which;
 use Test::Cmd;
 use Test::Most tests => 11;
 use Test::UnixExit;
@@ -28,7 +29,7 @@ my $fh;
 
 SKIP: {
     # NOTE only tested on OpenBSD cvs(1) not other implementations
-    my $cvs = whereis('cvs');
+    my $cvs = which('cvs');
     skip 'cvs not found in PATH', 4 unless $cvs;
 
     my $repo_dir = tempdir( 'ketchup-cvs.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1 );
@@ -52,7 +53,7 @@ SKIP: {
 }
 
 SKIP: {
-    my $git = whereis('git');
+    my $git = which('git');
     skip 'git not found in PATH', 4 unless $git;
 
     qx"$git init && $git add asdf && $git commit -m asdf asdf";
@@ -66,17 +67,4 @@ SKIP: {
     ok( $testcmd->stdout =~ m/^\s+modified:\s+asdf/m, "modifiction noted" );
     is( $testcmd->stderr, "", "no stderr" );
     exit_is( $?, 0, "exit ok" );
-}
-
-sub whereis {
-    my ($what) = @_;
-    my $path;
-    for my $dir ( split ':', $ENV{PATH} ) {
-        my $tmp = File::Spec->catfile( $dir, $what );
-        if ( -x $tmp ) {
-            $path = $tmp;
-            last;
-        }
-    }
-    return $path;
 }
