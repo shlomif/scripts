@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+#
+# For hex-type display.
+
+use 5.14.0;
+use warnings;
+
+my @segment;
+
+for my $i ( 0 .. 255 ) {
+    my $value = ord '.';
+    if ( chr($i) =~ m/[[:print:]]/aa ) {
+        $value = $i;
+    }
+    push @segment, $value;
+    if ( @segment == 16 ) {
+        say "db ", join ",", @segment;
+        @segment = ();
+    }
+}

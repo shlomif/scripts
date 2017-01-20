@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+#
+# ASCII up-case table maker (other bytes passed through as-is)
+
+use 5.14.0;
+use warnings;
+
+my @segment;
+
+for my $i ( 0 .. 255 ) {
+    $i -= 32 if $i > 96 and $i < 123;
+    push @segment, $i;
+    if ( @segment == 16 ) {
+        say "db ", join ",", @segment;
+        @segment = ();
+    }
+}
