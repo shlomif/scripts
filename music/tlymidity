@@ -16,7 +16,12 @@ my $midi_file = shift // most_recent_midi();
 
 my $ly_file = $midi_file =~ s/.[^.]+$/.ly/r;
 if ( -f $ly_file ) {
-    unshift @ARGV, parse_ly( $ly_file, dirname($midi_file) );
+    my ( $moreargs, $midiu ) = parse_ly( $ly_file, dirname($midi_file) );
+    unshift @ARGV, @$moreargs if @$moreargs;
+    if (@$midiu) {
+        system( 'midiutil', @$midiu, $midi_file ) == 0
+          or die "miditil @$midiu failed: $?\n";
+    }
 }
 
 exec( @TIMIDITY_CMD, @ARGV, $midi_file )
@@ -28,18 +33,23 @@ sub most_recent_midi {
 
 sub parse_ly {
     my ( $filename, $path ) = @_;
-    my @argv_additions;
+    my ( @argv_additions, @midiutil );
 
     open my $lyfh, '<', $filename or die "could not open '$filename': $!\n";
     while ( readline $lyfh ) {
-        # which I disable when needed with a %% prefix...
-        if (m/^%\s+timidity\s+([^%]+)/) {
+        # lilypond file assumed to have a header block of leading
+        # comments; save CPU by not looping past this
+        last if m/^[^%]/;
+
+        if ( !@argv_additions and m/^%\s+timidity\s+([^%\n\r]+)/ ) {
             push @argv_additions, shellwords($1);
-            last;
+        }
+        if ( !@midiutil and m/^%\s+midiutil\s+(\w+)/aa ) {
+            push @midiutil, $1;
         }
     }
     for my $extra (@argv_additions) {
         $extra =~ s{file=(?![./])}{file=$path/};
     }
-    return @argv_additions;
+    return \@argv_additions, \@midiutil;
 }

@@ -1,0 +1,5 @@
+requires 'MIDI';
+requires 'Moo';
+requires 'Music::AtonalUtil';
+requires 'Music::LilyPondUtil';
+requires 'Music::PitchNum';

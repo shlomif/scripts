@@ -1,4 +1,4 @@
-.Dd January  6 2017
+.Dd January 22 2017
 .Dt TLYMIDITY 1
 .nh
 .Os
@@ -18,22 +18,34 @@ to
 .Xr timidity 1 ,
 or lacking one, searches for the most recently modified
 .Pa *.midi
-file in the current working directory and passes that to
-.Xr timidity 1 .
+file in the current working directory and passes that.
 .Pp
 If a corresponding
 .Pa *.ly
 file is found, the first
 .Qq % timidity ...
-line is searched for in that file, and options listed there added to the
-command line arguments for
+line in the comment header is searched for, and options listed there
+added to the command line arguments for
 .Xr timidity 1 .
+.Pp
+Likewise, if a
+.Qq % midiutil ...
+line is present in the comment header of the
+.Pa *.ly
+file, the resulting MIDI file is filtered via
+.Xr midituil 1 .
+Only 
+.Xr midituil 1
+methods that filter the input MIDI make sense (in particular,
+.Cm fuzz
+and
+.Cm nixcc Ns ).
 .Sh EXIT STATUS
 .Nm
 replaces itself with
 .Xr timidity 1
-if all goes well, though will exit with a non-zero code if
-something goes awry.
+if all goes well, though will exit with a non-zero code if anything goes
+awry prior to that.
 .Sh EXAMPLES
 Sample 
 .Cm % timidity
@@ -60,6 +72,8 @@ flag to pass arbitrary configuration strings to
 .Xr timidity 1 .
 .Sh SEE ALSO
 .Xr lilypond 1 ,
+.Xr midiutil 1 ,
+.Xr playit 1 ,
 .Xr timidity 1
 .Sh AUTHOR
 .An Jeremy Mates

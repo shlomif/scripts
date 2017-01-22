@@ -23,6 +23,10 @@ v6addr: v6addr.c
 
 v4in6addr: v4in6addr.c
 
+depend:
+	cpanm --installdeps ..
+	cpanm --installdeps .
+	@expect -c "package require Tcl 8.5;"
 
 clean:
 	@-rm -f endian getsockname ip6tomac ipvalid macutil portpester randmac v4addr v4in6addr v6addr *.core 2>/dev/null

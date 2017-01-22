@@ -1,4 +1,4 @@
-.Dd January  6 2017
+.Dd January 22 2017
 .Dt PLAYIT 1
 .nh
 .Os
@@ -51,16 +51,15 @@ The
 file can be used to override the
 .Xr lilypond 1
 command used, the command for the PDF viewer, and the MIDI player
-command. The defaults are customized to my environment:
+command, e.g.
 .Pp
-.Dl set lily_cmd {lilypond -dno-point-and-click}
-.Dl set midi_cmd {tlymidity}
-.Dl set view_cmd {mopen}
+.Dl puts \&"midi_cmd set to pianoteq...\&"
+.Dl set midi_cmd {pianoteq --midi}
 .Pp
 This file may also be used to write a custom
 .Dv maybe_latest
-Tcl procedure, should the provided one not be ideal (the exceptions
-alluded to, above). See the source code for details.
+TCL procedure, should the provided one not be ideal (on account of the
+exceptions alluded to, above). See the source code for details.
 .Sh EXIT STATUS
 .Ex -std
 However, errors are not much checked for once the MIDI player starts.
@@ -91,9 +90,10 @@ system to review errors, if any.
 .Dl map <Leader>c :cnext<CR>
 .Pp
 .Sh SEE ALSO
+.Xr Tcl n ,
 .Xr lilypond 1 ,
+.Xr midiutil 1 ,
 .Xr mopen 1 ,
-.Xr proc n ,
 .Xr tlymidity 1 ,
 .Xr vim 1
 .Sh AUTHOR

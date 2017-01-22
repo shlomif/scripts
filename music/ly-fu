@@ -10,7 +10,7 @@
 #
 # ZSH completion available at: https://github.com/thrig/zsh-compdef
 
-use strict;
+use 5.14.0;
 use warnings;
 
 use File::Basename qw/basename/;
@@ -152,13 +152,13 @@ my $exit_status = 0;
 # Just system() would be nice, but lilypond spams the terminal, so hide
 # the noise by default. Might want to collect stderr for inspection if
 # things do go awry, but that's more work.
-print $src_fname, "\n";
+say $src_fname;
 my $lypid;
 eval {
     my ( $wtr, $rdr, $err );
     $lypid =
       open3( $wtr, $rdr, $err, @LILYPOND, "--output=$src_fname", $src_fname );
-    while (<$rdr>) {
+    while ( readline $rdr ) {
         print if $verbose;
     }
 };

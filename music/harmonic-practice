@@ -1,0 +1,150 @@
+#!/usr/bin/env perl
+#
+# Constructs weighted random harmonic sequences. Possibly good for
+# someone to then complete the voices on...
+
+use 5.14.0;
+use warnings;
+use Math::Random::Discrete;
+
+my $phrase_length = 10;
+
+# weights of what harmony goes to what other harmonies. Adapted from
+# "Harmony" (3rd edition) by Walter Piston. p. 18.
+my %harmonies = (
+    I => {
+        II  => 1,
+        III => 1,
+        IV  => 20,
+        V   => 20,
+        VI  => 5,
+        VII => 0.5,
+    },
+    II => {
+        I   => 1,
+        III => 1,
+        IV  => 1,
+        V   => 20,
+        VI  => 5,
+        VII => 0.5,
+    },
+    III => {
+        I   => 0.5,
+        II  => 1,
+        IV  => 5,
+        V   => 1,
+        VI  => 20,
+        VII => 0.5,
+    },
+    IV => {
+        I   => 5,
+        II  => 5,
+        III => 1,
+        V   => 20,
+        VI  => 1,
+    },
+    V => {
+        I   => 20,
+        II  => 1,
+        III => 1,
+        IV  => 5,
+        VI  => 5,
+        VII => 0.5,
+    },
+    VI => {
+        I   => 1,
+        II  => 20,
+        III => 5,
+        IV  => 5,
+        V   => 20,
+    },
+    VII => {
+        I   => 1,
+        III => 20,
+    },
+);
+
+# and weights for what inversion to use
+my %inversions = (
+    I => {
+        0 => 20,
+        1 => 6,
+        2 => 1,
+        3 => 0.5,
+    },
+    II => {
+        0 => 18,
+        1 => 8,
+        2 => 1,
+        3 => 0.5,
+    },
+    III => {
+        0 => 20,
+        1 => 6,
+        2 => 1,
+        3 => 0.5,
+    },
+    IV => {
+        0 => 18,
+        1 => 12,
+        2 => 1,
+        3 => 0.5,
+    },
+    V => {
+        0 => 20,
+        1 => 10,
+        2 => 5,
+        3 => 2,
+    },
+    VI => {
+        0 => 20,
+        1 => 6,
+        2 => 1,
+        3 => 0.5,
+    },
+    VII => {
+        0 => 1,
+        1 => 20,
+        2 => 6,
+        3 => 2,
+    },
+);
+
+make_discrete( \%harmonies );
+make_discrete( \%inversions );
+
+# TWEAK this form always has a specific cadence, new harmonies are
+# inserted before it. TODO link properly to the cadence, though that can
+# easily be done by rerolling or otherwise adjusting the results.
+my @plan = ( [qw/I 0/], [qw/V 2/], [qw/I 0/] );
+while ( @plan < $phrase_length ) {
+    my $harmony   = $harmonies{ $plan[-3][0] }->rand;
+    my $inversion = $inversions{$harmony}->rand;
+    splice @plan, -2, 0, [ $harmony, $inversion ];
+}
+
+for my $harmony (@plan) {
+    printf "%s%s ", $harmony->[0], inverse_string( $harmony->[1] );
+}
+print "\n";
+
+sub inverse_string {
+    my ($i) = @_;
+    if ( $i == 1 ) {
+        return 6;
+    } elsif ( $i == 2 ) {
+        return 64;
+    } elsif ( $i == 3 ) {
+        return 2;
+    }
+    return '';
+}
+
+sub make_discrete {
+    my ($ref) = @_;
+    for my $choices ( values %$ref ) {
+        my $keys    = [ keys %$choices ];
+        my $weights = [ values %$choices ];
+        $choices = Math::Random::Discrete->new( $weights, $keys );
+    }
+}

@@ -6,7 +6,7 @@ package require Tcl 8.5
 # NOTE probably requires tcllib package
 package require fileutil
 
-# TWEAK these can be changed via the ~/.playitrc file
+# TWEAK these can be overridden via the ~/.playitrc file
 set lily_cmd {lilypond -dno-point-and-click}
 set midi_cmd {tlymidity}
 set view_cmd {mopen}

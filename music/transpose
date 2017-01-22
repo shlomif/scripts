@@ -9,7 +9,7 @@
 #
 #   transpose --columns=8 e e f g g f e d c c d e e d d | ly-fu --open -
 
-use strict;
+use 5.14.0;
 use warnings;
 
 use Getopt::Long qw/GetOptions/;
@@ -36,4 +36,7 @@ for my $i ( 0 .. $Flag_Columns - 1 ) {
         print $aoa[$j][$i], " " if defined $aoa[$j][$i];
     }
 }
-print "\n";
+# ensure ultimate newline to help avoid facepalm moments should a derpy shell
+#   while read line; do ...; done
+# loop be used
+say '';

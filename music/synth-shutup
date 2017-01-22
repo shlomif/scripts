@@ -3,7 +3,8 @@
 # So yeah when the synth gets stuck on some note because of a C-c or
 # whatever and you need to make it quiet...
 
-use v5.14;
+use 5.14.0;
+use warnings;
 
 my $CONTROL_CHANGE = 11 << 4;
 

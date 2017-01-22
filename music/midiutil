@@ -2,25 +2,75 @@
 #
 # MIDI utility routines for the Perl MIDI suite.
 
-use strict;
+use 5.14.0;
 use warnings;
-use feature 'say';
 
+use Getopt::Long qw(GetOptionsFromArray);
 use MIDI                ();
 use Music::LilyPondUtil ();
 
+package PitchFoo {
+    use Moo;
+    with('Music::PitchNum::Dutch');
+}
+my $pitchconv = PitchFoo->new;
+
 my %actions = (
-    'decompose'        => \&handle_decompose,
-    'dump'             => \&handle_dump,
-    'instrumentate'    => \&handle_instrumentate,
-    'nixcc'            => \&handle_nixcc,
-    'patch2instrument' => \&handle_patch2instrument,
+    append           => \&handle_append,
+    decompose        => \&handle_decompose,
+    dump             => \&handle_dump,
+    fuzz             => \&handle_fuzz,
+    instrumentate    => \&handle_instrumentate,
+    lilypondify      => \&handle_lilypondify,
+    merge            => \&handle_merge,
+    nixcc            => \&handle_nixcc,
+    patch2instrument => \&handle_patch2instrument,
+    rechannel        => \&handle_rechannel,
 );
-my $EXIT_OK = 0;
+
+sub EXIT_OK () { 0 }
 
 my $action = shift // die "Usage: midiutil <action> <action-args ..>\n";
-die "error: no such action: $action\n" if !exists $actions{$action};
+die "midiutil: no such action: '$action'\n" if !exists $actions{$action};
 exit $actions{$action}->(@ARGV);
+
+# For when you just need to append some given note to complete out a
+# track, but don't want to wait for Logic.app or something to crawl up
+# off the disk.
+sub handle_append {
+    GetOptionsFromArray( \@_, 'spec=s' => \my $spec ) || exit 64;
+    my $filename = shift // die
+      "Usage: midiutil append --spec=track:dtime/chan/note/velo;... midi-file [midi-file-out]\n";
+    my $outfile = shift // $filename;
+
+    my %events;
+    for my $eventspec ( split /;/, $spec ) {
+        my ( $track, $eventstr ) = split /:/, $eventspec;
+        $events{$track} = [ split '/', $eventstr ];
+    }
+
+    my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+    my $tracks = $opus->tracks_r;
+
+    for my $trackno ( 0 .. $#$tracks ) {
+        next unless exists $events{$trackno};
+        my $mtrk   = $tracks->[$trackno];
+        my $events = $mtrk->events_r;
+        push @$events,
+          [ 'note_on',            0,
+            $events{$trackno}[1], $events{$trackno}[2],
+            $events{$trackno}[3]
+          ],
+          [ 'note_off',           $events{$trackno}[0],
+            $events{$trackno}[1], $events{$trackno}[2],
+            0
+          ];
+    }
+
+    $opus->write_to_file($outfile);
+
+    return EXIT_OK;
+}
 
 sub handle_decompose {
     my $filename = shift // die "Usage: midiutil decompose midi-file\n";
@@ -42,7 +92,7 @@ sub handle_decompose {
         }
     );
 
-    return $EXIT_OK;
+    return EXIT_OK;
 }
 
 sub handle_dump {
@@ -51,19 +101,85 @@ sub handle_dump {
     my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
     $opus->dump( { dump_tracks => 1 } );
 
-    return $EXIT_OK;
+    return EXIT_OK;
+}
+
+# Mangle a few things in lilypond output - randomize velocity a bit,
+# fixup X\sustainOff\sustainOn so there is actually a pedal hop.
+sub handle_fuzz {
+    my $filename = shift // die "Usage: midiutil fuzz midi-file [midi-file-out]\n";
+    my $outfile  = shift // $filename;
+
+    my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+    my $tracks = $opus->tracks_r;
+
+    for my $mtrk (@$tracks) {
+        my $events = $mtrk->events_r;
+        my @nix;
+        my $default_volume;
+        for my $i ( 0 .. $#$events ) {
+            # fuzz note volumes a bit
+            if ( $events->[$i][0] eq 'note_on' and $events->[$i][4] > 0 ) {
+                my $some_percent = $events->[$i][4] * 0.05;
+                $events->[$i][4] =
+                  $events->[$i][4] + rand() * $some_percent - $some_percent / 2 - 10;
+
+                # from lilypond scm/midi.scm, limit volumes to \ppp <-> \fff
+                $events->[$i][4] = int( 127 * 0.85 ) if $events->[$i][4] > int( 127 * 0.85 );
+                $events->[$i][4] = int( 127 * 0.42 ) if $events->[$i][4] < int( 127 * 0.42 );
+            }
+
+            # TODO what are these control changes lilypond litters the
+            # MIDI with?
+            if (    $events->[$i][0] eq 'control_change'
+                and $events->[$i][2] == 7
+                and $events->[$i][3] == 100 ) {
+                push @nix, $i;
+            }
+
+            # pedal hops
+            if (    $i > 0
+                and $events->[$i][0] eq 'control_change'
+                and $events->[$i][3] == 64    # sustain pedal
+                and $events->[$i][4] > 64     # down
+                and $events->[$i][1] == 0     # at zero delta from previous
+                and $events->[ $i - 1 ][0] eq 'control_change'
+                and $events->[ $i - 1 ][3] == 64    # prev was sustain
+                and $events->[ $i - 1 ][4] < 64     # up
+                    # TODO this probably should be relative to current
+                    # tempo, which lilypond puts into track #0,
+                    # elsewhere
+                and $events->[ $i - 1 ][1] > 50    # sufficient padding
+              ) {
+                my $fuzz = int rand() * 5;
+                # The gist being to shorten the pedal down and add that
+                # time to the pedal up. I can half-pedal with no
+                # particular skill in about 140 - 150ms, and would guess
+                # that a trained pianist could reach 100ms or below.
+                $events->[ $i - 1 ][1] -= 50 - $fuzz;
+                $events->[$i][1] += 50 + $fuzz;
+            }
+        }
+        for my $ei (@nix) {
+            splice @$events, $ei, 1;
+        }
+    }
+
+    $opus->write_to_file($outfile);
+
+    return EXIT_OK;
 }
 
 # Generates all variations on standard MIDI instruments, e.g. to review
-# what a particular sound font sounds like. (This is perhaps easier than
+# what a particular sound font sounds like. (This is easier than
 # templating the lilypond and then...)
 sub handle_instrumentate {
-    my $filename = shift // die "Usage: midiutil nixcc midi-file\n";
+    my $filename = shift // die "Usage: midiutil instrumentate midi-file\n";
 
     my $in_opus = MIDI::Opus->new( { 'from_file' => $filename, } );
 
-    # TODO option to specify specific numbers or range; this is the
-    # instruments minus in particular sound effects.
+    # 1..120 is the instruments minus in particular sound effects, edit
+    # as necessary to your need
     for my $instrument ( 0 .. 119 ) {
         my $out_opus = $in_opus->copy;
         my $outfile  = "inst$instrument.midi";
@@ -73,8 +189,8 @@ sub handle_instrumentate {
             my $events = $track->events_r;
             my @nix_events;
             for my $ei ( 0 .. $#$events ) {
-                # since will be changing the patch, don't then lie about the
-                # instrument name, if any
+                # since will be changing the patch, don't then lie about
+                # the instrument name, if any
                 if ( $events->[$ei][0] eq 'instrument_name' ) {
                     unshift @nix_events, $ei;
                 }
@@ -85,21 +201,64 @@ sub handle_instrumentate {
             for my $ei (@nix_events) {
                 splice @$events, $ei, 1;
             }
-            # and, regardless, prefix a patch change, to handle the case of a
-            # track without a patch change
+            # and, regardless, prefix a patch change, to handle the case
+            # of a track without a patch change
             unshift @$events, [ 'patch_change', 0, 0, $instrument ];
         }
 
         $out_opus->write_to_file($outfile);
     }
 
-    return $EXIT_OK;
+    return EXIT_OK;
 }
 
-# Eliminates control_change from a MIDI file, in particular to remove
-# volume changes from lilypond MIDI output. (Handy if say writing an
-# organ work in which case there may be no volume change or pedal
-# effects.)
+# KLUGE very limited, TODO adjust as needed for midi in question (see
+# also midi2ly of lilypond, but I never much liked that)
+sub handle_lilypondify {
+    my $filename = shift // die "Usage: midiutil lilypondify midi-file\n";
+    my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+
+    my %durmap = (
+        888 => 4,
+        444 => 8,
+        222 => 16,
+    );
+
+    my $tracks = $opus->tracks_r;
+    for my $track (@$tracks) {
+        say "fixme = {";
+        my $events = $track->events_r;
+        for my $event (@$events) {
+            next unless $event->[0] eq 'note_off';
+            say "  ", $pitchconv->pitchname( $event->[3] ), $durmap{ $event->[1] };
+        }
+        say "}";
+    }
+
+    return EXIT_OK;
+}
+
+sub handle_merge {
+    die "too few filenames for merge\n" if @_ < 3;
+    my $outfile = pop @_;
+
+    my $opus = MIDI::Opus->new( { 'from_file' => shift @_ } );
+    my $tracks = $opus->tracks_r;
+
+    while (@_) {
+        my $subopus = MIDI::Opus->new( { 'from_file' => shift @_ } );
+        push @$tracks, @{ $subopus->tracks_r };
+    }
+
+    $opus->write_to_file($outfile);
+
+    return EXIT_OK;
+}
+
+# Eliminates main volume control_change from a MIDI file. Handy if say
+# writing an organ work in which case there are likely no volume change
+# or pedal effects. (And ARIA Player due to the lilypond default volumes
+# is blasting away at distortion-inducing levels. Hypothetically.)
 sub handle_nixcc {
     my $filename = shift // die "Usage: midiutil nixcc midi-file [midi-file-out]\n";
     my $outfile  = shift // $filename;
@@ -107,22 +266,74 @@ sub handle_nixcc {
     my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
     my $tracks = $opus->tracks_r;
 
-    for my $mtrk (@$tracks) {
+    my $trackno = 0;
+    my @nixtrack;
+    for my $ti ( 0 .. $#$tracks ) {
+        my $mtrk   = $tracks->[$ti];
         my $events = $mtrk->events_r;
+
+        # \articulate adds this, or ... ?
+        if (    @$events == 1
+            and $events->[0][0] eq 'track_name'
+            and $events->[0][-1] =~ m/ew:$/ ) {
+            warn "nixing track...\n";
+            unshift @nixtrack, $ti;
+            next;
+        }
+
         my @nix;
         for my $i ( 0 .. $#$events ) {
-            if ( $events->[$i][0] eq 'control_change' ) {
+            # don't need to send these to synth, so don't?
+            if (   $events->[$i][0] eq 'track_name'
+                or $events->[$i][0] eq 'text_event'
+                or $events->[$i][0] eq 'time_signature'
+                or $events->[$i][0] eq 'key_signature'
+                #       or $events->[$i][0] eq 'patch_change'
+              ) {
+                unshift @nix, $i;
+                next;
+            }
+
+            # fuzz note volumes a bit
+            # except not for organ-work...
+            if ( $events->[$i][0] eq 'note_on' and $events->[$i][4] > 0 ) {
+                my $some_percent = $events->[$i][4] * 0.19;
+                $events->[$i][4] =
+                  $events->[$i][4] + rand() * $some_percent - $some_percent / 2;
+
+                $events->[$i][4] = int( 127 * 0.42 ) if $events->[$i][4] < int( 127 * 0.42 );
+
+                if ( $trackno >= 5 ) {    # KLUGE volume drop on doubled lines
+                    $events->[$i][4] -=
+                      int( $events->[$i][4] * 0.43 + rand( $events->[$i][4] * 0.41 ) );
+                }
+                if ( $trackno >= 9 ) {    # KLUGE volume drop on doubled lines
+                    $events->[$i][4] -=
+                      int( $events->[$i][4] * 0.57 + rand( $events->[$i][4] * 0.17 ) );
+                }
+
+                # from scm/midi.scm, limit volumes to \ppp <-> \fff
+                $events->[$i][4] = int( 127 * 0.85 ) if $events->[$i][4] > int( 127 * 0.85 );
+            }
+
+            # MIDI Controller Numbers - 7 is "Main Volume"
+            if ( $events->[$i][0] eq 'control_change' and $events->[$i][3] == 7 ) {
                 unshift @nix, $i;
             }
         }
         for my $i (@nix) {
             splice @$events, $i, 1;
         }
+        #   unshift @$events, [ 'patch_change', 0, 0, 5 ];
+        $trackno++;
+    }
+    for my $ti (@nixtrack) {
+        splice @$tracks, $ti, 1;
     }
 
     $opus->write_to_file($outfile);
 
-    return $EXIT_OK;
+    return EXIT_OK;
 }
 
 sub handle_patch2instrument {
@@ -135,5 +346,41 @@ sub handle_patch2instrument {
             Music::LilyPondUtil->patch2instrument($patchnum) );
     }
 
-    return $EXIT_OK;
+    return EXIT_OK;
+}
+
+sub handle_rechannel {
+    GetOptionsFromArray( \@_, 'spec=s' => \my $spec ) || exit 64;
+    my $filename = shift // die
+      "Usage: midiutil rechannel --spec=track:chan;t1:c2... midi-file [midi-file-out]\n";
+    my $outfile = shift // $filename;
+
+    my %mappings;
+    for my $tcspec ( split /;/, $spec ) {
+        my ( $track, $chan ) = split /:/, $tcspec;
+        $mappings{$track} = $chan;
+    }
+
+    my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
+    my $tracks = $opus->tracks_r;
+
+    for my $trackno ( 0 .. $#$tracks ) {
+        next unless exists $mappings{$trackno};
+        my $mtrk   = $tracks->[$trackno];
+        my $events = $mtrk->events_r;
+        for my $i ( 0 .. $#$events ) {
+            if (   $events->[$i][0] eq 'note_off'
+                or $events->[$i][0] eq 'note_on'
+                or $events->[$i][0] eq 'key_after_touch'
+                or $events->[$i][0] eq 'control_change'
+                or $events->[$i][0] eq 'patch_change'
+                or $events->[$i][0] eq 'channel_after_touch'
+                or $events->[$i][0] eq 'pitch_wheel_change' ) {
+                $events->[$i][2] = $mappings{$trackno};
+            }
+        }
+    }
+
+    $opus->write_to_file($outfile);
+    return EXIT_OK;
 }
