@@ -34,6 +34,11 @@ catch {source $env(HOME)/.playitrc} msg options
 
 set prog_name [lindex [split $argv0 "/"] end]
 
+proc warn {msg} {
+    global prog_name
+    puts stderr "$prog_name: $msg"
+}
+
 if {[dict get $options -code] != 0} {
     if {![string match "POSIX ENOENT *" [dict get $options -errorcode]]} {
         warn [dict get $options -errorinfo]

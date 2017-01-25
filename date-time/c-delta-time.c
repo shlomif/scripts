@@ -1,4 +1,13 @@
-/* Simple C delta time calculator - possibly handy for benchmark needs */
+/* Simple C delta time calculator - possibly handy for benchmark needs,
+ * assuming what is being benchmarked runs for a sufficient period of
+ * time though consider instead using gprof or similar:
+ *
+ *   gcc -pg ...
+ *   ./...
+ *   gprof ... gmon.out
+ *
+ * or investigating performance via dtrace or sysdig type OS tools.
+ */
 
 #include <sys/resource.h>
 #include <sys/time.h>

@@ -52,7 +52,7 @@ input. For example, to change
 files to 
 .Pa *.html :
 .Pp
-.Dl $ Ic find \&. -type f -name \&"*.htm\&" -print0 \e
+.Dl $ Ic find \&. -name \&"*.htm\&" -type f -print0 \e
 .Dl \  Ic \&| rename -0 \&'$_ .= \&"l\&"\&'
 .Pp
 Deep directories can be tricky when the directory names must be changed,
