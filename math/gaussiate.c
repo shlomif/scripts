@@ -5,6 +5,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <float.h>
+#include <getopt.h>
 #include <limits.h>
 #include <math.h>
 #include <stdint.h>

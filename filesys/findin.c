@@ -2,8 +2,14 @@
  * environment variable, or instead with a directory list read from
  * from standard input. */
 
+#ifdef __linux__
+#define _BSD_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
 #include <glob.h>
 #include <limits.h>
 #include <stdbool.h>

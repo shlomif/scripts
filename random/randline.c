@@ -1,6 +1,7 @@
 /* Reservoir-sample a random line out of the input */
 
 #include <err.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

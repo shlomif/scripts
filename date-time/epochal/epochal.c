@@ -12,6 +12,7 @@
 #include <sys/types.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>

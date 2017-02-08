@@ -3,6 +3,7 @@
 #include <sys/wait.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

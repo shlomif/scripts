@@ -9,6 +9,7 @@
 
 #include <ctype.h>
 #include <err.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

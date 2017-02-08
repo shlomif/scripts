@@ -16,6 +16,7 @@
  */
 
 #include <err.h>
+#include <getopt.h>
 #include <ctype.h>
 #include <signal.h>
 #include <stdbool.h>

@@ -1,0 +1,72 @@
+.Dd February 12 2017
+.Dt CORRUPT 1
+.nh
+.Os
+.Sh NAME
+.Nm corrupt
+.Nd file corruption utility
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Op Fl i Ar skip
+.Op Fl n Ar limit
+.Fl o Ar odds
+.Ar
+.Ek
+.Sh DESCRIPTION
+.Nm
+corrupts the given file(s) with random bitflips. By default the entire
+file is corrupted using the given
+.Ar odds
+of corruption. The files are corrupted in-place, so an unexpected exit of
+.Nm
+may result in a partially corrupted file.
+.Pp
+Subsets can be corrupted with the
+.Fl i
+and
+.Fl n
+flags; these may be necessary if the file is large or due to the
+structure of the file only specific portions need be considered for
+corruption. Tools such as
+.Xr dumpe2fs 8
+or specifications such as
+.Xr elf 5
+may help reveal what is best to corrupt in a given filesystem or program
+format.
+.Pp
+Options:
+.Bl -tag -width Ds
+.It Fl i Ar skip
+Ignore the first
+.Ar skip
+bytes in the
+.Ar file .
+.It Fl n Ar limit
+Corrupt at most
+.Ar limit
+bytes.
+.It Fl o Ar odds
+Corruption odds given as an integer between 1 and 100 inclusive. Required.
+.El
+.Pp
+.Xr arc4random 3
+is used to obtain random numbers to perform the corruption with. The
+seed is stirred between each
+.Ar file .
+Corruption is done via a
+.Cm ^=
+bit flip, so the output file size should not change. Only bit flipping
+is supported; another interesting form of corruption might be to
+duplicate portions of the file within itself, though
+.Nm
+does not support that.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr cmp 1 ,
+.Xr dd 1 ,
+.Xr hexdump 1 ,
+.Xr twiddle 1
+.Sh AUTHOR
+.An Jeremy Mates

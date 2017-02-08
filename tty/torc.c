@@ -15,6 +15,7 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <paths.h>
 #include <signal.h>
 #include <stdio.h>

@@ -29,6 +29,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fts.h>
+#include <getopt.h>
 #include <grp.h>
 #include <libgen.h>
 #include <limits.h>

@@ -9,6 +9,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
 #include <fts.h>
 #include <stdbool.h>
 #include <stdio.h>

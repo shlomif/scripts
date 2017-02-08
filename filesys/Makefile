@@ -2,6 +2,8 @@
 CC=gcc
 CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
+corrupt: corrupt.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -o corrupt corrupt.c
 fdsplit: fdsplit.c
 fillerup: fillerup.c
 findin: findin.c
@@ -9,14 +11,20 @@ getpof: getpof.c
 llcount: llcount.c
 permcheck: permcheck.c
 stripeofeol: stripeofeol.c
+twiddle: twiddle.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -o twiddle twiddle.c
 unatomappend: unatomappend.c
+
+# needs libbsd libbsd-devel (RPM) or equivalent packages installed on linux
+makeloimage: makeloimage.c
+	$(CC) $(CFLAGS) -lbsd -o makeloimage makeloimage.c
 
 depend:
 	cpanm --installdeps ..
 	@expect -c "package require Tcl 8.5; package require fileutil 1.14.11"
 
-test: fdsplit findin getpof llcount
+test: fdsplit findin getpof llcount twiddle
 	@prove
 
 clean:
-	@-rm -f fdsplit fillerup findin getpof llcount permcheck stripeofeol unatomappend *.core 2>/dev/null
+	@-rm -f corrupt fdsplit fillerup findin getpof llcount permcheck stripeofeol twiddle unatomappend *.core 2>/dev/null

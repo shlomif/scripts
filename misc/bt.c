@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <err.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>

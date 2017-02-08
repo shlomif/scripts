@@ -41,6 +41,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
 #include <limits.h>
 #include <pthread.h>
 #include <signal.h>

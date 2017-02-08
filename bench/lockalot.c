@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <poll.h>
 #include <stdbool.h>
 #include <stdio.h>

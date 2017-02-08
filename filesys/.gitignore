@@ -1,3 +1,4 @@
+corrupt
 fdsplit
 fillerup
 findin
@@ -5,4 +6,5 @@ getpof
 llcount
 permcheck
 stripeofeol
+twiddle
 unatomappend

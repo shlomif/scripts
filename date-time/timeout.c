@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>

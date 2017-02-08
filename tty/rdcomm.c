@@ -17,6 +17,7 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <glob.h>
 #include <paths.h>
 #include <pwd.h>

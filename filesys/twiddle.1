@@ -1,0 +1,32 @@
+.Dd February 12 2017
+.Dt TWIDDLE 1
+.nh
+.Os
+.Sh NAME
+.Nm twiddle
+.Nd flips bits
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Op Fl b Ar bitpos
+.Op Fl o Ar offset
+.Ar
+.Ek
+.Sh DESCRIPTION
+.Nm
+flips the given bit at the given offset in the given file(s).
+Options:
+.Bl -tag -width Ds
+.It Fl b Ar bitpos
+Bit number to flip, 0 to 7 inclusive.
+.It Fl o Ar offset
+Offset within the file to perform the flip at.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr corrupt 1 ,
+.Xr dd 1 ,
+.Xr hexdump 1
+.Sh AUTHOR
+.An Jeremy Mates

@@ -27,6 +27,7 @@
 #include <netinet/in.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>

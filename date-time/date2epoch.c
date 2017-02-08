@@ -1,6 +1,7 @@
 /* Converts YYYY-MM-DD HH:MM:SS into epoch time */
 
 #include <err.h>
+#include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
