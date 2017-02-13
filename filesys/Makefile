@@ -2,6 +2,9 @@
 CC=gcc
 CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
+# NOTE on linux need to add -lbsd
+# NOTE RHEL6 bsdlib borked, try compile on something else:
+#   /usr/include/bsd/stdlib.h:52: error: expected ‘)’ before ‘*’ token
 corrupt: corrupt.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -o corrupt corrupt.c
 fdsplit: fdsplit.c

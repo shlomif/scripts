@@ -49,7 +49,7 @@ $BUFSIZE = 1024;
 # from env like for recv script.
 die "Usage: segsend file [offset] [modulus] [BUFSIZE]\n" unless @ARGV;
 
-open( FH, "< $ARGV[0]" ) || die "could not open $ARGV[0]: $!\n";
+open( FH, '<', $ARGV[0] ) || die "could not open $ARGV[0]: $!\n";
 binmode(FH)     || die "could not binmode $ARGV[0]: $!\n";
 binmode(STDOUT) || die "could not binmode STDOUT: $!\n";
 

@@ -2,6 +2,8 @@
 
 #ifdef __linux__
 #define _XOPEN_SOURCE 500
+typedef unsigned char u_char;
+#include <bsd/stdlib.h>
 #endif
 
 #include <err.h>
@@ -87,7 +89,11 @@ int main(int argc, char *argv[])
 
     while (*argv) {
         corrupt_file(*argv);
+/* PORTABILITY FreeBSD 11, Mac OS X 10.11, libbsd 0.6.0 on Centos7 all
+ * have stir, while OpenBSD does not (that happens behind the scenes) */
+#ifndef __OpenBSD__
         arc4random_stir();
+#endif
         argv++;
     }
 
