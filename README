@@ -1,4 +1,4 @@
-Various C and Perl and shell and TCL scripts for unix.
+Various C and Perl and TCL and shell scripts for unix.
 
 There are sporadically unit tests, run
 
@@ -9,11 +9,12 @@ various Perl modules, and generally assume a Unix environment.
 
  * C -- mostly written for Mac OS X and OpenBSD; portability beyond that
    is largely untested. Most of it requires C99 and likely various
-   modern *BSD system calls.
+   modern *BSD system calls. (Where there is Linux support, compile
+   coaxing has been mostly done on Centos 7.)
  * Perl verion 5.14 is assumed for the tests, though some of the scripts
-   will work on older versions.
- * Shell code is generally tested against `sh` on OpenBSD and the
-   Heirloom Bourne Shell on Mac OS X.
+   will work on older versions. Perl::MinimumVersion is most handy here.
+ * Shell code is generally tested under `sh` on OpenBSD and the Heirloom
+   Bourne Shell (jsh) on Mac OS X.
  * TCL lower than version 8.5 has not been tested for, and likely will
    not work on account of the use of {*} and other such modern
    constructs.

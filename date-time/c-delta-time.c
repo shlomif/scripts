@@ -6,7 +6,9 @@
  *   ./...
  *   gprof ... gmon.out
  *
- * or investigating performance via dtrace or sysdig type OS tools.
+ * or investigating performance via dtrace or sysdig type OS tools. Yet
+ * another option is the perl Dumbbench module, which uses statistical
+ * foo on the wallclock time between various runs.
  */
 
 #include <sys/resource.h>

@@ -16,12 +16,12 @@
  * default checks the parent directories for each file it is called on; when
  * recursing with fts(3), these should only be checked once. Hence the custom
  * permission checking code (and corresponding risk of stupid bugs therein).
- *
- *   CFLAGS=-std=c99 make permcheck
- *
- * Should build the code on something modernish (Mac OS X 10.9, OpenBSD 5.5,
- * and Slackware 3.10.17 thus far in my limited testing).
  */
+
+#ifdef __linux__
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
