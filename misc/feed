@@ -55,7 +55,8 @@ if {$input_file eq "-"} {
         die $err
     }
 } else {
-    # regular file input
+    # regular file input - though without any "| program" shenanigans
+    set input_file [string trimleft $input_file "| "]
     if {[catch {set input_fh [open $input_file r]} err]} {
         die $err
     }

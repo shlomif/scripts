@@ -51,7 +51,8 @@ proc clearpass {} {
 
 # NOTE commands file must be seekable, so shell tricks like <(echo who)
 # or similar to supply the commands will not fly. (The host list can
-# come from such a fancy descriptor.)
+# come from such a fancy descriptor, or can be a "| ..." program as
+# allowed by TCL's open.)
 set host_fd     [open [lindex $argv 0]]
 set commands_fd [open [lindex $argv 1]]
 

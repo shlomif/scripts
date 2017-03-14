@@ -13,8 +13,8 @@ if {[catch {set workdir [exec mktemp -d -t zcomppoke.XXXXXXXXXX]} err]} {
     puts stderr "could not mktemp a temporary directory: $err"
     exit 1
 }
-trap {exec rm -rf -- $workdir; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM SIGUSR1 SIGUSR2}
-proc cleanup {} { global workdir; exec rm -rf -- $workdir }
+trap {file delete -force -- $workdir; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM SIGUSR1 SIGUSR2}
+proc cleanup {} { global workdir; file delete -force -- $workdir }
 
 set input [lindex $argv 0]
 if {[file isfile $input]} {
