@@ -1,0 +1,43 @@
+.Dd March 17 2017
+.Dt WAITORNOT 1
+.nh
+.Os
+.Sh NAME
+.Nm waitornot
+.Nd waits for a command to complete, or not
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Ar command 
+.Op Ar args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+waits for the given command to complete, or on any keypress closes the
+command (by sending it the TERM signal). This requires that standard
+input be attached to a TTY, and consequently that no standard input can
+be piped to the
+.Ar command .
+.Pp
+.Nm
+only emits to standard error should there be a problem; standard
+output is not used.
+.Pp
+Options:
+.Bl -tag -width Ds
+.It Fl U
+Makes a user keyboard interrupt generate a 0 exit status instead of the
+default 1.
+.El
+.Sh EXIT STATUS
+.Ex -std
+The exit status of the
+.Ar command
+will not be passed along; if the child exits, the exit status from
+.Nm
+will be 0 regardless.
+.Sh SEE ALSO
+.Xr feed 1 ,
+.Xr playit 1
+.Sh AUTHOR
+.An Jeremy Mates

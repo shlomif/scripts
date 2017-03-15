@@ -48,7 +48,7 @@ _start:
 ; alternative to figuring out enough of ELF to get a read/write .data section
     mov eax,192         ; sys_mmap2
     xor ebx,ebx         ; NULL addr
-    mov ecx,409         ; length (a bit of overkill here)
+    mov ecx,16          ; length (a bit of overkill here)
     mov edx,3           ; read/write access
     mov esi,34          ; map private/anon
     mov edi,-1          ; fd
