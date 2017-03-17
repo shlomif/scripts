@@ -16,9 +16,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-// libevent2 - install from ports or packages on Linux|Mac OS X|OpenBSD
-#include <event2/event.h>
-
 int Flag_UserOkay;              // -U
 
 struct termios Original_Termios;
@@ -27,13 +24,11 @@ pid_t Child_Pid;
 void child_signal(int unused);
 void emit_help(void);
 void reset_term(void);
-void tty_read(evutil_socket_t fd, short event, void *unused);
 
 int main(int argc, char *argv[])
 {
     int ch, status;
-    struct event *ev_tty;
-    struct event_base *ev_base;
+    char anykey;
     struct termios terminfo;
 
     while ((ch = getopt(argc, argv, "h?U")) != -1) {
@@ -56,13 +51,6 @@ int main(int argc, char *argv[])
 
     if (tcgetattr(STDIN_FILENO, &terminfo) < 0)
         err(EX_OSERR, "could not tcgetattr() on stdin");
-
-    if ((ev_base = event_base_new()) == NULL)
-        err(1, "libevent event_base_new() failed");
-
-    ev_tty =
-        event_new(ev_base, STDIN_FILENO, EV_READ | EV_PERSIST, tty_read, NULL);
-    event_add(ev_tty, NULL);
 
     Original_Termios = terminfo;
 
@@ -88,14 +76,15 @@ int main(int argc, char *argv[])
         _exit(EX_OSERR);
 
     } else if (Child_Pid > 0) { // parent
-        status = event_base_dispatch(ev_base);
-        warn("unexpected exit from libevent loop?? (%d)", status);
+        if ((status = read(STDIN_FILENO, &anykey, 1)) < 0)
+            err(EX_IOERR, "read() failed??");
+        kill(Child_Pid, SIGTERM);
 
     } else {
         err(EX_OSERR, "could not fork");
     }
 
-    exit(1);                    // shouldn't be reached
+    exit(Flag_UserOkay ? 0 : 1);
 }
 
 void child_signal(int unused)
@@ -114,10 +103,4 @@ void emit_help(void)
 void reset_term(void)
 {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &Original_Termios);
-}
-
-void tty_read(evutil_socket_t fd, short event, void *unused)
-{
-    kill(Child_Pid, SIGTERM);
-    exit(Flag_UserOkay ? 0 : 1);
 }

@@ -17,10 +17,7 @@ register2hex32: register2hex32.asm
 	nasm -f bin -o register2hex32 register2hex32.asm
 	chmod +x register2hex32
 
-# NOTE portability tricky wrt libevent, may need to fiddle with the flags
-# or use -levent_core depending on the platform and available *.pc files.
 waitornot: waitornot.c
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs libevent` -o waitornot waitornot.c
 
 test: bt copycat
 	@prove
