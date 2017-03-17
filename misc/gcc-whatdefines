@@ -1,0 +1,2 @@
+#!/bin/sh
+echo '#include <stdio.h>' | gcc -dD -E -

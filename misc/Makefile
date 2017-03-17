@@ -19,7 +19,7 @@ register2hex32: register2hex32.asm
 
 waitornot: waitornot.c
 
-test: bt copycat
+test: bt copycat waitornot
 	@prove
 
 clean:

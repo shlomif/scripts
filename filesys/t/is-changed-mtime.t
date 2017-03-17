@@ -18,7 +18,7 @@ lives_ok(
 
 my $exp = newexpect();
 ok( $exp->spawn( $test_prog, '5s', "$^X -E 'say q{poke}'", $test_file ),
-    "expect object spawned: $!" );
+    "expect object spawned" );
 
 diag "tests will take some time...";
 

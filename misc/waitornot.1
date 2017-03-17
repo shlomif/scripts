@@ -1,4 +1,4 @@
-.Dd March 17 2017
+.Dd March 20 2017
 .Dt WAITORNOT 1
 .nh
 .Os
@@ -7,17 +7,23 @@
 .Nd waits for a command to complete, or not
 .Sh SYNOPSIS
 .Nm
+.Op Fl I
+.Op Fl U
 .Bk -words
 .Ar command 
 .Op Ar args ..
 .Ek
 .Sh DESCRIPTION
 .Nm
-waits for the given command to complete, or on any keypress closes the
-command (by sending it the TERM signal). This requires that standard
-input be attached to a TTY, and consequently that no standard input can
-be piped to the
-.Ar command .
+waits for the given command to complete, or on (almost) any keypress
+closes the command (by sending it the TERM signal). This requires that
+standard input be attached to a TTY, and consequently that no standard
+input can be piped to the
+.Ar command ;
+to help enforce this, standard input to the
+.Ar command
+is reopened to
+.Pa /dev/null .
 .Pp
 .Nm
 only emits to standard error should there be a problem; standard
@@ -25,6 +31,11 @@ output is not used.
 .Pp
 Options:
 .Bl -tag -width Ds
+.It Fl I
+Disables ISIG such that INTR, QUIT, and others generate no signals; ISIG
+is otherwise enabled by default, though the key for SUSP (and DSUSP,
+maybe) is disabled by default, so a ^Z (or ^Y, maybe) should cause the
+command to exit early, regardless.
 .It Fl U
 Makes a user keyboard interrupt generate a 0 exit status instead of the
 default 1.
@@ -38,6 +49,22 @@ will not be passed along; if the child exits, the exit status from
 will be 0 regardless.
 .Sh SEE ALSO
 .Xr feed 1 ,
-.Xr playit 1
+.Xr playit 1 ,
+.Xr termios 5
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+Detection of whether a given OS supports DSUSP is poor, and should
+ideally be done with something like
+.Cm autoconf .
+Use the
+.Fl I
+option to limit the availability of signal-generating keys, though this
+will remove the customary behavior of e.g. control+c.
+.Pp
+Various terminate-by-default signals will cause
+.Nm
+to exit and thus perhaps leave the terminal in a somewhat raw state.
+This should not be a problem if the TTY is being closed, or the system
+shutting down, or if the parent shell is smart enough to restore the
+original terminal state.

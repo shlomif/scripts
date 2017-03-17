@@ -18,7 +18,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#if defined(__DARWIN__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/ttycom.h>
 #endif
 

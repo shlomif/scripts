@@ -71,6 +71,6 @@ sub expect_spawn_ok {
     my $exp = Expect->new;
     $exp->raw_pty(1);
     #$exp->debug(3);
-    ok( $exp->spawn(@_), "expect object spawned '@_': $!" );
+    ok( $exp->spawn(@_), "expect object spawned" );
     return $exp;
 }

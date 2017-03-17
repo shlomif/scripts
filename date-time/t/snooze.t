@@ -30,7 +30,7 @@ sig_info();
 
 sub control_plus_c {
     my $exp = newexpect();
-    ok( $exp->spawn( $test_prog, '10m' ), "expect object spawned: $!" );
+    ok( $exp->spawn( $test_prog, '10m' ), "expect object spawned" );
 
     sleep 2;
     $exp->send("\003");
@@ -61,7 +61,7 @@ sub sig_info {
     my $exp      = newexpect();
     my $how_long = 6;
     my $start    = [gettimeofday];
-    ok( $exp->spawn( $test_prog, $how_long ), "expect object spawned: $!" );
+    ok( $exp->spawn( $test_prog, $how_long ), "expect object spawned" );
 
     sleep 2;
     kill( INFO => $exp->pid );
@@ -86,7 +86,7 @@ sub sleep_for {
     my ( $how_long, $expected, $timeout_guard ) = @_;
     my $exp   = newexpect();
     my $start = [gettimeofday];
-    ok( $exp->spawn( $test_prog, $how_long ), "expect object spawned: $!" );
+    ok( $exp->spawn( $test_prog, $how_long ), "expect object spawned" );
 
     my $return;
     $exp->expect(
