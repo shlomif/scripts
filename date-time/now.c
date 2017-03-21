@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,9 @@ int main(int argc, char *argv[])
     size_t count, outbuf_len;
     struct tm *when;
     time_t epoch;
+
+    if (!setlocale(LC_TIME, ""))
+        errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {

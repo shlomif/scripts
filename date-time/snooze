@@ -21,7 +21,7 @@ die "Usage: snooze time-duration [label]\n" if $to_sleep == 0;
 my $label = shift;
 $0 = $label ? "snooze-$label" : "snooze";
 
-ReadMode 2;    # noecho to hide control+\s from gunking up the message
+ReadMode 3;    # noecho to hide control+\s from gunking up the message
 
 my $total_time = $to_sleep;
 
