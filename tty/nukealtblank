@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# So you read a man page and then are looking at some fine docs you want
+# to copy and run so you hit 'q' to exit the pager and then boom! The
+# docs are gone. Swearing, time wasted re-reading the man page, etc.
+#
+# This tries to kill that horrid blanking feature dead, dead, dead.
+
+set -e
+
+TF=`mktemp`
+
+infocmp | sed -e 's/[sr]mcup=[^,]*,//' > "$TF"
+tic -o ~/.terminfo/ -- "$TF"
+rm -- "$TF"

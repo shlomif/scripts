@@ -1,0 +1,43 @@
+#!/usr/bin/env expect
+#
+# "gathers" output from a command prefixing and suffixing that output
+# with shell prompts, feeding said data to a clipboard program for easy
+# copy and paste. Will likely not work with really complicated shell
+# commands.
+
+package require Tcl 8.5
+
+if {[llength $argv] == 0} {
+    puts stderr "Usage: $argv0 command \[args ..]"
+    exit 1
+}
+
+# FIXME or instead xsel or xclip or whatnot
+set clippyfh [open "| pbcopy" w] 
+
+set clippyprefix "    "
+
+proc clippy {message {prompt ""}} {
+    global clippyfh clippyprefix 
+    puts $clippyfh "$clippyprefix$prompt$message"
+}
+
+# shell prompt with command
+clippy $argv "$ "
+
+# run the command, gather output from it and feed to clipboard program
+spawn -noecho {*}$argv
+expect {
+    -re {([^\n]*)\n} {
+        clippy $expect_out(1,string)
+        exp_continue
+    }
+    timeout { exp_continue }
+    eof {
+        # and a trailing shell prompt
+        clippy "" "$ "
+        close $clippyfh
+
+        exit
+    }
+}
