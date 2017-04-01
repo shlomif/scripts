@@ -1,0 +1,79 @@
+.Dd April  2 2017
+.Dt FOREXAMPLE 1
+.nh
+.Os
+.Sh NAME
+.Nm forexample
+.Nd run and copy the output of a given command
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Cm command
+.Op Ar command-args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+runs the given
+.Cm command
+and sends both the command run and any output from it to the
+.Dv CLIPBOARD
+command. This may facilitate the task of sharing simple example
+command runs.
+.Sh EXIT STATUS
+.Ex -std
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Dv CLIPBOARD
+Command to run that output from the given
+.Cm command
+will be written to. The default is to use the
+.Cm pbcopy
+command; X11 systems may instead need to use
+.Cm xclip
+or
+.Cm xsel .
+Another option would be to use a command that sends data to some online
+code sharing site.
+.It Dv OUTPUT_PREFIX
+What to print before each output line. Four spaces by default.
+.It Dv TIMEOUT
+If set, the
+.Cm command
+will be quit if it has not exited in the given number of seconds, and a
+.Qq "..."
+line will be appended to the output.
+.El
+.Sh EXAMPLES
+.Dl $ Ic CLIPBOARD='xclip -in' forexample pwd
+.Pp
+.Dl $ Ic forexample sleep 3
+.Pp
+.Dl $ Ic TIMEOUT=1.5 forexample sleep 3
+.Pp
+.Sh SEE ALSO
+.Xr copycat 1 ,
+.Xr feed 1 ,
+.Xr waitornot 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+TCL string quoting rules may cause the command given to printed not
+exactly as it was written in the shell. Complicated shell commands will
+likely not work, depending on what exactly
+.Cm spawn
+does with the input.
+.Pp
+There is no special handling of special characters such as escape
+sequences or carriage returns copied from the PTY the
+.Cm command
+is run under. Complicated command output may render poorly, or may
+require processing before being passed to the
+.Dv CLIPBOARD
+command, e.g. a wrapper to strip carriage returns:
+.Pp
+.Dl #!/bin/sh
+.Dl tr -d '\er' | pbcopy
+.Pp
+It may make more sense to write this utility directly in the shell given
+how the shell likely has a better idea of the exact command input as
+opposed to whatever TCL receives following an exec.

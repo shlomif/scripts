@@ -1,0 +1,93 @@
+#!/usr/bin/env expect
+#
+# forexample gathers output from a command prefixing and suffixing that
+# output with shell prompts, and feeds said data to a clipboard program
+# for easy pasting elsewhere
+
+package require Tcl 8.5
+
+if {[llength $argv] == 0} {
+    puts stderr "Usage: forexample command \[args ..]"
+    exit 64
+}
+
+if {[info exists env(CLIPBOARD)]} {
+    set clipboard_command $env(CLIPBOARD)
+} else {
+    set clipboard_command pbcopy
+}
+
+if { [catch {set output_fh [open "| $clipboard_command" w]} msg] } {
+    puts stderr "forexample: $msg"
+    exit 1
+}
+
+if {[info exists env(OUTPUT_PREFIX)]} {
+    set output_prefix $env(OUTPUT_PREFIX)
+} else {
+    set output_prefix "    "
+}
+if {[info exists env(SHELL)] && [string match "*zsh*" $env(SHELL)]} {
+    set shell_prompt "%"
+} else {
+    # assume ksh or sh by default
+    set shell_prompt "$"
+}
+
+proc bail_out {} {
+    global output_fh shell_prompt
+    emit "$shell_prompt "
+    close $output_fh
+    exit
+}
+
+proc emit {line} {
+    global output_fh output_prefix 
+    puts $output_fh "$output_prefix$line"
+}
+
+proc handle_spawn_input {fh} {
+    if {[chan eof $fh]} { bail_out }
+    set line [gets $fh]
+    if {[string length $line] > 0} { emit $line }
+}
+
+# KLUGE perhaps better to write the utility with e.g. zsh as that will
+# better know what the exact command was, and will use string quoting
+# rules native to itself; TCL requires some effort to emit something
+# like the original command
+proc shellify {command} {
+    set result ""
+    foreach arg $command {
+        if {[llength $arg] > 1} {
+            set result [string cat $result " '$arg'"]
+        } else {
+            set result [string cat $result " $arg"]
+        }
+    }
+    return $result
+}
+
+proc took_too_long {} {
+    global output_fh
+    emit "..."
+    close $output_fh
+    exit
+}
+
+# and run the command in a PTY; this handily merges stdout and stderr
+if { [catch {spawn -noecho {*}$argv} msg] } {
+    puts stderr "forexample: $msg"
+    exit 1
+}
+
+emit "$shell_prompt[shellify $argv]"
+
+# async IO to feed the lines off to the clipboard program...
+chan event $spawn_id readable [list handle_spawn_input $spawn_id]
+
+if {[info exists env(TIMEOUT)]} {
+    after [expr {int($env(TIMEOUT) * 1000)}] took_too_long
+}
+
+vwait godot
