@@ -1,4 +1,4 @@
-.Dd January  6 2017
+.Dd April  3 2017
 .Dt MYAT 1
 .nh
 .Os
@@ -8,7 +8,8 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl hq
+.Op Fl C Ar directory
+.Op Fl h
 .Op Ar YYYY-MM-DD [HH:MM]
 .Ek
 .Sh DESCRIPTION
@@ -19,24 +20,16 @@ or just
 .Cm HH:MM
 (assumed today) and formats that time as appropriate for
 .Xr at 1 ,
-then calls that utility with that formatted time.
-.Pp
-Do note that 
-.Xr at 1
-may execute the scheduled job from the directory it was scheduled from;
-this can be a problem if a reminder is made from
-.Pa ~/tmp/foo
-that is then deleted before the job can run. As a workaround, add a
-.Xr chdir 2
-call or use a shell function wrapper to change to a safe
-directory first.
-.Pp
+then calls that utility using that formatted time.
 Options:
 .Bl -tag -width Ds
+.It Fl C Ar directory
+Change to the given
+.Pa directory
+before running
+.Xr at 1 .
 .It Fl h
 Print brief usage note.
-.It Fl q
-Emit fewer warning messages.
 .El
 .Sh EXIT STATUS
 .Ex -std myat
@@ -46,14 +39,19 @@ Emit fewer warning messages.
 .Dl $ Ic myat 23:14
 .Dl Ic  echo some reminder
 .Dl Ic  ^D
-.Pp
-A shell function wrapper might look something like:
-.Pp
-.Dl Ic function myat { \&( builtin cd $HOME && command myat \&"$@\&" \&) }
 .Sh SEE ALSO
 .Xr at 1
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+Do note that 
+.Xr at 1
+may execute the scheduled job from the directory it was scheduled from;
+this can be a problem if a reminder is made under
+.Pa ~/tmp/foo
+that is then deleted before the job can run. Hence, the
+.Fl C
+option.
 .Sh BUGS
 .Cm teatime
 is not supported.

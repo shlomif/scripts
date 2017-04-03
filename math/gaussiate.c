@@ -24,8 +24,6 @@
 #define DEFAULT_COUNT 10000UL
 #define DEFAULT_SIGMA 1.0
 
-const char *Program_Name;
-
 unsigned long Flag_Count;       // -n
 float Flag_Sigma;               // -S
 
@@ -42,9 +40,6 @@ int main(int argc, char *argv[])
 
 #ifdef __OpenBSD__
     seed = arc4random();
-
-    // since OpenBSD 5.4
-    Program_Name = getprogname();
 #else
     // assume have a random device and that arc4random sucks on this platform
     fd = open("/dev/random", O_RDONLY);
@@ -52,8 +47,6 @@ int main(int argc, char *argv[])
         err(EX_OSERR, "could not open /dev/random");
     if (read(fd, &seed, sizeof(seed)) != sizeof(seed))
         err(EX_OSERR, "incomplete read() of /dev/random");
-
-    Program_Name = *argv;
 #endif
 
     while ((ch = getopt(argc, argv, "h?n:S:")) != -1) {
@@ -93,17 +86,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    const char *shortname;
-#ifdef __OpenBSD__
-    shortname = Program_Name;
-#else
-    if ((shortname = strrchr(Program_Name, '/')) != NULL)
-        shortname++;
-    else
-        shortname = Program_Name;
-#endif
-
-    fprintf(stderr, "Usage: %s [-n count] [-S sigma]\n", shortname);
-
+    fprintf(stderr, "Usage: gaussiate [-n count] [-S sigma]\n");
     exit(EX_USAGE);
 }

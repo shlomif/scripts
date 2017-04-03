@@ -9,6 +9,7 @@
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,12 +21,10 @@
 /* Oh, the silly olden days with their middle-endian Month Day Year--no
  * wonder I cannot memorize this! */
 #define AT_TIMEFORMAT "%H:%M %b %d %Y"
+#define TIME_STRING_LEN 20
+char Time_String[TIME_STRING_LEN];
 
-/* for strftime result; minimum is sized to AT_TIMEFORMAT in my locale */
-#define BUF_LEN_MIN 18
-#define BUF_LEN_MAX 72
-
-bool Flag_Quiet;                /* -q */
+char *Flag_Chdir;               // -C
 
 void emit_help(void);
 
@@ -37,15 +36,12 @@ struct tm when;
 int main(int argc, char *argv[])
 {
     int ch;
-    size_t time_str_len = BUF_LEN_MIN;
-    char *time_str;
 
-    while ((ch = getopt(argc, argv, "h?q")) != -1) {
+    while ((ch = getopt(argc, argv, "C:h?")) != -1) {
         switch (ch) {
-        case 'q':
-            Flag_Quiet = true;
+        case 'C':
+            Flag_Chdir = optarg;
             break;
-
         case 'h':
         case '?':
         default:
@@ -59,25 +55,12 @@ int main(int argc, char *argv[])
     if (argc < 1 || argc > 2)
         emit_help();
 
-    if (!Flag_Quiet) {
-        /* but note that this limit is easy to get past in a shell via
-         *   while `mkdir aaaaaaaa`; do cd aaaaaaaa; done
-         * but in that case this here code gives up as is right and proper.
-         */
-        char cwd[PATH_MAX], *wdp, *token;
-        if (!getcwd(cwd, (size_t) PATH_MAX))
-            err(EX_IOERR, "getcwd() failed");
-        wdp = strdup(cwd);
-        while ((token = strsep(&wdp, "/")) != NULL) {
-            if (strncmp(token, "tmp", (size_t) 4) == 0) {
-                fprintf(stderr, "warning: CWD contains 'tmp': %s\n", cwd);
-                break;
-            }
-        }
-    }
-
-    if ((time_str = malloc(time_str_len)) == NULL)
-        err(EX_OSERR, "malloc() failed to create output buffer");
+    // do not need not-POSIX time handling, so enforce that for this and
+    // the subsequent program
+    if (!setlocale(LC_TIME, "POSIX"))
+        errx(EX_OSERR, "setlocale(3) POSIX failed??");
+    if (setenv("LC_TIME", "POSIX", 1) != 0)
+        err(EX_OSERR, "setenv LC_TIME failed??");
 
     if (strptime(*argv, "%Y-%m-%d", &when)) {
         if (argc == 2)
@@ -87,9 +70,9 @@ int main(int argc, char *argv[])
         time_t epoch;
         struct tm *now;
         if (time(&epoch) == (time_t) - 1)
-            err(EX_OSERR, "time() failed");
+            err(EX_OSERR, "time() failed??");
         if ((now = localtime(&epoch)) == NULL)
-            err(EX_OSERR, "localtime() failed");
+            err(EX_OSERR, "localtime() failed??");
         when.tm_year = now->tm_year;
         when.tm_mon = now->tm_mon;
         when.tm_mday = now->tm_mday;
@@ -98,26 +81,24 @@ int main(int argc, char *argv[])
         errx(EX_USAGE, "need YYYY-MM-DD or HH:MM as first argument");
     }
 
-    while (strftime(time_str, time_str_len, AT_TIMEFORMAT, &when) < 1) {
-        time_str_len <<= 1;
-        if (time_str_len > BUF_LEN_MAX)
-            errx(EX_SOFTWARE, "strftime() output too large for buffer %d",
-                 BUF_LEN_MAX);
-        if ((time_str = realloc(time_str, time_str_len)) == NULL)
-            err(EX_OSERR,
-                "realloc() could not resize output buffer to %ld",
-                time_str_len);
+    if (strftime(Time_String, TIME_STRING_LEN - 1, AT_TIMEFORMAT, &when) < 1)
+        errx(EX_OSERR, "strftime failed??");
+
+    if (Flag_Chdir) {
+        if (chdir(Flag_Chdir) != 0)
+            err(EX_IOERR, "could not chdir '%s'", Flag_Chdir);
     }
 
-    if (execlp("at", "at", time_str, (char *) 0) == -1)
-        err(EX_OSERR, "could not exec at");
+    execlp("at", "at", Time_String, (char *) 0);
 
-    exit(EX_OSERR);             /* NOTREACHED due to exec or so we hope */
+    // exec should not return if all proceeds according to plan
+    err(EX_OSERR, "could not exec??");
+    exit(EX_OSERR);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: myat [-q] YYYY-MM-DD [HH:MM]\n");
-    fprintf(stderr, "       myat [-q] HH:MM      (assumes today)\n");
+    fprintf(stderr, "Usage: myat [-C dir] YYYY-MM-DD [HH:MM]\n");
+    fprintf(stderr, "       myat [-C dir] HH:MM      (assumes today)\n");
     exit(EX_USAGE);
 }

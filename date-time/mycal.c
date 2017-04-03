@@ -13,8 +13,6 @@
 #include <time.h>
 #include <unistd.h>
 
-const char *Program_Name;
-
 void emit_help(void);
 void whatmonth(struct tm *date);
 
@@ -23,8 +21,6 @@ int main(int argc, char *argv[])
     int ch;
     time_t epoch;
     struct tm *when;
-
-    Program_Name = *argv;
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
@@ -64,14 +60,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    const char *shortname;
-    if ((shortname = strrchr(Program_Name, '/')) != NULL)
-        shortname++;
-    else
-        shortname = Program_Name;
-
-    fprintf(stderr, "Usage: %s\n", shortname);
-
+    fprintf(stderr, "Usage: mycal\n");
     exit(EX_USAGE);
 }
 

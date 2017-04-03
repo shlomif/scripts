@@ -70,8 +70,6 @@ size_t Mem_Size;
 pthread_mutex_t Lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t Job_Done = PTHREAD_COND_INITIALIZER;
 
-const char *Program_Name;
-
 void emit_help(void);
 void *worker(void *unused);
 
@@ -81,13 +79,6 @@ int main(int argc, char *argv[])
     pthread_t *tids;
     struct timespec wait;
     unsigned long i;
-
-#ifdef __OpenBSD__
-    // since OpenBSD 5.4
-    Program_Name = getprogname();
-#else
-    Program_Name = *argv;
-#endif
 
     while ((ch = getopt(argc, argv, "c:h?lm:t:")) != -1) {
         switch (ch) {
@@ -147,19 +138,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    const char *shortname;
-#ifdef __OpenBSD__
-    shortname = Program_Name;
-#else
-    if ((shortname = strrchr(Program_Name, '/')) != NULL)
-        shortname++;
-    else
-        shortname = Program_Name;
-#endif
-
-    fprintf(stderr, "Usage: %s [-l] -c count -m memory -t threads\n",
-            shortname);
-
+    fprintf(stderr, "Usage: malloc [-l] -c count -m memory -t threads\n");
     exit(EX_USAGE);
 }
 

@@ -45,8 +45,6 @@
  * pre-fts(3) parent directory permissions tests). */
 #define EX_PERMS_ERR 1
 
-const char *Program_Name;
-
 gid_t Flag_Group_ID;            // -g groupname|gid
 bool Flag_No_Lookups;           // -n
 bool Flag_Prune_Dirs;           // -p
@@ -83,8 +81,6 @@ int main(int argc, char *argv[])
     struct group *gr;
     struct passwd *pw;
     struct stat statbuf;
-
-    Program_Name = *argv;
 
     /* Without -u or -g, permissions default to user running this code. */
     Flag_User_ID = getuid();
@@ -130,11 +126,11 @@ int main(int argc, char *argv[])
                     // implicit default-group-of-user if not already set
                     if (Flag_Group_ID == 0)
                         Flag_Group_ID = pw->pw_gid;
-		    break;
+                    break;
                 } else {
                     errx(EX_USAGE, "could not parse -u '%s' option", optarg);
                 }
-	    }
+            }
             if (ugid < 0 || ugid > INT_MAX)
                 errx(EX_USAGE, "user id via -u is out of range");
             Flag_User_ID = (int) ugid;
@@ -348,17 +344,10 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    const char *shortname;
-    if ((shortname = strrchr(Program_Name, '/')) != NULL)
-        shortname++;
-    else
-        shortname = Program_Name;
-
     fprintf(stderr,
-            "Usage: %s "
+            "Usage: permcheck "
             "[-g group] [-n] [-p] [-Rwx] [-u user] [-v] [-X] "
-            "file [file1 ..]\n", shortname);
-
+            "file [file1 ..]\n");
     exit(EX_USAGE);
 }
 
