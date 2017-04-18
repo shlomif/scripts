@@ -1,4 +1,4 @@
-.Dd January  6 2017
+.Dd April 18 2017
 .Dt CFU 1
 .nh
 .Os
@@ -9,6 +9,7 @@
 .Nm
 .Bk -words
 .Op Fl E Ar exeargs
+.Op Fl F Ar name
 .Op Fl g Ar globals
 .Op Cm --preserve
 .Op Cm --show-code
@@ -24,6 +25,11 @@ Options:
 .It Cm --eargs= Ns exeargs Op Fl E Ar exeargs
 Arguments to pass to the compiled executable. May be specified more than
 once to pass multiple arguments.
+.It Cm --fakname= Ns name Op Fl F Ar name
+Use
+.Ar name
+as the application name executed instead of
+.Nm .
 .It Cm --globals= Ns globals Op Fl g Ar globals
 Globals for the C source code (defines, global variables, includes).
 Many includes are set by default. May be specified more than once to
@@ -47,7 +53,8 @@ set by default; see the source code for details.
 .Sh EXIT STATUS
 .Ex -std cfu
 .Nm
-tries to pass along the exit status of the compiler or program run.
+tries to pass along the exit status of the compiler, and replaces itself
+with the compiled program if all goes well.
 .Sh EXAMPLES
 No trailing semicolon is required on individual arguments.
 .Pp
@@ -61,6 +68,13 @@ A more complicated example that sets a define and passes an argument to
 the executable.
 .Pp
 .Dl $ Ic cfu -g '#define X 10' -E arg 'printf("%s %d\en", *++argv, X)'
+.Pp
+The program name can be customized, if necessary.
+.Pp
+.Dl $ Ic cfu 'printf("%s\en", *argv)'
+.Dl cfu
+.Dl $ Ic cfu -F foo 'printf("%s\en", *argv)'
+.Dl foo
 .Pp
 .Sh AUTHOR
 .An Jeremy Mates

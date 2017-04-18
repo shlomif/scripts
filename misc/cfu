@@ -9,11 +9,12 @@ use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
 
 GetOptions(
-    'eargs|E=s'   => \my @eargs,
-    'globals|g=s' => \my @globals,
-    'help|h|?'    => \&emit_help,
-    'preserve|P'  => \my $Flag_Preserve,
-    'show-code|l' => \my $Flag_Show_Code,
+    'eargs|E=s'    => \my @eargs,
+    'fakename|F=s' => \my $Flag_Fake_Name,
+    'globals|g=s'  => \my @globals,
+    'help|h|?'     => \&emit_help,
+    'preserve|P'   => \my $Flag_Preserve,
+    'show-code|l'  => \my $Flag_Show_Code,
 ) or exit 65;
 
 emit_help() if !@ARGV;
@@ -35,14 +36,10 @@ for my $statement (@globals) {
 
 chomp( @ARGV = readline *STDIN ) if @ARGV == 1 and $ARGV[0] eq '-';
 
-my $uses_args = @eargs ? 1 : 0;
 for my $statement (@ARGV) {
-    $uses_args = 1 if !$uses_args and $statement =~ m/arg[cv]/;
     $statement = "\t" . $statement;
     $statement .= ";\n" unless $statement =~ m/;\s*$/;
 }
-# avoid unused variable warnings on arg[cv]
-my $main_args = $uses_args ? 'int argc, char *argv[]' : 'void';
 
 my $c_template = <<"END_TMPL";
 #ifdef __linux__
@@ -91,7 +88,8 @@ my $c_template = <<"END_TMPL";
 #include <unistd.h>
 
 @globals
-int main($main_args) {
+
+int main(int argc, char *argv[]) {
 @ARGV
 \treturn 0;
 }
@@ -113,14 +111,16 @@ if ( system( $CC, @CFLAGS, '-o', $executable, $code_fname ) != 0 ) {
     die "cfu: failed to exec '$CC': $?\n" if $? == -1;
     exit $? >> 8;
 }
-if ( system( $executable, @eargs ) != 0 ) {
-    die "cfu: failed to exec code: $?\n" if $? == -1;
-    exit $? >> 8;
-}
+
+unshift @eargs, $Flag_Fake_Name ? $Flag_Fake_Name : 'cfu';
+exec( {$executable} @eargs ) or die "could not exec '$executable': $!\n";
 
 sub emit_help {
     warn <<"END_USAGE";
-Usage: cfu [-e exeargs] [-g globals] [--preserve] [--show-code] c-statements|-
+Usage:
+
+    cfu [-E exeargs] [-F name] [-g globals] [--preserve] [--show-code] \
+      c-statements|-
 
 Compiles and runs C code.
 

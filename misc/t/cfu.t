@@ -9,6 +9,7 @@ use Test::UnixExit;
 
 my $test_prog = 'cfu';
 
+# NOTE these must be quoted for the shell Test::Cmd runs things through
 my @tests = (
     {   args   => qq{'puts("PID $$")'},
         stdout => ["PID $$"],
