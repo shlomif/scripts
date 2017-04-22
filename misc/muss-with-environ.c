@@ -6,8 +6,30 @@
  * As to why any application would do such, well, that's a good
  * question, and I've certainly never seen it in production, but someone
  * on freenode #zsh claimed to have seen duplicate environment entries
- * on Mac OS X somehow. Might also be handy to test application
- * behavior in such a wacky case.
+ * on Mac OS X.
+ *
+ * ... and it turns out that shells do different things, depending
+ *
+ *  $ ./muss-with-environ  zsh   -c 'echo $FOO' 
+ *  bar
+ *  $ ./muss-with-environ  bash  -c 'echo $FOO'
+ *  zot
+ *  $ 
+ *
+ * Given the bash-uses-second behavior, if a program only sanitizes the
+ * first instance of a variable, an evil second PATH or LD_RUN_PATH or
+ * whatever could be run through a buggy version of sudo or equivalent
+ * and then hey presto security flaw. And hey, a CVE and patches.
+ *
+ * https://rt.perl.org/Public/Bug/Display.html?id=127158
+ * https://www.sudo.ws/repos/sudo/rev/d4dfb05db5d7
+ *
+ * Maybe libc should clean up duplicates so each and every program need
+ * not worry about this?
+ *
+ * https://sourceware.org/bugzilla/show_bug.cgi?id=19749
+ *
+ * Perhaps some day...
  */
 
 #include <err.h>

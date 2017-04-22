@@ -1,15 +1,16 @@
 /*
  * Snips any ultimate linefeed chars (\r and \n) from the named files.
  *
- * This is silly programming practice; files on Unix often need that ultimate
- * newline, as otherwise shell `while` loops and such loose that last line.
- * Hence certain editors warning if the file lacks a trailing newline, or
- * certain cron(8) implementations not running the last line of the file, etc.
- *
- *   % (echo hi; echo -n there) | while read line; do echo $line; done
+ * This is a very bad idea; files on Unix really do need that
+ * ultimate newline, as otherwise shell `while` loops silently drop
+ * that last line.
+ * 
+ *   $ (echo hi; echo -n there) | while read line; do echo $line; done
  *   hi
- *   % 
- *
+ *   $ 
+ * 
+ * Hence various editors warning if the file lacks a trailing newline
+ * (or automatically adding it).
  */
 
 #include <err.h>
@@ -56,12 +57,13 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-/* Read chunks of the file from end to the beginning, truncate at first non-
- * newline character or 0 if beginning of file reached. */
+/* Read chunks of the file from end to the beginning, truncate at first
+ * non-newline character or 0 if beginning of file reached. */
 void trim_file(const int fd, const char *file)
 {
     char *bp, buf[BUF_SIZE];
-    long byte_count, i, offset, read_size, read_where, total_size, trunc_size;
+    off_t offset, read_where, read_size, total_size, trunc_size;
+    ssize_t byte_count, i;
 
     if ((total_size = lseek(fd, (off_t) 0, SEEK_END)) < 0)
         err(EX_IOERR, "could not seek '%s'", file);
@@ -112,10 +114,10 @@ void trim_file(const int fd, const char *file)
         }
     }
 
-    /* An edge case is if the file is changed between the "find the offset"
-     * and this here truncate, but that gets into locking, or more properly
-     * the file workflow and how to avoid locking, for which I am fond of
-     * rename(2). */
+    /* An edge case is if the file is changed between the "find the
+     * offset" and this here truncate, but that gets into locking, or
+     * more properly the file workflow and how to avoid locking, for
+     * which I am fond of rename(2). */
     if (trunc_size < total_size)
         if (ftruncate(fd, trunc_size) == -1)
             err(EX_IOERR, "could not truncate '%s'", file);
