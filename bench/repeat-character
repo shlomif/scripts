@@ -1,0 +1,40 @@
+#!/usr/bin/env expect
+#
+# repeats a character to standard output using different buffering
+# styles. presumably for testing purposes
+
+package require Tcl 8.5
+
+proc emit_help {} {
+    puts stderr \
+      "Usage: repeat-character character length repeat-count buffer-style"
+    puts stderr "  buffer-style: none, line, full"
+    exit 64
+}
+
+if {[llength $argv] != 4} { emit_help }
+
+set character [string index [lindex $argv 0] 0]
+set length    [lindex $argv 1]
+set repeat    [lindex $argv 2]
+set buffstyle [lindex $argv 3]
+
+if {[string length $character] != 1} { emit_help }
+if {$length < 1} { emit_help }
+if {$repeat < 1} { emit_help }
+if {$buffstyle ne "none" && $buffstyle ne "line" && $buffstyle ne "full"} { emit_help }
+
+if {$buffstyle eq "line"} { incr length -1 }
+
+set teststr   [string repeat $character $length]
+
+chan configure stdout -buffering $buffstyle
+
+while {$repeat > 0} {
+    if {$buffstyle eq "line"} {
+        puts stdout $teststr
+    } else {
+        puts -nonewline stdout $teststr
+    }
+    incr repeat -1
+}

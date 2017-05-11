@@ -24,7 +24,7 @@ makeloimage: makeloimage.c
 
 depend:
 	cpanm --installdeps ..
-	@expect -c "package require Tcl 8.5; package require fileutil 1.14.11"
+	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
 test: fdsplit findin getpof llcount twiddle
 	@prove

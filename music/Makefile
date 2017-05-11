@@ -8,7 +8,7 @@ pedaltime: pedaltime.c
 depend:
 	cpanm --installdeps ..
 	cpanm --installdeps .
-	@expect -c "package require Tcl 8.5; package require fileutil 1.14.11"
+	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
 clean:
 	@-rm -f miditimer pedaltime 2>/dev/null

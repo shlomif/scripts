@@ -11,5 +11,12 @@ lockalot: lockalot.c
 malloc: malloc.c
 usemem: usemem.c
 
+depend:
+	cpanm --installdeps ..
+	@expect -c "package require Tcl 8.5"
+
+test:
+	@prove
+
 clean:
 	@-rm -f lockalot malloc usemem *.core 2>/dev/null

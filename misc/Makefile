@@ -11,7 +11,7 @@ threading: threading.c
 depend:
 	cpanm --installdeps ..
 	cpanm --installdeps .
-	@expect -c "package require Tcl 8.5; package require fileutil 1.14.11"
+	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
 register2hex32: register2hex32.asm
 	nasm -f bin -o register2hex32 register2hex32.asm
