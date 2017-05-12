@@ -1,22 +1,24 @@
-# (debug -g flag to help avoid compiler optimizing away memory foo being done)
-CFLAGS = -g
+CC=gcc
+#CFLAGS = -g
 CFLAGS += -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
-CFLAGS += `pkg-config --cflags --libs goptfoo jkiss`
-
-# for some of the progs
-CFLAGS += -lpthread
-
 lockalot: lockalot.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -o malloc malloc.c
+
 malloc: malloc.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -g -lpthread -o malloc malloc.c
+
+repcharcount: repcharcount.c
+
 usemem: usemem.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo jkiss` -g -lpthread -o usemem usemem.c
 
 depend:
 	cpanm --installdeps ..
 	@expect -c "package require Tcl 8.5"
 
-test:
+test: repcharcount
 	@prove
 
 clean:
-	@-rm -f lockalot malloc usemem *.core 2>/dev/null
+	@-rm -f lockalot malloc repcharcount usemem *.core 2>/dev/null

@@ -38,3 +38,5 @@ while {$repeat > 0} {
     }
     incr repeat -1
 }
+
+if {$buffstyle ne "none"} { chan flush stdout }

@@ -1,38 +1,28 @@
 #!perl
 
-# TODO test that e.g. full buffer actually buffers fully, etc
-
 use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 6 + 0;
+use Test::Most tests => 3 * 4 + 0;
 use Test::UnixExit;
 
-my $test_prog = './repeat-character';
+my $test_prog = './repcharcount';
 
 my @tests = (
-    {   stderr      => qr/^Usage/,
-        exit_status => 64,
-    },
-    {   args        => q{hello computer could you repeat characters for me},
+    {   args        => '-h',
         stderr      => qr/^Usage/,
         exit_status => 64,
     },
-    {   args        => q{e 3 7 chrome},
-        stderr      => qr/^Usage/,
-        exit_status => 64,
+    {   stdin  => 'aabbbb a',
+        stdout => "2 a\n4 b\n1 0x20\n1 a\n",
     },
-    {   args   => q{x 3 7 none},
-        stdout => 'xxxxxxxxxxxxxxxxxxxxx',
+    {   args   => '-',
+        stdin  => "\t\t\t",
+        stdout => "3 0x09\n",
     },
-    {   args   => q{x 3 7 full},
-        stdout => 'xxxxxxxxxxxxxxxxxxxxx',
-    },
-    # six characters only because we count one to the newline so that
-    # "7 3" generates 21 characters regardless of the buffer style
-    {   args   => q{l 7 3 line},
-        stdout => "llllll\nllllll\nllllll\n",
+    {   args   => 't/rcc-input',
+        stdout => "5 a\n1 0x0A\n",
     },
 );
 
@@ -49,6 +39,7 @@ for my $test (@tests) {
 
     $testcmd->run(
         exists $test->{args}  ? ( args  => $test->{args} )  : (),
+        exists $test->{stdin} ? ( stdin => $test->{stdin} ) : (),
     );
 
     $test->{args} //= '';
