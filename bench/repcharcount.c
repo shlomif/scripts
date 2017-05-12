@@ -21,7 +21,7 @@ void report(unsigned long count, int c);
 
 int main(int argc, char *argv[])
 {
-    char buf[BUFSIZE];
+    char buf[BUFSIZE], *fname;
     int ch, fd, previous;
     ssize_t amount;
     unsigned long count = 1;
@@ -40,13 +40,15 @@ int main(int argc, char *argv[])
 
     if (argc == 0 || (argc == 1 && strncmp(*argv, "-", (size_t) 2) == 0)) {
         fd = STDIN_FILENO;
+        fname = "-";
     } else {
         if ((fd = open(*argv, O_RDONLY)) == -1)
             err(EX_IOERR, "could not open '%s'", *argv);
+        fname = *argv;
     }
 
     if ((amount = read(fd, buf, 1)) != 1)
-        err(EX_IOERR, "read() on stdin failed");
+        err(EX_IOERR, "read() on %s failed", fname);
     previous = buf[0];
 
     while (1) {
@@ -63,9 +65,9 @@ int main(int argc, char *argv[])
         } else if (amount == 0) {       // EOF
             break;
         } else if (amount == -1) {
-            err(EX_IOERR, "read() on stdin failed");
+            err(EX_IOERR, "read() on %s failed", fname);
         } else {
-            errx(EX_IOERR, "unexpected read() on stdin: %ld", amount);
+            errx(EX_IOERR, "unexpected read() on %s: %ld", fname, amount);
         }
     }
     if (count > 0)

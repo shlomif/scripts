@@ -4,7 +4,7 @@ use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 4 + 2;
+use Test::Most tests => 3 * 6 + 2;
 use Test::UnixExit;
 
 my $test_prog = 'xpquery';
@@ -21,6 +21,15 @@ my @tests = (
     },
     {   args   => q{-p html '//title/text()' t/foo.html},
         stdout => ['xyz'],
+    },
+    # in theory XML::LibXML handles the input encoding (via the ?xml ...
+    # statement) and in theory Test::Cmd does not muck with the output
+    # in any way
+    {   args   => q{-E UTF-8 '//word/text()' t/utf8.xml},
+        stdout => ["\xe5\xbd\x81"],
+    },
+    {   args   => q{-E UTF-8 '//word/text()' t/shift_jis.xml},
+        stdout => ["\xe5\xbd\x81"],
     },
 );
 my $testcmd = Test::Cmd->new(

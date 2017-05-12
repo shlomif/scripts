@@ -12,6 +12,7 @@ use XML::LibXML               ();
 use XML::LibXML::XPathContext ();
 
 GetOptions(
+    'encoding|E=s'     => \my $Flag_Output_Encoding,
     'help|h|?'         => \&emit_help,
     'namespace|ns|n=s' => \my @Der_Namespacen,
     'parse|p=s'        => \my $Flag_Parse_Method,
@@ -21,6 +22,12 @@ GetOptions(
 
 emit_help() if @ARGV < 2;
 
+if ($Flag_Output_Encoding) {
+    if ( $Flag_Output_Encoding !~ m/^:/ ) {
+        $Flag_Output_Encoding = ':encoding(' . $Flag_Output_Encoding . ')';
+    }
+    binmode *STDOUT, $Flag_Output_Encoding;
+}
 $Flag_Parse_Method //= 'XML';
 my %Parse_Method = (
     XML  => 'parse_file',
@@ -32,6 +39,8 @@ $Flag_Timeout //= 30;
 my $query = shift;
 
 for my $document (@ARGV) {
+    # the otherwise unused $fh is to keep the (possible) temporary file
+    # in scope so that it is not unlinked early
     my ( $fh, $file ) = get_file( URI->new($document), $document );
     my $xpath = parse_xml( $file, $document );
     my $nodelist = $xpath->find($query);
@@ -58,8 +67,9 @@ sub emit_help {
     warn <<"END_USAGE";
 Usage: xpquery [options] xpath-query file-or-url [file-or-url2 ..]
 
-Applies XPath expressions to files or URLs.
+Apply XPath expressions to files or URLs. Options include:
 
+  -E encoding  Output encoding.
   -n ns        Register a custom namespace.
   -p method    Parse using method XML, HTML, SGML. Default is XML.
   -S subquery  Subquery to search for at each node found by the query.

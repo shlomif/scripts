@@ -1,4 +1,4 @@
-.Dd January 20 2017
+.Dd May 20 2017
 .Dt XPQUERY 1
 .nh
 .Os
@@ -8,6 +8,7 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
+.Op Fl E Ar encoding
 .Op Fl n Ar namespace 
 .Op Fl p Ar method 
 .Op Fl S Ar xpath-subquery
@@ -19,8 +20,8 @@
 .Nm
 applies the given
 .Ar xpath-query
-to the given files or URL. Subqueries allow a secondary lookup from each
-node found by that first search. The resulting nodes are printed to
+to the given files or URL. Subqueries allow a secondary lookup from
+each node found by that first search. The nodes found are printed to
 standard out.
 .Pp
 Note that the XPath documentation and examples must be studied in
@@ -30,19 +31,34 @@ to be of any use.
 .Pp
 Options:
 .Bl -tag -width Ds
+.It Cm --encoding= Ns Ar encoding Op Fl E Ar enc
+Encoding for standard output;
+.Qq encodings
+that begin with a colon (such as
+.Cm :raw )
+will be used directly, while those that do not (such as
+.Cm UTF-8 )
+will be rewritten as
+.Cm :encoding(UTF-8) .
+Without this set one may see
+.Qq Wide character in say
+warnings. A sensible default on a modern unix system may be
+.Pp
+.Dl $ Ic xpquery -E UTF-8 ...
 .It Cm --namespace= Ns Ar namespace Op Cm --ns Ar ns | Fl n Ar ns
 Registers a custom XML namespace with the parser. Namespaces may be
-space separated, or this option may be specified multiple times.
-.It Cm --parse= Ns Ar method Op Fl p Ar method
+space separated, or this option may be specified multiple times. These
+can be extremely awkward to use; see the examples, below.
+.It Cm --parse= Ns Ar method Op Fl p Ar meth
 Parse method. One of
 .Ar html ,
 .Ar sgml ,
 or the default
 .Ar xml .
-.It Cm --subquery= Ns Ar xpath-subquery Op Fl S Ar xpath-subquery
+.It Cm --subquery= Ns Ar xpath-subquery Op Fl S Ar xp-sub
 XPath subquery to apply at each node found by the global
 .Ar xpath-query .
-.It Cm --timeout= Ns Ar seconds Op Fl t Ar seconds
+.It Cm --timeout= Ns Ar seconds Op Fl t Ar secs
 Timeout for the HTTP agent, 30 seconds by default.
 .El
 .Sh ENVIRONMENT
@@ -63,7 +79,7 @@ method of
 .Xr LWP::UserAgent 3pm .
 .El
 .Sh EXIT STATUS
-.Ex -std xpquery
+.Ex -std
 .Sh EXAMPLES
 A simple HTML example
 .Pp
