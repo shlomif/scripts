@@ -82,7 +82,7 @@ void emit_help(void)
     exit(EX_USAGE);
 }
 
-void report(unsigned long count, int c)
+inline void report(unsigned long count, int c)
 {
     if (isprint(c) && !isspace(c)) {
         printf("%lu %c\n", count, c);

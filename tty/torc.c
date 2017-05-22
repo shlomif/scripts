@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         emit_help();
 
     if (isatty(STDIN_FILENO) == 0)
-        err(EX_USAGE, "standard input is not a terminal");
+        errx(EX_USAGE, "standard input is not a terminal");
     if ((mytty = ttyname(STDIN_FILENO)) == NULL)
         errx(EX_IOERR, "could not get ttyname of stdin??");
 

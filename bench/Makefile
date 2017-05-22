@@ -6,12 +6,13 @@ lockalot: lockalot.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -o malloc malloc.c
 
 malloc: malloc.c
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -g -lpthread -o malloc malloc.c
+	$(CC) -g $(CFLAGS) `pkg-config --cflags --libs goptfoo` -g -lpthread -o malloc malloc.c
 
 repcharcount: repcharcount.c
+	$(CC) -O2 $(CFLAGS) repcharcount.c -o repcharcount
 
 usemem: usemem.c
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo jkiss` -g -lpthread -o usemem usemem.c
+	$(CC) -g $(CFLAGS) `pkg-config --cflags --libs goptfoo jkiss` -g -lpthread -o usemem usemem.c
 
 depend:
 	cpanm --installdeps ..
