@@ -27,7 +27,7 @@ update_git () {
     if echo $CURRENT_DIR | grep third-party >/dev/null; then
         COMMAND="git pull"
     else
-        COMMAND="git status"
+        COMMAND="git status -sb"
     fi
 
     $COMMAND

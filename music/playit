@@ -81,6 +81,8 @@ set midifile "$rootname.midi"
 set pdffile  "$rootname.pdf"
 set tmpfile  ""
 
+stty raw -echo
+
 proc bail_out {{code 0}} {
     global tmpfile
     if {$tmpfile ne ""} { file delete $tmpfile }
@@ -111,9 +113,7 @@ if {[catch {exec {*}$view_cmd $pdffile &} msg]} {
     bail_out 1
 }
 
-stty raw -echo
-
-if {[catch {exec is-mute -q} msg]} {
+if {[file exists $midifile] && [catch {exec is-mute -q} msg]} {
     send_user "playing $midifile...\n"
     if {[catch {spawn -noecho {*}$midi_cmd $midifile} msg]} {
         puts stderr "playit: could not spawn $midi_cmd: $msg"
