@@ -7,7 +7,7 @@ use warnings;
 use Cwd ();
 use File::Basename qw(basename);
 use File::HomeDir ();
-use File::Spec ();
+use File::Spec    ();
 use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
 use URI ();
@@ -101,8 +101,8 @@ END_USAGE
 sub env_option_or {
     my ( $env, $option, $fallback ) = @_;
     my @cmd = (
-          exists $ENV{$env} ? shellwords( $ENV{$env} )
-        : defined $option   ? shellwords($option)
+          defined $option   ? shellwords($option)
+        : exists $ENV{$env} ? shellwords( $ENV{$env} )
         :                     $fallback
     );
     if ( @cmd == 1 and exists $Open_With->{ $cmd[0] } ) {
