@@ -8,9 +8,14 @@ package require fileutil
 
 set playitrc [file join ~ .playitrc]
 
-# TWEAK these can be overridden via the playitrc file
+# TWEAK these following can be overridden via the playitrc file
 set lily_cmd {lilypond -dno-point-and-click}
+
+# timidity+lilypond wrapper, reads *.ly file for 'midiutil ...'
+# or "timidity ..." comments in header to change various MIDI
+# related aspects
 set midi_cmd {tlymidity}
+
 set view_cmd {mopen}
 
 if {[array get env PAGER] eq ""} {

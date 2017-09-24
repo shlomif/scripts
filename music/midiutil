@@ -8,6 +8,7 @@ use warnings;
 use Getopt::Long qw(GetOptionsFromArray);
 use MIDI                ();
 use Music::LilyPondUtil ();
+use Math::Random qw(random_normal);
 
 package PitchFoo {
     use Moo;
@@ -28,11 +29,19 @@ my %actions = (
     rechannel        => \&handle_rechannel,
 );
 
-sub EXIT_OK () { 0 }
-
 my $action = shift // die "Usage: midiutil <action> <action-args ..>\n";
 die "midiutil: no such action: '$action'\n" if !exists $actions{$action};
-exit $actions{$action}->(@ARGV);
+$actions{$action}->(@ARGV);
+
+sub change_of {
+    my ( $c, $d1, $d2 ) = @_;
+    if (    abs($d1) > $c
+        and abs($d2) > $c
+        and ( ( $d1 > 0 and $d2 < 0 ) or ( $d1 < 0 and $d2 > 0 ) ) ) {
+        return 1;
+    }
+    return 0;
+}
 
 # For when you just need to append some given note to complete out a
 # track, but don't want to wait for Logic.app or something to crawl up
@@ -68,8 +77,6 @@ sub handle_append {
     }
 
     $opus->write_to_file($outfile);
-
-    return EXIT_OK;
 }
 
 sub handle_decompose {
@@ -91,8 +98,6 @@ sub handle_decompose {
             'include' => \@MIDI::Event::All_events
         }
     );
-
-    return EXIT_OK;
 }
 
 sub handle_dump {
@@ -100,8 +105,6 @@ sub handle_dump {
 
     my $opus = MIDI::Opus->new( { 'from_file' => $filename, } );
     $opus->dump( { dump_tracks => 1 } );
-
-    return EXIT_OK;
 }
 
 # Mangle a few things in lilypond output - randomize velocity a bit,
@@ -115,26 +118,22 @@ sub handle_fuzz {
 
     for my $mtrk (@$tracks) {
         my $events = $mtrk->events_r;
-        my @nix;
-        my $default_volume;
+        my ( @nix, @volumes );
         for my $i ( 0 .. $#$events ) {
-            # fuzz note volumes a bit
-            if ( $events->[$i][0] eq 'note_on' and $events->[$i][4] > 0 ) {
-                my $some_percent = $events->[$i][4] * 0.05;
-                $events->[$i][4] =
-                  $events->[$i][4] + rand() * $some_percent - $some_percent / 2 - 10;
-
-                # from lilypond scm/midi.scm, limit volumes to \ppp <-> \fff
-                $events->[$i][4] = int( 127 * 0.85 ) if $events->[$i][4] > int( 127 * 0.85 );
-                $events->[$i][4] = int( 127 * 0.42 ) if $events->[$i][4] < int( 127 * 0.42 );
+            # { c\< d e\!\> d c\! } are problematical in lilypond as the
+            # dynamic change they introduce is huge compared to changes
+            # done over many notes, so need a list of note onsets to try
+            # to detect and dampen such
+            if ( $events->[$i][0] eq 'note_on' and $events->[$i][4] != 0 ) {
+                push @volumes, $events->[$i];
             }
 
-            # TODO what are these control changes lilypond litters the
-            # MIDI with?
+            # nix 7,100 control_changes but preserve durations of such
             if (    $events->[$i][0] eq 'control_change'
-                and $events->[$i][2] == 7
-                and $events->[$i][3] == 100 ) {
-                push @nix, $i;
+                and $events->[$i][3] == 7
+                and $events->[$i][4] == 100 ) {
+                $events->[ $i + 1 ][1] += $events->[$i][1];
+                unshift @nix, $i;
             }
 
             # pedal hops
@@ -160,14 +159,48 @@ sub handle_fuzz {
                 $events->[$i][1] += 50 + $fuzz;
             }
         }
-        for my $ei (@nix) {
-            splice @$events, $ei, 1;
+
+        my @deltas = 0;
+        for my $i ( 1 .. $#volumes ) {
+            $deltas[$i] = $volumes[$i][4] - $volumes[ $i - 1 ][4];
         }
+        for my $i ( 1 .. $#volumes ) {
+            if ( $i > 0 and change_of( 10, $deltas[$i], $deltas[ $i - 1 ] ) ) {
+                my ( $left, $right );
+                for ( my $j = $i - 1; $j >= 0; $j-- ) {
+                    if ( abs( $deltas[$j] ) < 10 ) {
+                        last;
+                    }
+                    $left = $j;
+                }
+                for ( my $k = $i + 1; $k <= $#deltas; $k++ ) {
+                    if ( abs( $deltas[$k] ) < 10 ) {
+                        last;
+                    }
+                    $right = $k;
+                }
+                for my $j ( $left .. $right ) {
+                    $volumes[$j][4] += int( -1 * $deltas[$j] * 0.5 );
+                    $deltas[$j] = 0;
+                }
+            }
+        }
+
+        for my $i ( 0 .. $#volumes ) {
+            # fuzz the note volumes; this should most likely not cause
+            # any \ff to be louder than a \fff or softer than a \f, etc.
+            $volumes[$i][4] = sprintf "%.f", random_normal( 1, $volumes[$i][4], 0.6 );
+
+            # based on lilypond scm/midi.scm, limit volumes to roughly
+            # the \ppp <-> \fff range
+            $volumes[$i][4] = 115 if $volumes[$i][4] > 115;
+            $volumes[$i][4] = 50  if $volumes[$i][4] < 50;
+        }
+
+        splice @$events, $_, 1 for @nix;
     }
 
     $opus->write_to_file($outfile);
-
-    return EXIT_OK;
 }
 
 # Generates all variations on standard MIDI instruments, e.g. to review
@@ -198,9 +231,9 @@ sub handle_instrumentate {
                     $events->[$ei][3] = $instrument;
                 }
             }
-            for my $ei (@nix_events) {
-                splice @$events, $ei, 1;
-            }
+
+            splice @$events, $_, 1 for @nix_events;
+
             # and, regardless, prefix a patch change, to handle the case
             # of a track without a patch change
             unshift @$events, [ 'patch_change', 0, 0, $instrument ];
@@ -208,8 +241,6 @@ sub handle_instrumentate {
 
         $out_opus->write_to_file($outfile);
     }
-
-    return EXIT_OK;
 }
 
 # KLUGE very limited, TODO adjust as needed for midi in question (see
@@ -234,8 +265,6 @@ sub handle_lilypondify {
         }
         say "}";
     }
-
-    return EXIT_OK;
 }
 
 sub handle_merge {
@@ -251,8 +280,6 @@ sub handle_merge {
     }
 
     $opus->write_to_file($outfile);
-
-    return EXIT_OK;
 }
 
 # Eliminates main volume control_change from a MIDI file. Handy if say
@@ -321,19 +348,16 @@ sub handle_nixcc {
                 unshift @nix, $i;
             }
         }
-        for my $i (@nix) {
-            splice @$events, $i, 1;
-        }
+
+        splice @$events, $_, 1 for @nix;
+
         #   unshift @$events, [ 'patch_change', 0, 0, 5 ];
         $trackno++;
     }
-    for my $ti (@nixtrack) {
-        splice @$tracks, $ti, 1;
-    }
+
+    splice @$tracks, $_, 1 for @nixtrack;
 
     $opus->write_to_file($outfile);
-
-    return EXIT_OK;
 }
 
 sub handle_patch2instrument {
@@ -345,8 +369,6 @@ sub handle_patch2instrument {
         say( ( @ARGV > 1 ? "$patchnum " : '' ),
             Music::LilyPondUtil->patch2instrument($patchnum) );
     }
-
-    return EXIT_OK;
 }
 
 sub handle_rechannel {
@@ -382,5 +404,4 @@ sub handle_rechannel {
     }
 
     $opus->write_to_file($outfile);
-    return EXIT_OK;
 }
