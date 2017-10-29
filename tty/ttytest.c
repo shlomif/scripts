@@ -54,10 +54,14 @@ int main(int argc, char *argv[])
         ch = getchar();
     }
     cleanup(0);
+    exit(0);
 }
 
 void cleanup(int sig)
 {
     tcsetattr(STDIN_FILENO, TCSANOW, &old);
-    exit(sig);
+    if (sig > 0) {
+        signal(sig, SIG_DFL);
+        raise(sig);
+    }
 }

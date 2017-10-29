@@ -16,6 +16,7 @@
 #define _XOPEN_SOURCE 700
 #include <unistd.h>
 
+#include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 
@@ -39,10 +40,10 @@ int main(void)
     ssize_t plen, vlen;
     unsigned int salt_len;
 
-    // limit shenanigans
-    if (setrlimit(RLIMIT_CORE, &(struct rlimit) {
-                  0, 0}) == -1)
-        err(EX_OSERR, "could not disable coredumps");
+    // limit shenanigans (a selinux policy to deny ptrace in advance
+    // might also be handy)
+    if (prctl(PR_SET_DUMPABLE, 0) == -1)
+        err(EX_OSERR, "could not disable PR_SET_DUMPABLE");
 
     sigset_t block;
     sigemptyset(&block);

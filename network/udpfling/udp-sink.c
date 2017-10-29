@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     addr_size = sizeof client_addr;
 
     if (Flag_Line_Buf)
-        setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+        setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
 
     if (Flag_Delay) {
         time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
@@ -110,15 +110,7 @@ int main(int argc, char *argv[])
             loss += (unsigned long) count_from_client_delta;
 
         if (our_count++ % Flag_Count == 0) {
-            /* also in catch_intr, below */
-            if (clock_gettime(CLOCK_REALTIME, &when) == -1)
-                err(EX_OSERR, "clock_gettime() failed");
-            fprintf(stdout, "%.4Lf %ld %ld %.2g%% %ld\n",
-                    when.tv_sec + when.tv_nsec / (long double) NSEC_IN_SEC,
-                    loss, count_from_client - prev_client_bucket,
-                    (double) loss / (count_from_client -
-                                     prev_client_bucket) * 100,
-                    count_backtracks);
+            report_counts();
             count_backtracks = 0;
             loss = 0;
             prev_client_bucket = count_from_client;
@@ -134,17 +126,23 @@ int main(int argc, char *argv[])
 
 void catch_intr(int sig)
 {
-    if (clock_gettime(CLOCK_REALTIME, &when) == -1)
-        err(EX_OSERR, "clock_gettime() failed");
-    fprintf(stdout, "%.4Lf %ld %ld %.2f%% %ld\n",
-            when.tv_sec + when.tv_nsec / (long double) NSEC_IN_SEC,
-            loss, count_from_client - prev_client_bucket,
-            (float) loss / (count_from_client - prev_client_bucket) * 100,
-            count_backtracks);
-    errx(1, "quit due to signal %d (recv %ld packets)", sig, our_count);
+    report_counts();
+    signal(SIGINT, SIG_DFL);
+    raise(SIGINT);
 }
 
 void emit_usage(void)
 {
     errx(EX_USAGE, "[-4|-6] [-c stati] [-d ms] [-l] [-N] [-P bytes] -p port");
+}
+
+inline void report_counts(void)
+{
+    if (clock_gettime(CLOCK_REALTIME, &when) == -1)
+        err(EX_OSERR, "clock_gettime() failed");
+    fprintf(stdout, "%.4Lf %ld %ld %.2g%% %ld\n",
+            when.tv_sec + when.tv_nsec / (long double) NSEC_IN_SEC,
+            loss, count_from_client - prev_client_bucket,
+            (double) loss / (count_from_client -
+                             prev_client_bucket) * 100, count_backtracks);
 }

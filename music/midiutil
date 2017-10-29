@@ -166,7 +166,7 @@ sub handle_fuzz {
         }
         for my $i ( 1 .. $#volumes ) {
             if ( $i > 0 and change_of( 10, $deltas[$i], $deltas[ $i - 1 ] ) ) {
-                my ( $left, $right );
+                my ( $left, $right ) = ( $i, $i );
                 for ( my $j = $i - 1; $j >= 0; $j-- ) {
                     if ( abs( $deltas[$j] ) < 10 ) {
                         last;
@@ -178,6 +178,11 @@ sub handle_fuzz {
                         last;
                     }
                     $right = $k;
+                }
+                if ( $left == $right ) {
+                    use Data::Dumper;
+                    warn Dumper $volumes[$i];
+                    warn "zero-width volume jump\n";
                 }
                 for my $j ( $left .. $right ) {
                     $volumes[$j][4] += int( -1 * $deltas[$j] * 0.5 );

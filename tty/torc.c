@@ -195,8 +195,9 @@ void emit_help(void)
 
 void handle_sig(int signo)
 {
-    exit(1);
-    /* and then the atexit handler should reset the terminal */
+    cleanup();
+    signal(SIGINT, SIG_DFL);
+    raise(SIGINT);
 }
 
 void raw_terminal(int fd)

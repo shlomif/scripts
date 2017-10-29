@@ -30,6 +30,7 @@
 void catch_intr(int sig);
 void emit_usage(void);
 int parse_opts(int argc, char *argv[]);
+void report_counts(void);
 
 bool Flag_Flood;		/* -f to flood send packets (sender) */
 bool Flag_Line_Buf;		/* -l to set line buffering (sink) */

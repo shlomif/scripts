@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
         errx(EX_IOERR, "could not bind to socket");
 
     if (Flag_Line_Buf)
-        setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+        setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
 
     time_units = Flag_Nanoseconds ? USEC_IN_SEC : MS_IN_SEC;
     time_units_to_usec = Flag_Nanoseconds ? 1 : USEC_IN_MS;
@@ -100,12 +100,7 @@ int main(int argc, char *argv[])
         }
 
         if (counter % Flag_Count == 0) {
-            /* also in catch_intr, below */
-            if (clock_gettime(CLOCK_REALTIME, &when) == -1)
-                err(EX_OSERR, "clock_gettime() failed");
-            fprintf(stdout, "%.4Lf %ld\n",
-                    when.tv_sec + when.tv_nsec / (long double) NSEC_IN_SEC,
-                    counter - prev_sent_count);
+            report_counts();
             prev_sent_count = counter;
         }
         if (!Flag_Flood)
@@ -119,16 +114,22 @@ int main(int argc, char *argv[])
 
 void catch_intr(int sig)
 {
-    if (clock_gettime(CLOCK_REALTIME, &when) == -1)
-        err(EX_OSERR, "clock_gettime() failed");
-    fprintf(stdout, "%.4Lf %ld\n",
-            when.tv_sec + when.tv_nsec / (long double) NSEC_IN_SEC,
-            counter - prev_sent_count);
-    errx(1, "quit due to signal %d (sent %ld packets)", sig, counter);
+    fprintf(stderr, "quit due to signal %d (sent %ld packets)", sig, counter);
+    signal(SIGINT, SIG_DFL);
+    raise(SIGINT);
 }
 
 void emit_usage(void)
 {
     errx(EX_USAGE,
          "[-4|-6] [-C maxsend] [-c stati] [-d ms|-f] [-l] [-N] [-P bytes] -p port hostname");
+}
+
+inline void report_counts(void)
+{
+    if (clock_gettime(CLOCK_REALTIME, &when) == -1)
+        err(EX_OSERR, "clock_gettime() failed");
+    fprintf(stdout, "%.4Lf %ld\n",
+            when.tv_sec + when.tv_nsec / (long double) NSEC_IN_SEC,
+            counter - prev_sent_count);
 }

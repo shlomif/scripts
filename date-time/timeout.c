@@ -101,16 +101,13 @@ int main(int argc, char *argv[])
             if (Flag_Fullwait)
                 sleep(duration);
 
-            /* Pass on the child exit status. These can be illustrated
-             * via something like:
-             *
-             *   timeout -- 99 perl -e 'exit 42'      ; echo $?
-             *   timeout -- 99 perl -e 'kill 15, $$'  ; echo $?
+            /* Pass along the child exit code (not the status word!).
+             * Signals are more difficult, as would have to raise(3)
+             * them which depending on the signal could cause timeout to
+             * coredump or whatever. :/
              */
             if (WIFEXITED(status))
                 exit_status = WEXITSTATUS(status);
-            else if (WIFSIGNALED(status))
-                exit_status = 128 + WTERMSIG(status);
         }
     } else {
         err(EX_OSERR, "could not fork()");
