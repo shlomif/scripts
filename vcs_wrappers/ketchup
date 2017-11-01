@@ -11,9 +11,9 @@ update_cvs () {
     if [ "is$FORCE" = "isyes" ]; then
         CVSUPARGS=-Ad
     fi
-    cvs -q update $CVSUPARGS
+    cvs -q update "$CVSUPARGS"
     STATUS=$?
-    if [ $STATUS -ne 0 ]; then
+    if [ "$STATUS" -ne 0 ]; then
         echo >&2 "ketchup: non-zero exit $STATUS from cvs update in $CURRENT_DIR"
         EXIT_STATUS=$STATUS
     fi
@@ -24,7 +24,7 @@ update_git () {
     # NOTE this is a standard area that all not-my-projects get
     # dumped into; changes are (generally) not made to them, so a
     # pull makes sense.
-    if echo $CURRENT_DIR | grep third-party >/dev/null; then
+    if echo "$CURRENT_DIR" | grep third-party >/dev/null; then
         COMMAND="git pull"
     else
         COMMAND="git status -sb"
@@ -32,7 +32,7 @@ update_git () {
 
     $COMMAND
     STATUS=$?
-    if [ $STATUS -ne 0 ]; then
+    if [ "$STATUS" -ne 0 ]; then
         echo >&2 "ketchup: non-zero exit $STATUS from $COMMAND in $CURRENT_DIR"
         EXIT_STATUS=$STATUS
     fi
@@ -41,7 +41,7 @@ update_git () {
 check_dir () {
     findup -H -q .git
     STATUS=$?
-    if [ $STATUS -eq 0 ]; then
+    if [ "$STATUS" -eq 0 ]; then
         update_git
         return
     fi
@@ -57,7 +57,7 @@ check_dir () {
 OPT=
 FORCE=
 while getopts fh OPT; do
-    case $OPT in
+    case "$OPT" in
         f)
             FORCE=yes
         ;;
@@ -67,9 +67,9 @@ while getopts fh OPT; do
         ;;
     esac
 done
-shift `expr $OPTIND - 1`
+shift "`expr $OPTIND - 1`"
 
-if [ $# -eq 0 ]; then
+if [ "$#" -eq 0 ]; then
     check_dir
 else
     for input in "$@"; do
@@ -79,4 +79,4 @@ else
     done
 fi
 
-exit $EXIT_STATUS
+exit "$EXIT_STATUS"

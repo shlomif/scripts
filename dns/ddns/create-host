@@ -20,33 +20,33 @@ DNS_TTL=3593
 SERVER=127.0.0.1
 
 MAXWAITSECS=7
-PROG_NAME=`basename $0`
+PROG_NAME="`basename "$0"`"
 
-[ $# -lt 2 ] && {
+[ "$#" -lt 2 ] && {
   echo >&2 "Usage: $PROG_NAME host ipaddress [ipaddr2 ..]"
   exit 64
 }
 
-HOST=$1
+HOST="$1"
 shift
 
-echo $HOST | fgrep $DOM >/dev/null && {
+echo "$HOST" | fgrep "$DOM" >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }
 
-[ -r $KEY ] || {
+[ -r "$KEY" ] || {
   echo >&2 "$PROG_NAME: cannot read nsupdate keyfile $KEY"
   exit 65
 }
 
 for arg in "$@"; do
-  IP=`v4addr -q $arg`
+  IP=`v4addr -q "$arg"`
   DNS_TYPE=A
   REV_PROG=v4addr
-  if [ -z $IP ]; then
-    IP=`v6addr -q $arg`
-    if [ -z $IP ]; then
+  if [ -z "$IP" ]; then
+    IP=`v6addr -q "$arg"`
+    if [ -z "$IP" ]; then
       echo >&2 "$PROG_NAME: could not parse v4 or v6 address from $arg"
       exit 65
     fi
@@ -55,8 +55,8 @@ for arg in "$@"; do
   fi
 
   (
-    if [ ! -z $SERVER ]; then
-      echo server $SERVER
+    if [ ! -z "$SERVER" ]; then
+      echo "server $SERVER"
     fi
     # NOTE there used to be a 'prereq nxrrset $HOST.$DOM $DNS_TYPE'
     # limit here, though one could have a host with multiple A records,
@@ -65,23 +65,23 @@ for arg in "$@"; do
 update add $HOST.$DOM $DNS_TTL $DNS_TYPE $arg
 send
 EOF
-  ) | nsupdate -k $KEY -t $MAXWAITSECS
+  ) | nsupdate -k "$KEY" -t "$MAXWAITSECS"
 
   STATUS=$?
-  if [ $STATUS -ne 0 ]; then
+  if [ "$STATUS" -ne 0 ]; then
     echo "$PROG_NAME: failed to update add $HOST.$DOM $DNS_TTL $DNS_TYPE $arg"
-    exit $STATUS
+    exit "$STATUS"
   fi
 
-  REV=`$REV_PROG -q -r $arg`
-  if [ -z $REV ]; then
+  REV=`$REV_PROG -q -r "$arg"`
+  if [ -z "$REV" ]; then
     echo >&2 "$PROG_NAME: $REV_PROG failed to parse reverse address from $arg"
     exit 65
   fi
 
   (
-    if [ ! -z $SERVER ]; then
-      echo server $SERVER
+    if [ ! -z "$SERVER" ]; then
+      echo "server $SERVER"
     fi
     cat <<EOR
 prereq nxrrset $REV PTR
@@ -91,8 +91,8 @@ EOR
   ) | nsupdate -k $KEY -t $MAXWAITSECS
 
   STATUS=$?
-  if [ $STATUS -ne 0 ]; then
+  if [ "$STATUS" -ne 0 ]; then
     echo "$PROG_NAME: failed to update add $REV $DNS_TTL PTR $HOST.$DOM."
-    exit $STATUS
+    exit "$STATUS"
   fi
 done

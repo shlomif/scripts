@@ -12,29 +12,29 @@
 # security needs might run something like:
 #
 #   #!/bin/sh
-#   echo $SSH_ORIGINAL_COMMAND >> $HOME/tmp/ssh-yak
-#   eval $SSH_ORIGINAL_COMMAND
+#   echo "$SSH_ORIGINAL_COMMAND" >> "$HOME/tmp/ssh-yak"
+#   eval "$SSH_ORIGINAL_COMMAND"
 #
 # Note that software may already support limited access via ssh, e.g.
 # git via git-shell(1).
 
-shortname=`basename $0`
-shortname=${shortname:=ssh-yak}
+shortname="`basename "$0"`"
+shortname="${shortname:=ssh-yak}"
 
 #YAK_OUTPUT=/dev/null
-YAK_OUTPUT=`mktemp -q /tmp/${shortname}.XXXXXXXXXX` || {
+YAK_OUTPUT=`mktemp -q "/tmp/${shortname}.XXXXXXXXXX`" || {
   echo >&2 "mktemp failed to create /tmp file"
   exit 1
 }
 
 # in the event env contains anything sensitive (or change the tmp dir path)
-chmod go-r $YAK_OUTPUT
+chmod go-r "$YAK_OUTPUT"
 
-#logger -i -t $shortname "ssh-command is $SSH_ORIGINAL_COMMAND"
+#logger -i -t "$shortname" "ssh-command is $SSH_ORIGINAL_COMMAND"
 
 (
 echo SSH-COMMAND::BEGIN
-echo $SSH_ORIGINAL_COMMAND
+echo "$SSH_ORIGINAL_COMMAND"
 echo SSH-COMMAND::END
 echo
 
@@ -55,8 +55,8 @@ set
 echo ENV::END
 echo
 
-) >> $YAK_OUTPUT
+) >> "$YAK_OUTPUT"
 
 # but need eval not exec to deal with shell quoting and whatnot in the
 # env var...
-eval $SSH_ORIGINAL_COMMAND
+eval "$SSH_ORIGINAL_COMMAND"

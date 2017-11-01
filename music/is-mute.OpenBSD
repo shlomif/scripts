@@ -4,7 +4,7 @@ QUIET=0
 
 OPT=
 while getopts q OPT; do
-    case $OPT in
+    case "$OPT" in
         q)
             QUIET=1
         ;;
@@ -13,8 +13,8 @@ done
 # skip as no subsequent use of args
 #shift `expr $OPTINT - 1`
 
-if [ `mixerctl outputs.master.mute` == outputs.master.mute=on ]; then
-    if [ $QUIET -eq 0 ]; then
+if [ "`mixerctl outputs.master.mute`" == outputs.master.mute=on ]; then
+    if [ "$QUIET" -eq 0 ]; then
         echo mute
     fi
     exit 0

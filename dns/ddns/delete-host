@@ -15,29 +15,29 @@ KEY=/etc/nsuk.key
 SERVER=127.0.0.1
 
 MAXWAITSECS=7
-PROG_NAME=`basename $0`
+PROG_NAME="`basename "$0"`"
 
-[ $# -eq 0 ] && {
+[ "$#" -eq 0 ] && {
   echo >&2 "usage: $PROG_NAME host [ipaddress ..]"
   exit 64
 }
 
-HOST=$1
+HOST="$1"
 shift
 
-echo $HOST | fgrep $DOM >/dev/null && {
+echo "$HOST" | fgrep "$DOM" >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }
 
-[ -r $KEY ] || {
+[ -r "$KEY" ] || {
   echo >&2 "$PROG_NAME: cannot read nsupdate keyfile $KEY"
   exit 65
 }
 
 (
-  if [ ! -z $SERVER ]; then
-    echo server $SERVER
+  if [ ! -z "$SERVER" ]; then
+    echo "server $SERVER"
   fi
   cat <<EOF
 prereq yxdomain $HOST.$DOM
@@ -45,40 +45,40 @@ prereq nxrrset $HOST.$DOM NS
 update delete $HOST.$DOM
 send
 EOF
-) | nsupdate -k $KEY -t $MAXWAITSECS
+) | nsupdate -k "$KEY" -t "$MAXWAITSECS"
 
 STATUS=$?
-if [ $STATUS -ne 0 ]; then
+if [ "$STATUS" -ne 0 ]; then
   echo "$PROG_NAME: non-zero exit from nsupdate (on delete A)"
-  exit $STATUS
+  exit "$STATUS"
 fi
 
 # Need to support eviction of multiple IP as expect hosts to have both A
 # and AAAA associated with them.
 for ip in "$@"; do
-  REV=`v4addr -q -r $ip`
-  if [ -z $REV ]; then
-    REV=`v6addr -q -r $ip`
-    if [ -z $REV ]; then
+  REV=`v4addr -q -r "$ip"`
+  if [ -z "$REV" ]; then
+    REV=`v6addr -q -r "$ip"`
+    if [ -z "$REV" ]; then
       echo >&2 "$PROG_NAME: could not parse v4 or v6 address from $ip"
       exit 65
     fi
   fi
 
   (
-    if [ ! -z $SERVER ]; then
-      echo server $SERVER
+    if [ ! -z "$SERVER" ]; then
+      echo "server $SERVER"
     fi
     cat <<EOR
 prereq yxrrset $REV PTR
 update delete $REV PTR
 send
 EOR
-  ) | nsupdate -k $KEY -t $MAXWAITSECS
+  ) | nsupdate -k "$KEY" -t "$MAXWAITSECS"
 
   STATUS=$?
-  if [ $STATUS -ne 0 ]; then
+  if [ "$STATUS" -ne 0 ]; then
     echo "$PROG_NAME: failed to update delete $REV PTR"
-    exit $STATUS
+    exit "$STATUS"
   fi
 done

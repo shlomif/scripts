@@ -14,38 +14,38 @@ DNS_TTL=3593
 SERVER=127.0.0.1
 
 MAXWAITSECS=7
-PROG_NAME=`basename $0`
+PROG_NAME="`basename "$0"`"
 
-[ $# -eq 0 ] && {
+[ "$#" -eq 0 ] && {
   echo >&2 "usage: $PROG_NAME host x [y z]"
   exit 64
 }
 
-HOST=$1
+HOST="$1"
 shift
 
-echo $HOST | fgrep $DOM >/dev/null && {
+echo "$HOST" | fgrep "$DOM" >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }
 
-[ -r $KEY ] || {
+[ -r "$KEY" ] || {
   echo >&2 "$PROG_NAME: cannot read nsupdate keyfile $KEY"
   exit 65
 }
 
 (
-  if [ ! -z $SERVER ]; then
-    echo server $SERVER
+  if [ ! -z "$SERVER" ]; then
+    echo "server $SERVER"
   fi
   cat <<EOF
 update add $HOST.$DOM. $DNS_TTL $@
 send
 EOF
-) | nsupdate -k $KEY -t $MAXWAITSECS
+) | nsupdate -k "$KEY" -t "$MAXWAITSECS"
 
 STATUS=$?
-if [ $STATUS -ne 0 ]; then
+if [ "$STATUS" -ne 0 ]; then
   echo "$PROG_NAME: failed to update add $1.$DOM. $DNS_TTL $@"
 fi
-exit $STATUS
+exit "$STATUS"

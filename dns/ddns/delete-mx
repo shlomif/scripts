@@ -20,63 +20,63 @@ KEY=/etc/nsuk.key
 SERVER=127.0.0.1
 
 MAXWAITSECS=7
-PROG_NAME=`basename $0`
+PROG_NAME="`basename "$0"`"
 
-[ $# -eq 0 ] && {
+[ "$#" -eq 0 ] && {
   echo >&2 "usage: $PROG_NAME host [0 mx1.dom. [10 mx2.dom. ..]]"
   exit 64
 }
 
-HOST=$1
+HOST="$1"
 shift
 
-echo $HOST | fgrep $DOM >/dev/null && {
+echo "$HOST" | fgrep "$DOM" >/dev/null && {
   echo >&2 "$PROG_NAME: use short host name"
   exit 65
 }
 
-if [ $# -eq 0 ]; then
+if [ "$#" -eq 0 ]; then
   (
-    if [ ! -z $SERVER ]; then
-      echo server $SERVER
+    if [ ! -z "$SERVER" ]; then
+      echo "server $SERVER"
     fi
     cat <<EOF
 prereq yxrrset $HOST.$DOM. MX
 update delete $HOST.$DOM. MX
 send
 EOF
-  ) | nsupdate -k $KEY -t $MAXWAITSECS
+  ) | nsupdate -k "$KEY" -t "$MAXWAITSECS"
 
   STATUS=$?
-  if [ $STATUS -ne 0 ]; then
+  if [ "$STATUS" -ne 0 ]; then
     echo "$PROG_NAME: failed to delete $HOST.$DOM. MX"
   fi
-  exit $STATUS
+  exit "$STATUS"
 fi
 
-if [ `expr $# % 2` -ne 0 ]; then
+if [ `expr "$#" % 2` -ne 0 ]; then
   echo >&2 "$PROG_NAME: priorities and mx must come in pairs"
   exit 65
 fi
 
-while [ $# -gt 0 ]; do
-  PRI=$1
-  MXH=$2
+while [ "$#" -gt 0 ]; do
+  PRI="$1"
+  MXH="$2"
   shift 2
   (
-    if [ ! -z $SERVER ]; then
-      echo server $SERVER
+    if [ ! -z "$SERVER" ]; then
+      echo "server $SERVER"
     fi
     cat <<EOM
 prereq yxrrset $HOST.$DOM. MX $PRI $MXH
 update delete $HOST.$DOM. MX $PRI $MXH
 send
 EOM
-  ) | nsupdate -k $KEY -t $MAXWAITSECS
+  ) | nsupdate -k "$KEY" -t "$MAXWAITSECS"
 
   STATUS=$?
-  if [ $STATUS -ne 0 ]; then
+  if [ "$STATUS" -ne 0 ]; then
     echo "$PROG_NAME: failed to delete $HOST.$DOM. MX $PRI $MXH"
-    exit $STATUS
+    exit "$STATUS"
   fi
 done

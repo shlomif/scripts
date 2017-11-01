@@ -6,23 +6,23 @@
 
 findup -H -q .git && {
     WHAT=
-    if [ $# -gt 0 ]; then
-        WHAT=$@
+    if [ "$#" -gt 0 ]; then
+        WHAT="$@"
     else
         WHAT=.
     fi
     git diff --quiet --exit-code "$WHAT"
     STATUS=$?
-    if [ $STATUS -eq 1 ]; then
+    if [ "$STATUS" -eq 1 ]; then
         exec git diff "$WHAT"
     else
-        exit $STATUS
+        exit "$STATUS"
     fi
 }
 
 [ -f CVS/Root ] && exec cvs diff "$@"
 
-if [ $# -eq 0 ]; then
+if [ "$#" -eq 0 ]; then
     echo >&2 "Usage: di [file1 ..]"
     exit 64
 else

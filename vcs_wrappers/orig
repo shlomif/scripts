@@ -3,7 +3,7 @@
 # Creates original copies of the specified file(s). Instead use version
 # control, sheesh!
 
-if [ $# -eq 0 ]; then
+if [ "$#" -eq 0 ]; then
     echo >&2 "Usage: orig file [file1 ..]"
     exit 64
 fi
@@ -23,4 +23,4 @@ for f in "$@"; do
     fi
 done
 
-exit $STATUS
+exit "$STATUS"

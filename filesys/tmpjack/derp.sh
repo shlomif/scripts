@@ -7,7 +7,7 @@
 # do need to use a temporary file, well, there's mktemp(1) and related.
 LOCKFILE=sym
 
-if [ -r $LOCKFILE ]; then
+if [ -r "$LOCKFILE" ]; then
   exit 1
 fi
 
@@ -16,9 +16,9 @@ fi
 # depends on how busy the system is. Assume well more than enough for any
 # attack to succeed.)
 
-echo notevil >> $LOCKFILE
+echo notevil >> "$LOCKFILE"
 
 # ... unimportant locked processing here ...
 
-rm $LOCKFILE
+rm "$LOCKFILE"
 exit 0

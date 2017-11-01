@@ -8,7 +8,7 @@
 
 rAndOMizMAC() {
   for iface in "$@"; do
-    echo sudo ifconfig $iface lladdr `randmac`
+    echo sudo ifconfig "$iface" lladdr "`randmac`"
   done
 }
 

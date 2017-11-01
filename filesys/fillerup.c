@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
      * Or just use a wrapper:
      *
      *   #!/bin/sh
-     *   echo $$
+     *   echo "$$"
      *   exec fillerup -q
      */
     if (!Flag_Quiet)

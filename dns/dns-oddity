@@ -13,7 +13,7 @@
 # (github parent DNS DDOS), but the suitable Goldilocks value will vary
 # by site.
 
-DOMAIN=$1
+DOMAIN="$1"
 if [ -z "$DOMAIN" ]; then
     echo >&2 "Usage: $0 domain-name"
     exit 64
@@ -21,7 +21,7 @@ fi
 
 exit_status=0
 
-DNAME=`dig +short -t DNAME -q "$DOMAIN"`
+DNAME="`dig +short -t DNAME -q "$DOMAIN"`"
 if [ -n "$DNAME" ]; then
     echo "dname: $DNAME"
     exit_status=1
@@ -29,10 +29,10 @@ if [ -n "$DNAME" ]; then
     DOMAIN=$DNAME
 fi
 
-WCDNS=`dig +short -t ANY -q "*.$DOMAIN"`
+WCDNS="`dig +short -t ANY -q "*.$DOMAIN"`"
 if [ -n "$WCDNS" ]; then
     echo "wcdns: $WCDNS"
     exit_status=1
 fi
 
-exit $exit_status
+exit "$exit_status"
