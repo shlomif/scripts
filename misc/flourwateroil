@@ -1,0 +1,131 @@
+#!/usr/bin/env perl
+#
+# going crackers? a utility script that given particular amounts of
+# flour, water, and oil and a target flour percent (or also a target
+# water percent) adjusts the amounts until the whole mixture is at the
+# desired percentage(s). the exact need that caused this code was to
+# bake something based on a recipe that called for 330g flour 180g water
+# 50g oil starting instead with half of my sourdough starter, which is
+# rougly 120g of equal amounts flour and water
+#
+#                     (grams)  (desired percentages)
+#   $ ./flourwateroil 60 60 0  60% 31%
+#   60      60      0
+#   +52     +0      +17
+#   60%     31%     9%
+#
+# indicates that for 60% flour and 32% water 52g of flour should be
+# added, and also 17g of fat (which, as it turns out, is roughly one
+# tablespoon of ghee)
+
+use 5.14.0;
+use warnings;
+use Getopt::Long qw(GetOptions);
+use List::Util qw(sum0);
+use Scalar::Util qw(looks_like_number);
+
+# a significant p-value? why not (the output is meanwhile only in grams
+# as my scale is not more precise than that)
+my $Flag_Precision = 0.05;
+
+# not padding oil only happens when there are negative amounts that need
+# to be corrected; fat could be added with -n set if you've given flour
+# and water percents that do not sum up to 100
+GetOptions(
+    'noaddoil|n'    => \my $Flag_NoPadOil,
+    'precision|p=f' => \$Flag_Precision,
+) or exit 64;
+
+die "Usage: $0 flour water oil flour-percent [water-percent]\n" if @ARGV < 4;
+
+my ( @amounts, @targets, @errors );
+push @amounts, getarg() for 1 .. 3;
+push @targets, getarg() for 1 .. 3;
+
+@targets = grep defined, @targets;
+die "percentages must total at most 100\n" if sum0(@targets) > 100;
+
+my @additions = (0) x 3;
+
+my $need = @targets;
+
+if ( $need == 2 ) {
+    # know oil percent because degress of freedom (downside: this
+    # allows the oil amount to be adjusted if the sum of the other two
+    # isn't 100)
+    $targets[2] = 100 - sum0(@targets);
+} elsif ( $need == 1 and $Flag_NoPadOil ) {
+    # only have a flour percent and can't add oil so the water percent
+    # is therefore known
+    $targets[1] = 100 - $targets[0];
+}
+
+my $attempt = 0;
+my $limit   = 640;
+
+while ( ++$attempt < $limit ) {
+    my $sum = sum0( @amounts, @additions );
+    my $good = 0;
+    for my $i ( 0 .. 2 ) {
+        next if !defined $targets[$i];
+        $errors[$i] = $targets[$i] - ( $amounts[$i] + $additions[$i] ) / $sum * 100;
+        if ( abs( $errors[$i] ) < $Flag_Precision ) {
+            $good++;
+        } else {
+            # this is simple and homes in pretty quick though there
+            # probably is a faster (and probably more complicated) way
+            $additions[$i] += $errors[$i];
+
+            # it can be difficult to pull water out of sourdough starter
+            # so assume that material only can be added, which means to
+            # avoid negative material we must add to the other field(s)
+            if ( $additions[$i] < 0 ) {
+                my $extra = abs( $additions[$i] );
+                if ($Flag_NoPadOil) {
+                    if ( $i == 0 ) {
+                        $additions[0] = 0;
+                        $additions[1] += $extra;
+                    } else {
+                        $additions[$i] = 0;
+                        $additions[0] += $extra;
+                    }
+                } else {
+                    for my $j ( 0 .. 2 ) {
+                        if ( $i == $j ) {
+                            $additions[$j] = 0;
+                        } else {
+                            $additions[$j] += $extra / 2;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if ( $good >= $need ) {
+        printf "%.f\t%.f\t%.f\n%+.f\t%+.f\t%+.f\n%.f%%\t%.f%%\t%.f%%\n", @amounts,
+          @additions, map { ( $amounts[$_] + $additions[$_] ) / $sum * 100 } 0 .. 2;
+        exit(0);
+    }
+}
+
+# this will happen in several edge cases, one of which being if only a
+# flour percent is given (in which case additions will not be considered
+# for water or oil) and adjusting only the flour cannot rectify the
+# situation; try adding some desired percentage of water (in which case
+# due to the degrees of freedom the oil percent is also known)
+die "unable to solve in $attempt attempts\n";
+
+sub getarg {
+    my $v = shift @ARGV;
+    state $seen = 1;
+    if ( defined $v ) {
+        # allow 60% on what must now be percentages
+        $v =~ s/[%]$// if $seen > 3;
+        if ( !looks_like_number($v) or $v < 0 ) {
+            die "values must be positive numbers\n";
+        }
+    }
+    $seen++;
+    return $v;
+}

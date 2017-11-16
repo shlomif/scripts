@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# the quest for color-free terminals continues; this I use on the
+# 'screen' and 'xterm' to try to keep colors out of the mix; tmux may
+# then need to be started via "alias tmux='TERM=screen tmux'" in the
+# event some random terminal has xterm-256color or something set by
+# default (this is mostly for Mac OS X systems; OpenBSD offers the
+# handy "XTerm*colorMode:false" ~/.Xdefaults knob so does not have
+# this problem
+
+set -e
+
+TF=`mktemp`
+
+infocmp \
+| sed -e 's/colors[^,]*,//g; s/pairs[^,]*,//g; s/seta[bf]=[^,]*,//g; s/ncv[^,]*,//g; $s/$/ ncv#32768,/' \
+> "$TF"
+tic -o ~/.terminfo/ -- "$TF"
+rm -- "$TF"
