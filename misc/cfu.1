@@ -1,4 +1,4 @@
-.Dd May 20 2017
+.Dd November 18 2017
 .Dt CFU 1
 .nh
 .Os
@@ -8,6 +8,7 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
+.Op Fl b Ar bits
 .Op Fl E Ar exeargs
 .Op Fl F Ar name
 .Op Fl g Ar globals
@@ -22,6 +23,8 @@ from the command line arguments, or from standard input if the only
 argument is a hypen.
 Options:
 .Bl -tag -width Ds
+.It Cm --bits= Ns bits Op Fl b Ar bits
+Compile with the given number of bits, usually 32 or 64.
 .It Cm --eargs= Ns exeargs Op Fl E Ar exeargs
 Arguments to pass to the compiled executable. May be specified more than
 once to pass multiple arguments.
@@ -48,7 +51,9 @@ Sets the name of the compiler to use,
 by default.
 .It Cm CFLAGS
 Arguments for the compiler. These will be shell word split. Flags are
-set by default; see the source code for details.
+set by default; see the source code for details. Some
+.Cm CFLAGS
+may be set by other command line options.
 .El
 .Sh EXIT STATUS
 .Ex -std
@@ -75,6 +80,14 @@ The program name can be customized, if necessary.
 .Dl cfu
 .Dl $ Ic cfu -F foo 'printf("%s\en", *argv)'
 .Dl foo
+.Pp
+Bits can be used for example to compile a 32- or 64-bit program, assuming
+the system supports that.
+.Pp
+.Dl $ Ic cfu 'printf("%ld\en", sizeof(long))'
+.Dl 8
+.Dl $ Ic cfu -b 32 'printf("%ld\en", sizeof(long))'
+.Dl 4
 .Pp
 .Sh AUTHOR
 .An Jeremy Mates

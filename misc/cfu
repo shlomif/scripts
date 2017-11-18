@@ -8,7 +8,10 @@ use File::Temp qw(tempfile);
 use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
 
+my $Flag_Bits = 64;
+
 GetOptions(
+    'bits|b=i'     => \$Flag_Bits,
     'eargs|E=s'    => \my @eargs,
     'fakename|F=s' => \my $Flag_Fake_Name,
     'globals|g=s'  => \my @globals,
@@ -28,6 +31,12 @@ my @CFLAGS = shellwords(
 
 # no *.c extension on tempfile so must hint the language
 push @CFLAGS, qw/-x c/ if !grep { $_ eq '-x' } @CFLAGS;
+
+if ( $Flag_Bits == 32 or $Flag_Bits == 64 ) {
+    push @CFLAGS, "-m$Flag_Bits";
+} else {
+    die "unknown bit count '$Flag_Bits'\n";
+}
 
 for my $statement (@globals) {
     $statement .= ';'  unless $statement =~ m/[;\s]$/;
