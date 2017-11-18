@@ -103,8 +103,10 @@ while ( ++$attempt < $limit ) {
     }
 
     if ( $good >= $need ) {
-        printf "%.f\t%.f\t%.f\n%+.f\t%+.f\t%+.f\n%.f%%\t%.f%%\t%.f%%\n", @amounts,
-          @additions, map { ( $amounts[$_] + $additions[$_] ) / $sum * 100 } 0 .. 2;
+        printf "%.f\t%.f\t%.f\n%+.f\t%+.f\t%+.f\n%.f%%\t%.f%%\t%.f%%\n%.f\t%.f\t%.f\n",
+          @amounts,
+          @additions, map( { ( $amounts[$_] + $additions[$_] ) / $sum * 100 } 0 .. 2 ),
+          map { $amounts[$_] + $additions[$_] } 0 .. 2;
         exit(0);
     }
 }
