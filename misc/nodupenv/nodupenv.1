@@ -1,0 +1,77 @@
+.Dd November 20 2017
+.Dt NODUPENV 1
+.nh
+.Os
+.Sh NAME
+.Nm nodupenv
+.Nd strip duplicate environment variables
+.Sh SYNOPSIS
+.Nm nodupenv
+.Ar command
+.Op Ar command-args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+strips duplicate environment variables; only the first instance of a
+duplicate is passed on to the subsequent
+.Ar command .
+This agrees with how many programs handle duplicate environment values
+(go, Perl, Ruby, Python, ZSH) and notably not how bash handles
+duplicates.
+.Sh EXIT STATUS
+.Ex -std
+.Pp
+.Nm
+should not fail unless there is a memory allocation issue, so any exit
+code will most likely be from any subsequent
+.Ar command .
+.Sh EXAMPLES
+Generation of duplicate environment variables may not be easy though is
+possible from languages that allow low-level access to
+.Cm execve
+or similar system calls, or those that allow the
+.Cm environ
+pointer to be modified. With the following Go code saved to
+.Pa dupenv.go
+.Pp
+.Dl package main
+.Dl \&
+.Dl import (
+.Dl 	\&"fmt\&"
+.Dl 	\&"os\&"
+.Dl 	\&"os/exec\&"
+.Dl 	\&"syscall\&"
+.Dl )
+.Dl \&
+.Dl func main() {
+.Dl 	if len(os.Args) < 2 {
+.Dl 		fmt.Fprintf(os.Stderr, \&"Usage: dupenv cmd [args ..]\en\&")
+.Dl 		os.Exit(1)
+.Dl 	}
+.Dl 	executable := os.Args[1]
+.Dl 	binary, lookErr := exec.LookPath(executable)
+.Dl 	if lookErr != nil {
+.Dl 		panic(lookErr)
+.Dl 	}
+.Dl 	environ := []string{\&"FOO=bar\&", \&"FOO=zot\&"}
+.Dl 	execErr := syscall.Exec(binary, os.Args[1:], environ)
+.Dl 	if execErr != nil {
+.Dl 		panic(execErr)
+.Dl 	}
+.Dl }
+.Pp
+the duplicate environment variables can be seen or excluded via
+.Pp
+.Dl $ Ic go build dupenv.go
+.Dl $ Ic ./dupenv /usr/bin/env
+.Dl FOO=bar
+.Dl FOO=zot
+.Dl $ Ic ./dupenv nodupenv /usr/bin/env
+.Dl FOO=bar
+.Dl $ 
+.Sh SEE ALSO
+.Xr environ 7 ,
+.Xr execve 2 ,
+.Xr muss-with-environ 1
+.Sh AUTHOR
+.An Jeremy Mates

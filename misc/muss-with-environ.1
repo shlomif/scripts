@@ -1,0 +1,31 @@
+.Dd November 20 2017
+.Dt MUSS-WITH-ENVIRON 1
+.nh
+.Os
+.Sh NAME
+.Nm muss-with-environ
+.Nd adds duplicate environment variables to environment
+.Sh SYNOPSIS
+.Nm muss-with-environ
+.Ar command
+.Op Ar command-args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+adds duplicate environment variables to the environment, then
+runs the given
+.Ar command .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic muss-with-environ env | grep FOO=
+.Dl FOO=bar
+.Dl FOO=zot
+.Dl $ 
+.Pp
+.Sh SEE ALSO
+.Xr environ 7 ,
+.Xr execve 2 ,
+.Xr nodupenv 1
+.Sh AUTHOR
+.An Jeremy Mates
