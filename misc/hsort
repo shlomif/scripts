@@ -5,14 +5,7 @@
 # insensitive manner. Note that filesystems cannot have duplicate
 # filenames, so this script filters out repeated input lines.
 #
-# This script will fail if the amount of data to sort exceeds the memory
-# available on the system.
-#
-# Pass a list of files to merge and sort, or supply the data to be
-# sorted on standard input:
-#
-# hsort file1 file2 file3
-# ls | hsort
+# `sort -g` may be a more sensible alternative these days.
 
 my @input = readline;
 my %lookup;
