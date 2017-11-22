@@ -1,6 +1,5 @@
-#CFLAGS = -g
-CC=gcc
-CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+CC?=gcc
+CFLAGS?=-std=c99 -O2 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
 epochal: epochal.c
 

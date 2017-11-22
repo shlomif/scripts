@@ -1,6 +1,5 @@
-#CFLAGS = -g
-CC=gcc
-CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+CC?=gcc
+CFLAGS?=-std=c99 -O2 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
 c-delta-time: c-delta-time.c
 date2epoch: date2epoch.c

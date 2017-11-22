@@ -1,6 +1,5 @@
-#CFLAGS = -g
-CC=gcc
-CFLAGS += -O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+CC?=gcc
+CFLAGS?=-std=c99 -O2 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
 # The _core bit is to hopefully get -levent_core as Centos 7 and OpenBSD
 # lack a libevent_core.pc file to bring that in (and the libevent book
