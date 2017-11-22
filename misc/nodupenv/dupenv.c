@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 // this mostly to try to avoid overflows on malloc calls
 #define MAXENV 134217728LU
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
         while (*ep++ != NULL)
             envcount++;
         if (envcount > MAXENV)
-            err(1, "environment variable count > %ld\n", MAXENV);
+            err(1, "environment variable count > %lu\n", MAXENV);
         if (envcount >= newenv_count)
             newenv_count = envcount << 1;
     }
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
                 while (newenv_count < envcount) {
                     newenv_count <<= 1;
                     if (newenv_count > MAXENV)
-                        err(1, "environment variable count > %ld\n", MAXENV);
+                        err(1, "environment variable count > %lu\n", MAXENV);
                 }
                 if ((newenv =
                      realloc(newenv, newenv_count * sizeof(char **))) == NULL)
