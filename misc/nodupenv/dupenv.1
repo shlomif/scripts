@@ -1,0 +1,54 @@
+.Dd November 21 2017
+.Dt DUPENV 1
+.nh
+.Os
+.Sh NAME
+.Nm dupenv
+.Nd creates duplicate environment variables
+.Sh SYNOPSIS
+.Nm dupenv
+.Bk -words
+.Op Fl i
+.Op Ar env=val ..
+.Ar command
+.Op Ar args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+allows the creation of duplicate environment variables, which are then
+passed to the given
+.Ar command .
+If the
+.Fl i
+flag is specified, the existing environment will be cleared. Otherwise,
+by default, the existing environment will be passed along along with any
+additional environment variables set on the command line.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Usage may be most readily contrasted with the
+.Xr env 1
+utility that does not support the creation duplicate environment
+variables. Note however that
+.Xr env 1
+may display or silently pass along the duplicate variables.
+.Pp
+.Dl $ Ic env -i FOO=bar FOO=zot /usr/bin/env
+.Dl FOO=zot
+.Dl $ Ic dupenv -i FOO=bar FOO=zot /usr/bin/env
+.Dl FOO=bar
+.Dl FOO=zot
+.Dl $ Ic dupenv -i FOO=bar FOO=zot /usr/bin/env /usr/bin/env
+.Dl FOO=bar
+.Dl FOO=zot
+.Dl $ 
+.Pp
+Other programs may strip the duplicates (using the first, or the last
+instance), or may retain the duplicates (and use the first or last), or
+may fail horribly. Good luck!
+.Sh SEE ALSO
+.Xr env 1 ,
+.Xr nodupenv 1 ,
+.Xr Proc::FastSpawn 3pm
+.Sh AUTHOR
+.An Jeremy Mates

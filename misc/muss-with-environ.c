@@ -16,20 +16,17 @@
  *  zot
  *  $ 
  *
- * Given the bash-uses-second behavior, if a program only sanitizes the
+ * Given the bash-uses-second behavior, if a program sanitizes only the
  * first instance of a variable, an evil second PATH or LD_RUN_PATH or
  * whatever could be run through a buggy version of sudo or equivalent
- * and then hey presto security flaw. And hey, a CVE and patches.
+ * and then hey presto security flaw. sudo has fixed this issue:
  *
- * https://rt.perl.org/Public/Bug/Display.html?id=127158
  * https://www.sudo.ws/repos/sudo/rev/d4dfb05db5d7
  *
- * Maybe libc should clean up duplicates so each and every program need
- * not worry about this?
+ * Maybe libc itself should clean up duplicates so each and every
+ * program need not worry about this?
  *
  * https://sourceware.org/bugzilla/show_bug.cgi?id=19749
- *
- * Perhaps some day...
  */
 
 #include <err.h>

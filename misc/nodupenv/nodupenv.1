@@ -1,4 +1,4 @@
-.Dd November 20 2017
+.Dd November 21 2017
 .Dt NODUPENV 1
 .nh
 .Os
@@ -7,71 +7,56 @@
 .Nd strip duplicate environment variables
 .Sh SYNOPSIS
 .Nm nodupenv
+.Bk -words
 .Ar command
-.Op Ar command-args ..
+.Op Ar args ..
 .Ek
 .Sh DESCRIPTION
 .Nm
 strips duplicate environment variables; only the first instance of a
 duplicate is passed on to the subsequent
 .Ar command .
-This agrees with how many programs handle duplicate environment values
-(go, Perl, Ruby, Python, ZSH) and notably not how bash handles
-duplicates.
-.Sh EXIT STATUS
-.Ex -std
+This agrees with how certain programs handle duplicate environment values
+(Go, Perl,
+.Cm sudo )
+and notably not how
+.Cm bash
+handles duplicates.
 .Pp
 .Nm
-should not fail unless there is a memory allocation issue, so any exit
-code will most likely be from any subsequent
+is not necessary if
+.Ar command
+strips duplicates; whether and how this is done is up to each individual
 .Ar command .
+.Cm sudo
+was for example patched in late 2015 to keep only the first instance.
+.Sh EXIT STATUS
+.Ex -std
 .Sh EXAMPLES
-Generation of duplicate environment variables may not be easy though is
-possible from languages that allow low-level access to
-.Cm execve
-or similar system calls, or those that allow the
-.Cm environ
-pointer to be modified. With the following Go code saved to
-.Pa dupenv.go
-.Pp
-.Dl package main
-.Dl \&
-.Dl import (
-.Dl 	\&"fmt\&"
-.Dl 	\&"os\&"
-.Dl 	\&"os/exec\&"
-.Dl 	\&"syscall\&"
-.Dl )
-.Dl \&
-.Dl func main() {
-.Dl 	if len(os.Args) < 2 {
-.Dl 		fmt.Fprintf(os.Stderr, \&"Usage: dupenv cmd [args ..]\en\&")
-.Dl 		os.Exit(1)
-.Dl 	}
-.Dl 	executable := os.Args[1]
-.Dl 	binary, lookErr := exec.LookPath(executable)
-.Dl 	if lookErr != nil {
-.Dl 		panic(lookErr)
-.Dl 	}
-.Dl 	environ := []string{\&"FOO=bar\&", \&"FOO=zot\&"}
-.Dl 	execErr := syscall.Exec(binary, os.Args[1:], environ)
-.Dl 	if execErr != nil {
-.Dl 		panic(execErr)
-.Dl 	}
-.Dl }
-.Pp
-the duplicate environment variables can be seen or excluded via
-.Pp
-.Dl $ Ic go build dupenv.go
-.Dl $ Ic ./dupenv /usr/bin/env
+.Dl $ Ic dupenv FOO=bar FOO=zot env \&| grep FOO
 .Dl FOO=bar
 .Dl FOO=zot
-.Dl $ Ic ./dupenv nodupenv /usr/bin/env
+.Dl $ Ic dupenv FOO=bar FOO=zot nodupenv env \&| grep FOO
 .Dl FOO=bar
-.Dl $ 
+.Dl $
 .Sh SEE ALSO
+.Xr dupenv 1 ,
 .Xr environ 7 ,
-.Xr execve 2 ,
-.Xr muss-with-environ 1
+.Xr execve 2
+.Pp
+There can be security problems when duplicate environment variables are
+allowed, especially given that some programs use the first duplicate,
+and others the last, and others helpfully pass duplicates along.
+.Pp
+.Bl -tag -width Ds
+.It https://rt.perl.org/Public/Bug/Display.html?id=127158
+.It https://www.sudo.ws/repos/sudo/rev/d4dfb05db5d7
+.El
+.Pp
+Perhaps something should be done at the libc level about this?
+.Pp
+.Bl -tag -width Ds
+.It https://sourceware.org/bugzilla/show_bug.cgi?id=19749
+.El
 .Sh AUTHOR
 .An Jeremy Mates

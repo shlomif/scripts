@@ -2,6 +2,9 @@
 CC=gcc
 CFLAGS+=-O2 -std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
 
+dupenv: dupenv.c
+	$(CC) $(CFLAGS) dupenv.c -o dupenv
+
 nodupenv: nodupenv.c redblack-bst.h redblack-bst.o
 	$(CC) $(CFLAGS) redblack-bst.o nodupenv.c -o nodupenv
 

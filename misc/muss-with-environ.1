@@ -8,12 +8,14 @@
 .Sh SYNOPSIS
 .Nm muss-with-environ
 .Ar command
-.Op Ar command-args ..
+.Op Ar args ..
 .Ek
 .Sh DESCRIPTION
 .Nm
-adds duplicate environment variables to the environment, then
-runs the given
+adds duplicate environment variables to the environment (these are hard
+coded, adjust the source code or see
+.Xr dupenv
+for something more dynamic) then runs the given
 .Ar command .
 .Sh EXIT STATUS
 .Ex -std
@@ -24,8 +26,10 @@ runs the given
 .Dl $ 
 .Pp
 .Sh SEE ALSO
+.Xr dupenv 1 ,
 .Xr environ 7 ,
 .Xr execve 2 ,
-.Xr nodupenv 1
+.Xr nodupenv 1 ,
+.Xr Proc::FastSpawn 3pm
 .Sh AUTHOR
 .An Jeremy Mates
