@@ -86,7 +86,7 @@ sub do_shortcut {
 
 sub emit_help {
     warn <<"END_USAGE";
-Usage: ow [options] site [site args ...]
+Usage: ow [options] site [site args ..]
 
 Shortcuts and file to URL mapping.
 

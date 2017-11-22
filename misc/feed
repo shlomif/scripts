@@ -9,7 +9,7 @@ package require fileutil
 
 set prog_name [lindex [split $argv0 "/"] end]
 if {[llength $argv] < 2} {
-    puts stderr "Usage: $prog_name file|- command \[command-args ..]"
+    puts stderr "Usage: $prog_name file|- command \[args ..]"
     exit 64
 }
 

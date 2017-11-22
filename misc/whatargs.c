@@ -42,6 +42,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: whatargs ...\n");
+    fprintf(stderr, "Usage: whatargs [args ..]\n");
     exit(EX_USAGE);
 }
