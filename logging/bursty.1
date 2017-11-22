@@ -43,10 +43,9 @@ Options:
 .Bl -tag -width Ds
 .It Fl -ithresh= Ns Ar float
 Interval threshold; new values whose delta from the previous value
-exceedes this setting will cause all the previous values to be
-discarded. This optimization will reduce the amount of stats math
-necessary at the cost of perhaps missing clumps smaller than the
-buffer size.
+exceeds this setting will cause all the previous values to be discarded.
+This optimization will reduce the amount of stats math necessary at the
+cost of perhaps missing clumps smaller than the buffer size.
 .It Fl -bufsize= Ns Ar int
 Number of lines to perform the statistics on. Cannot be less than three,
 and probably should not be set too large.
