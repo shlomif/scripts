@@ -1,5 +1,5 @@
 CC?=gcc
-CFLAGS?=-std=c99 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+CFLAGS?=-std=c99 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
 
 lockalot: lockalot.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` -o malloc malloc.c

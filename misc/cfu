@@ -26,7 +26,7 @@ my $CC = exists $ENV{'CC'} ? $ENV{'CC'} : 'cc';
 my @CFLAGS = shellwords(
     exists $ENV{'CFLAGS'}
     ? $ENV{'CFLAGS'}
-    : '-O2 -std=c99 -Wall -pedantic -pipe -lm'
+    : '-O2 -std=c99 -Wall -pedantic -fno-diagnostics-color -pipe -lm'
 );
 
 # no *.c extension on tempfile so must hint the language

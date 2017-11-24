@@ -10,14 +10,16 @@
 .Nm
 .Op Fl i
 .Op Ar env=val ..
-.Ar command
-.Op Ar args ..
+.Op Ar command Op Ar args ..
 .Ek
 .Sh DESCRIPTION
 .Nm
 allows the creation of duplicate environment variables, which are then
 passed to the given
-.Ar command .
+.Ar command ,
+or without that
+.Nm
+instead prints out the existing environment variables and exits.
 If the
 .Fl i
 flag is specified, the existing environment will be cleared. Otherwise,

@@ -10,12 +10,12 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-// this mostly to try to avoid overflows on malloc calls
+/* this mostly to try to avoid overflows on malloc calls */
 #define MAXENV 134217728LU
 
 extern char **environ;
 
-int Flag_ClearEnv;              // -i
+int Flag_KeepEnv = 1;           /* -i (borrowed from env(1)) */
 
 void emit_help(void);
 
@@ -23,13 +23,16 @@ int main(int argc, char *argv[])
 {
     int ch;
     char **ep, **newenv = NULL;
-    size_t i, envcount = 0;
-    size_t newenv_count = 64;
+    size_t i, cur_env = 0;
+    /* because on my Mac there's about 50 env variables set by default
+     * (Centos7 has ~20 and OpenBSD ~10) be sure to update the tests if
+     * this number is changed */
+    size_t newenv_alloc = 64;
 
     while ((ch = getopt(argc, argv, "h?i")) != -1) {
         switch (ch) {
         case 'i':
-            Flag_ClearEnv = 1;
+            Flag_KeepEnv = 0;
             break;
         case 'h':
         case '?':
@@ -41,39 +44,39 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc < 1)
-        emit_help();
-
-    if (!Flag_ClearEnv) {
+    if (Flag_KeepEnv) {
         ep = environ;
         while (*ep++ != NULL)
-            envcount++;
-        if (envcount > MAXENV)
+            cur_env++;
+        if (cur_env > MAXENV)
             err(1, "environment variable count > %lu\n", MAXENV);
-        if (envcount >= newenv_count)
-            newenv_count = envcount << 1;
+        if (cur_env >= newenv_alloc) {
+            newenv_alloc = cur_env << 1;
+            if (newenv_alloc > MAXENV)
+                err(1, "environment variable count > %lu\n", MAXENV);
+        }
+    }
+
+    if ((newenv = calloc(newenv_alloc, sizeof(char **))) == NULL)
+        err(EX_OSERR, "calloc failed");
+
+    if (Flag_KeepEnv) {
+        for (i = 0; i < cur_env; i++) {
+            newenv[i] = environ[i];
+        }
     }
 
     while (argc > 0) {
         if (strchr(*argv, '=') != NULL) {
-            if (newenv == NULL) {
-                if ((newenv = calloc(newenv_count, sizeof(char **))) == NULL)
-                    err(EX_OSERR, "calloc failed");
-                if (!Flag_ClearEnv) {
-                    for (i = 0; i < envcount; i++) {
-                        newenv[i] = environ[i];
-                    }
-                }
-            }
-            newenv[envcount++] = *argv;
-            if (envcount >= newenv_count) {
-                while (newenv_count < envcount) {
-                    newenv_count <<= 1;
-                    if (newenv_count > MAXENV)
+            newenv[cur_env++] = *argv;
+            if (cur_env >= newenv_alloc) {
+                while (newenv_alloc <= cur_env) {
+                    newenv_alloc <<= 1;
+                    if (newenv_alloc > MAXENV)
                         err(1, "environment variable count > %lu\n", MAXENV);
                 }
                 if ((newenv =
-                     realloc(newenv, newenv_count * sizeof(char **))) == NULL)
+                     realloc(newenv, newenv_alloc * sizeof(char **))) == NULL)
                     err(EX_OSERR, "realloc failed");
             }
             argc--;
@@ -84,17 +87,19 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (argc < 1)
-        emit_help();
+    newenv[cur_env] = (char *) NULL;
+    environ = (char **) newenv;
 
-    if (newenv != NULL) {
-        newenv[envcount] = (char *) NULL;
-        environ = newenv;
+    if (argc < 1) {
+        for (i = 0; i < cur_env; i++) {
+            printf("%s\n", environ[i]);
+        }
+        exit(EXIT_SUCCESS);
     }
 
     execvp(*argv, argv);
     err(EX_OSERR, "could not exec '%s'", *argv);
-    return 1;                   /* NOTREACHED */
+    return 1;
 }
 
 void emit_help(void)

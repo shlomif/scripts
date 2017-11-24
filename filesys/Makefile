@@ -1,5 +1,5 @@
 CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fstack-protector-all -fPIE -pie -pipe
+CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
 
 # NOTE on linux need to add -lbsd
 # NOTE RHEL6 bsdlib borked, try compile on something else:
