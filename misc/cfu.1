@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd November 24 2017
 .Dt CFU 1
 .nh
 .Os
@@ -88,6 +88,11 @@ the system supports that.
 .Dl 8
 .Dl $ Ic cfu -b 32 'printf("%ld\en", sizeof(long))'
 .Dl 4
+.Pp
+Math is hard.
+.Pp
+.Dl $ Ic cfu 'float x=16777216;float y=16777217;printf(\&"%.f %.f\en\&",x,y)'
+.Dl 16777216 16777216
 .Pp
 .Sh AUTHOR
 .An Jeremy Mates
