@@ -16,23 +16,27 @@
 extern char **environ;
 
 int Flag_KeepEnv = 1;           /* -i (borrowed from env(1)) */
+int Flag_UnSafe;                /* -U (borrowed from perl(1)) */
 
 void emit_help(void);
 
 int main(int argc, char *argv[])
 {
     int ch;
-    char **ep, **newenv = NULL;
+    char **ep, **newenv = NULL, *equalpos;
     size_t i, cur_env = 0;
     /* because on my Mac there's about 50 env variables set by default
      * (Centos7 has ~20 and OpenBSD ~10) be sure to update the tests if
      * this number is changed */
     size_t newenv_alloc = 64;
 
-    while ((ch = getopt(argc, argv, "h?i")) != -1) {
+    while ((ch = getopt(argc, argv, "h?iU")) != -1) {
         switch (ch) {
         case 'i':
             Flag_KeepEnv = 0;
+            break;
+        case 'U':
+            Flag_UnSafe = 1;
             break;
         case 'h':
         case '?':
@@ -67,7 +71,9 @@ int main(int argc, char *argv[])
     }
 
     while (argc > 0) {
-        if (strchr(*argv, '=') != NULL) {
+        if ((equalpos = strchr(*argv, '=')) != NULL) {
+            if (equalpos == *argv && !Flag_UnSafe)
+                errx(1, "invalid environment variable '%s'", *argv);
             newenv[cur_env++] = *argv;
             if (cur_env >= newenv_alloc) {
                 while (newenv_alloc <= cur_env) {

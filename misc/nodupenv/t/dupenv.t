@@ -50,6 +50,16 @@ my @tests = (
         stdout =>
           [ qr/(?m)^DUPENVTEST=goodifseen$/, qr/(?m)^DUPENVTEST=alsogoodifseen$/, ],
     },
+    # so very wrong
+    {   args        => "-i =nameless $test_prog",
+        exit_status => 1,
+        stderr      => qr/invalid/,
+        stdout      => [qr/^$/],
+    },
+    # but allowed! with a flag
+    {   args   => "-U -i =nameless $test_prog",
+        stdout => [qr/^=nameless$/],
+    },
 );
 
 my $testcmd = Test::Cmd->new(
@@ -60,7 +70,7 @@ my $testcmd = Test::Cmd->new(
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
-    $test->{stderr}      //= '';
+    $test->{stderr}      //= qr/^$/;
 
     # Test::Cmd complicates matters by running things through the shell
     # which can in turn introduce envrionment variables so the stdout
@@ -76,7 +86,7 @@ for my $test (@tests) {
     for my $re ( @{ $test->{stdout} } ) {
         ok( $testcmd->stdout =~ m/$re/, "STDOUT $test_prog $test->{args} ($re)" );
     }
-    is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
+    ok( $testcmd->stderr =~ m/$test->{stderr}/, "STDERR $test_prog $test->{args}" );
 }
 
 # look for realloc bugs around the default newenv_alloc value starting
@@ -119,7 +129,7 @@ for my $test (@tests) {
     my $env_count = 60 - @default_env;
     my @envspam = map { sprintf "ENVSPAM=%02d", $_ } 1 .. $env_count;
 
-    for my $i ( 1 .. 7 ) {
+    for my $i ( 1 .. 5 ) {
         my $cur = $env_count + $i;
         push @envspam, sprintf "ENVSPAM=%02d", $cur;
 

@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd November 26 2017
 .Dt DUPENV 1
 .nh
 .Os
@@ -9,6 +9,7 @@
 .Bk -words
 .Nm
 .Op Fl i
+.Op Fl U
 .Op Ar env=val ..
 .Op Ar command Op Ar args ..
 .Ek
@@ -20,11 +21,16 @@ passed to the given
 or without that
 .Nm
 instead prints out the existing environment variables and exits.
-If the
-.Fl i
-flag is specified, the existing environment will be cleared. Otherwise,
-by default, the existing environment will be passed along along with any
-additional environment variables set on the command line.
+Options:
+.Bl -tag -width Ds
+.It Fl i
+Clears the environment. By default, the existing environment will be
+passed along along with any additional environment variables set on the
+command line.
+.It Fl U
+Allows the ability to set nameless environment variables.
+.El
+.Pp
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
@@ -48,6 +54,21 @@ may display or silently pass along the duplicate variables.
 Other programs may strip the duplicates (using the first, or the last
 instance), or may retain the duplicates (and use the first or last), or
 may fail horribly. Good luck!
+.Pp
+There is also the matter of nameless environment variables, which
+.Xr env 1
+may prevent the setting of (BSD, yes; Linux, no), but will happily
+display and pass along:
+.Pp
+.Dl $ Ic dupenv -i -U =zip =zop /usr/bin/env
+.Dl =zip
+.Dl =zop
+.Dl $ Ic dupenv -i -U =zip =zop /usr/bin/env /usr/bin/env
+.Dl =zip
+.Dl =zop
+.Dl $ 
+.Pp
+How various applications handle such nameless env is an open question.
 .Sh SEE ALSO
 .Xr Proc::FastSpawn 3pm ,
 .Xr env 1 ,

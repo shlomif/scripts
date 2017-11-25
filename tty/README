@@ -1,0 +1,3 @@
+the codes herein that use TIOCSTI will soon or now be unhappy on OpenBSD
+
+https://marc.info/?l=openbsd-tech&m=149866235528186
