@@ -26,7 +26,7 @@ depend:
 	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
 test: fdsplit findin getpof llcount twiddle
-	@prove
+	@prove --nocolor
 
 clean:
 	@-rm -f corrupt fdsplit fillerup findin getpof llcount permcheck stripeofeol twiddle unatomappend *.core 2>/dev/null

@@ -9,7 +9,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 3 + 3;
 use Test::UnixExit;
 
-my $test_prog = 'getpof';
+my $test_prog = './getpof';
 
 # From the Cwd(3pm) docs this should be compatible with the realpath(3)
 # that getpof uses when directories are give...

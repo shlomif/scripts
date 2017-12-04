@@ -10,7 +10,7 @@ use Test::Cmd;
 use Test::Most tests => 1 + 3 * 10 + 6;
 use Test::UnixExit;
 
-my $test_prog = 'findin';
+my $test_prog = './findin';
 
 my $prog_dir = getcwd;
 

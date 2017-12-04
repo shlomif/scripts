@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Wrapper to do CVS "update" or equivalent on working directories as
 # appropriate. Add -f "force" argument to do `cvs up -Ad` or equivalent.

@@ -8,7 +8,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 2;
 use Test::UnixExit;
 
-my $test_prog = 'here';
+my $test_prog = './here';
 
 # NOTE these will fail should the repo be moved outside its usual
 # checkout path under home

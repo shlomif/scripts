@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 3 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'cfu';
+my $test_prog = './cfu';
 
 # NOTE these must be quoted for the shell Test::Cmd runs things through
 my @tests = (
@@ -17,7 +17,8 @@ my @tests = (
     {   args   => "-E $$ " . quotemeta 'printf("PID %s\n", *++argv)',
         stdout => ["PID $$"],
     },
-    {   args   => qq{-g 'const char *pid="PID"' 'printf("%s $$", pid)'},
+    # globals must now be quoted as that way you can also write functions
+    {   args   => qq{-g 'const char *pid="PID";' 'printf("%s $$", pid)'},
         stdout => ["PID $$"],
     },
 );

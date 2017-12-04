@@ -8,7 +8,7 @@ use Test::Most tests => 4 * 3 + 3;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Test::UnixExit;
 
-my $test_prog = 'timeout';
+my $test_prog = './timeout';
 
 # TODO see discussion in snooze.t
 my $tolerance = 0.15;

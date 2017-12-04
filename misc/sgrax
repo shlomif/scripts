@@ -1,8 +1,0 @@
-#!/bin/sh
-if [ "$#" -lt 2 ]; then
-    echo >&2 "Usage: sgrax command arg1 [arg2 ..]"
-    exit 64
-fi
-COMMAND="$1"
-shift
-echo "$@" | "$COMMAND"

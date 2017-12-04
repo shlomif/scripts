@@ -9,7 +9,7 @@ use Test::Cmd;
 use Test::Most tests => 11;
 use Test::UnixExit;
 
-my $test_prog = 'ketchup';
+my $test_prog = './ketchup';
 
 my $test_dir = tempdir( 'ketchup.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1 );
 

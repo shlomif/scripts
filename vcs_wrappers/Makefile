@@ -2,4 +2,4 @@ depend:
 	cpanm --installdeps ..
 
 test:
-	@prove
+	@prove --nocolor

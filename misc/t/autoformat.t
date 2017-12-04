@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 2 + 0;
 use Test::UnixExit;
 
-my $test_prog = 'autoformat';
+my $test_prog = './autoformat';
 
 my @tests = (
     {   stdin  => "1. a\n1. b\n",

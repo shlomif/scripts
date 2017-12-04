@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Deletes *all* records for a host, and possibly associated PTR records,
 # if IP addresses are also supplied. Will *not* delete hosts that have

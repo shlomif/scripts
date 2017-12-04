@@ -1,0 +1,114 @@
+.Dd December  3 2017
+.Dt MINMDA 8
+.nh
+.Os
+.Sh NAME
+.Nm minmda
+.Nd writes mail to a maildir directory
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar mailbox-dir
+.Ar host-id
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a minimal mail delivery agent that writes what is supplied on
+standard input into a maildir format directory. Written mail is compared
+with an in-memory checksum to prevent delivery should something corrupt
+the input.
+Arguments:
+.Bl -tag -width Ds
+.It Ar mailbox-dir
+Path to the mailbox directory. Required.
+.Nm
+will create the final component of the
+.Pa mailbox-dir
+directory and under that the usual
+.Pa cur new tmp
+directories. A rather strict
+.Dv umask
+is used for all file creation.
+.It Ar host-id
+Unique hostname identifier. Required. Traditionally maildir
+takes this value from a
+.Xr gethostname 3
+call though
+.Nm
+is instead designed to be run by roaming clients that have no consistent
+nor trusted hostname. Therefore, the caller must supply this value.
+.El
+.Pp
+.Sh EXIT STATUS
+.Ex -std
+On error
+.Nm
+tries to exit with the
+.Dv EX_TEMPFAIL
+code in the hope that this causes the calling program to retry delivery
+in the future.
+.Sh EXAMPLES
+.Xr fetchmail 1
+configuration for a user who downloads their mail from an IMAP server
+might run along the lines of
+.Pp
+.Dl poll imap.example.com protocol IMAP
+.Dl \& \& \& \& ...
+.Dl \& \& \& \& mda "/home/user/libexec/minmda /home/user/mail/inbox mbpro"
+.Pp
+Or
+.Xr getmail 1
+configuration
+.Pp
+.Dl [destination]
+.Dl type = MDA_external
+.Dl path = /home/user/libexec/minmda
+.Dl arguments = (\&"/home/user/mail/inbox\&", \&"obsd\&")
+.Pp
+.Xr mutt 1
+configuration for the above may look like
+.Pp
+.Dl set folder=~/mail
+.Dl set spoolfile=+inbox/
+.Dl set mbox_type=maildir
+.Pp
+though this will not work on older versions of
+.Nm mutt .
+.Pp
+Sendmail can use
+.Nm
+as a mail delivery agent, though this at present must be setup per user,
+and may vary depending on
+.Xr smrsh 8
+and how other particulars (forward support, selinux) are
+configured. In the
+.Pa .forward
+file for the user, set
+.Pp
+.Dl \&"\&|/etc/smrsh/minmda /home/user/mail/inbox centos\&"
+.Pp
+with
+.Nm
+obviously installed (or symlinked) into the appropriate
+.Pa smrsh
+directory (which some vendors like to fiddle with but not document
+their changes) and then ensure that
+.Pa /home/user/mail
+exists and has appropriate permissions for the user, and that
+.Dv ForwardPath
+is set in
+.Pa sendmail.cf .
+This configuration may also be possible on any Mail Transport Agent that
+copies the Sendmail
+.Pa .forward
+syntax.
+.Sh SEE ALSO
+.Xr fetchmail 1 ,
+.Xr getmail 1 ,
+.Xr mail.local 8 ,
+.Xr mutt 1 ,
+.Xr sendmail 8 ,
+.Xr smrsh 8 ,
+.Xr sysexits 3
+.Sh AUTHOR
+.An Jeremy Mates

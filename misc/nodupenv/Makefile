@@ -11,7 +11,7 @@ redblack-bst.o: redblack-bst.c redblack-bst.h
 	$(CC) $(CFLAGS) -c redblack-bst.c -o redblack-bst.o 
 
 test: dupenv nodupenv
-	@prove
+	@prove --nocolor
 
 clean:
 	git clean --force -x

@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 1 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'stitch';
+my $test_prog = './stitch';
 
 my @tests = (
     {   args   => '--ofs=\\\\t t/stitch-a:2 t/stitch-b:1,3 -',

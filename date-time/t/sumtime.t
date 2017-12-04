@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 3 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'sumtime';
+my $test_prog = './sumtime';
 
 my @tests = (
     {   args   => '300',

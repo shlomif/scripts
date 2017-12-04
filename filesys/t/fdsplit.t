@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 14 + 3;
 use Test::UnixExit;
 
-my $test_prog = 'fdsplit';
+my $test_prog = './fdsplit';
 
 my @tests = (
     {   args   => 'ext foo.bar',

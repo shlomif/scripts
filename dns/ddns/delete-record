@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Delete an arbitrary DNS record.
 #

@@ -1,23 +1,22 @@
-Various C and Perl and TCL and shell scripts for unix.
+various C and Perl and TCL and shell scripts for unix
 
-There are sporadically unit tests, run
+there are sporadically unit tests, run
 
   make depend; make test
 
-or the individual tests then with `prove t/foo.t`. These require Perl,
-various Perl modules, and generally assume a Unix environment.
+these require Perl (or TCL) various Perl (or TCL) modules and generally
+assume a unix system
 
- * C -- mostly written for Mac OS X and OpenBSD; portability beyond that
-   is largely untested. Most of it requires C99 and likely various
-   modern *BSD system calls. (Where there is Linux support, compile
-   coaxing has been mostly done on Centos 7.)
+ * the C is mostly written for Mac OS X or OpenBSD; portability beyond
+   that is largely untested. most of it requires C99 and likely various
+   modern system calls. where there is reluctant Linux support, compile
+   coaxing has been mostly done on Centos 7
  * Perl verion 5.14 is assumed for the tests, though some of the scripts
-   will work on older versions. Perl::MinimumVersion is most handy here.
- * Shell code is generally tested under `sh` on OpenBSD and the Heirloom
-   Bourne Shell (jsh) on Mac OS X.
- * TCL lower than version 8.5 has not been tested for, and likely will
-   not work on account of the use of {*} and other such modern
-   constructs.
+   will work on older versions. Perl::MinimumVersion is most handy here
+ * TCL version 8.5 or higher is required for much of the TCL code
+ * the shell code is generally tested under /bin/sh on OpenBSD and the
+   Heirloom Bourne Shell (jsh) on Mac OS X. that's where the
+   /usr/local/bin/sh thing comes from; this helps avoid bash on the Mac
 
 https://github.com/thrig/zsh-compdef contains ZSH completions for some
-of the utilities herein.
+of the utilities herein

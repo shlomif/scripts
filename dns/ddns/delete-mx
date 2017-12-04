@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Deletes MX records for a host, all of them if none are specified. When
 # specifying MX, both the priority and the fully qualified MX hostname

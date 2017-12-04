@@ -4,16 +4,26 @@ use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 1 + 2;
+use Test::Most tests => 3 * 3 + 4;
 use Test::UnixExit;
 
-my $test_prog = 'sgrax';
+my $test_prog = './sgrax';
+
+# hopefully bigger than any typical buffer used by who knows what
+my $bfs = join '', map { chr( 65 + rand(26) ) } 1 .. ( 16411 + rand 1031 );
 
 my @tests = (
-    {   args   => "cat foo $$",
-        stdout => ["foo $$"],
+    {   args   => "cat foo $$ bar $$ zot $$ asdf $$ qwer $$ zxcv $$ x y z",
+        stdout => ["foo $$ bar $$ zot $$ asdf $$ qwer $$ zxcv $$ x y z"],
+    },
+    {   args   => "cat $bfs",
+        stdout => [$bfs],
+    },
+    {   args   => "cat foo $bfs bar $bfs",
+        stdout => ["foo $bfs bar $bfs"],
     },
 );
+
 my $testcmd = Test::Cmd->new(
     prog    => $test_prog,
     verbose => 0,
@@ -33,6 +43,10 @@ for my $test (@tests) {
 }
 
 # any extras
+
+$testcmd->run( args => '-h' );
+exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
+ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
 
 $testcmd->run( args => 'foo' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );

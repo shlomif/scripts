@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 3 + 3;
 use Test::UnixExit;
 
-my $test_prog = 'llcount';
+my $test_prog = './llcount';
 my $test_file = 't/llcount-input';
 
 open my $tfh, '<', $test_file or die "could not open '$test_file': $!\n";

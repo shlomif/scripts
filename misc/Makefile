@@ -5,6 +5,7 @@ bt: bt.c
 copycat: copycat.c
 muss-with-environ: muss-with-environ.c
 setsid: setsid.c
+sgrax: sgrax.c
 threading: threading.c
 
 depend:
@@ -18,8 +19,8 @@ register2hex32: register2hex32.asm
 
 waitornot: waitornot.c
 
-test: bt copycat waitornot
-	@prove
+test: bt copycat sgrax waitornot
+	@prove --nocolor
 
 clean:
 	@-rm -fr bt copycat muss-with-environ register2hex32 setsid threading waitornot *.core *.dSYM 2>/dev/null

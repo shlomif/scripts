@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 3 + 3;
 use Test::UnixExit;
 
-my $test_prog = 'date2epoch';
+my $test_prog = './date2epoch';
 
 $ENV{TZ} = 'UTC';
 

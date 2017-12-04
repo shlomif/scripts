@@ -9,7 +9,7 @@ use Test::Cmd;
 use Test::Most tests => 1 + 3 * 8 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'fbd';
+my $test_prog = './fbd';
 
 my $test_epoch     = 915148800;
 my $test_dir       = tempdir( "fbd-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );

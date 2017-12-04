@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 1 + 3;
 use Test::UnixExit;
 
-my $test_prog = 'copycat';
+my $test_prog = './copycat';
 
 # since may not have pbcopy/X11 available, fake things
 $ENV{CLIPBOARD} = 'cat';

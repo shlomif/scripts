@@ -8,7 +8,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 4 + 5;
 use Test::UnixExit;
 
-my $test_prog = 'kronsoon';
+my $test_prog = './kronsoon';
 
 $ENV{TZ} = 'US/Pacific';
 

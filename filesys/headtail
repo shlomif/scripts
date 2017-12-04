@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # This use-case comes up from time to time. Opposite of this is
 #   sed '1d;$d'

@@ -7,7 +7,7 @@ depend:
 	cpanm --installdeps ../..
 
 test: epochal
-	@prove
+	@prove --nocolor
 
 clean:
 	@-rm -f epochal *.core >/dev/null 2>&1

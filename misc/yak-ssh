@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Like yak, but for SSH_ORIGINAL_COMMAND via SSH sessions so that the
 # exact commands used over SSH sessions can be logged. Actual command is

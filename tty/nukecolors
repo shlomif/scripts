@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # the quest for color-free terminals continues; this I use on the
 # 'screen' and 'xterm' to try to keep colors out of the mix; tmux may

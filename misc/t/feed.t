@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 1 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'feed';
+my $test_prog = './feed';
 
 # TODO Expect perhaps to test that expect can arrgh too many layers
 my @tests = (

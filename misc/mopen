@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Opens a PDF, unless already open, in which case the PDF viewer is
 # signalled so the PDF is refreshed from disk. Used to either open or

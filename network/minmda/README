@@ -1,0 +1,80 @@
+minmda - a minimal mail delivery agent
+
+this is a minimal mail delivery agent, written to support delivery to
+maildir directories when typically being called by fetchmail-type
+programs. minmda will fail delivery (via the EX_TEMPFAIL exit code) if a
+checksum of what is written to disk fails, or if various other things go
+awry. in the maildir filename instead of parsing gethostname(3) on each
+delivery that value is instead taken from the second argument to this
+program. doing so avoids the random hostnames my laptops acquire as they
+move around, but does push that configuration need elsewhere.
+
+minmda depends on libsodium
+
+
+Installation (for a user)
+
+    make
+    mkdir ~/libexec
+    mv minmda ~/libexec
+
+see minmda(8) for fetchmail and getmail configuration examples
+
+
+Testing
+
+with perl and App::cpanminus installed and configured (and possibly also
+local::lib installed and configured)
+
+    make test-depend
+    make test
+
+
+Adapting and using this code
+
+ * it has been used on OpenBSD (6.x) and Mac OS X (10.11) portability
+   to other systems is mostly untested
+ * the default umask may be too conservative for cases where group
+   access is required to the mail files
+ * additional calls such as fcntl(F_FULLFSYNC) on Mac OS X may be
+   desirable to better ensure that the bits reach disk?
+ * there is no code to support delivery to a different user account (so
+   at present minmda must be used from a .forward file or otherwise
+   setup for each user account individually)
+ * if the filesystem performs checksums perhaps remove the checksum code
+   from this program to not duplicate that effort (and determine whether
+   this code catches the errors reported by that filesystem properly...)
+   (or if the checksums are slow and you don't care about the mail)
+ * various errors are sent to stderr; this may not be desirable
+   depending on what the caller does with stderr, or those logs might
+   instead be sent to syslog(3) (or the errors may not include enough
+   detail about the temporary mail file path, etc)
+ * the temporary delivery file may be unlinked if something fails. a
+   different design might try to keep those files (so at least their
+   contents can be read) though that would require monitoring to look
+   for deliveries stuck in the tmp dir
+ * no calls to free() are made on account of the program exiting
+   once its work is done. this will likely cause alarms from memory
+   leak checkers
+
+
+How minimal is minmda?
+
+    Agent                        files      blank    comment       code
+    -------------------------------------------------------------------
+    maildrop 2.9.2  C and C++      156       7084       2045      32972
+    minmda          C                3         45         31        216
+    procmail 3.22   C               30        367        435       8432
+    Sendmail 8.15.2 mail.local C     1        203        210       1530
+
+cloc v 1.72
+
+
+References
+
+ * ftp://ftp.sendmail.org/pub/sendmail/sendmail.8.15.2.tar.gz
+ * http://danluu.com/file-consistency/
+ * http://www.courier-mta.org/download.html#maildrop
+ * http://www.qmail.org/man/man5/maildir.html
+ * http://www.ring.gr.jp/archives/net/mail/procmail/procmail-3.22.tar.gz
+ * https://cr.yp.to/proto/maildir.html

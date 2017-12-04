@@ -8,7 +8,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 4 + 3;
 use Test::UnixExit;
 
-my $test_prog = 'epochal';
+my $test_prog = './epochal';
 
 $ENV{TZ} = 'UTC';
 

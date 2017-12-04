@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 
 # Never, ever, ever use /tmp/sym or any sort of shared directory. Ever. Well,
 # unless you like featuring your code in exploits or CVEs or the like. Instead,

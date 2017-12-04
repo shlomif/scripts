@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 2 + 0;
 use Test::UnixExit;
 
-my $test_prog = 'maxof';
+my $test_prog = './maxof';
 my @inputs    = qw(t/maxof-a t/maxof-b);
 
 my @tests = (

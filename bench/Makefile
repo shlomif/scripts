@@ -18,7 +18,7 @@ depend:
 	@expect -c "package require Tcl 8.5"
 
 test: repcharcount
-	@prove
+	@prove --nocolor
 
 clean:
 	@-rm -f lockalot malloc repcharcount usemem *.core 2>/dev/null

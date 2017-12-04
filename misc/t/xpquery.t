@@ -7,7 +7,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 6 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'xpquery';
+my $test_prog = './xpquery';
 
 my @tests = (
     {   args   => q{'//zoot/text()' t/xip.xml},

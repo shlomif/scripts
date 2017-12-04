@@ -9,7 +9,7 @@ use Test::Cmd;
 use Test::Most tests => 3 * 4 + 2;
 use Test::UnixExit;
 
-my $test_prog = 'glf';
+my $test_prog = './glf';
 
 my $test_epoch = 915148800;
 my $test_dir = tempdir( "glf-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );

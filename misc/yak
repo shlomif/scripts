@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Unix diagnostic tool that saves various invocation details such as arguments,
 # environment settings, and standard input to a temporary file for debugging.

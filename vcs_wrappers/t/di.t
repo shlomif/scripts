@@ -9,7 +9,7 @@ use Test::Cmd;
 use Test::Most tests => 16;
 use Test::UnixExit;
 
-my $test_prog = 'di';
+my $test_prog = './di';
 
 my $test_dir = tempdir( 'di.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1 );
 

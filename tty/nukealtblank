@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # So you read a man page and then are looking at some fine docs you want
 # to copy and run so you hit 'q' to exit the pager and then boom! The

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Deletes PTR for a given ip address. The correct reverse form will
 # be calculated by the code, so do not use the in-addr.arpa or

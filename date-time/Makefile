@@ -12,7 +12,7 @@ depend:
 	cpanm --installdeps ..
 
 test: date2epoch now timeout
-	@prove
+	@prove --nocolor
 
 clean:
 	@-rm c-delta-time date2epoch myat mycal now timeout 2>/dev/null

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # Local all nodes ping, mostly to help avoid having to read ping6(8) again.
 

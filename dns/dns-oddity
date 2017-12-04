@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/sh
 #
 # DNS oddities: check for *.foo wildcard records and whether there is a
 # DNAME record in foo.
