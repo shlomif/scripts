@@ -9,6 +9,7 @@ corrupt: corrupt.c
 fdsplit: fdsplit.c
 fillerup: fillerup.c
 findin: findin.c
+findup: findup.c
 getpof: getpof.c
 llcount: llcount.c
 permcheck: permcheck.c
@@ -29,4 +30,4 @@ test: fdsplit findin getpof llcount twiddle
 	@prove --nocolor
 
 clean:
-	@-rm -f corrupt fdsplit fillerup findin getpof llcount permcheck stripeofeol twiddle unatomappend *.core 2>/dev/null
+	@-rm -f corrupt fdsplit fillerup findin findup getpof llcount permcheck stripeofeol twiddle unatomappend *.core 2>/dev/null

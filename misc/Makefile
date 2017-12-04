@@ -23,4 +23,4 @@ test: bt copycat sgrax waitornot
 	@prove --nocolor
 
 clean:
-	@-rm -fr bt copycat muss-with-environ register2hex32 setsid threading waitornot *.core *.dSYM 2>/dev/null
+	@-rm -fr bt copycat muss-with-environ register2hex32 setsid sgrax threading waitornot *.core *.dSYM 2>/dev/null
