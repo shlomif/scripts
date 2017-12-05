@@ -1,0 +1,47 @@
+.Dd December  4 2017
+.Dt REPEAT-CHARACTER 1
+.nh
+.Os
+.Sh NAME
+.Nm repeat-character
+.Nd repeats a character to stdout
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar character
+.Ar length
+.Ar repeats
+.Ar buffer-style
+.Ek
+.Sh DESCRIPTION
+.Nm
+repeats the given character the given number of times using the given
+.Ar buffer-style .
+The buffer style should be one of
+.Ar none ,
+.Ar line ,
+or
+.Ar full .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic repeat-character x 8 3 line
+.Dl xxxxxxx
+.Dl xxxxxxx
+.Dl xxxxxxx
+.Dl $ Ic repeat-character x 8 3 none
+.Dl xxxxxxxxxxxxxxxxxxxxxxxx
+.Pp
+When testing buffers ensure that the count exceeds the buffer size; if
+this is unknown, use
+.Xr strace 1
+or similar to determine the
+.Xr read 2
+size or equivalent.
+.Sh SEE ALSO
+.Xr read 2 ,
+.Xr repcharcount 1 ,
+.Xr setvbuf 3 ,
+.Xr strace 1
+.Sh AUTHOR
+.An Jeremy Mates

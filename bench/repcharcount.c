@@ -1,6 +1,4 @@
-/* Counts sequences of the same character in standard input. Presumably
- * to test that output from `repeat-character` or the like has not
- * become corrupted, possibly while doing buffer-based tests. */
+/* repcharcount - counts repeats of the same character */
 
 #include <sys/types.h>
 
@@ -76,7 +74,7 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-void emit_help(void)
+inline void emit_help(void)
 {
     fprintf(stderr, "Usage: repcharcount [file|-]\n");
     exit(EX_USAGE);

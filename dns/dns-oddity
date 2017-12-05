@@ -1,38 +1,117 @@
-#!/usr/local/bin/sh
+#!/usr/bin/env perl
 #
-# DNS oddities: check for *.foo wildcard records and whether there is a
-# DNAME record in foo.
-#
-#  * Verisign made a mess with wildcard records back in '03
-#    https://www.icann.org/news/advisory-2003-09-19-en
-#  * DNAME records can be problematical if one does not know such a
-#    record exists and edits are being made to the zone with that record
-#    pointing everything elsewhere.
-#
-# One might also check that the TTL is neither too high nor too low
-# (github parent DNS DDOS), but the suitable Goldilocks value will vary
-# by site.
+# reports DNS oddities
 
-DOMAIN="$1"
-if [ -z "$DOMAIN" ]; then
-    echo >&2 "Usage: $0 domain-name"
-    exit 64
-fi
+use 5.14.0;
+use warnings;
 
-exit_status=0
+use Getopt::Long qw(GetOptions);
+use Net::DNS;
 
-DNAME="`dig +short -t DNAME -q "$DOMAIN"`"
-if [ -n "$DNAME" ]; then
-    echo "dname: $DNAME"
-    exit_status=1
-    # wildcard instead on what DNAME points to...
-    DOMAIN=$DNAME
-fi
+my ( @nameservers, @domains );
+my $Flag_Debug   = 0;
+my $Flag_Recurse = 1;
 
-WCDNS="`dig +short -t ANY -q "*.$DOMAIN"`"
-if [ -n "$WCDNS" ]; then
-    echo "wcdns: $WCDNS"
-    exit_status=1
-fi
+my %queries = (
+    dname    => { send => sub { $_[0],     'DNAME' }, reply => \&reply_dname, },
+    wildcard => { send => sub { "*.$_[0]", 'ANY' },   reply => \&reply_wildcard, },
+);
 
-exit "$exit_status"
+GetOptions(
+    'debug!'   => \$Flag_Debug,
+    'help|h|?' => \&emit_help,
+    'recurse!' => \$Flag_Recurse,
+) or exit 64;
+
+for my $arg (@ARGV) {
+    if ( $arg =~ m/^[@](.+)/ ) {
+        push @nameservers, $1;
+    } else {
+        push @domains, $arg;
+    }
+}
+
+for my $n (@nameservers) {
+    do_query( \@domains, $n );
+}
+do_query( \@domains ) if !@nameservers;
+
+sub do_query {
+    my ( $domains, $ns ) = @_;
+    my $res = Net::DNS::Resolver->new(
+        debug => $Flag_Debug,
+        defined $ns ? ( nameservers => [$ns] ) : (),
+        recurse => $Flag_Recurse,
+    );
+    for my $d (@$domains) {
+        for my $q ( keys %queries ) {
+            $queries{$q}->{reply}
+              ->( $res->send( $queries{$q}->{send}->($d) ), $res, $q, $d );
+        }
+    }
+}
+
+sub emit_help {
+    warn <<"END_USAGE";
+Usage: dns-oddity [options] [\@server] domain [domain-or-\@server ..]
+
+Looks for DNS oddities. Options:
+
+  --debug, --nodebug      controls Net::DNS debug flag. off by default
+  --recurse, --norecurse  controls recursion. enabled by default
+
+END_USAGE
+    exit 64;
+}
+
+sub reply_dname {
+    my ( $reply, $res, $queryname, $domain ) = @_;
+    my $result;
+    if ( !defined $reply ) {
+        $result = 'FAIL ' . $res->errorstring;
+    } else {
+        my $sep = '';
+        # should only be one of these. in theory.
+        for my $rr ( grep { $_->type eq 'DNAME' } $reply->answer ) {
+            $result .= $sep . $rr->target;
+            $sep = ' ';
+        }
+    }
+    say $domain . ' @' . $reply->answerfrom . ' DNAME ' . $result
+      if defined $result;
+}
+
+sub reply_print {
+    my ( $reply, $res, $queryname, $domain ) = @_;
+    if ( defined $reply ) {
+        $reply->print;
+    } else {
+        say $queryname . ' for ' . $domain . ' FAIL ' . $res->errorstring;
+    }
+}
+
+sub reply_wildcard {
+    my ( $reply, $res, $queryname, $domain ) = @_;
+    my $result;
+    if ( !defined $reply ) {
+        $result = 'FAIL ' . $res->errorstring;
+    } else {
+        my $sep = '';
+        for my $rr ( $reply->answer ) {
+            my $type = $rr->type;
+            # otherwise see 'wildcard DNAME CNAME' in addition to the
+            # DNAME query results...
+            if ($type eq 'DNAME') {
+                undef $result;
+                last;
+            }
+            $result .= $sep . $type;
+            $sep = ' ';
+            if ( $type =~ m/^A|AAAA$/ ) {
+                $result .= $sep . $rr->address;
+            }
+        }
+    }
+    say $domain . ' @' . $reply->answerfrom . ' wildcard ' . $result
+      if defined $result;
+}

@@ -31,13 +31,13 @@ void gen_filenames(const char *dir, const char *hostid, char **tmp, char **new)
 #endif
 
     if (asprintf
-        (tmp, "%s/tmp/%ld.%d%x%d.%s", dir, (long) now.tv_sec, (int) now.tv_usec,
+        (tmp, "%s/tmp/%ld.%d_%x_%d.%s", dir, (long) now.tv_sec, (int) now.tv_usec,
          rand, pid, hostid) < 0)
         err(MEXIT_STATUS, "asprintf failed");
     if (strnlen(*tmp, PATH_MAX) == PATH_MAX)
         err(MEXIT_STATUS, "mailbox path exceeds PATH_MAX");
     if (asprintf
-        (new, "%s/new/%ld.%d%x%d.%s", dir, (long) now.tv_sec, (int) now.tv_usec,
+        (new, "%s/new/%ld.%d_%x_%d.%s", dir, (long) now.tv_sec, (int) now.tv_usec,
          rand, pid, hostid) < 0)
         err(MEXIT_STATUS, "asprintf failed");
 }

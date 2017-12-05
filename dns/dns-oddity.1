@@ -1,0 +1,68 @@
+.Dd December  4 2017
+.Dt DNS-ODDITY 1
+.nh
+.Os
+.Sh NAME
+.Nm dns-oddity
+.Nd reports DNS oddities
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar --norecurse
+.Op Ar @server
+.Ar domain
+.Op Ar @server-or-domain ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+looks for wildcard DNS entries (made famous by Verisign in 2003) or
+DNAME zone records (as nobody knows about these and I learned about them
+the hard way). Multiple servers can be queried, otherwise a default
+nameserver is used.
+Options:
+.Bl -tag -width Ds
+.It Ar --debug
+Enable
+.Xr Net::DNS 3pm
+debugging. Off by default.
+.It Ar --recurse
+Perform recursive queries. This is the default. Negate via
+.Ar --norecurse .
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+With the zone file
+.Pp
+.Dl $ORIGIN \&.
+.Dl $TTL 86400
+.Dl example.org IN SOA ns.example.org. root.example.org. (
+.Dl ; YYYYMMDDNN
+.Dl \& \& 2017120401
+.Dl \& \& 1800 900 3600000 86400
+.Dl )
+.Dl \& \& \& \& \& \& \& \& \& \& \& \& NS ns.example.org.
+.Dl \& \& \& \& \& \& \& \& \& \& \& \& A 192.168.99.2
+.Dl $ORIGIN example.org.
+.Dl ns \& \& \& \& \& \& \& \& \& A 192.168.99.2
+.Dl alias \& \& \& \& \& \& DNAME foo.example.org.
+.Dl foo.foo \& \& \& \& A 192.0.2.42
+.Dl *.wild \& \& \& \& \& A 192.0.2.64
+.Pp
+a query should show
+.Pp
+.Dl $ Ic dns-oddity @192.168.99.2 alias.example.org wild.example.org
+.Dl alias.example.org @192.168.99.2 DNAME foo.example.org
+.Dl wild.example.org @192.168.99.2 wildcard A 192.0.2.64
+.Sh SEE ALSO
+.Xr dig 1 ,
+.Xr host 1 ,
+.Xr Net::DNS 3pm
+.Bl -tag -width Ds
+.It DNAME Redirection in the DNS
+https://tools.ietf.org/html/rfc6672
+.It VeriSign's Deployment of DNS Wildcard Service
+https://www.icann.org/news/advisory-2003-09-19-en
+.El
+.Sh AUTHOR
+.An Jeremy Mates

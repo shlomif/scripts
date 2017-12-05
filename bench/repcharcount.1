@@ -1,0 +1,30 @@
+.Dd December  4 2017
+.Dt REPCHARCOUNT 1
+.nh
+.Os
+.Sh NAME
+.Nm repcharcount
+.Nd counts repeated character sequences in input
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar file|-
+.Ek
+.Sh DESCRIPTION
+.Nm
+counts repeated character sequences in the input file or from standard
+input. A typical use would be to confirm that the sequences are of an
+expected length, for example to confirm that buffers have not become
+corrupted.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic echo -n aaaabbaa \&| repcharcount
+.Dl 4 a
+.Dl 2 b
+.Dl 2 a
+.Dl $ 
+.Sh SEE ALSO
+.Xr repeat-character 1
+.Sh AUTHOR
+.An Jeremy Mates

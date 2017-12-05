@@ -1,0 +1,2 @@
+depend:
+	cpanm --installdeps .
