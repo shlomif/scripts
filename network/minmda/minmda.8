@@ -1,4 +1,4 @@
-.Dd December  3 2017
+.Dd December  5 2017
 .Dt MINMDA 8
 .nh
 .Os
@@ -48,22 +48,18 @@ tries to exit with the
 code in the hope that this causes the calling program to retry delivery
 in the future.
 .Sh EXAMPLES
-.Xr fetchmail 1
+.Xr fdm 1
 configuration for a user who downloads their mail from an IMAP server
 might run along the lines of
 .Pp
-.Dl poll imap.example.com protocol IMAP
-.Dl \& \& \& \& ...
-.Dl \& \& \& \& mda "/home/user/libexec/minmda /home/user/mail/inbox mbpro"
-.Pp
-Or
-.Xr getmail 1
-configuration
-.Pp
-.Dl [destination]
-.Dl type = MDA_external
-.Dl path = /home/user/libexec/minmda
-.Dl arguments = (\&"/home/user/mail/inbox\&", \&"obsd\&")
+.Dl action \&"inbox\&" pipe \&"/path/to/minmda /home/user/mail/inbox obsd\&"
+.Dl \&
+.Dl account \&"gmail\&" imaps
+.Dl \& \& \& \& server \&"imap.gmail.com\&"
+.Dl \& \& \& \& user \&"FIXME\&" pass \&"Hunter2\&"
+.Dl \& \& \& \& folders { \&"INBOX\&" \&"[Gmail]/Spam\&" } new-only
+.Dl \&
+.Dl match all action \&"inbox\&"
 .Pp
 .Xr mutt 1
 configuration for the above may look like
@@ -103,8 +99,7 @@ copies the Sendmail
 .Pa .forward
 syntax.
 .Sh SEE ALSO
-.Xr fetchmail 1 ,
-.Xr getmail 1 ,
+.Xr fdm 1 ,
 .Xr mail.local 8 ,
 .Xr mutt 1 ,
 .Xr sendmail 8 ,

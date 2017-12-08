@@ -39,17 +39,15 @@ extern int optind, opterr, optopt;
 void emit_help(void);
 void emit_unparsable(const char *str, const int idx, const char *err_str);
 
-bool Flag_Forward = true;
-bool Flag_Reverse = false;
-bool Flag_Quiet = false;
+enum { METHOD_FORWARD, METHOD_REVERSE_ARPA, METHOD_REVERSE };
+enum { STATE_START, STATE_WANTHEX, STATE_WANTCOLON };
 
-enum {
-    STATE_START,
-    STATE_WANTHEX,
-    STATE_WANTCOLON,
-};
+int Flag_Method;                /* -f -r -R */
+bool Flag_Quiet = false;        /* -q */
 
 uint16_t addr[QUADS];
+
+char output[80];
 
 int main(int argc, char *argv[])
 {
@@ -65,22 +63,21 @@ int main(int argc, char *argv[])
     int ret = 0;
     struct in6_addr v6addr;
 
-    while ((ch = getopt(argc, argv, "fhrq")) != -1) {
+    while ((ch = getopt(argc, argv, "fhrRq")) != -1) {
         switch (ch) {
             /* last of these mentioned wins, in event shell aliases involved */
         case 'f':
-            Flag_Forward = true;
-            Flag_Reverse = false;
+            Flag_Method = METHOD_FORWARD;
             break;
         case 'r':
-            Flag_Reverse = true;
-            Flag_Forward = false;
+            Flag_Method = METHOD_REVERSE_ARPA;
             break;
-
+        case 'R':
+            Flag_Method = METHOD_REVERSE;
+            break;
         case 'q':
             Flag_Quiet = true;
             break;
-
         case 'h':
         default:
             emit_help();
@@ -152,11 +149,9 @@ int main(int argc, char *argv[])
             *ap = '\0';
             break;
         }
-        /* netmask foo - TODO act on this in output */
+        /* (optional) netmask foo */
         if (*ap == '/') {
-            fprintf(stderr, "dbg slash\n");
             if ((ret = sscanf(ap, "/%3d", &netmask)) == 1) {
-                fprintf(stderr, "dbg nm %d\n", netmask);
                 if (netmask < 0 || netmask > 128)
                     emit_unparsable(*argv, input_offset + 1, "invalid netmask");
             } else {
@@ -202,29 +197,39 @@ int main(int argc, char *argv[])
     }
 
     /* emit address (using the inet_pton() parsed results) */
-    if (Flag_Forward) {
+    ap = output;
+    if (Flag_Method == METHOD_FORWARD) {
         for (int i = 0; i < S6ADDR_MAX; i++) {
-            printf("%02x", v6addr.s6_addr[i]);
+            sprintf(ap, "%02x", v6addr.s6_addr[i]);
+            ap += 2;
             if (i < S6ADDR_MAX - 1 && i % 2 == 1)
-                putchar(':');
+                *ap++ = ':';
         }
     } else {
         /* reverse for DNS is slightly trickier */
         for (int i = S6ADDR_MAX - 1; i >= 0; i--) {
             for (int j = 0; j < 2; j++) {
-                printf("%1x.", v6addr.s6_addr[i] >> (j * 4) & 15);
+                sprintf(ap, "%1x.", v6addr.s6_addr[i] >> (j * 4) & 15);
+                ap += 2;
             }
         }
-        printf("ip6.arpa.");
+        if (Flag_Method == METHOD_REVERSE_ARPA) {
+            strncpy(ap, "ip6.arpa.", 9);
+            ap += 9;
+        } else {
+            /* wipe out the trailing dot */
+            ap--;
+        }
     }
-    putchar('\n');
+    *ap++ = '\n';
+    write(STDOUT_FILENO, output, (size_t) (ap - output));
 
     exit(EXIT_SUCCESS);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: [-f | -r] ipv6-address\n");
+    fprintf(stderr, "Usage: [-q] [-f | -r | -R] ipv6-address\n");
     exit(EX_USAGE);
 }
 

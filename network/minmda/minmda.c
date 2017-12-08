@@ -24,12 +24,12 @@ int main(int argc, char *argv[])
     /* arguments */
     char *cp, *maildir_path, *hostid;
     size_t len;
-    unsigned char *bp;
 
     /* output file foo */
     char *mfile_new = NULL;
     int mailfd, seen_something = 0;
     ssize_t amount;
+    unsigned char *bp;
 
     /* checksums via libsodium */
     unsigned char hash_before[crypto_hash_sha256_BYTES];

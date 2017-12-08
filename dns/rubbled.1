@@ -1,0 +1,50 @@
+.Dd December  7 2017
+.Dt RUBBLED 1
+.nh
+.Os
+.Sh NAME
+.Nm rubbled
+.Nd reports if hosts are on a blacklist
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar - | host-or-ip4addr Op ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+looks up the given hosts or IP addresses and reports whether those hosts
+are listed in any of a number of blacklists (RBL) used to block
+spammers. Hosts are read from standard input if none are given at the
+command line, or also if the single argument
+.Ar -
+is given.
+.Pp
+The possible responses for blacklisted IP addresses are:
+.Pp
+.Bl -column -offset Ds -compact
+.It
+CBL 127.0.0.2 blacklisted
+.It
+SBL 127.0.0.2 spammers
+.It
+CSS 127.0.0.3 snowshoe
+.It
+XBL 127.0.0.4-7 exploit
+.It
+PBL 127.0.0.10-11 non-MTA ip
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Pp
+.Dl $ Ic rubbled 192.0.2.42
+.Dl $ Ic rubbled 162.144.157.48
+.Dl 162.144.157.48 zen.spamhaus.org. CSS (snowshoe)
+.Dl $
+.Sh SEE ALSO
+.Xr dig 1 ,
+.Xr host 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+IPv6 is not yet searched for.

@@ -1,0 +1,23 @@
+#!/usr/local/bin/sh
+#
+# make the terminfo(5) "enter_standout_mode" (smso) use inverse codes
+# instead of anything else (such as italics)
+#
+# https://superuser.com/questions/566082/less-doesnt-highlight-search
+#
+# Usage:
+#   TERM=screen ./inverseforstandout
+#
+# or any other terminal definition to be fixed as necessary. to undo
+# these changes, remove the definitions in ~/.terminfo
+
+set -e
+
+TF=`mktemp`
+
+infocmp \
+| sed -e 's/smso=[^,]*/smso=\\E[7m/;s/rmso=[^,]*/rmso=\\E[27m/' \
+> "$TF"
+
+tic -o ~/.terminfo/ -- "$TF"
+rm -- "$TF"

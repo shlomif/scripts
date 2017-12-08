@@ -1,3 +1,6 @@
 the codes herein that use TIOCSTI will soon or now be unhappy on OpenBSD
 
 https://marc.info/?l=openbsd-tech&m=149866235528186
+
+other scripts are for mangling terminfo definitions; this may require
+understanding of terminfo(5) and other things

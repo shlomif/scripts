@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd December  7 2017
 .Dt V6ADDR 1
 .nh
 .Os
@@ -8,13 +8,12 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Op Fl fqr
+.Op Fl fqrR
 .Ar ipv6-address
 .Ek
 .Sh DESCRIPTION
 .Nm
 parses and prints the supplied IPv6 address.
-.Pp
 Options:
 .Bl -tag -width Ds
 .It Fl f
@@ -25,6 +24,11 @@ will suppress diagnostic output should the address fail to parse.
 prints the address in reverse DNS ip6.arpa form, one that is likely
 simpler to use than by having to parse the output from
 .Xr sipcalc 1 .
+.It Fl R
+identical to
+.Fl r
+only omits the trailing
+.Qq .ip6.arpa. .
 .El
 .Sh EXIT STATUS
 .Ex -std
@@ -35,6 +39,7 @@ simpler to use than by having to parse the output from
 .Dl $ Ic v6addr -r ::1
 .Sh SEE ALSO
 .Xr sipcalc 1 ,
-.Xr v4addr 1
+.Xr v4addr 1 ,
+.Xr v4in6addr 1
 .Sh AUTHOR
 .An Jeremy Mates

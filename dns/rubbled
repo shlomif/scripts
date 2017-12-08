@@ -6,10 +6,8 @@
 # TODO no error from getaddrinfo() if off the Internet, so instead use
 # Net::DNS for those lookups?
 
-use 5.10.0;
-use strict;
+use 5.14.0;
 use warnings;
-use feature qw(say state);
 
 use Socket qw(:addrinfo unpack_sockaddr_in inet_ntop AF_INET);
 
