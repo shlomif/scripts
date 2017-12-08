@@ -1,17 +1,7 @@
 /* A buggy service daemon. Presumably for testing. Also, libevent practice.
  *
- * In particular, this program offers options to run in the foreground
- * (by default daemonizing), segfault on demand (USR1), the ability to
- * create a PID file or FIFO, and (optionally and with a USR2) to
- * perhaps cleanup said files on exit. One can then test out e.g.
- * monit(1) or runit(8) to see how they cope with a specifically badly
- * behaved process.
  *
  * Options:
- *   -C      attempt to cleanup PID and FIFO at exit.
- *   -f fifo create and listen to given filename as FIFO.
- *   -I      do not daemonize; run in the foreground.
- *   -p file create PID file.
  *
  * Signals:
  *   USR1    causes a segfault (or bus error, depending).

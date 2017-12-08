@@ -1,22 +1,8 @@
 #!/usr/bin/env perl
 #
-# going crackers? a utility script that given particular amounts of
-# flour, water, and oil and a target flour percent (or also a target
-# water percent) adjusts the amounts until the whole mixture is at the
-# desired percentage(s). the exact need that caused this code was to
-# bake something based on a recipe that called for 330g flour 180g water
-# 50g oil starting instead with half of my sourdough starter, which is
-# rougly 120g of equal amounts flour and water
-#
-#                     (grams)  (desired percentages)
-#   $ ./flourwateroil 60 60 0  60% 31%
-#   60      60      0
-#   +52     +0      +17
-#   60%     31%     9%
-#
-# indicates that for 60% flour and 32% water 52g of flour should be
-# added, and also 17g of fat (which, as it turns out, is roughly one
-# tablespoon of ghee)
+# determines what amounts of flour, water, and oil to use in dough
+# mixtures given starting amounts (which may be zero) and a desired
+# percentage of flour or also optionally water percentage
 
 use 5.14.0;
 use warnings;
@@ -24,13 +10,11 @@ use Getopt::Long qw(GetOptions);
 use List::Util qw(sum0);
 use Scalar::Util qw(looks_like_number);
 
-# a significant p-value? why not (the output is meanwhile only in grams
-# as my scale is not more precise than that)
 my $Flag_Precision = 0.05;
 
 # not padding oil only happens when there are negative amounts that need
-# to be corrected; fat could be added with -n set if you've given flour
-# and water percents that do not sum up to 100
+# to be corrected; fat could still be added with -n set if you've given
+# flour and water percents that do not sum up to 100
 GetOptions(
     'noaddoil|n'    => \my $Flag_NoPadOil,
     'precision|p=f' => \$Flag_Precision,

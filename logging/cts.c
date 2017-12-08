@@ -1,12 +1,6 @@
-/*
- * Like ts(1) of moreutils fame, only in C for C practice, and only
+/* Like ts(1) of moreutils fame, only in C for C practice, and only
  * shows the delta between subsequent log lines (use ts(1) if such 
- * customization is necessary). The following should be roughly
- * equivalent:
- *
- *   ... | cts
- *   ... | ts -i '%.s'
- */
+ * customization is necessary). */
 
 #include <err.h>
 #include <getopt.h>
@@ -40,13 +34,13 @@ int main(int argc, char *argv[])
 
     /* Unbuffered output by default (ts(1) does this) to minimize risk of
      * log lossage should something crash. Use -l for line-buffered. */
-    setvbuf(stdout, (char *)NULL, _IONBF, (size_t) 0);
+    setvbuf(stdout, (char *) NULL, _IONBF, (size_t) 0);
 
     while ((ch = getopt(argc, argv, "h?l")) != -1) {
         switch (ch) {
 
         case 'l':
-            setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+            setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
             break;
 
         case 'h':

@@ -1,20 +1,16 @@
-/* glibc 2.7+ password hash generator, e.g. for the kickstart rootpw
- * line; alternatives include `pwdhash` included with 389-ds or such.
- * Should work on Centos 7 or equivalent; on RHEL6 the EPEL libsodium
- * package lacks sodium_mlock so that will need to be updated.
+/* glibc 2.7+ password hash generator e.g. for the kickstart rootpw
+ * line. RHEL6 or earlier will need to upgrade libsodium to a more
+ * modern version of that library
  *
  * Usage:
  *   yum -y groupinstall 'Development tools'
- *   yum -y install libsodium-devel man-pages
+ *   yum -y install epel-release man-pages
+ *   yum -y install libsodium-devel
  *   make mkpwhash
- *   (echo todofixme; echo todofixme) | ./mkpwhash
- *
- * Or to be super secret and to not echo the password:
- *   stty -echo; ./mkpwhash > h; stty echo
+ *   (echo Hunter2istooshort; echo Hunter2istooshort) | ./mkpwhash
  */
 
 #define _XOPEN_SOURCE 700
-#include <unistd.h>
 
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -23,25 +19,32 @@
 #include <err.h>
 #include <signal.h>
 #include <sysexits.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "salt.h"
 
-// FIXME adjust these as desired
+// TWEAK adjust these as desired
 #define MIN_PASS_LEN 8
 #define MAX_PASS_LEN 128
 
-/* For SHA512, see crypt(3). "$6$" + (up to) MAX_SALT + "$" + 86 */
+/* for SHA512, see crypt(3)  "$6$" + (up to) MAX_SALT + "$" + 86  */
 #define HASH_LEN_MINUS_SALT 90
+
+struct termios Orig_Termios;
+
+void restore_termios(void);
 
 int main(void)
 {
-    char *hash, *password, *pp, *salt, *verify;
+    char *hash, *password = NULL, *pp, *salt, *verify = NULL;
     size_t len;
     ssize_t plen, vlen;
+    struct termios noecho;
     unsigned int salt_len;
 
-    // limit shenanigans (a selinux policy to deny ptrace in advance
-    // might also be handy)
+    /* limit shenanigans (a selinux policy to deny ptrace might also
+     * be handy) */
     if (prctl(PR_SET_DUMPABLE, 0) == -1)
         err(EX_OSERR, "could not disable PR_SET_DUMPABLE");
 
@@ -59,13 +62,15 @@ int main(void)
     if (sigprocmask(SIG_BLOCK, &block, NULL) == -1)
         err(EX_OSERR, "sigprocmask() failed");
 
-    /* Turns out reading the password is right tricky in C, given that
-     * getpass(3) is obsolete, readpassphrase(3) of OpenBSD fame
-     * unavailable, and the termios stuff looks annoying.
-     *
-     * So, just read whatever from stdin for the time being. :/
-     */
-    verify = password = NULL;
+    /* OpenBSD meanwhile has readpassphrase(3), sigh */
+    if (tcgetattr(STDIN_FILENO, &Orig_Termios) != 0)
+        err(EX_IOERR, "tcgetattr failed");
+    atexit(restore_termios);
+    noecho = Orig_Termios;
+    noecho.c_lflag &= ~ECHO;
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &noecho) != 0)
+        err(EX_IOERR, "tcsetattr failed");
+
     if ((plen = getline(&password, &len, stdin)) < 0)
         err(EX_IOERR, "could not read password from stdin");
     sodium_mlock(password, MAX_PASS_LEN);
@@ -78,7 +83,7 @@ int main(void)
     if ((vlen = getline(&verify, &len, stdin)) < 0)
         err(EX_IOERR, "could not read password from stdin");
     sodium_mlock(verify, MAX_PASS_LEN);
-    // no-\n-before-EOF edge case
+    /* no-\n-before-EOF edge case */
     if (verify[vlen - 1] == '\n')
         vlen--;
 
@@ -90,10 +95,10 @@ int main(void)
 
     sodium_memzero(verify, vlen);
 
-    /* Additional sanity tests, on the assumption that the password must
+    /* additional sanity tests, on the assumption that the password must
      * be typeable and thus reasonably short, and confined to a subset
-     * of ASCII. In addition to the traditional gets(3), both Apple and
-     * Google have had vulnerabilities from "too long" passwords. */
+     * of ASCII. in addition to the traditional gets(3) goof both Apple
+     * and Google have had vulnerabilities from "too long" passwords */
     if (plen > MAX_PASS_LEN) {
         sodium_memzero(password, plen);
         errx(EX_DATAERR, "password is too long");
@@ -121,11 +126,16 @@ int main(void)
     sodium_memzero(salt, salt_len);
     //free(salt);
     if (!hash)
-        errx(EX_OSERR, "crypt() returned NULL??");
+        errx(EX_OSERR, "crypt() returned NULL ??");
 
     write(STDOUT_FILENO, hash, HASH_LEN_MINUS_SALT + salt_len);
     write(STDOUT_FILENO, "\n", 1);
     sodium_memzero(hash, HASH_LEN_MINUS_SALT + salt_len);
 
     exit(EXIT_SUCCESS);
+}
+
+void restore_termios(void)
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &Orig_Termios);
 }

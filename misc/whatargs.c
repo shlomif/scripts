@@ -1,7 +1,4 @@
-/* What arguments were passed? Similar to `echo ... | hexdump ...` but
- * without the vagaries of how echo(1) may or may not behave. Another
- * option is to run the process being debugged under strace(1) or the
- * like to see exactly what the arguments are. */
+/* whatargs - similar to `echo ... | hexdump -C` */
 
 #include <err.h>
 #include <ctype.h>
@@ -17,7 +14,8 @@ int main(int argc, char *argv[])
     char *c;
 
     argv++;
-    if (*argv == NULL) emit_help();
+    if (*argv == NULL)
+        emit_help();
 
     while (*argv != NULL) {
         c = *argv;
@@ -28,10 +26,8 @@ int main(int argc, char *argv[])
         putchar('\n');
 
         c = *argv;
-        while (*c != '\0') {
-            printf("%3x", *c);
-            c++;
-        }
+        while (*c != '\0')
+            printf("%3x", *c++ & 255);
         putchar('\n');
 
         argv++;
@@ -42,6 +38,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: whatargs [args ..]\n");
+    fprintf(stderr, "Usage: whatargs arg [..]\n");
     exit(EX_USAGE);
 }

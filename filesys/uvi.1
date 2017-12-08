@@ -1,0 +1,29 @@
+.Dd December  7 2017
+.Dt UVI 1
+.nh
+.Os
+.Sh NAME
+.Nm uvi
+.Nd edits files without updating the access time
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar file Op ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+edits the given file(s) and reverts the access and modification times on
+the files afterwards. Note that the directory that contains the file
+will not be changed by
+.Nm
+so if the editor creates temporary files the parent directory may change.
+.Sh ENVIRONMENT
+.Dv EDITOR
+is used to determine what editor to run, otherwise
+.Cm vi .
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr stat 1
+.Sh AUTHOR
+.An Jeremy Mates

@@ -1,0 +1,81 @@
+.Dd December  8 2017
+.Dt FLOURWATEROIL 1
+.nh
+.Os
+.Sh NAME
+.Nm flourwateroil
+.Nd amounts and ratios thereof
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl n
+.Op Fl p Ar precision
+.Ar flour-amount
+.Ar water-amount
+.Ar oil-amount
+.Ar flour-percent
+.Op Ar water-percent
+.Ek
+.Sh DESCRIPTION
+.Nm
+determines what amounts of flour, water, and oil to use in dough
+mixtures given starting amounts (which may be zero) and a desired
+percentage of flour or also optionally water percentage, at which point
+the code can figure out the oil percentage. Amounts are only adjusted
+upwards on account of the general difficulty of removing water or flour
+from a sourdough starter.
+Options:
+.Bl -tag -width -indent
+.It Fl n
+This flag prevents oil from being added should the amounts need to be
+adjusted upwards.
+.It Fl p Ar precision
+What precision to aim for when adjusting the amounts, an error of 0.05
+by default.
+.El
+.Pp
+The percentages used are
+.Em not
+those used by bread bakers, see
+.Sx CAVEATS .
+.Pp
+Values are rounded to the nearest integer (my scale is no more accurate).
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Given a sourdough starter consisting of 60 grams of flour and 60 grams
+of water, what amounts of flour, water, and oil must be added to reach a
+dough that is 60% flour and 31% water and thus 9% fat?
+.Pp
+.Dl $ Ic flourwateroil 60 60 0  60% 31%
+.Dl 60 \& \& \& \& \& 60 \& \& \& \& \& 0
+.Dl +56 \& \& \& \& +0 \& \& \& \& \& +17
+.Dl 60% \& \& \& \& 31% \& \& \& \& 9%
+.Dl 116 \& \& \& \& 60 \& \& \& \& \& 17
+.Dl $ 
+.Pp
+This shows that 56g of flour and 17g of fat must be added.
+.Pp
+Same sourdough starter, only this time without adding oil.
+.Pp
+.Dl $ Ic flourwateroil -n 60 60 0 59
+.Dl 60 \& \& \& \& \& 60 \& \& \& \& \& 0
+.Dl +26 \& \& \& \& +0 \& \& \& \& \& +0
+.Dl 59% \& \& \& \& 41% \& \& \& \& 0%
+.Dl 86 \& \& \& \& \& 60 \& \& \& \& \& 0
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+The percentages used are
+.Em not
+the same as in bread baking where 100% water would indicate equal
+weights of flour and water. Conversion is required; a 70% hydration
+bread recipe could be 100g of flour and 70g of water or
+.Pp
+.Dl $ Ic dc -e '2 k' -
+.Dl Ic 70 70 100 + / p
+.Dl .41
+.Pp
+for
+.Nm
+41% water and 59% flour.

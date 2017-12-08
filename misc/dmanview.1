@@ -1,0 +1,33 @@
+.Dd December  7 2017
+.Dt DMANVIEW 1
+.nh
+.Os
+.Sh NAME
+.Nm dmanview
+.Nd copy and preview a man page
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar file
+.Ek
+.Sh DESCRIPTION
+.Nm
+installs and previews a man page. Consult the source for the
+directories used; the
+.Dv MANPATH
+environment variable will need to agree with these locations.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+In
+.Xr vim 1
+one could run something like
+.Pp
+.Dl Ic :!dmanview %
+.Pp
+to preview that changes to a man page being written are correct.
+.Sh SEE ALSO
+.Xr man 1 ,
+.Xr mdoc 7
+.Sh AUTHOR
+.An Jeremy Mates

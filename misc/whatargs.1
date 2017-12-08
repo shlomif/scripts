@@ -1,0 +1,40 @@
+.Dd December  8 2017
+.Dt WHATARGS 1
+.nh
+.Os
+.Sh NAME
+.Nm whatargs
+.Nd shows what arguments were passed
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar arg Op ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+shows what arguments were passed one per line plus a subsequent line
+with a hex rendition of each character (byte). This is similar to
+.Pp
+.Dl $ Ic echo \&.\&.\&. \&| hexdump -C
+.Pp
+but lacks the unknowns of how some implementations echo(1) may or may
+not accept flags and may or may not interpret backslash character
+sequences mandated by XSI. As to why
+.Xr echo 1
+these days may no longer simply echo, well...
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic whatargs abc -e `perl -CS -E 'say \&"\eN\&{SNOWMAN}\&"'`
+.Dl \& \& a \& b \& c
+.Dl \& 61 62 63
+.Dl \& \& - \& e
+.Dl \& 2d 65
+.Dl \& \& \& ? \& \& ? \& \& ?
+.Dl \& e2 98 83
+.Dl $ 
+.Sh SEE ALSO
+.Xr echo 1 ,
+.Xr hexdump 1
+.Sh AUTHOR
+.An Jeremy Mates

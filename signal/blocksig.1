@@ -1,0 +1,37 @@
+.Dd December  8 2017
+.Dt BLOCKSIG 1
+.nh
+.Os
+.Sh NAME
+.Nm blocksig
+.Nd blocks signals for the subsequent process
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl s Ar signals
+.Ar command
+.Op Ar args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+blocks
+.Dv SIGINT
+and runs the subsequent
+.Ar command .
+Other signal numbers can be blocked by using the
+.Fl s
+flag.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic blocksig -s '1 2 15 30 31' \&.\&.\&.
+.Pp
+A useful use of this program is to mask C-c from something that
+otherwise exits the game with no means to restore.
+.Pp
+.Dl $ Ic blocksig /usr/games/trek
+.Sh SEE ALSO
+.Xr signal 3 ,
+.Xr trek 6
+.Sh AUTHOR
+.An Jeremy Mates

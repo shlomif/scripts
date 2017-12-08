@@ -1,19 +1,5 @@
-/*
- * Blocks signals then replaces self with the specified command. By
- * default, SIGINT is masked, though with the -s option a list of signal
- * numbers will be masked. Usage:
- *
- *   # these are the same (assuming SIGINT is 2)
- *   blocksig      sleep 30
- *   blocksig -s 2 sleep 30
- *
- *   blocksig -s '1 2 15 30 31' ...    # see signal.h for numbers
- *
- * A useful use of this program is mask C-c from something that
- * otherwise exits the game with no means to restore:
- *
- *   blocksig /usr/games/trek
- */
+/* blocks signals then replaces self with the specified command. only
+ * SIGINT is masked by default */
 
 #include <err.h>
 #include <getopt.h>

@@ -1,0 +1,30 @@
+.Dd December  7 2017
+.Dt CTS 1
+.nh
+.Os
+.Sh NAME
+.Nm cts
+.Nd a C version of
+.Xr ts 1
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl l
+.Ek
+.Sh DESCRIPTION
+.Nm
+shows the delta of time between subsequent log lines piped to it. Output
+is unbuffered by default though may be line-buffered with the
+.Fl l
+flag.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+The following should be roughly equivalent.
+.Pp
+.Dl $ Ic \&.\&.\&. \&| cts
+.Dl $ Ic \&.\&.\&. \&| ts -i '%.s'
+.Sh SEE ALSO
+.Xr ts 1
+.Sh AUTHOR
+.An Jeremy Mates

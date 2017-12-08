@@ -1,0 +1,42 @@
+.Dd December  7 2017
+.Dt BUGGYSERVD 1
+.nh
+.Os
+.Sh NAME
+.Nm buggyservd
+.Nd a daemon that crashes
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl CI
+.Op Fl f Ar fifo
+.Op Fl p Ar file
+.Ek
+.Sh DESCRIPTION
+.Nm
+offers options to run in the foreground (by default daemonizing),
+segfault on demand (via the USR1 signal), the ability to create a PID
+file or FIFO, and (optionally and with a USR2 signal) to perhaps cleanup
+said files on exit. Typically it should be used to test how init or
+monitoring systems handle unexpected crashes of daemons.
+Options:
+.Bl -tag -width -indent
+.It Fl C
+attempt to cleanup PID and FIFO at exit.
+.It Fl f Ar fifo
+create and listen to given filename as a FIFO.
+.It Fl I
+do not daemonize; run in the foreground.
+.It Fl p Ar file
+create a PID file.
+.El
+.Sh EXIT STATUS
+Typically non-zero, given how
+.Nm
+is used to provoke crashes.
+.Sh SEE ALSO
+.Xr monit 1 ,
+.Xr runit 8 ,
+.Xr systemd 1
+.Sh AUTHOR
+.An Jeremy Mates
