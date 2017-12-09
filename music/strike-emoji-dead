@@ -1,0 +1,73 @@
+#!/usr/bin/env perl
+#
+# acquire emoji-data.txt from the Unicode syndicate. use the regex built
+# from that file by this script to strip filter or mangle emoji
+#
+#   ./strike-emoji-dead < emoji-data.txt > regex
+
+use 5.14.0;
+use strict;
+
+use Unicode::UTF8 qw(encode_utf8);
+
+my $cpre = qr/[0-9a-fA-F]+/;
+
+my %tree;
+
+# find codepoint (or ranges of codepoints) in input and convert these
+# into a tree of choices for what bytes follow what
+while (readline) {
+    if (m/^($cpre)\.\.($cpre)/) {
+        my @nums = map { hex } $1, $2;
+        die "second number less than first at $ARGV:$." if $nums[1] < $nums[0];
+        next if $nums[0] < 128;
+        for my $num ( $nums[0] .. $nums[1] ) {
+            treeify( encode_utf8 chr($num) );
+        }
+    } elsif (m/^($cpre)/) {
+        my $num = hex $1;
+        next if $num < 128;
+        treeify( encode_utf8 chr($num) );
+    }
+}
+
+# convert tree to regex and also match trailing variation selectors
+say tree2re( \%tree ), "\n",
+  '(?:\xef\xb8[\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f])?';
+
+sub tree2re {
+    my ($ref) = @_;
+    # deepest level uses a [] character class, alternation otherwise
+    my $alternate = 1;
+    my $delim     = "|\n";
+    my @choices;
+    for my $key ( sort keys %$ref ) {
+        if ( keys %{ $ref->{$key} } ) {
+            push @choices, $key . tree2re( $ref->{$key} );
+        } else {
+            $alternate = 0;
+            $delim     = '';
+            push @choices, $key;
+        }
+    }
+    return
+        ( $alternate ? '(?:' : '[' )
+      . join( $delim, @choices )
+      . ( $alternate ? ')' : ']' );
+}
+
+sub treeify {
+    my ($utf8) = @_;
+    my $prev;
+    # regex is built on individual UTF-8 bytes (not characters) as that
+    # is what irssi filters are fed
+    for my $hex ( map { '\x' . $_ } unpack "(H2)*", $utf8 ) {
+        if ( defined $prev ) {
+            $prev->{$hex} = {} unless exists $prev->{$hex};
+            $prev = $prev->{$hex};
+        } else {
+            $tree{$hex} = {} unless exists $tree{$hex};
+            $prev = $tree{$hex};
+        }
+    }
+}

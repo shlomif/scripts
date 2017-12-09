@@ -25,3 +25,4 @@ requires 'Text::Autoformat';
 requires 'Text::ParseWords';
 requires 'Time::HiRes';
 requires 'URL::Search';
+requires 'Unicode::UTF8';
