@@ -6,7 +6,9 @@ $VERSION = "0.1";
 
 sub filter_crud {
     my ( $server, $data, @rest ) = @_;
+    # no colours and other such crud
     $data = Irssi::strip_codes($data);
+    # strike emoji dead
     $data =~ s{
 (?:\xc2[\xa9\xae]|
 \xe2(?:\x80[\xbc]|
