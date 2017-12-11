@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+#
+# query the terminal, print the response
+#
+#   $ termquery "\cE"
+#   e2 98 a0 ef b8 8f      ......
+#
+# indicates that some joker has set the ENQ response to something strange
+#
+# See also "XTerm Control Sequences"
+
+use 5.14.0;
+use warnings;
+
+use Term::ReadKey qw(ReadKey ReadMode);
+
+my $query = shift or die "Usage: termquery string\n";
+
+$query =~ s{
+    (  \\ (?:                                 # a perl escape sequence
+       [aefnrt]                             | # BELL, ESC, etc
+       c[A-Z]                               | # control char
+       o\{[0-7]+\}                          | # octal
+       0[0-7][0-7]                          | # more octal
+       N\{[^\}]+\}                          | # Unicode
+       x(?:[[:xdigit:]]{2}|\{[[:xdigit:]]+\}) # hex
+       )
+    )}{qq!"$1"!}eegx;
+
+for my $s (qw/INT TSTP USR1 USR2/) {
+    $SIG{$s} = "IGNORE";
+}
+
+open my $ttyfh, '>', '/dev/tty' or die "termquery: could not open tty: $!\n";
+ReadMode 5;
+
+my $response;
+
+eval {
+    local $SIG{ALRM} = sub { die "timeout\n" };
+    alarm 7;
+    print $ttyfh $query;
+    close $ttyfh;
+    while ( my $key = ReadKey 0.1 ) {
+        $response .= $key;
+    }
+    alarm 0;
+};
+
+ReadMode 0;
+
+if ( defined $response ) {
+    my $ascii_print = $response =~ s/[^\x20-\x7e]/./gr;
+    printf "%*vx\t$ascii_print\n", ' ', $response;
+}
+
+die if $@;
+
+exit defined $response ? 0 : 1;

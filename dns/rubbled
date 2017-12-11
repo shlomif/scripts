@@ -4,20 +4,38 @@
 # Input via command arguments or failing that standard input.
 #
 # TODO no error from getaddrinfo() if off the Internet, so instead use
-# Net::DNS for those lookups?
+# Net::DNS for those lookups? also TODO ipv6 support
 
 use 5.14.0;
 use warnings;
 
 use Socket qw(:addrinfo unpack_sockaddr_in inet_ntop AF_INET);
 
-# Culled from: http://cbl.abuseat.org/ http://www.spamhaus.org/zen/
+# Culled from: http://cbl.abuseat.org/ http://www.sorbs.net/
+# http://www.spamhaus.org/zen/
 my @RBLS = qw(
   cbl.abuseat.org.
+  dnsbl.sorbs.net.
   zen.spamhaus.org.
 );
 my %RBL_TYPES = (
     'cbl.abuseat.org. 127.0.0.2'   => 'blacklisted',
+    'dnsbl.sorbs.net. 127.0.0.2'   => 'http.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.3'   => 'socks.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.4'   => 'misc.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.5'   => 'smtp.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.6'   => 'new.spam.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.6'   => 'recent.spam.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.6'   => 'old.spam.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.6'   => 'spam.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.6'   => 'escalations.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.7'   => 'web.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.8'   => 'block.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.9'   => 'zombie.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.10'  => 'dul.dnsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.11'  => 'badconf.rhsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.12'  => 'nomail.rhsbl.sorbs.net',
+    'dnsbl.sorbs.net. 127.0.0.14'  => 'noserver.dnsbl.sorbs.net',
     'zen.spamhaus.org. 127.0.0.2'  => 'SBL (spammers)',
     'zen.spamhaus.org. 127.0.0.3'  => 'CSS (snowshoe)',
     'zen.spamhaus.org. 127.0.0.4'  => 'XBL (exploit)',

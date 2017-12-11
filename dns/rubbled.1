@@ -1,10 +1,10 @@
-.Dd December  7 2017
+.Dd December 10 2017
 .Dt RUBBLED 1
 .nh
 .Os
 .Sh NAME
 .Nm rubbled
-.Nd reports if hosts are on a blacklist
+.Nd reports if hosts are blacklisted
 .Sh SYNOPSIS
 .Bk -words
 .Nm
@@ -13,26 +13,11 @@
 .Sh DESCRIPTION
 .Nm
 looks up the given hosts or IP addresses and reports whether those hosts
-are listed in any of a number of blacklists (RBL) used to block
-spammers. Hosts are read from standard input if none are given at the
-command line, or also if the single argument
+are listed in any of several blacklists (RBL) used to block spammers.
+Hosts are read from standard input if none are given at the command
+line, or also if the single argument
 .Ar -
 is given.
-.Pp
-The possible responses for blacklisted IP addresses are:
-.Pp
-.Bl -column -offset Ds -compact
-.It
-CBL 127.0.0.2 blacklisted
-.It
-SBL 127.0.0.2 spammers
-.It
-CSS 127.0.0.3 snowshoe
-.It
-XBL 127.0.0.4-7 exploit
-.It
-PBL 127.0.0.10-11 non-MTA ip
-.El
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
