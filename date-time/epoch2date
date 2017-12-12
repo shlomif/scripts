@@ -15,7 +15,7 @@ GetOptions(
 emit_help() unless @ARGV;
 
 $Flag_Format //= '%Y-%m-%d %H:%M:%S %Z';
-$Flag_Format =~ s/(\\.)/qq!"$1"!/eeg;    # '\n' to "\n", essentially
+$Flag_Format =~ s/(\\[aefnrt])/qq!"$1"!/eeg;
 
 @ARGV = readline *STDIN if $ARGV[0] eq '-';
 

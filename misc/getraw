@@ -124,7 +124,7 @@ sub parse_spec {
         }
 
         # unescape backwhacked things (\r, etc.)
-        $keys =~ s/(\\.)/qq("$1")/eeg;
+        $keys =~ s/(\\[aefnrt])/qq("$1")/eeg;
 
         for my $k ( split //, $keys ) {
             die "getraw: specification for key '$k' already exists\n"
