@@ -1,0 +1,64 @@
+.Dd December 23 2017
+.Dt SEEK 1
+.nh
+.Os
+.Sh NAME
+.Nm seek
+.Nd emits contents of the input starting from a given offset
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl a
+.Op Fl m Ar max
+.Op Fl o Ar outfile|-
+.Ar offset
+.Op Ar file|-
+.Ek
+.Sh DESCRIPTION
+.Nm
+seeks to the given byte
+.Ar offset
+of the input file (standard input by default) and prints the remaining
+content unless limited by the
+.Fl m
+flag. It is an error to seek beyond the size of the file.
+Options:
+.Bl -tag -width -indent
+.It Fl a
+Append to 
+.Ar outfile
+instead of by default truncating it.
+.It Fl m Ar max
+Emit at most
+.Ar max
+bytes. It is not an error for
+.Nm
+to emit fewer bytes than this value should the input run out.
+.It Fl o Ar outfile|-
+Output to the given file instead of standard out. This by default will
+truncate the contents of
+.Ar outfile .
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+The conventional
+.Pp
+.Dl $ Ic dd bs=1 iseek=0x52 if=bla
+.Dl ...
+.Pp
+would be more or less equivalent to
+.Pp
+.Dl $ Ic seek 0x52 bla
+.Dl ...
+.Pp
+Decimal, hex, or octal offsets are accepted as detailed in
+.Xr strtoul 3 .
+.Sh SEE ALSO
+.Xr cat 1 ,
+.Xr dd 1 ,
+.Xr head 1 ,
+.Xr strtoul 3 ,
+.Xr tail 1
+.Sh AUTHOR
+.An Jeremy Mates

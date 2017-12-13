@@ -4,7 +4,7 @@ use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 3 + 2;
+use Test::Most tests => 3 * 3 + 5;
 use Test::UnixExit;
 
 my $test_prog = './cfu';
@@ -14,11 +14,12 @@ my @tests = (
     {   args   => qq{'puts("PID $$")'},
         stdout => ["PID $$"],
     },
-    {   args   => "-E $$ " . quotemeta 'printf("PID %s\n", *++argv)',
-        stdout => ["PID $$"],
+    {   args => qq{-E '$$ "a b" 42' }
+          . quotemeta 'printf("%s,%s,%s\n",*(argv+1),*(argv+2),*(argv+3))',
+        stdout => ["$$,a b,42"],
     },
     # globals must now be quoted as that way you can also write functions
-    {   args   => qq{-g 'const char *pid="PID";' 'printf("%s $$", pid)'},
+    {   args   => qq{-G 'const char *pid="PID";' 'printf("%s $$", pid)'},
         stdout => ["PID $$"],
     },
 );
@@ -38,8 +39,7 @@ for my $test (@tests) {
     );
 
     exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
-    # NOTE sort as cannot assume what order the files will be in
-    eq_or_diff( [ sort map { s/\s+$//r } split $/, $testcmd->stdout ],
+    eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }
@@ -49,3 +49,10 @@ for my $test (@tests) {
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
+
+# this output will vary wildly by platform but hopefully the string
+# should appear exactly somewhere
+$testcmd->run( args => qq{-S 'puts("grepfor$$")'} );
+exit_is( $?, 0 );
+ok( $testcmd->stdout, "grepfor$$" );
+is( $testcmd->stderr, "" );

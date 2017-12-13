@@ -1,5 +1,4 @@
-CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 # The _core bit is to hopefully get -levent_core as Centos 7 and OpenBSD
 # lack a libevent_core.pc file to bring that in (and the libevent book
@@ -13,3 +12,5 @@ cts: cts.c
 
 clean:
 	@-rm buggyservd cts *.core 2>/dev/null
+
+.PHONY: clean

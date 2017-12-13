@@ -92,7 +92,7 @@ my $message = "blah blah blah";
 
 {
     $testcmd->run(
-        args  => "$mailbox bla-$$",
+        args  => "'$mailbox' 'bla-$$'",
         chdir => $test_dir,
         stdin => $message,
     );
@@ -110,7 +110,7 @@ my $message = "blah blah blah";
 # like this)
 {
     $testcmd->run(
-        args  => "$mailbox strip-$$",
+        args  => "'$mailbox' 'strip-$$'",
         chdir => $test_dir,
         stdin => "\n\n\n" . $message,
     );
@@ -127,7 +127,7 @@ my $message = "blah blah blah";
 # ... however runs of blanks after a non-blank line must not be stripped
 {
     $testcmd->run(
-        args  => "$mailbox nostrip-$$",
+        args  => "'$mailbox' 'nostrip-$$'",
         chdir => $test_dir,
         stdin => $message . "\n\n\n",
     );
@@ -148,7 +148,7 @@ my $message = "blah blah blah";
     my $longmsg = do { local $/; readline $fh };
 
     $testcmd->run(
-        args  => "$mailbox cla-$$",
+        args  => "'$mailbox' 'cla-$$'",
         chdir => $test_dir,
         stdin => $longmsg,
     );
@@ -167,7 +167,7 @@ my $message = "blah blah blah";
     $testcmd->prog('./minmda-corrupts');
 
     $testcmd->run(
-        args  => "$mailbox bla-$$",
+        args  => "'$mailbox' 'bla-$$'",
         chdir => $test_dir,
         stdin => $message,
     );

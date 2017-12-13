@@ -1,0 +1,31 @@
+#!/usr/bin/env perl
+use Benchmark qw(cmpthese);
+my $short = "asdf";
+my @long  = ("asdf") x 99;
+cmpthese(
+    -1,
+    {   native => sub { qx(/bin/echo $short) },
+        rawasm => sub { qx(./echo $short) },
+    }
+);
+print "and more args\n";
+cmpthese(
+    -1,
+    {   native => sub { qx(/bin/echo @long) },
+        rawasm => sub { qx(./echo @long) },
+    }
+);
+print "and longer arg\n";
+cmpthese(
+    -1,
+    {   native => sub { qx(/bin/echo "@long") },
+        rawasm => sub { qx(./echo "@long") },
+    }
+);
+print "nada\n";
+cmpthese(
+    -1,
+    {   native => sub { qx(/bin/echo -n) },
+        rawasm => sub { qx(./echo -n) },
+    }
+);

@@ -1,3 +1,4 @@
+*.o
 endian
 getsockname
 ip6tomac

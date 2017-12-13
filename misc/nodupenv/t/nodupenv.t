@@ -21,12 +21,12 @@ my $testcmd = Test::Cmd->new(
 );
 
 # exec chain time
-$testcmd->run( args => "$env_prog -i $test_prog $env_prog" );
+$testcmd->run( args => "'$env_prog' -i $test_prog '$env_prog'" );
 is( $testcmd->stdout, "", "no stdout because -i clears env" );
 is( $testcmd->stderr, "", "no stderr on do-nothing test" );
 exit_is( $?, 0, "zero exit on do-nothing test" );
 
-$testcmd->run( args => "$env_prog -i FOO=bar $test_prog $env_prog" );
+$testcmd->run( args => "'$env_prog' -i FOO=bar '$test_prog' '$env_prog'" );
 is( $testcmd->stdout, "FOO=bar\n" );
 is( $testcmd->stderr, "" );
 exit_is( $?, 0, "zero exit on do-nothing test" );
@@ -34,7 +34,8 @@ exit_is( $?, 0, "zero exit on do-nothing test" );
 # env(1) by contrast (at least the version I have) will pass instead zot
 #   $ env -i FOO=bar FOO=zot env
 #   FOO=zot
-$testcmd->run( args => "$env_prog -i FOO=bar FOO=zot $test_prog $env_prog" );
+$testcmd->run(
+    args => "'$env_prog' -i FOO=bar FOO=zot '$test_prog' '$env_prog'" );
 is( $testcmd->stdout, "FOO=bar\n" );
 is( $testcmd->stderr, "" );
 exit_is( $?, 0, "zero exit on do-nothing test" );

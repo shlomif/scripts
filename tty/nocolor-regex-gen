@@ -1,0 +1,50 @@
+#!/usr/bin/env perl
+#
+# build a regular expression of things for nocolor(1) to nuke
+
+use 5.14.0;
+use warnings;
+
+use Regexp::Assemble;
+my $ra = Regexp::Assemble->new;
+
+# Regexp::Assemble is a bit screwy if you give it the CSI "\e[" sequence
+# so instead that's here "EX" and will need to be changed later
+#
+# faint, italics, blink, invisible, crossed out
+for my $i ( 2, 5, 7, 8, 9 ) { $ra->add("EX${i}m") }
+
+# "double underline"
+$ra->add("EX21m");
+
+# ANSI colors (no "8" and "9" is default so only 0-7 for 2nd number)
+for my $i ( 3, 4 ) {
+    for my $j ( 0 .. 7 ) { $ra->add("EX${i}${j}m") }
+}
+
+# 16-bit colors
+for my $i ( 9, 10 ) {
+    for my $j ( 0 .. 7 ) { $ra->add("EX${i}${j}m") }
+}
+
+# ISO-8613-3 controls
+for my $i ( 3, 4 ) {
+    # this is a bit broad, in theory if you use : instead of ; anything
+    # subsequent is supposed to only be a : not a ; (iTerm.app does not
+    # support the : form)
+    $ra->add("EX${i}8[:;]2[:;][0-9]{1,3}[;:][0-9]{1,3}[;:][0-9]{1,3}m");
+
+    # KLUGE the numeric range on this one for iTerm.app appears to be
+    # INT_MAX so match up to that number of digits (if some terminal
+    # reads 64 bits or more of data the range will need to go up)
+    $ra->add("EX${i}8[:;]5[:;][0-9]{1,10}m");
+}
+
+# gussy up for PCRE and present as a C-string
+my $s = $ra->re;
+
+$s =~ s/\?\^\:/?:/;
+$s =~ s/E/\\033/g;
+$s =~ s/X/\\\\[/g;
+
+print qq{"$s+"};

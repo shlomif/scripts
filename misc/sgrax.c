@@ -63,9 +63,7 @@ int main(int argc, char *argv[])
     close(fd[1]);
     if (waitpid(pid, &status, 0) < 0)
         err(EX_OSERR, "waitpid failed");
-    if (status != 0)
-        exit(1);
-    exit(EXIT_SUCCESS);
+    exit(status == 0 ? EXIT_SUCCESS : 1);
 }
 
 void emit_help(void)

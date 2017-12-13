@@ -46,10 +46,10 @@ is( $testcmd->stdout, "", "cached mtime of parent dir afflicts subfiles" )
   or die "abort remainder of tests due to File::Find issue\n";
 
 my @tests = (
-    {   args   => "-e $test_epoch $test_dir",
+    {   args   => "-e $test_epoch '$test_dir'",
         stdout => [ $test_files[0][0] ],
     },
-    {   args   => "-f $test_files[0][0] $test_dir",
+    {   args   => "-f $test_files[0][0] '$test_dir'",
         stdout => [ $test_files[0][0] ],
     },
     {   args   => "-e $test_epoch *",

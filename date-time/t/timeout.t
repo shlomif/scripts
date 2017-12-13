@@ -4,7 +4,7 @@ use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 4 tests per item in @tests plus any extras
-use Test::Most tests => 4 * 3 + 3;
+use Test::Most tests => 4 * 3 + 2;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Test::UnixExit;
 
@@ -59,5 +59,3 @@ for my $test (@tests) {
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-
-ok( !-e "$test_prog.core", "$test_prog did not produce core" );

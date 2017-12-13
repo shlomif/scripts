@@ -7,7 +7,7 @@ use File::Spec ();
 use File::Which;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 1 + 3 * 10 + 6;
+use Test::Most tests => 1 + 3 * 10 + 5;
 use Test::UnixExit;
 
 my $test_prog = './findin';
@@ -40,7 +40,7 @@ my @tests = (
     {   args   => 'ls',
         stdout => [$ls_path],
     },
-    {   args        => $nosuch,
+    {   args        => "'$nosuch'",
         stdout      => [],
         exit_status => 2,
     },
@@ -111,8 +111,6 @@ my $count;
 $count++ for $testcmd->stdout =~ m{.findin\.[1c]$}gm;
 is( $count, 2, "dot c and man page found" );
 ok( $testcmd->stderr =~ m/^$/, "no stderr" );
-
-ok( !-e "$test_prog.core", "$test_prog did not produce core" );
 
 sub random_filename {
     my @allowed = ( 'A' .. 'Z', 'a' .. 'z', 0 .. 9, '_' );

@@ -34,13 +34,10 @@
  * conflicting with some actual piece of hardware would be somewhat low.
  */
 
-#include <err.h>
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sysexits.h>
-#include <unistd.h>
 
 // https://github.com/thrig/goptfoo
 #include <goptfoo.h>

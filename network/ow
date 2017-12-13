@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Shortcuts and directory to URL mapping.
+# ow - shortcuts and directory to URL mapping
 
 use 5.14.0;
 use warnings;
@@ -15,6 +15,7 @@ use URI ();
 my $do_something = basename($0) eq 'wv' ? \&do_directory : \&do_shortcut;
 
 GetOptions(
+    'chdir|C:s'   => \my $Flag_Chdir,
     'directory|d' => sub { $do_something = \&do_directory },
     'help|h|?'    => \&emit_help,
     'list|l'      => \my $Flag_ListURL,
@@ -58,15 +59,19 @@ sub do_shortcut {
             visit( $shortcut->{ $ARGV[0] } );
         } elsif ( $ARGV[0] =~ m{^\w+://.} ) {
             # NOTE above regex won't match foo+bar:// style URL, but I
-            # don't much use those, and not with this script.
+            # don't much use those, and not with this script
             visit( $ARGV[0] );
-        } elsif ( $ARGV[0] =~ m{\.} ) {
-            # e.g. openbsd.org -> website
-            visit( 'http://' . $ARGV[0] );
+        } elsif ( $ARGV[0] =~ m{[./]} ) {
+            # possibly a "foo/bar" path or "example.org" hostname?
+            if ( -e $ARGV[0] ) {
+                visit( 'file://' . File::Spec->rel2abs( $ARGV[0] ) );
+            } else {
+                visit( 'http://' . $ARGV[0] );
+            }
         } elsif ( exists $shortcut->{'*'} ) {
             visit( fill_in( $shortcut->{'*'}, $ARGV[0] ) );
         } else {
-            die "not sure what to do with '$ARGV[0]'\n";
+            die "ow: not sure what to do with '$ARGV[0]'\n";
         }
     } else {
         my $key = shift @ARGV;
@@ -78,7 +83,7 @@ sub do_shortcut {
         if ( exists $shortcut->{$key} ) {
             visit( fill_in( $shortcut->{$key}, @ARGV ) );
         } else {
-            die "no such shortcut '$key'\n";
+            die "ow: no such shortcut '$key'\n";
         }
     }
     return 0;
@@ -124,7 +129,7 @@ sub fill_in {
 sub loadconfig {
     my ($file) = @_;
     my $hashref;
-    open my $fh, '<', $file or die "could not open '$file': $!\n";
+    open my $fh, '<', $file or die "ow: could not open '$file': $!\n";
     while ( readline $fh ) {
         chomp;
         next if /^\s*#/;
@@ -146,11 +151,16 @@ sub visit {
         return;
     }
 
-    # KLUGE Target Dictionary.app on Mac OS X - otherwise would need a
+    # KLUGE target Dictionary.app on Mac OS X - otherwise would need a
     # more complicated configuration that would map certain shortcuts to
     # certain methods on certain OS...
     $Browser_Command = ['open'] if $url =~ m{^dict://};
 
+    if ( defined $Flag_Chdir ) {
+        $Flag_Chdir = File::HomeDir->my_home unless length $Flag_Chdir;
+        chdir($Flag_Chdir) or die "ow: could not chdir '$Flag_Chdir': $!\n";
+    }
+
     system( @$Browser_Command, $url ) == 0
-      or die "error calling '@$Browser_Command': $?\n";
+      or die "ow: error calling '@$Browser_Command': $?\n";
 }

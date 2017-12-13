@@ -1,5 +1,4 @@
-CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 endian: endian.c
 getsockname: getsockname.c
@@ -8,8 +7,11 @@ ipvalid: ipvalid.c
 macutil: macutil.c
 portpester: portpester.c
 
-randmac: randmac.c macutil.c macutil.h
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` randmac.c macutil.c -o randmac
+macutil.o: macutil.c macutil.h
+	$(CC) -c $(CFLAGS) macutil.c -o macutil.o
+
+randmac: randmac.c macutil.o macutil.h
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` macutil.o randmac.c -o randmac
 
 v6addr: v6addr.c
 
@@ -19,10 +21,13 @@ v4in6addr: v4in6addr.c
 depend:
 	cpanm --installdeps ..
 	cpanm --installdeps .
+	pkg-config --exists goptfoo
 	@expect -c "package require Tcl 8.5;"
 
 test: v6addr
 	@prove --nocolor
 
 clean:
-	@-rm -f endian getsockname ip6tomac ipvalid macutil portpester randmac v4addr v4in6addr v6addr *.core 2>/dev/null
+	@-rm -f endian getsockname ip6tomac ipvalid macutil portpester randmac v4addr v4in6addr v6addr *.core *.o 2>/dev/null
+
+.PHONY: clean depend test

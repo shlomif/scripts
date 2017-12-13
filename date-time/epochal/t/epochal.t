@@ -5,7 +5,7 @@ use warnings;
 use POSIX qw(strftime);
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 4 + 3;
+use Test::Most tests => 3 * 4 + 2;
 use Test::UnixExit;
 
 my $test_prog = './epochal';
@@ -59,5 +59,3 @@ for my $test (@tests) {
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-
-ok( !-e "$test_prog.core", "$test_prog did not produce core" );

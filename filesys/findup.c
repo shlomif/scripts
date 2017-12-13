@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
             err(EX_OSERR, "realpath failed to resolve HOME directory");
     }
 
-    search_path = (argc == 2) ? argv[1] : getwd(NULL);
+    search_path = (argc == 2) ? argv[1] : getcwd(NULL, PATH_MAX);
     if ((search_path = realpath(search_path, NULL)) == NULL)
         err(EX_OSERR, "realpath failed to resolve search path");
 

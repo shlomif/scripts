@@ -1,3 +1,4 @@
+*.o
 corrupt
 fdsplit
 fillerup
@@ -5,7 +6,9 @@ findin
 findup
 getpof
 llcount
+nomfd
 permcheck
+seek
 stripeofeol
 twiddle
 unatomappend

@@ -13,13 +13,13 @@ my $test_prog = './sgrax';
 my $bfs = join '', map { chr( 65 + rand(26) ) } 1 .. ( 16411 + rand 1031 );
 
 my @tests = (
-    {   args   => "cat foo $$ bar $$ zot $$ asdf $$ qwer $$ zxcv $$ x y z",
+    {   args   => "cat foo '$$' bar '$$' zot '$$' asdf '$$' qwer '$$' zxcv '$$' x y z",
         stdout => ["foo $$ bar $$ zot $$ asdf $$ qwer $$ zxcv $$ x y z"],
     },
-    {   args   => "cat $bfs",
+    {   args   => "cat '$bfs'",
         stdout => [$bfs],
     },
-    {   args   => "cat foo $bfs bar $bfs",
+    {   args   => "cat foo '$bfs' bar '$bfs'",
         stdout => ["foo $bfs bar $bfs"],
     },
 );

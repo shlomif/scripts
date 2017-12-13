@@ -46,7 +46,7 @@ exit_is( $?, 1 );
 }
 
 # can we at least echo/cat something?
-$testcmd->run( args => "echo $$" );
+$testcmd->run( args => "echo '$$'" );
 
 # KLUGE strip out any CR from PTY
 my $stdout = $testcmd->stdout =~ tr/\r//dr;
@@ -58,7 +58,7 @@ exit_is( $?, 0 );
 {
     local $ENV{OUTPUT_PREFIX} = "";
 
-    $testcmd->run( args => "echo $$" );
+    $testcmd->run( args => "echo '$$'" );
     $stdout = $testcmd->stdout =~ tr/\r//dr;
     is( $stdout,          "\$ echo $$\n$$\n\$ \n" );
     is( $testcmd->stderr, "" );

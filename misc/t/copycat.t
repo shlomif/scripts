@@ -4,7 +4,7 @@ use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 1 + 3;
+use Test::Most tests => 3 * 1 + 2;
 use Test::UnixExit;
 
 my $test_prog = './copycat';
@@ -40,5 +40,3 @@ for my $test (@tests) {
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-
-ok( !-e "$test_prog.core", "$test_prog did not produce core" );

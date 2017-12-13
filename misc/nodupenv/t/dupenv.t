@@ -24,7 +24,7 @@ my @tests = (
     },
     # as should -i followed by something that prints the env (but
     # without any new env being set)
-    {   args   => "-i $test_prog",
+    {   args   => "-i '$test_prog'",
         env    => { DUPENVTEST => 'badifseen' },
         stdout => [qr/^$/],
     },
@@ -42,22 +42,22 @@ my @tests = (
     },
     # can we exec ourself? (vendor provided env(1) who knows how it
     # handles duplicate envs...)
-    {   args   => "-i DUPENVTEST=goodifseen $test_prog",
+    {   args   => "-i DUPENVTEST=goodifseen '$test_prog'",
         env    => { DUPENVTEST => 'badifseen' },
         stdout => [qr/(?m)^DUPENVTEST=goodifseen$/],
     },
-    {   args => "DUPENVTEST=goodifseen DUPENVTEST=alsogoodifseen $test_prog",
+    {   args => "DUPENVTEST=goodifseen DUPENVTEST=alsogoodifseen '$test_prog'",
         stdout =>
           [ qr/(?m)^DUPENVTEST=goodifseen$/, qr/(?m)^DUPENVTEST=alsogoodifseen$/, ],
     },
     # so very wrong
-    {   args        => "-i =nameless $test_prog",
+    {   args        => "-i =nameless '$test_prog'",
         exit_status => 1,
         stderr      => qr/invalid/,
         stdout      => [qr/^$/],
     },
     # but allowed! with a flag
-    {   args   => "-U -i =nameless $test_prog",
+    {   args   => "-U -i =nameless '$test_prog'",
         stdout => [qr/^=nameless$/],
     },
 );
@@ -100,7 +100,7 @@ for my $test (@tests) {
         my $cur = $env_count + $i;
         push @envspam, sprintf "ENVSPAM=%02d", $cur;
 
-        $testcmd->run( args => $test_prog . ' -i ' . join ' ', @envspam );
+        $testcmd->run( args => "'$test_prog' -i " . join ' ', @envspam );
         eq_or_diff( [ map { tr/\n//dr } $testcmd->stdout ],
             \@envspam, "-i envspam count $cur" );
 
@@ -133,7 +133,7 @@ for my $test (@tests) {
         my $cur = $env_count + $i;
         push @envspam, sprintf "ENVSPAM=%02d", $cur;
 
-        $testcmd->run( args => $test_prog . ' ' . join ' ', @envspam );
+        $testcmd->run( args => "'$test_prog' " . join ' ', @envspam );
         eq_or_diff(
             [ map { tr/\n//dr } $testcmd->stdout ],
             [ @default_env, @envspam ],

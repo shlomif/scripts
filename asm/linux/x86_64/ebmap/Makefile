@@ -10,3 +10,5 @@ clean:
 
 realclean: clean
 	@-rm -f *.o 2>/dev/null
+
+.PHONY: clean realclean

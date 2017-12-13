@@ -11,12 +11,12 @@ my $test_prog = './feed';
 
 # TODO Expect perhaps to test that expect can arrgh too many layers
 my @tests = (
-    {   args   => "- $^X -d -e 42",
-        env    => { FEEDRC => 't/feed-nosuchrc' },
+    {   args        => "- '$^X' -d -e 42",
+        env         => { FEEDRC => 't/feed-nosuchrc' },
         exit_status => 1,
-        stdin  => qq{print "should not run\n"\n},
-        stderr => qr/couldn't read file/,
-        stdout => [],
+        stdin       => qq{print "should not run\n"\n},
+        stderr      => qr/couldn't read file/,
+        stdout      => [],
     },
 );
 my $testcmd = Test::Cmd->new(

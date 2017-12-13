@@ -1,0 +1,3 @@
+requires 'Capture::Tiny';
+requires 'Test::Most';
+requires 'Test::UnixExit';

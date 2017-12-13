@@ -1,4 +1,4 @@
-.Dd November 24 2017
+.Dd December 29 2017
 .Dt CFU 1
 .nh
 .Os
@@ -8,40 +8,49 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
+.Op Fl dlS
 .Op Fl b Ar bits
 .Op Fl E Ar exeargs
 .Op Fl F Ar name
-.Op Fl g Ar globals
-.Op Cm --preserve
-.Op Cm --show-code
+.Op Fl G Ar globals
 .Ar c-statements|-
 .Ek
 .Sh DESCRIPTION
 .Nm
-compiles and runs C code via temporary files. The code will be taken
-from the command line arguments, or from standard input if the only
-argument is a hyphen.
+compiles and (maybe) runs C code. The code will be taken from the
+command line arguments, or from standard input if the only argument
+is a hyphen.
 Options:
 .Bl -tag -width Ds
 .It Cm --bits= Ns bits Op Fl b Ar bits
-Compile with the given number of bits, usually 32 or 64.
+Compile with the given number of bits, 32 or 64. Another way would be to
+pass the appropriate compiler arch flags via the
+.Cm CFLAGS
+environment variable.
+.It Cm --debug Ns Op = Ns debbuger
+Launch the compiled program under the given
+.Ar debugger
+or 
+.Cm gdb
+if no argument is given to this option.
 .It Cm --eargs= Ns exeargs Op Fl E Ar exeargs
-Arguments to pass to the compiled executable. May be specified more than
-once to pass multiple arguments.
+Arguments to pass to the compiled executable. These will be split as
+shellwords.
 .It Cm --fakname= Ns name Op Fl F Ar name
 Use
 .Ar name
 as the application name executed instead of
 .Nm .
-.It Cm --globals= Ns globals Op Fl g Ar globals
+.It Cm --globals= Ns globals Op Fl G Ar globals
 Globals for the C source code (defines, global variables, includes,
 functions). Many includes are set by default. May be specified more than
 once to pass multiple arguments.
-.It Cm --preserve Op Fl P
-Do not unlink the temporary source and executable files at exit. The
-paths to these files will be printed to standard output.
+.It Fl S
+Shows the compiled code (if it compiles) and exits.
 .It Cm --show-code Op Fl l
-Shows the code that would be compiled, then exits.
+Shows the code that would be compiled, then exits. This happens before
+.Fl S
+so takes priority over that.
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width Ds
@@ -50,29 +59,25 @@ Sets the name of the compiler to use,
 .Pa cc
 by default.
 .It Cm CFLAGS
-Arguments for the compiler. These will be shell word split. Flags are
-set by default; see the source code for details. Some
-.Cm CFLAGS
-may be set by other command line options.
+Arguments for the compiler. These will be shell word split. If unset, a
+default list of flags is set by
+.Nm .
+Various command line options also influence this list.
 .El
 .Sh EXIT STATUS
 .Ex -std
 .Nm
 tries to pass along the exit status of the compiler, and replaces itself
-with the compiled program if all goes well.
+with the compiled program (or debugger) if all goes well.
 .Sh EXAMPLES
-No trailing semicolon is required on individual arguments.
-.Pp
-.Dl $ Ic cfu 'puts("hi")' 'puts("there")'
-.Pp
-But is between multiple statements in a single argument.
+The last semicolon of a statement can be omitted.
 .Pp
 .Dl $ Ic cfu 'double x=0/0.; char *c=(char *)&x; c[2]=7; printf("%g\en",x)'
 .Pp
 A more complicated example that sets a define and passes an argument to
 the executable.
 .Pp
-.Dl $ Ic cfu -g '#define X 10' -E arg 'printf("%s %d\en", *++argv, X)'
+.Dl $ Ic cfu -G '#define X 10' -E arg 'printf("%s %d\en", *++argv, X)'
 .Pp
 The program name can be customized, if necessary.
 .Pp
@@ -81,8 +86,7 @@ The program name can be customized, if necessary.
 .Dl $ Ic cfu -F foo 'printf("%s\en", *argv)'
 .Dl foo
 .Pp
-Bits can be used for example to compile a 32- or 64-bit program, assuming
-the system supports that.
+Bits can be used to compile a 32- or 64-bit program, if supported.
 .Pp
 .Dl $ Ic cfu 'printf("%ld\en", sizeof(long))'
 .Dl 8
@@ -91,8 +95,28 @@ the system supports that.
 .Pp
 Math is hard.
 .Pp
-.Dl $ Ic cfu 'float x=16777216;float y=16777217;printf(\&"%.f %.f\en\&",x,y)'
+.Dl $ Ic cfu 'float x=16777216, y=16777217; printf(\&"%.f %.f\en\&",x,y)'
 .Dl 16777216 16777216
 .Pp
+It may be necessary to disable the default optimizations when studying
+code that otherwise does nothing; compare:
+.Pp
+.Dl $ Ic cfu -S 'int x = 0; x ^= 1; x ^= 1; x ^= 1;'
+.Dl ...
+.Dl $ Ic CFLAGS=-O0 cfu -S 'int x = 0; x ^= 1; x ^= 1; x ^= 1;'
+.Dl ...
+.Pp
+.Xr getpid 2
+provides a number that cannot be optimized away.
+.Sh SEE ALSO
+.Xr cc 1 ,
+.Xr ld 1
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+.Nm
+assumes
+.Nm gcc
+or possibly
+.Nm clang
+as far as compiler flags go and has not been tested beyond such.

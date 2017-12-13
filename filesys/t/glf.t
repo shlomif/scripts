@@ -35,7 +35,7 @@ my @tests = (
         chdir  => $test_dir,
         stdout => ['older'],
     },
-    {   args   => "'^' $test_dir",
+    {   args   => "'^' '$test_dir'",
         stdout => ['newer'],
     },
 );

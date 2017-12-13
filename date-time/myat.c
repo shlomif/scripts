@@ -1,10 +1,6 @@
-/*
- * Due to at(1) accepting a variety of curious date formats none of
- * which I otherwise use and reading the manual page for at(1) every
- * time I need to use it isn't fun. (Figuring out the strftime(3) magic
- * to avoid the 'garbled time' error from at(1) was annoying enough, but
- * less annoying than using some JavaScript app on Google.)
- */
+/* myat - because at(1) does not accept a date format I can remember,
+ * and this tool is less annoying and much faster than waiting for a
+ * resource hog browser to render some JavaScript infested calendar */
 
 #include <err.h>
 #include <getopt.h>
@@ -18,24 +14,23 @@
 #include <time.h>
 #include <unistd.h>
 
-/* Oh, the silly olden days with their middle-endian Month Day Year--no
- * wonder I cannot memorize this! */
+/* the strange middle-endian time format at(1) wants */
 #define AT_TIMEFORMAT "%H:%M %b %d %Y"
 #define TIME_STRING_LEN 20
+
+struct tm when;
+
+char *Flag_Chdir;               /* -C */
+
 char Time_String[TIME_STRING_LEN];
 
-char *Flag_Chdir;               // -C
-
 void emit_help(void);
-
-/* free zeroing of struct members (though creates mday gotcha (that is not
- * relevant here as %d must be supplied by caller, and if they want to set that
- * to 0, well, more power to them)) */
-struct tm when;
 
 int main(int argc, char *argv[])
 {
     int ch;
+    struct tm *now;
+    time_t epoch_now, epoch_when;
 
     while ((ch = getopt(argc, argv, "C:h?")) != -1) {
         switch (ch) {
@@ -55,24 +50,25 @@ int main(int argc, char *argv[])
     if (argc < 1 || argc > 2)
         emit_help();
 
-    // do not need not-POSIX time handling, so enforce that for this and
-    // the subsequent program
+    /* do not need not-POSIX time handling, so enforce that */
     if (!setlocale(LC_TIME, "POSIX"))
-        errx(EX_OSERR, "setlocale(3) POSIX failed??");
+        errx(EX_OSERR, "setlocale(3) POSIX failed ??");
     if (setenv("LC_TIME", "POSIX", 1) != 0)
-        err(EX_OSERR, "setenv LC_TIME failed??");
+        err(EX_OSERR, "setenv LC_TIME failed ??");
+
+    if (time(&epoch_now) == (time_t) - 1)
+        err(EX_OSERR, "time() failed ??");
+    if ((now = localtime(&epoch_now)) == NULL)
+        err(EX_OSERR, "localtime() failed ??");
 
     if (strptime(*argv, "%Y-%m-%d", &when)) {
+        /* could be a typo and will alter the date so reject */
+        if (when.tm_mday == 0)
+            errx(1, "will not accept 0 as day of month");
         if (argc == 2)
             if (!strptime(*++argv, "%H:%M", &when))
                 errx(EX_USAGE, "could not parse HH:MM");
     } else if (strptime(*argv, "%H:%M", &when)) {
-        time_t epoch;
-        struct tm *now;
-        if (time(&epoch) == (time_t) - 1)
-            err(EX_OSERR, "time() failed??");
-        if ((now = localtime(&epoch)) == NULL)
-            err(EX_OSERR, "localtime() failed??");
         when.tm_year = now->tm_year;
         when.tm_mon = now->tm_mon;
         when.tm_mday = now->tm_mday;
@@ -81,24 +77,31 @@ int main(int argc, char *argv[])
         errx(EX_USAGE, "need YYYY-MM-DD or HH:MM as first argument");
     }
 
+    /* OpenBSD at(1) at least checks for past dates; Mac OS X not so
+     * much. always check here as that's less expensive than exec and
+     * vendor at(1) maybe checking or not */
+    if ((epoch_when = mktime(&when)) == (time_t) - 1)
+        err(EX_OSERR, "mktime failed");
+    /* assume minute granularity on at(1) */
+    if (epoch_when - 60 < epoch_now)
+        errx(1, "cannot schedule jobs in the past");
+
     if (strftime(Time_String, TIME_STRING_LEN - 1, AT_TIMEFORMAT, &when) < 1)
-        errx(EX_OSERR, "strftime failed??");
+        errx(EX_OSERR, "strftime failed ??");
 
     if (Flag_Chdir) {
         if (chdir(Flag_Chdir) != 0)
-            err(EX_IOERR, "could not chdir '%s'", Flag_Chdir);
+            err(EX_IOERR, "could not chdir to '%s'", Flag_Chdir);
     }
 
-    execlp("at", "at", Time_String, (char *) 0);
-
-    // exec should not return if all proceeds according to plan
-    err(EX_OSERR, "could not exec??");
-    exit(EX_OSERR);
+    if (execlp("at", "at", Time_String, (char *) 0) == -1)
+        err(EX_OSERR, "exec failed");
+    exit(1);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: myat [-C dir] YYYY-MM-DD [HH:MM]\n");
-    fprintf(stderr, "       myat [-C dir] HH:MM      (assumes today)\n");
+    fprintf(stderr, "Usage: myat [-C dir] YYYY-MM-DD [HH:MM]\n"
+            "       myat [-C dir] HH:MM      (assumes today)\n");
     exit(EX_USAGE);
 }

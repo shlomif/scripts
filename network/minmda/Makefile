@@ -1,5 +1,4 @@
-CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 minmda: minmda.c minmda.h files.o Makefile
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs libsodium` files.o minmda.c -o minmda
@@ -12,7 +11,7 @@ files.o: files.c
 
 # this does not attempt the install as that will vary between platform
 depend:
-	@pkg-config --cflags --libs libsodium
+	pkg-config --exists libsodium
 
 test-depend:
 	cpanm --installdeps .
@@ -23,3 +22,5 @@ test: minmda minmda-corrupts
 
 clean:
 	git clean --force -x
+
+.PHONY: clean depend test test-depend

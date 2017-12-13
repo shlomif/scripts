@@ -1,0 +1,10 @@
+#!/usr/bin/env perl
+# more a microbenchmark as true and false probably aren't in any sort of
+# critical path...
+use Benchmark qw(cmpthese);
+print "false\n";
+cmpthese( -1,
+    { native => sub { qx(/usr/bin/false) }, rawasm => sub { qx(./false) }, } );
+print "true\n";
+cmpthese( -1,
+    { native => sub { qx(/usr/bin/true) }, rawasm => sub { qx(./true) }, } );

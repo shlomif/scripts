@@ -1,6 +1,4 @@
-/*
- * Generate with the GSL some Gaussian random variates. Because reasons.
- */
+/* generate with the GSL some Gaussian random variates */
 
 #include <err.h>
 #include <fcntl.h>
@@ -24,8 +22,8 @@
 #define DEFAULT_COUNT 10000UL
 #define DEFAULT_SIGMA 1.0
 
-unsigned long Flag_Count;       // -n
-float Flag_Sigma;               // -S
+unsigned long Flag_Count;       /* -n */
+float Flag_Sigma;               /* -S */
 
 void emit_help(void);
 
@@ -41,25 +39,22 @@ int main(int argc, char *argv[])
 #ifdef __OpenBSD__
     seed = arc4random();
 #else
-    // assume have a random device and that arc4random sucks on this platform
-    fd = open("/dev/random", O_RDONLY);
-    if (fd == -1)
-        err(EX_OSERR, "could not open /dev/random");
+    /* assume there is a random device otherwise */
+    if ((fd = open("/dev/urandom", O_RDONLY)) == -1)
+        err(EX_OSERR, "could not open /dev/urandom");
     if (read(fd, &seed, sizeof(seed)) != sizeof(seed))
-        err(EX_OSERR, "incomplete read() of /dev/random");
+        err(EX_OSERR, "incomplete read of /dev/urandom");
+    close(fd);
 #endif
 
     while ((ch = getopt(argc, argv, "h?n:S:")) != -1) {
         switch (ch) {
-
         case 'n':
             Flag_Count = flagtoul(ch, optarg, 1UL, ULONG_MAX);
             break;
-
         case 'S':
-            Flag_Sigma = flagtof(ch, optarg, 0.0, FLT_MAX);
+            Flag_Sigma = (float) flagtod(ch, optarg, 0.0, (double) FLT_MAX);
             break;
-
         case 'h':
         case '?':
         default:

@@ -1,5 +1,4 @@
-CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 epochal: epochal.c
 
@@ -11,3 +10,5 @@ test: epochal
 
 clean:
 	@-rm -f epochal *.core >/dev/null 2>&1
+
+.PHONY: clean depend test

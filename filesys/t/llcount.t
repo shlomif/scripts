@@ -4,7 +4,7 @@ use 5.14.0;
 use warnings;
 use Test::Cmd;
 # 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 3 + 3;
+use Test::Most tests => 3 * 3 + 2;
 use Test::UnixExit;
 
 my $test_prog = './llcount';
@@ -14,14 +14,14 @@ open my $tfh, '<', $test_file or die "could not open '$test_file': $!\n";
 my $test_lines = do { local $/; readline $tfh };
 
 my @tests = (
-    {   args   => $test_file,
+    {   args   => "'$test_file'",
         stdout => [
             '  1     0   16 The quick brown',
             '  2    16    4 fox',
             '  3    20    7 jumped'
         ],
     },
-    {   args   => "-x $test_file",
+    {   args   => "-x '$test_file'",
         stdout => [
             '  1     0   16 The quick brown',
             '  2  0x10    4 fox',
@@ -63,5 +63,3 @@ for my $test (@tests) {
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-
-ok( !-e "$test_prog.core", "$test_prog did not produce core" );

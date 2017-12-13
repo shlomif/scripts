@@ -1,8 +1,25 @@
+#include <sys/types.h>
+
+#include <fcntl.h>
+
 #include "macutil.h"
 
-/* NOTE arc4random() probably requires libbsd and -lbsd to compile on Linux,
- * though 'cc -lbsd -std=c99 ...' with libbsd from EPEL blows up on RHEL6,
- * so meh... */
+#ifdef __OpenBSD__
+#define somerandom arc4random
+#else
+int rndfd;
+uint32_t somerandom(void)
+{
+    uint32_t result;
+    if (rndfd == 0) {
+        if ((rndfd = open("/dev/urandom", O_RDONLY)) == -1)
+            err(EX_IOERR, "open /dev/urandom failed");
+    }
+    if (read(rndfd, &result, sizeof(uint32_t)) != sizeof(uint32_t))
+        err(EX_IOERR, "read from /dev/urandom failed");
+    return result;
+}
+#endif
 
 /* Converts a string "00:01:02:XX:XX:XX" into a hopefully appropriately
  * sized array of uint8_t (unsigned char) values. */
@@ -38,11 +55,11 @@ str2mac(const char *str, uint8_t * mac, size_t mac_size)
 	    }
 	} else if (c == 'X') {
 	    if (is_lsn) {
-		*(mac + i) = (uint8_t) ((arc4random() & NIBBLE_MASK) | *(mac + i) << NIBBLE);
+		*(mac + i) = (uint8_t) ((somerandom() & NIBBLE_MASK) | *(mac + i) << NIBBLE);
 		i++;
 		is_lsn = false;
 	    } else {
-		*(mac + i) = arc4random() & NIBBLE_MASK;
+		*(mac + i) = somerandom() & NIBBLE_MASK;
 		is_lsn = true;
 	    }
 	} else {

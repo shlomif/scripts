@@ -1,22 +1,24 @@
 #!/usr/bin/env perl
 #
-# Compiles and runs C code.
+# cfu - compiles and (maybe) runs C code
 
 use strict;
 use warnings;
-use File::Temp qw(tempfile);
+use File::Spec ();
+use File::Temp qw(tempdir);
 use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
 
-my $Flag_Bits = 64;
-
+# TODO --debug should also be -g but that was already taken by --global
+# so -g for --global has been removed until I forget that relation
 GetOptions(
-    'bits|b=i'     => \$Flag_Bits,
-    'eargs|E=s'    => \my @eargs,
+    'bits|b=i'     => \my $Flag_Bits,
+    'debug|d:s'    => \my $Flag_Debug,
+    'eargs|E=s'    => \my $Flag_ExecArgs,
     'fakename|F=s' => \my $Flag_Fake_Name,
-    'globals|g=s'  => \my @globals,
+    'globals|G=s'  => \my @globals,
     'help|h|?'     => \&emit_help,
-    'preserve|P'   => \my $Flag_Preserve,
+    'S'            => \my $Flag_Compile_Only,
     'show-code|l'  => \my $Flag_Show_Code,
 ) or exit 65;
 
@@ -29,13 +31,17 @@ my @CFLAGS = shellwords(
     : '-O2 -std=c99 -Wall -pedantic -fno-diagnostics-color -pipe -lm'
 );
 
-# no *.c extension on tempfile so must hint the language
-push @CFLAGS, qw/-x c/ if !grep { $_ eq '-x' } @CFLAGS;
+if ($Flag_Bits) {
+    if ( $Flag_Bits == 32 or $Flag_Bits == 64 ) {
+        push @CFLAGS, "-m$Flag_Bits";
+    } else {
+        die "unknown bit count '$Flag_Bits'\n";
+    }
+}
 
-if ( $Flag_Bits == 32 or $Flag_Bits == 64 ) {
-    push @CFLAGS, "-m$Flag_Bits";
-} else {
-    die "unknown bit count '$Flag_Bits'\n";
+my @debug_cmd = ('gdb');
+if ( $Flag_Debug and length $Flag_Debug ) {
+    @debug_cmd = shellwords($Flag_Debug);
 }
 
 for my $statement (@globals) {
@@ -44,9 +50,10 @@ for my $statement (@globals) {
 
 chomp( @ARGV = readline *STDIN ) if @ARGV == 1 and $ARGV[0] eq '-';
 
+$ARGV[-1] =~ s/$/;/ unless $ARGV[-1] =~ m/;\s*$/;
 for my $statement (@ARGV) {
     $statement = "\t" . $statement;
-    $statement .= ";\n" unless $statement =~ m/;\s*$/;
+    $statement .= "\n" unless $statement =~ m/\s$/;
 }
 
 my $c_template = <<"END_TMPL";
@@ -108,42 +115,59 @@ if ($Flag_Show_Code) {
     exit;
 }
 
-my ( $code_fh, $code_fname ) = mktemp('src');
-my ( undef,    $executable ) = mktemp('obj');
+my $work_dir  = getworkdir();
+my $exe_name  = defined $Flag_Fake_Name ? $Flag_Fake_Name : 'cfu';
+my $code_file = File::Spec->catfile( $work_dir, $exe_name . '.c' );
 
-print $code_fh $c_template;
-$code_fh->flush;
-$code_fh->sync;    # potential PORTABILITY issue
+open my $cfh, '>', $code_file or die "could not write '$code_file': $!\n";
+print $cfh $c_template;
+$cfh->flush;
+close($cfh);
 
-if ( system( $CC, @CFLAGS, '-o', $executable, $code_fname ) != 0 ) {
-    die "cfu: failed to exec '$CC': $?\n" if $? == -1;
-    exit $? >> 8;
+push @CFLAGS, '-g' if $Flag_Debug;
+
+if ($Flag_Compile_Only) {
+    push @CFLAGS, qw(-S -o -);
+    exec( $CC, @CFLAGS, $code_file )
+      or die "cfu: could not exec '$CC': $!\n";
 }
 
-unshift @eargs, $Flag_Fake_Name ? $Flag_Fake_Name : 'cfu';
-exec( {$executable} @eargs ) or die "could not exec '$executable': $!\n";
+my $exe_file = File::Spec->catfile( $work_dir, $exe_name );
+
+if ( system( $CC, @CFLAGS, '-o', $exe_file, $code_file ) != 0 ) {
+    die "cfu: could not exec '$CC': $?\n" if $? == -1;
+    die "cfu: could not compile '$code_file': $?\n";
+}
+
+if ($Flag_Debug) {
+    chdir $work_dir or die "could not cd to '$work_dir': $!\n";
+    exec( @debug_cmd, './' . $exe_name )
+      or die "cfu: could not exec '@debug_cmd': $!\n";
+} else {
+    exec( {$exe_file} ( $exe_name, shellwords($Flag_ExecArgs) ) )
+      or die "cfu: could not exec '$exe_file': $!\n";
+}
 
 sub emit_help {
     warn <<"END_USAGE";
+cfu - compiles and (maybe) runs C code
+
 Usage:
+  cfu [options] c-statements|-
 
-    cfu [-E exeargs] [-F name] [-g globals] [--preserve] [--show-code] \
-      c-statements|-
-
-Compiles and runs C code.
+Options:
+  -d [debugger]  Execs the compiled code under gdb (or given debugger)
+  -E exeargs     Arguments to give to the executable (but not to gdb)
+  -F name        Sets application name to this instead of 'cfu'
+  -G globals     Global statements (declarations, functions, ...)
+  -l             Show only the C code, then exit
+  -S             Show the compiled code, then exit
 
 END_USAGE
     exit 64;
 }
 
-sub mktemp { tempfile( "cfu-$_[0]-$$.XXXXXXXXXX", TMPDIR => 1, UNLINK => 0 ) }
-
-END {
-    if ( defined $code_fname ) {
-        if ($Flag_Preserve) {
-            print "$code_fname\n$executable\n";
-        } else {
-            unlink $code_fname, $executable;
-        }
-    }
-}
+# if all goes well this however will leave the dir behind on account of
+# the exec used to forge the $exe_name and then the cleanup code can't
+# ever run
+sub getworkdir { tempdir( "cfu.XXXXXXXXXX", TMPDIR => 1, CLEANUP => 1 ) }

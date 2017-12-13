@@ -1,4 +1,6 @@
+*.o
+nocolor
 rdcomm
-ttywrite
-ttytest
 torc
+ttytest
+ttywrite

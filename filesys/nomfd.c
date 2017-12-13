@@ -1,4 +1,4 @@
-/* Opens a lot of file descriptors */
+/* nomfd - opens a lot of file descriptors */
 
 #include <err.h>
 #include <fcntl.h>
@@ -54,8 +54,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Presumably this is where file I/O or other things in other processes
-     * are done, C-c or otherwise signal to abort this program. */
+    /* presumably this is where file I/O or other things in other
+     * processes are done, C-c or otherwise signal to abort */
     while (1)
         sleep(UINT_MAX);
 

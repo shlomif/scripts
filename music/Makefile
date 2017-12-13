@@ -1,5 +1,4 @@
-CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 miditimer: miditimer.c
 pedaltime: pedaltime.c
@@ -12,3 +11,5 @@ depend:
 
 clean:
 	@-rm -f miditimer pedaltime 2>/dev/null
+
+.PHONY: clean depend

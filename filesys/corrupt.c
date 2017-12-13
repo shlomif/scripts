@@ -1,10 +1,5 @@
-/* Randomly flips (close to) a given percentage of the bits the given file(s) */
-
-#ifdef __linux__
-#define _XOPEN_SOURCE 500
-typedef unsigned char u_char;
-#include <bsd/stdlib.h>
-#endif
+/* corrupt - randomly flips (close to) a given percentage of the bits
+ * in the given file(s) */
 
 #include <err.h>
 #include <fcntl.h>
@@ -22,8 +17,8 @@ typedef unsigned char u_char;
 
 #define BUFSIZE 8192
 
-// equation "percent / 100 = u / UINT32_MAX" solved for u
-//   perl -e 'for (1..100) { printf "%d, ", $_*4294967295/100 }'
+/* equation "percent / 100 = u / UINT32_MAX" solved for u
+ *   perl -e 'for (1..100) { printf "%d, ", $_*4294967295/100 }' */
 uint32_t percent2uint32[100] = {
     42949672, 85899345, 128849018, 171798691, 214748364, 257698037, 300647710,
     343597383, 386547056, 429496729, 472446402, 515396075, 558345748,
@@ -44,15 +39,32 @@ uint32_t percent2uint32[100] = {
     4209067949, 4252017622, 4294967295
 };
 
-// -i, -n flag names taken from cmp(1)
-off_t Flag_Skip;                // -i SKIP
-off_t Flag_Limit;               // -n LIMIT
-uint32_t Flag_Odds;             // -o odds
+/* -i, -n flag names taken from cmp(1) */
+off_t Flag_Skip;                /* -i SKIP */
+off_t Flag_Limit;               /* -n LIMIT */
+uint32_t Flag_Odds;             /* -o odds */
 
 char *buf;
 
 void corrupt_file(const char *filename);
 void emit_help(void);
+
+#ifdef __OpenBSD__
+#define somerandom arc4random
+#else
+int rndfd;
+uint32_t somerandom(void)
+{
+    uint32_t result;
+    if (rndfd == 0) {
+        if ((rndfd = open("/dev/urandom", O_RDONLY)) == -1)
+            err(EX_IOERR, "open /dev/urandom failed");
+    }
+    if (read(rndfd, &result, sizeof(uint32_t)) != sizeof(uint32_t))
+        err(EX_IOERR, "read from /dev/urandom failed");
+    return result;
+}
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -89,18 +101,13 @@ int main(int argc, char *argv[])
 
     while (*argv) {
         corrupt_file(*argv);
-/* PORTABILITY FreeBSD 11, Mac OS X 10.11, libbsd 0.6.0 on Centos7 all
- * have stir, while OpenBSD does not (that happens behind the scenes) */
-#ifndef __OpenBSD__
-        arc4random_stir();
-#endif
         argv++;
     }
 
     exit(EXIT_SUCCESS);
 }
 
-// not fully standalone: relies on the globals buf, Flag_*
+/* not fully standalone: relies on the globals buf, Flag_* */
 void corrupt_file(const char *filename)
 {
     int fd;
@@ -114,7 +121,7 @@ void corrupt_file(const char *filename)
         err(EX_IOERR, "could not open '%s'", filename);
     if ((filesize = lseek(fd, 0, SEEK_END)) == -1)
         err(EX_IOERR, "could not lseek");
-    // pread/pwrite used so the lseek to the end is irrelevant
+    /* pread/pwrite used so the lseek to the end is irrelevant */
     filepos = 0;
 
     if (Flag_Skip != 0) {
@@ -133,23 +140,23 @@ void corrupt_file(const char *filename)
             readsize = BUFSIZE;
         if ((readsize = pread(fd, buf, readsize, filepos)) == -1)
             err(EX_IOERR, "pread failed on '%s'", filename);
-        if (readsize == 0)      // EOF
+        if (readsize == 0)      /* EOF */
             break;
 
-        // corrupt buffer using 32-bit chunks
+        /* corrupt buffer using 32-bit chunks */
         bp = (uint32_t *) buf;
         steps = readsize / sizeof(uint32_t);
         while (steps--) {
-            if (arc4random() < Flag_Odds) {
-                *bp ^= arc4random();
+            if (somerandom() < Flag_Odds) {
+                *bp ^= somerandom();
                 buffer_modified = 1;
             }
             bp++;
         }
         // ... though not everything will line up on 32-bit boundaries ...
         if ((steps = readsize % sizeof(uint32_t)) != 0) {
-            if (arc4random() < Flag_Odds) {
-                randtail = arc4random();
+            if (somerandom() < Flag_Odds) {
+                randtail = somerandom();
                 while (steps--) {
                     buf[readsize - 1 - steps] = (randtail >> (steps * 8)) & 255;
                 }

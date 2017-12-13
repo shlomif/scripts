@@ -1,5 +1,4 @@
-CC?=gcc
-CFLAGS?=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 dupenv: dupenv.c
 	$(CC) $(CFLAGS) dupenv.c -o dupenv
@@ -15,3 +14,5 @@ test: dupenv nodupenv
 
 clean:
 	git clean --force -x
+
+.PHONY: clean test
