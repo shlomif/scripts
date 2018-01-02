@@ -14,7 +14,7 @@ udp-sender: udp-sender.o getopts.o
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` udp-sender.o getopts.o -o udp-sender
 
 udp-sink.o: udp-sink.c udpfling.h
-	$(CC) -c $(CFLAGS) udp-sink.c -o udp-sink
+	$(CC) -c $(CFLAGS) udp-sink.c -o udp-sink.o
 
 udp-sink: udp-sink.o getopts.o
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` udp-sink.o getopts.o -o udp-sink

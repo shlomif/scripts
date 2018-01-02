@@ -4,7 +4,7 @@ lockalot: lockalot.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` lockalot.c -o lockalot
 
 malloc: malloc.c
-	$(CC) -g $(CFLAGS) `pkg-config --cflags --libs goptfoo` -g malloc.c -o malloc
+	$(CC) $(CFLAGS) -g `pkg-config --cflags --libs goptfoo` -lpthread malloc.c -o malloc
 
 repcharcount: repcharcount.c
 	$(CC) -O2 $(CFLAGS) repcharcount.c -o repcharcount
