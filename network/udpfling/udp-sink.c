@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     hints.ai_flags = AI_PASSIVE;
 
     if ((status = getaddrinfo(NULL, Flag_Port, &hints, &servinfo)) != 0) {
-        err(EX_UNAVAILABLE, "getaddrinfo error: %s", gai_strerror(status));
+        errx(EX_UNAVAILABLE, "getaddrinfo error: %s", gai_strerror(status));
     }
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd =
@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
         errx(EX_IOERR, "could not bind to socket");
 
     freeaddrinfo(servinfo);
+
     addr_size = sizeof client_addr;
 
     if (Flag_Line_Buf)

@@ -54,6 +54,8 @@ int main(int argc, char *argv[])
     if (p == NULL)
         errx(EX_IOERR, "could not bind to socket");
 
+    freeaddrinfo(res);
+
     if (Flag_Line_Buf)
         setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
 

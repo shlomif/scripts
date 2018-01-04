@@ -1,0 +1,61 @@
+#!/usr/bin/env expect
+#
+# slow echo server, for when one needs to trickle data slowly to a
+# client (possibly to see if that client makes rash assumptions about
+# what a read buffer will contain)
+#
+# Usage:
+#   # listens everywhere at 7777, echos "echo\n", one second delay
+#   slow-echo-server   
+#
+#   # custom message, custom delay
+#   slow-echo-server '' 7777 "hello world" 5000
+#
+#   # when the global listen (that the above use) is no bueno
+#   slow-echo-server localhost ...
+
+package require Tcl 8.5
+
+set host [lindex $argv 0]
+set port [lindex $argv 1]
+set echo [lindex $argv 2]
+set wait [lindex $argv 3]
+
+if {$port eq ""} {
+    set port 7777
+}
+
+if {$host eq ""} {
+    set sockargs [list handling $port]
+} else {
+    set sockargs [list handling -myaddr $host $port]
+}
+
+if {$echo eq ""} {
+    set echo "echo\n"
+}
+
+if {$wait eq ""} {
+    set wait 1000
+}
+
+proc send_char {args} {
+    global wait
+    set args [lassign $args fh c]
+    puts -nonewline $fh $c
+    if {[llength $args] == 0} {
+        close $fh
+        return
+    }
+    after $wait send_char $fh $args
+}
+
+proc handling {fh host port} {
+    global wait echo
+    # NOTE this uses the "default system encoding", see chan(n)
+    chan configure $fh -buffering none
+    after $wait send_char $fh [split $echo ""]
+}
+
+socket -server {*}$sockargs
+vwait godot
