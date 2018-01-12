@@ -3,16 +3,6 @@
 # slow echo server, for when one needs to trickle data slowly to a
 # client (possibly to see if that client makes rash assumptions about
 # what a read buffer will contain)
-#
-# Usage:
-#   # listens everywhere at 7777, echos "echo\n", one second delay
-#   slow-echo-server   
-#
-#   # custom message, custom delay
-#   slow-echo-server '' 7777 "hello world" 5000
-#
-#   # when the global listen (that the above use) is no bueno
-#   slow-echo-server localhost ...
 
 package require Tcl 8.5
 
@@ -42,7 +32,10 @@ if {$wait eq ""} {
 proc send_char {args} {
     global wait
     set args [lassign $args fh c]
-    puts -nonewline $fh $c
+    if {[catch {puts -nonewline $fh $c}]} {
+        close $fh
+        return
+    }
     if {[llength $args] == 0} {
         close $fh
         return
@@ -57,5 +50,8 @@ proc handling {fh host port} {
     after $wait send_char $fh [split $echo ""]
 }
 
-socket -server {*}$sockargs
+if {[catch {socket -server {*}$sockargs} msg]} {
+    puts stderr "slow-echo-server: $msg"
+    exit 1
+}
 vwait godot

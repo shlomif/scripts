@@ -1,0 +1,46 @@
+.Dd January 12 2018
+.Dt SLOW-ECHO-SERVER 1
+.nh
+.Os
+.Sh NAME
+.Nm slow-echo-server
+.Nd echos data, slowly
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar listen-host
+.Op Ar port
+.Op Ar message
+.Op Ar delay
+.Ek
+.Sh DESCRIPTION
+.Nm
+waits for TCP connections on the give
+.Ar port
+and prints the
+.Ar message
+character by character with a
+.Ar delay
+in milliseconds between each character. The source code uses defaults if
+any of the arguments are not supplied.
+.Sh EXIT STATUS
+A non-zero value; the only exit conditions are on error or fatal signal.
+.Sh EXAMPLES
+Listen everywhere at port 7777 and echo
+.Qq echo\en
+with a one second delay between characters.
+.Pp
+.Dl $ Ic slow-echo-server
+.Pp
+Custom message, custom delay.
+.Pp
+.Dl $ Ic slow-echo-server '' 7777 \&"hello world\&" 5000
+.Pp
+Not-global listen, defaults otherwise.
+.Pp
+.Dl $ Ic slow-echo-server localhost
+.Sh SEE ALSO
+.Xr echo 1 ,
+.Xr nc 1
+.Sh AUTHOR
+.An Jeremy Mates

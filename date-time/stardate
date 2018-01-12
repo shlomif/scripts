@@ -1,0 +1,2 @@
+#!/usr/bin/env expect
+puts [clock format [clock seconds] -format %Q]
