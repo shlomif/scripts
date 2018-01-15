@@ -1,10 +1,10 @@
 #!/usr/bin/env expect
 #
-# Feeds the commands in the given input file (or stdin) to the
-# subsequent program.
+# feeds the commands in the given input file (or stdin) to the
+# subsequent program then turns interaction over to the user
 
 package require Tcl 8.5
-# for Tcl version of mktemp(1) - NOTE requires tcllib package
+# for equivalent of mktemp(1); requires tcllib package
 package require fileutil
 
 set prog_name [lindex [split $argv0 "/"] end]
@@ -13,7 +13,7 @@ if {[llength $argv] < 2} {
     exit 64
 }
 
-# Somewhat high timeout to help spot when feed is not properly
+# somewhat high timeout to help spot when feed is not properly
 # feeding things
 set timeout 3
 
@@ -69,7 +69,8 @@ if {[catch {spawn -noecho {*}$argv} err]} {
 }
 
 # control+z will background feed (and whatever being run) while for
-# control+c that is passed through to the program being run.
+# control+c that is passed through to the program being run;
+# control+\ remains a good way to abort when things go really awry
 set CONTROL_C \003
 set CONTROL_Z \032
 trap {puts ""; exit 1} {SIGHUP SIGPIPE SIGTERM}
@@ -82,8 +83,8 @@ proc interactionby {} {
     if {$tmpfile ne ""} { file delete $tmpfile }
     if {[catch {close $input_fh} err]} { die $err }
     interact {
-	$CONTROL_C {send -raw $CONTROL_C}
-	-reset $CONTROL_Z {exec kill -STOP [pid]}
+        $CONTROL_C {send -raw $CONTROL_C}
+        -reset $CONTROL_Z {exec kill -STOP [pid]}
     }
 }
 
@@ -114,7 +115,11 @@ if {[info commands dosomethingwith] eq ""} {
     }
 }
 
-while {[gets $input_fh line] >= 0} { dosomethingwith $line }
+set terminate 0
+while {[gets $input_fh line] >= 0} {
+    dosomethingwith $line
+    if {$terminate} { break }
+}
 
 # and hand REPL over to the bluberous fleshy mandibles of the user
 # (user .feedrc might call this directly e.g. if error condition in REPL

@@ -1,0 +1,44 @@
+#!/usr/bin/env expect
+#
+# accepts and echos what is sent to it unbuffered to standard output. a
+# test client might then look like:
+#
+#   #!/usr/bin/env expect
+#   package require Tcl 8.5
+#   set send_human {.1 .3 1 .05 2}
+#   set fh [socket localhost 9999]
+#   chan configure $fh -buffering none
+#   spawn -noecho -open $fh
+#   send -h -- "blah bla blah bla blah blah blah\r"
+#
+# the timings used by "send_human" are documented in expect(1)
+
+package require Tcl 8.5
+
+set host [lindex $argv 0]
+set port [lindex $argv 1]
+
+if {$port eq ""} {
+    set port 9999
+}
+
+if {$host eq ""} {
+    set sockargs [list handling $port]
+} else {
+    set sockargs [list handling -myaddr $host $port]
+}
+
+chan configure stdout -buffering none
+
+proc handling {fh host port} {
+    while {![eof $fh]} {
+        puts -nonewline [read $fh 1]
+    }
+    close $fh
+}
+
+if {[catch {socket -server {*}$sockargs} msg]} {
+    puts stderr "non-buffered-sink: $msg"
+    exit 1
+}
+vwait godot

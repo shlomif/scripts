@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+#
+# a password over interactive SSH is really distinctive (can an attacker
+# get the length if they know a particular `stty -echo` sequence
+# corresponds to the length of a password?) in tcpdump. instead paste
+# the password (and then wipe the clipboard) or use expect to automate;
+# these would both cut down on the interactivity over the network
+#
+# one could also use ^U and retype the password to mask the true length
+# during a `stty -echo` sequence. interactive packet timing may also
+# leak information...
+
+use 5.14.0;
+use warnings;
+use open IO => ':locale';
+use Term::ReadKey;
+ReadMode('noecho');
+my $password = ReadLine(0);
+chomp $password;
+open my $fh, "|-", "pbcopy" or die "could not exec pbcopy: $!\n";
+print $fh $password;

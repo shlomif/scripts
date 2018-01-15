@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd January 21 2018
 .Dt FEED 1
 .nh
 .Os
@@ -38,6 +38,9 @@ will be relayed from
 .Nm
 to the 
 .Ar command .
+Try
+.Ic control+\e
+if things go horribly awry.
 .Sh ENVIRONMENT
 The
 .Ev FEEDRC
@@ -80,6 +83,17 @@ with something like:
 .Dl \& \& \& \& exit 1
 .Dl }
 .Pp
+.Cm dosomethingwith
+can signal that no more lines should be processed via the
+.Dv terminate
+variable:
+.Pp
+.Dl proc dosomethingwith {line} {
+.Dl \& \& \& \& global terminate
+.Dl \& \& \& \& ...
+.Dl \& \& \& \& if {...} { set terminate 1 }
+.Dl \& \& \& \& ...
+.Pp
 Various other parts of the code of
 .Nm
 can be overridden from 
@@ -102,15 +116,15 @@ or
 .Dv TERM
 signal is sent.
 .Sh EXAMPLES
-From a 
-.Xr vi 1
-buffer containing LISP code, one could issue
+From a
+.Xr vim 1
+buffer containing LISP code in a file, one could issue
 .Pp
 .Dl Ic :!feed % sbcl --noinform
 .Pp
-to feed the contents of the buffer to
+to feed the data to
 .Pa sbcl .
-Standard input is also supported as a source of input,
+Standard input can also be used;
 .Pp
 .Dl $ Ic echo run -al \&| feed - gdb -q ls
 .Pp
@@ -141,9 +155,9 @@ file containing whatever GDB commands are necessary, e.g.
 .Pp
 and then set your editor to feed this to
 .Nm .
-With
-.Xr vim 1 ,
-an appropriate mapping might look something like
+A
+.Xr vim 1
+mapping might look something like:
 .Pp
 .Dl map <Leader>t :!feed % gdb -q<CR><CR>
 .Pp
@@ -173,17 +187,56 @@ and then try out the tab completion (edited elsewhere) until it works. The
 to
 .Pa zsh
 prevents anything in the regular shell configuration from interfering
-with the task at hand, though do note that undesirable environment
-variables may be passed through from the parent process.
+with the task at hand. Note that undesirable environment variables may
+still be passed through from the parent process.
+.Pp
+Functions may be difficult to pass through
+.Nm
+as these span multiple lines during which
+.Nm
+may waste time waiting for a prompt to appear that will not appear. One
+workaround is to define any necessary functions in a separate file and
+then to include that file in the commands passed to the REPL. Using R,
+one could define a
+.Pa libfoo
+file containing
+.Pp
+.Dl examplefn = function()
+.Dl {
+.Dl \& \&   print("asdf")
+.Dl }
+.Pp
+and then in the file that is passed through
+.Nm
+source
+.Pa libfoo
+along with any other necessary commands:
+.Pp
+.Dl source("libfoo")
+.Dl examplefn()
+.Dl ...
+.Pp
+An even easier workaround is to lower the
+.Dv timeout
+in
+.Pa ~/.feedrc
+so
+.Nm
+wastes less time waiting:
+.Pp
+.Dl } elseif {$tocall eq \&"sbcl\&"} {
+.Dl \& \& \& \& expect -ex {* }
+.Dl \& \& \& \& set timeout .05
+.Dl \& \& \& \& proc dosomethingwith {line} {
+.Dl \& \& \& \& \& \& \& \& ...
 .Sh SEE ALSO
 .Xr expect 1 ,
 .Xr regexp n ,
-.Xr Tcl n ,
 .Xr vim 1 ,
 .Xr zcomppoke 1
 .Sh AUTHOR
 .An Jeremy Mates
 .Sh CAVEATS
-The history may need to be disabled for the REPL, as repeated
+The history may need to be disabled for the REPL because repeated
 .Nm
 runs may spam the history for the REPL with repeated entries.
