@@ -1,8 +1,9 @@
-/* Reservoir-sample a random line out of the input */
+/* randline - reservoir-sample a random line out of the input */
 
 #include <err.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -12,6 +13,16 @@
 void emit_help(void);
 void pick_line(FILE * fh, ssize_t * counter, char **chosen,
                ssize_t * chosen_length);
+
+#ifdef __OpenBSD__
+#define randomly arc4random_uniform
+#else
+#include <fcntl.h>
+
+uint32_t randomly(uint32_t upper_bound);
+
+int Rand_FD;
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -32,6 +43,11 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+#ifndef __OpenBSD__
+    if ((Rand_FD = open("/dev/urandom", O_RDONLY)) == -1)
+        err(EX_IOERR, "could not open /dev/urandom");
+#endif
+
     if (argc == 0 || strncmp(*argv, "-", (size_t) 2) == 0) {
         pick_line(stdin, &counter, &the_chosen_one, &chosen_length);
     } else {
@@ -43,24 +59,37 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!the_chosen_one)
-        errx(1, "no line chosen??");
+    if (!the_chosen_one) {
+        if (counter > 1) {
+            errx(1, "no line chosen ??");
+        } else {
+            exit(1);
+        }
+    }
+
     if ((written =
          write(STDOUT_FILENO, the_chosen_one,
                chosen_length)) != chosen_length) {
         if (written == -1) {
             err(EX_IOERR, "error writing chosen line");
         } else {
-            errx(1, "incomplete write: expected %ld wrote %ld??", chosen_length,
-                 written);
+            errx(EX_IOERR, "incomplete write: expected %ld wrote %ld ??",
+                 chosen_length, written);
         }
     }
     /* POSIX compliance (and horrible `while read line` shell bug
      * avoidance): ensure that `(echo a; echo -n c) | randline` always
-     * emits an ultimate newline. */
-    if (the_chosen_one[chosen_length - 1] != '\n')
-        putchar('\n');
-    free(the_chosen_one);
+     * emits an ultimate newline */
+    if (the_chosen_one[chosen_length - 1] != '\n') {
+        if ((written = write(STDOUT_FILENO, "\n", 1)) != 1) {
+            if (written == -1) {
+                err(EX_IOERR, "error writing ultimate newline");
+            } else {
+                errx(EX_IOERR, "incomplete write on newline ??");
+            }
+        }
+    }
+    //free(the_chosen_one);
     exit(EXIT_SUCCESS);
 }
 
@@ -70,8 +99,8 @@ void emit_help(void)
     exit(EX_USAGE);
 }
 
-void pick_line(FILE * fh, ssize_t * counter, char **chosen,
-               ssize_t * chosen_length)
+inline void pick_line(FILE * fh, ssize_t * counter, char **chosen,
+                      ssize_t * chosen_length)
 {
     char *line = NULL;
     char *pick = NULL;
@@ -82,9 +111,9 @@ void pick_line(FILE * fh, ssize_t * counter, char **chosen,
         /* 1 returns 0 so first line always picked, 2 has 50% of
          * returning 0 so the second line might be picked, and less so
          * so forth on down the line as the line numbers increment.
-         * Appears no different than using floating point math under
-         * various statistical tests. */
-        if (arc4random_uniform(line_number) == 0) {
+         * appears no different than using floating point math under
+         * various statistical tests */
+        if (randomly(line_number) == 0) {
             if (pick != NULL)
                 free(pick);
             if ((pick = strndup(line, linesize)) == NULL)
@@ -100,3 +129,22 @@ void pick_line(FILE * fh, ssize_t * counter, char **chosen,
     }
     *counter = line_number;
 }
+
+#ifndef __OpenBSD__
+uint32_t randomly(uint32_t upper_bound)
+{
+    uint32_t result;
+
+    if (read(Rand_FD, &result, sizeof(uint32_t)) != sizeof(uint32_t))
+        err(EX_IOERR, "read from /dev/urandom failed");
+
+    /* avoid modulo bias; this is probably unnecessary assuming the
+     * number of lines processed remains well below UINT32_MAX */
+    while (result > UINT32_MAX / upper_bound * upper_bound) {
+        if (read(Rand_FD, &result, sizeof(uint32_t)) != sizeof(uint32_t))
+            err(EX_IOERR, "read from /dev/urandom failed");
+    }
+
+    return result % upper_bound;
+}
+#endif

@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd January 22 2018
 .Dt RANDLINE 1
 .nh
 .Os
@@ -16,21 +16,37 @@ emits a random line from up to
 .Dv UINT32_MAX
 worth of lines passed in either by file or from standard input. A
 reservoir-sampling algorithm is used so that the lines need not all be
-stored in memory.
+stored in memory nor the total line count obtained in advance.
+.Pp
+If multiple files are given only a single line will be selected from
+all of them.
 .Sh EXIT STATUS
 .Ex -std
-.Sh EXAMPLES
-A trailing newline will always be printed.
 .Pp
-.Dl $ Ic (echo a; echo -n c) \&| randline
+Error conditions include matching no line in the input.
+.Sh EXAMPLES
+A trailing newline will always be printed even if the input lacks one.
+.Pp
+.Dl $ Ic printf c \&| randline
+.Dl c
 .Pp
 This helps avoid data loss should a buggy shell loop be used:
 .Pp
-.Dl $ Ic echo -n data loss \&| while read line; do echo $line; done
+.Dl $ Ic printf \&"data loss\&" \&| while read line; do echo $line; done
 .Dl $
 .Sh SEE ALSO
-.Xr arc4random_uniform 3 ,
 .Xr coinflip 1 ,
+.Xr oneof 1 ,
 .Xr shuffle 1
+.Pp
+The Art of Computer Programming, Vol. 2, Sec. 3.4.2 by Donald E. Knuth
+contains a proof of the reservoir-sampling algorithm.
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+.Nm
+uses 
+.Xr arc4random_uniform 3
+on OpenBSD or elsewhere assumes that
+.Pa /dev/urandom
+exists and returns suitable random data.

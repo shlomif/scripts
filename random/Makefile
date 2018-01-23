@@ -15,6 +15,9 @@ randnum: randnum.c
 
 randrand: randrand.c
 
+test: coinflip oneof randline
+	@prove --nocolor
+
 clean:
 	@-rm -f coinflip fair-from-unfair modulo-bias oneof randline randnum randrand *.core *.o 2>/dev/null
 
