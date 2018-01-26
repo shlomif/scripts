@@ -108,6 +108,8 @@ int main(int argc, char *argv[])
         if (Tcl_PkgRequire(Interp, "Tcl", "8.5", 0) == NULL)
             errx(1, "need TCL >= 8.5");
 
+        Tcl_SetVar(Interp, "rdcomm", "1", 0);
+
         if ((homedir = getenv("HOME")) == NULL) {
             homedir = getpwuid(getuid())->pw_dir;
             if (!homedir)
@@ -140,8 +142,10 @@ int main(int argc, char *argv[])
         /* Mac OS X - * in glob will be a bunch of digits, is created
          * on the fly; the tty.* device is read-only vs. the cu.* dev
          *   http://stackoverflow.com/questions/8632586
+         * Arduino show up as usbmodem* while SparkFun redboard is
+         * usbserial-*
          */
-        if (glob("/dev/tty.usbmodem*", GLOB_NOSORT, NULL, &devglob) == 0) {
+        if (glob("/dev/tty.usb*", GLOB_NOSORT, NULL, &devglob) == 0) {
             if (devglob.gl_pathc > 0) {
                 if (devglob.gl_pathc > 1)
                     warnx("notice: >1 devices found, picking one of them");

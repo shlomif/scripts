@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd January 26 2018
 .Dt RDCOMM 1
 .nh
 .Os
@@ -32,8 +32,8 @@ Options:
 Baud to use, 9600 by default.
 .It Fl C
 If set, carriage returns are not stripped. By default they are.
-.It Fl e Ar expr
-TCL expression the read data will be passed to via the
+.It Fl e Ar tcl-code
+Expression the read data will be passed to in the
 .Dv $_
 variable. The data will not be printed; the TCL code must handle that,
 if necessary. Note that the data will be whatever
@@ -56,11 +56,15 @@ terminal may allow attacks ranging from nuisance to arbitrary code execution.
 .It Fl S
 Configure for two stop bits instead of the default one.
 .El
-.Pp
+.Sh FILES
+If the
+.Fl e
+option is used, TCL will attempt to parse 
+.Pa $HOME/.tclshrc ,
+though may not fail if that file does not exist or contains invalid code.
 .Sh EXIT STATUS
 .Nm
-will loop forever, though will exit with a non-zero code should something go
-awry or if the process or serial line is killed or interrupted.
+exits with a code >0 if an error occurs though otherwise should loop forever.
 .Sh EXAMPLES
 These concern the task of supplying appropriate TCL code to the
 .Fl e
@@ -72,7 +76,7 @@ return is by default ignored, unless the
 .Fl C
 option is set.
 .Pp
-A naive read of lines of temperature data over a serial line well illustrates
+A naive read of lines of temperature data over a serial line illustrates
 the need to be cautious with what has been read:
 .Pp
 .Dl Ic $ rdcomm -e 'puts [string trim $_]' /dev/tty.usbmodem621
@@ -93,12 +97,41 @@ calls though could still be botched, depending exactly on when the reads being:
 Character-wise processing will require splitting the input:
 .Pp
 .Dl Ic $ rdcomm -Cre 'foreach c [split $_ \*q\*q] { puts \*q$c [scan $c %c]\*q }'
-.Sh FILES
-If the
-.Fl e
-option is used, TCL will attempt to parse 
-.Pa $HOME/.tclshrc ,
-though will not fail if that file does not exist or contains invalid code.
+.Pp
+Do note that standard output is line- or block-buffered by default;
+should the TCL not emit any newlines and immediate display of the data
+be necessary then either a
+.Cm flush stdout
+command will need to be made:
+.Pp
+.Dl ... Ic { puts -nonewline \*q[scan $c %c] \*q; flush stdout }'
+.Pp
+Given the length of the above command it probably makes more sense to
+write an appropriate procedure in
+.Pa $HOME/.tclshrc
+.Pp
+.Bd -literal -offset indent
+if {[info exists rdcomm]} {
+    fconfigure stdout -buffering none
+    set rdcount 0
+    proc hexview {} {
+        global _ rdcount
+        binary scan $_ H* hex
+        foreach hw [regexp -all -inline .. $hex] {
+            puts -nonewline "$hw "
+            incr rdcount
+            if {$rdcount >= 16} {
+                puts {}
+                set rdcount 0
+            }
+        }
+    }
+}
+.Ed
+.Pp
+and call that:
+.Pp
+.Dl $ Ic rdcomm -Cre hexview
 .Sh SEE ALSO
 .Xr cu 1 ,
 .Xr minicom 1 ,
