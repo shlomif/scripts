@@ -1,4 +1,4 @@
-.Dd January 26 2018
+.Dd January 27 2018
 .Dt RDCOMM 1
 .nh
 .Os
@@ -13,21 +13,22 @@
 .Op Fl I Ar bits
 .Op Fl M Ar minread
 .Op Fl P Ar parity
-.Op Fl CrS
+.Op Fl bCrS
 .Op Ar devname
 .Ek
 .Sh DESCRIPTION
 .Nm
-reads data from a serial device, and prints that data to standard out, or
-instead passes it to a supplied TCL expression. On Mac OS X or OpenBSD, the
+reads data from a serial device, and prints that data to standard out,
+or instead passes it to a supplied TCL expression. On Mac OS X or
+OpenBSD the
 .Ar devname
-will be guessed at if not supplied, either
-.Pa /dev/tty.usbmodem*
-or
-.Pa /dev/cuaU0 .
-.Pp
+will be guessed at if not supplied.
 Options:
 .Bl -tag -width -indent
+.It Fl b
+Calls
+.Xr tcsendbreak 3
+at the beginning of the connection, then sleeps a second.
 .It Fl B Ar baud
 Baud to use, 9600 by default.
 .It Fl C
@@ -60,7 +61,7 @@ Configure for two stop bits instead of the default one.
 If the
 .Fl e
 option is used, TCL will attempt to parse 
-.Pa $HOME/.tclshrc ,
+.Pa ~/.tclshrc ,
 though may not fail if that file does not exist or contains invalid code.
 .Sh EXIT STATUS
 .Nm
@@ -108,7 +109,12 @@ command will need to be made:
 .Pp
 Given the length of the above command it probably makes more sense to
 write an appropriate procedure in
-.Pa $HOME/.tclshrc
+.Pa ~/.tclshrc
+using the
+.Dv rdcomm
+variable to restrict that code to only run under processes that set
+that variable, such as
+.Nm .
 .Pp
 .Bd -literal -offset indent
 if {[info exists rdcomm]} {
@@ -129,14 +135,14 @@ if {[info exists rdcomm]} {
 }
 .Ed
 .Pp
-and call that:
+then call that:
 .Pp
 .Dl $ Ic rdcomm -Cre hexview
 .Sh SEE ALSO
 .Xr cu 1 ,
 .Xr minicom 1 ,
-.Xr screen 1 ,
-.Xr Tcl n
+.Xr Tcl n ,
+.Xr termios 4
 .Pp
 Note that
 .Xr cu 1

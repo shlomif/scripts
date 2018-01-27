@@ -1,16 +1,9 @@
-/*
- * Reads from a serial line, writes a subset of the ASCII seen to
- * standard output. Attempts to be smart about what device to read if
- * none is given, at least if on Mac OS X or OpenBSD. On OpenBSD, see
- * instead cu(1). Elsewhere, or for more bells and whistles, see
- * minicom(1). Any references to cu(1) in this code refer to the OpenBSD
- * version of that utility (as of OpenBSD 6.0).
- *
- * This code mostly to easily(?) read data via serial from an Arduino
- * and learn me some termios(4) (and TCL) stuff.
- *
- * To exit, kill the process or hit control+c or disrupt the serial line.
- */
+/* rdcomm - reads from a serial line, writes a subset of the ASCII seen
+ * to standard output. attempts to be smart about what device to read if
+ * none is given, at least if on Mac OS X or OpenBSD. on OpenBSD, see
+ * instead cu(1). elsewhere, or for more bells and whistles, see
+ * minicom(1). any references to cu(1) in this code refer to the OpenBSD
+ * version of that utility */
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -38,13 +31,14 @@
 #define BAUD_MAX 640 * 640
 #define SERIAL_BUF_LEN 80
 
-speed_t Flag_Baud = B9600;      // -B  baud
-bool Flag_CR;                   // -C  do not ignore CR
-uint8_t Flag_Bits;              // -I  bits (5-8)
-unsigned long Flag_MinRead = 1; // -M  for VMIN read
-uint8_t Flag_Parity;            // -P  parity (0-2 off odd even)
-bool Flag_Raw;                  // -r  raw, do not defang special ASCII chars
-bool Flag_StopBits;             // -S  two stop bits if set
+bool Flag_Break;                /* -b  send a BREAK at startup */
+speed_t Flag_Baud = B9600;      /* -B  baud */
+bool Flag_CR;                   /* -C  do not ignore CR */
+uint8_t Flag_Bits;              /* -I  bits (5-8) */
+unsigned long Flag_MinRead = 1; /* -M  for VMIN read */
+uint8_t Flag_Parity;            /* -P  parity (0-2 off odd even) */
+bool Flag_Raw;                  /* -r  raw, do not defang special ASCII chars */
+bool Flag_StopBits;             /* -S  two stop bits if set */
 
 void emit_help(void);
 void set_dev_termios(const int fd, const char *device);
@@ -58,10 +52,14 @@ int main(int argc, char *argv[])
     glob_t devglob;
     ssize_t readret;
     Tcl_Interp *Interp = NULL;
+    Tcl_Obj *Assign = NULL;
     Tcl_Obj *Script = NULL;
 
-    while ((ch = getopt(argc, argv, "B:Ce:h?I:M:P:rS")) != -1) {
+    while ((ch = getopt(argc, argv, "bB:Ce:h?I:M:P:rS")) != -1) {
         switch (ch) {
+        case 'b':
+            Flag_Break = true;
+            break;
         case 'B':
             Flag_Baud =
                 (speed_t) flagtoul(ch, optarg, 1UL, (unsigned long) BAUD_MAX);
@@ -105,10 +103,10 @@ int main(int argc, char *argv[])
     if (Script) {
         int ret;
         Interp = Tcl_CreateInterp();
-        if (Tcl_PkgRequire(Interp, "Tcl", "8.5", 0) == NULL)
-            errx(1, "need TCL >= 8.5");
 
-        Tcl_SetVar(Interp, "rdcomm", "1", 0);
+        /* identify this program so code in the config file can detect
+         * that. one could instead use Tcl_FindExecutable for this */
+        Tcl_SetVar(Interp, "rdcomm", "1", TCL_GLOBAL_ONLY);
 
         if ((homedir = getenv("HOME")) == NULL) {
             homedir = getpwuid(getuid())->pw_dir;
@@ -117,35 +115,30 @@ int main(int argc, char *argv[])
         }
         if (asprintf(&tclshrc, "%s/%s", homedir, ".tclshrc") == -1)
             err(EX_OSERR, "could not asprintf() tclshrc path");
+
         /* TODO better way to ignore rc file missing? */
         if ((ret = Tcl_EvalFile(Interp, tclshrc)) != TCL_OK) {
             char *msg;
-            int len;
             Tcl_Obj *options = Tcl_GetReturnOptions(Interp, ret);
             Tcl_Obj *key = Tcl_NewStringObj("-errorcode", -1);
             Tcl_Obj *errcode;
             Tcl_IncrRefCount(key);
             Tcl_DictObjGet(NULL, options, key, &errcode);
             Tcl_DecrRefCount(key);
-            msg = Tcl_GetStringFromObj(errcode, &len);
-            if (len > 12)
-                len = 12;
-            if (strncmp(msg, "POSIX ENOENT", len) != 0)
+            msg = Tcl_GetStringFromObj(errcode, NULL);
+            if (strncmp(msg, "POSIX ENOENT", 12) != 0)
                 errx(1, "TCL error: %s", Tcl_GetStringResult(Interp));
         }
 
-        Tcl_LinkVar(Interp, "_", (void *) &serialdata,
-                    TCL_LINK_STRING | TCL_LINK_READ_ONLY);
+        /* Tcl_Linkvar used to be used but that is problematical should
+         * the buffer contain NUL as then the TCL variable ends there */
     }
 
     if (argc == 0 || *argv == NULL) {
-        /* Mac OS X - * in glob will be a bunch of digits, is created
-         * on the fly; the tty.* device is read-only vs. the cu.* dev
-         *   http://stackoverflow.com/questions/8632586
-         * Arduino show up as usbmodem* while SparkFun redboard is
-         * usbserial-*
-         */
-        if (glob("/dev/tty.usb*", GLOB_NOSORT, NULL, &devglob) == 0) {
+        /* Mac OS X - Arduino show up as {cu.tty}.usbmodem* while
+         * SparkFun redboard is usbserial-*; the tty.* is r/o and the
+         * cu.* dev r/w - http://stackoverflow.com/questions/8632586 */
+        if (glob("/dev/cu.usb*", GLOB_NOSORT, NULL, &devglob) == 0) {
             if (devglob.gl_pathc > 0) {
                 if (devglob.gl_pathc > 1)
                     warnx("notice: >1 devices found, picking one of them");
@@ -153,8 +146,8 @@ int main(int argc, char *argv[])
             }
         }
         /* OpenBSD - static USB dev, guess the first one (though
-         * sometimes it may jump to cuaU1 after plug/unplug things...).
-         * User must be in the 'dialer' group as of OpenBSD 5.8. */
+         * sometimes it may jump to cuaU1 after plug/unplug things...)
+         * user must be in the 'dialer' group as of OpenBSD 5.8 */
         else if (glob("/dev/cuaU0", 0, NULL, &devglob) == 0) {
             if (devglob.gl_pathc > 0)
                 device = devglob.gl_pathv[0];
@@ -176,11 +169,11 @@ int main(int argc, char *argv[])
         /* NOTREACHED */
     }
 
-    /* Need non-block here so open does not stall forever. Olden unix
+    /* need non-block here so open does not stall forever. olden unix
      * used O_NDELAY, but that "should not be used for new applications"
-     * (APUE 2nd edition, p.442) */
+     *   -- APUE 2nd edition, p.442 */
     // TODO O_NOCTTY needed? cu(1) does not use it
-    if ((device_fd = open(device, O_RDONLY | O_NOCTTY | O_NONBLOCK)) == -1)
+    if ((device_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK)) == -1)
         err(EX_IOERR, "could not open '%s'", device);
 
     // exclusive, no more open operations on terminal permitted?
@@ -190,6 +183,11 @@ int main(int argc, char *argv[])
 
     fcntl(device_fd, F_SETFL, 0);       // back to blocking mode
 
+    if (Flag_Break) {
+        tcsendbreak(device_fd, 0);
+        sleep(1);
+    }
+
     while (true) {
         if ((readret =
              read(device_fd, serialdata, (size_t) SERIAL_BUF_LEN)) == -1)
@@ -197,7 +195,7 @@ int main(int argc, char *argv[])
         if (readret == 0) {
             errx(EX_IOERR, "EOF on read of '%s'", device);
         } else if (readret < 0) {
-            errx(1, "unexpected negative return from read: %ld", readret);
+            errx(1, "unexpected negative return from read: %ld ??", readret);
         }
 
         if (!Flag_Raw) {
@@ -213,7 +211,17 @@ int main(int argc, char *argv[])
         }
 
         if (Script) {
-            serialdata[readret] = '\0';
+            Assign = Tcl_NewObj();
+            Tcl_ListObjAppendElement(Interp, Assign,
+                                     Tcl_NewStringObj("set", 3));
+            Tcl_ListObjAppendElement(Interp, Assign, Tcl_NewStringObj("_", 1));
+            Tcl_ListObjAppendElement(Interp, Assign,
+                                     Tcl_NewStringObj(serialdata, readret));
+            Tcl_IncrRefCount(Assign);
+            if (Tcl_EvalObjEx(Interp, Assign, TCL_EVAL_GLOBAL) != TCL_OK)
+                errx(1, "TCL error: %s", Tcl_GetStringResult(Interp));
+            Tcl_DecrRefCount(Assign);
+
             if (Tcl_EvalObjEx(Interp, Script, TCL_EVAL_GLOBAL) != TCL_OK)
                 errx(1, "TCL error: %s", Tcl_GetStringResult(Interp));
         } else {
@@ -227,7 +235,7 @@ int main(int argc, char *argv[])
 void emit_help(void)
 {
     fprintf(stderr,
-            "Usage: rdcomm [-B baud] [-e expr] [-M minread] [-r] [/dev/foo]\n");
+            "Usage: rdcomm [-b] [-B baud] [-e expr] [-M minread] [-r] [/dev/foo]\n");
     exit(EX_USAGE);
 }
 
@@ -299,8 +307,8 @@ void set_dev_termios(const int fd, const char *device)
 
     if (Flag_Parity) {
         /* NOTE parity errors untested; may need flag to let user pick
-         * between marking and discarding any such errors. For now mark
-         * them to draw attention. */
+         * between marking and discarding any such errors. for now mark
+         * them to draw attention */
         iflags |= (INPCK | PARMRK);
         iflags &= ~IGNPAR;
     }
