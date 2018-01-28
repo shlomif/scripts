@@ -1,7 +1,11 @@
 #!/usr/bin/env perl
 #
-# acquire emoji-data.txt from the Unicode syndicate. use the regex built
-# from that file by this script to strip filter or mangle emoji
+# acquire emoji-data.txt from the Unicode Syndicate e.g.
+#
+#   http://unicode.org/Public/emoji/11.0/emoji-data.txt
+#
+# use the regex built from that file by this script to strip filter or
+# mangle emoji
 #
 #   ./strike-emoji-dead < emoji-data.txt > regex
 

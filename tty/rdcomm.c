@@ -39,6 +39,7 @@ unsigned long Flag_MinRead = 1; /* -M  for VMIN read */
 uint8_t Flag_Parity;            /* -P  parity (0-2 off odd even) */
 bool Flag_Raw;                  /* -r  raw, do not defang special ASCII chars */
 bool Flag_StopBits;             /* -S  two stop bits if set */
+bool Flag_Exclusive;            /* -X  set TIOCEXCL on device */
 
 void emit_help(void);
 void set_dev_termios(const int fd, const char *device);
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
     Tcl_Obj *Assign = NULL;
     Tcl_Obj *Script = NULL;
 
-    while ((ch = getopt(argc, argv, "bB:Ce:h?I:M:P:rS")) != -1) {
+    while ((ch = getopt(argc, argv, "bB:Ce:h?I:M:P:rSX")) != -1) {
         switch (ch) {
         case 'b':
             Flag_Break = true;
@@ -86,6 +87,9 @@ int main(int argc, char *argv[])
             break;
         case 'S':
             Flag_StopBits = true;
+            break;
+        case 'X':
+            Flag_Exclusive = true;
             break;
         case 'h':
         case '?':
@@ -176,12 +180,12 @@ int main(int argc, char *argv[])
     if ((device_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK)) == -1)
         err(EX_IOERR, "could not open '%s'", device);
 
-    // exclusive, no more open operations on terminal permitted?
-    ioctl(device_fd, TIOCEXCL);
+    if (Flag_Exclusive)
+        ioctl(device_fd, TIOCEXCL);
 
     set_dev_termios(device_fd, device);
 
-    fcntl(device_fd, F_SETFL, 0);       // back to blocking mode
+    fcntl(device_fd, F_SETFL, 0);       /* back to blocking mode */
 
     if (Flag_Break) {
         tcsendbreak(device_fd, 0);
@@ -200,8 +204,8 @@ int main(int argc, char *argv[])
 
         if (!Flag_Raw) {
             for (ssize_t i = 0; i < readret; i++) {
-                // defang del, not-ASCII high bit characters, and most of
-                // the low ASCII control characters (especially ESC)
+                /* defang del, not-ASCII high bit characters, and most
+                 * of the low ASCII control characters (especially ESC) */
                 if ((serialdata[i] < 32 && serialdata[i] != 9
                      && serialdata[i] != 10 && serialdata[i] != 13)
                     || serialdata[i] > 126) {
@@ -274,11 +278,11 @@ void set_dev_termios(const int fd, const char *device)
         cflags |= CS8;
     }
 
-    // see also how parity is handled in input modes section
+    /* see also how parity is handled in input modes section */
     switch (Flag_Parity) {
     case 1:
         cflags |= PARODD;
-        // no break as fall through to enable parity
+        /* no break as fall through to enable parity */
     case 2:
         cflags |= PARENB;
         break;
@@ -295,7 +299,7 @@ void set_dev_termios(const int fd, const char *device)
     /************************* Input Modes *************************/
     iflags = tio.c_iflag;
 
-    // NOTE BREAK is untested, so these BRK settings may not be desireable
+    /* NOTE BREAK is untested, so these settings may not be desireable */
     iflags &= ~(ICRNL | IGNBRK | IMAXBEL | INLCR | INPCK | ISTRIP);
     iflags |= (BRKINT | IGNPAR);
 
@@ -324,7 +328,7 @@ void set_dev_termios(const int fd, const char *device)
     if (tcsetattr(fd, TCSAFLUSH, &tio) == -1)
         err(EX_IOERR, "tcsetattr() failed on '%s'", device);
 
-    // confirm settings were actually made (APUE does this...)
+    /* confirm settings were actually made (APUE does this...) */
     if (tcgetattr(fd, &tio) == -1)
         err(EX_IOERR, "tcgetattr() failed after set on '%s'", device);
     if (tio.c_cc[VTIME] != 0 || tio.c_cc[VMIN] != Flag_MinRead

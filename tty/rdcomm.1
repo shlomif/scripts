@@ -1,4 +1,4 @@
-.Dd January 27 2018
+.Dd January 28 2018
 .Dt RDCOMM 1
 .nh
 .Os
@@ -13,7 +13,7 @@
 .Op Fl I Ar bits
 .Op Fl M Ar minread
 .Op Fl P Ar parity
-.Op Fl bCrS
+.Op Fl bCrSX
 .Op Ar devname
 .Ek
 .Sh DESCRIPTION
@@ -56,6 +56,12 @@ device may be able to send XTerm Control Sequences, which depending on the
 terminal may allow attacks ranging from nuisance to arbitrary code execution.
 .It Fl S
 Configure for two stop bits instead of the default one.
+.It Fl X
+Set 
+.Dv TIOCEXCL
+on the device: no subsequent
+.Xr open 2
+operations will be permitted.
 .El
 .Sh FILES
 If the
