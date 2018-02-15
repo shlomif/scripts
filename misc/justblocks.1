@@ -1,0 +1,43 @@
+.Dd February 14 2018
+.Dt JUSTBLOCKS 1
+.nh
+.Os
+.Sh NAME
+.Nm justblocks
+.Nd it just blocks
+.Sh DESCRIPTION
+.Nm
+blocks, and keeps on blocking.
+.Sh EXIT STATUS
+.Nm
+exits with a non-zero code, most likely upon the occasion of a signal as
+the odds of the
+.Xr pipe 2
+call failing is probably low.
+.Sh EXAMPLES
+.Xr cat 1
+is almost suitable for this purpose though suffers from at least two
+problems; first: it will consume any available input, and second: it may
+fail to block when run as
+.Pp
+.Dl $ Ic cat
+.Pp
+because something else might have already closed standard input.
+.Pp
+.Dl $ Ic cat </dev/null
+.Dl $ Ic justblocks </dev/null
+.Dl ...
+.Pp
+A perhaps useful use of this script may be as a 
+.Cm RemoteCommand
+for
+.Cm ssh
+where one wants a program that does nothing, or as close to nothing as
+possible, while remaining open so the
+.Cm ssh
+connection may be used for other things.
+.Sh SEE ALSO
+.Xr cat 1 ,
+.Xr ssh 1
+.Sh AUTHORS
+.An Jeremy Mates

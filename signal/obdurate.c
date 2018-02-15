@@ -1,44 +1,28 @@
-/*
- * Ignore most common signals. Handy to test things that will require up
- * to a SIGKILL to clear from the process table (like, hypothetically, a
- * horribly wedged LDAP server). Complicated things like forking child
- * processes and then waiting on those and also interacting with
- * associated signals not supported.
- *
- * PID emitted to stdout, all other output should be to stderr.
- *
- * If stdin is not a TTY, a temporary file will be blocked on. This temp
- * file will not be cleaned up for obvious reasons.
- *
- * XXX figure out way just to test whether stdin "is open".
- */
-
-#include <sys/types.h>
+/* obdurate - ignore most common signals. handy to test things that will
+ * require up to a SIGKILL to clear from the process table (like,
+ * hypothetically, a horribly wedged LDAP server) */
 
 #include <err.h>
-#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <sysexits.h>
-#include <time.h>
 #include <unistd.h>
+
+char buf[1024];
 
 void whine(int sig);
 
 int main(void)
 {
-    char buf[BUFSIZ];
-    char tmp_filename[] = "/tmp/obd.XXXXXXXXXX";
-    int nfds;
-    struct pollfd pfd[1];
+    int fds[2];
     struct sigaction act;
 
-    /*
-     * Setup signal handling
-     */
-//    act.sa_handler = SIG_IGN;   // just ignore the signal
-    act.sa_handler = whine;     // whine about the signal
+    if (pipe(fds) != 0)
+        err(1, "pipe failed ??");
+
+    /* TWEAK pick which behavior you want */
+    //act.sa_handler = SIG_IGN;
+    act.sa_handler = whine;
 
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
@@ -53,7 +37,6 @@ int main(void)
         err(EX_OSERR, "sigaction failed");
     if (sigaction(SIGUSR2, &act, NULL) != 0)
         err(EX_OSERR, "sigaction failed");
-    // might happen if stderr closed for some reason?
     if (sigaction(SIGPIPE, &act, NULL) != 0)
         err(EX_OSERR, "sigaction failed");
 
@@ -61,36 +44,16 @@ int main(void)
     if (sigaction(SIGALRM, &act, NULL) != 0)
         err(EX_OSERR, "sigaction failed");
 
-    /*
-     * (Blocking) I/O is Tricky
-     */
+    setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
+    warnx("pid %d", getpid());
 
-    // Avoid busy loop if cannot block on input (e.g. started in background)
-    if (isatty(STDIN_FILENO)) {
-        pfd[0].fd = STDIN_FILENO;
-    } else {
-        if ((pfd[0].fd = mkstemp(tmp_filename)) == -1)
-            err(EX_IOERR, "mkstemp failed to create tmp file");
-    }
-    pfd[0].events = POLLPRI;
+    while (1)
+        read(fds[0], buf, 1024);
 
-    printf("info: pid %d\n", getpid());
-
-    for (;;) {
-        nfds = poll(pfd, 1, 60 * 1000);
-        if (nfds == -1 || (pfd[0].revents & (POLLERR | POLLHUP | POLLNVAL)))
-            warnx("poll error");
-        else if (nfds == 0)
-            //   warnx("timeout");
-            ;
-        else if (read(pfd[0].fd, buf, sizeof(buf)) == -1)
-            warnx("could not read");
-    }
-
-    exit(EXIT_SUCCESS);
+    return 1;
 }
 
 void whine(int sig)
 {
-    warnx("caught signal %d at %ld", sig, (long) time(NULL));
+    printf("caught signal %d\n", sig);
 }

@@ -1,4 +1,4 @@
-/* Copies standard input to standard output and to a clipboard command. */
+/* copycat - copies stdin to both stdout and to a clipboard command */
 
 #include <sys/wait.h>
 
@@ -13,25 +13,30 @@
 
 #define BUFSIZE 4096
 
-/* This is for Mac OS X; see the man page for details on creating a
- * platform specific wrapper as necessary for xsel or the like. Or,
- * adjust the execlp call below to call the appropriate program
- * directly, though bear in mind xsel(1) may do the Wrong Thing if
- * called directly under vi(1). */
+/* this is for Mac OS X; see the man page for details on creating a
+ * platform specific wrapper for xsel or whatever. or, adjust execlp
+ * below to call the appropriate program directly, though bear in mind
+ * xsel(1) may do the Wrong Thing if called directly under vi(1) */
 #define CLIPBOARD "pbcopy"
+
+int Flag_NoNewline;             /* -n */
 
 void emit_help(void);
 
 int main(int argc, char *argv[])
 {
-    char buf[BUFSIZE], *clippy, *shortname;
+    char buf[BUFSIZE], *prevbuf = NULL;
+    char *clippy, *shortname;
     int ch, fd[2];
     pid_t pid;
     sigset_t blockthese;
-    ssize_t howmuch;
+    ssize_t howmuch, prevhowmuch;
 
-    while ((ch = getopt(argc, argv, "h?")) != -1) {
+    while ((ch = getopt(argc, argv, "h?n")) != -1) {
         switch (ch) {
+        case 'n':
+            Flag_NoNewline = 1;
+            break;
         case 'h':
         case '?':
         default:
@@ -43,16 +48,18 @@ int main(int argc, char *argv[])
     if (pipe(fd) == -1)
         err(EX_OSERR, "pipe() failed");
 
-    /* Ignore control+c generated signal to the foreground process
+    /* ignore control+c generated signal to the foreground process
      * group; this allows one to collect dynamic output such as `ping
      * ... | copycat` as otherwise the INT results in no clipboard data
-     * being set. NOTE may be too clever for own good. */
+     * being set. NOTE may be too clever for own good */
     sigemptyset(&blockthese);
     sigaddset(&blockthese, SIGINT);
     if (sigprocmask(SIG_BLOCK, &blockthese, NULL) == -1)
         err(EX_OSERR, "could not set sigprocmask of %d", blockthese);
 
-    if ((pid = vfork()) < 0) {
+    pid = vfork();
+
+    if (pid < 0) {
         err(EX_OSERR, "fork() failed");
 
     } else if (pid > 0) {       /* parent */
@@ -60,12 +67,27 @@ int main(int argc, char *argv[])
 
         while (1) {
             if ((howmuch = read(STDIN_FILENO, &buf, (size_t) BUFSIZE)) < 0) {
+                if (prevbuf != NULL) {
+                    if (write(fd[1], prevbuf, (size_t) prevhowmuch) == -1)
+                        err(EX_IOERR, "write() to clipboard command failed");
+                }
                 err(EX_IOERR, "read() failed");
             } else if (howmuch == 0) {  /* EOF */
+                if (prevbuf != NULL) {
+                    if (Flag_NoNewline && prevbuf[prevhowmuch - 1] == '\n')
+                        prevhowmuch--;
+                    if (write(fd[1], prevbuf, (size_t) prevhowmuch) == -1)
+                        err(EX_IOERR, "write() to clipboard command failed");
+                }
                 break;
             }
-            if (write(fd[1], &buf, (size_t) howmuch) == -1)
-                err(EX_IOERR, "write() to clipboard command failed");
+            if (prevbuf != NULL) {
+                if (write(fd[1], prevbuf, (size_t) prevhowmuch) == -1)
+                    err(EX_IOERR, "write() to clipboard command failed");
+                free(prevbuf);
+            }
+            prevbuf = strndup(buf, howmuch);
+            prevhowmuch = howmuch;
             if (write(STDOUT_FILENO, &buf, (size_t) howmuch) == -1)
                 err(EX_IOERR, "write() to STDOUT failed");
         }
@@ -78,7 +100,7 @@ int main(int argc, char *argv[])
 
         if (fd[0] != STDIN_FILENO) {
             if (dup2(fd[0], STDIN_FILENO) != STDIN_FILENO)
-                err(EX_OSERR, "dup2() to STDIN failed");
+                err(EX_OSERR, "dup2() to STDIN failed ??");
             close(fd[0]);
         }
 
@@ -100,6 +122,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ... | copycat\n");
+    fprintf(stderr, "Usage: ... | copycat [-n]\n");
     exit(EX_USAGE);
 }

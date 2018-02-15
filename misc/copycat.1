@@ -1,37 +1,37 @@
-.Dd November 22 2017
+.Dd February 14 2018
 .Dt COPYCAT 1
 .nh
 .Os
 .Sh NAME
 .Nm copycat
-.Nd copy STDIN to both STDOUT and to CLIPBOARD
+.Nd copy stdin to both stdout and to the clipboard
 .Sh SYNOPSIS
 .Bk -words
-.Ek
 .Nm
+.Op Fl n
+.Ek
 .Sh DESCRIPTION
 .Nm
-copies any data passed on standard input to both standard output and to
-the command mentioned in the
+copies standard input to both standard output and to the command
+mentioned in the
 .Ev CLIPBOARD
 environment variable (or to
 .Xr pbcopy 1
 if
 .Ev CLIPBOARD
-is not set).
+is not set). With the
+.Fl n
+flag set, the ultimate newline (if present) will not be printed.
 .Pp
-If using
+With
 .Xr tmux 1
-via MacPorts on Mac OS X, the tmux-pasteboard MacPorts package may be
-of service.
+on Mac OS X the tmux-pasteboard package may be of service.
 .Pp
 In hindsight,
 .Xr xclip 1x
 does have a
 .Fl filter
-flag, but that would not help on Mac OS X, and 
-.Xr xsel 1x
-is still required if one needs to clear the clipboard.
+flag but that would not help on Mac OS X.
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
