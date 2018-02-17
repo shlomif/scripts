@@ -1,62 +1,34 @@
-#!/usr/local/bin/sh
+#!/bin/sh
 #
-# Like yak, but for SSH_ORIGINAL_COMMAND via SSH sessions so that the
-# exact commands used over SSH sessions can be logged. Actual command is
-# run after this logging. Usage: in ~/.ssh/authorized_keys add a command
-# statement prefixing the SSH key in question:
+# yak-ssh - like yak, but for SSH_ORIGINAL_COMMAND via SSH sessions. in
+# ~/.ssh/authorized_keys add a command restriction for the key
 #
 #   command="/path/to/yak-ssh" ssh-rsa AAAA...
 #
-# Then use SSH, inspect the ssh-yak.* YAK_OUTPUT files for the command and
-# env gleanings. A shorter version less concerned with the env and tmp
-# security needs might run something like:
+# then use SSH and inspect the ssh-yak.* output for the command and env
+# gleanings. a shorter version less concerned with the env and tmp
+# security needs might run something like
 #
 #   #!/bin/sh
-#   echo "$SSH_ORIGINAL_COMMAND" >> "$HOME/tmp/ssh-yak"
+#   printf "$SSH_ORIGINAL_COMMAND\n" >> "$HOME"/tmp/ssh-yak
 #   eval "$SSH_ORIGINAL_COMMAND"
 #
-# Note that software may already support limited access via ssh, e.g.
-# git via git-shell(1).
+# NOTE software may already support limited access via ssh e.g. git-shell(1)
 
-shortname="`basename "$0"`"
-shortname="${shortname:=ssh-yak}"
-
-#YAK_OUTPUT=/dev/null
-YAK_OUTPUT=`mktemp -q "/tmp/${shortname}.XXXXXXXXXX`" || {
-  echo >&2 "mktemp failed to create /tmp file"
-  exit 1
+YAK_OUTPUT=`mktemp -q "/tmp/yak-ssh.XXXXXXXXXX`" || {
+   echo >&2 "mktemp failed to create /tmp file"
+   exit 1
 }
-
-# in the event env contains anything sensitive (or change the tmp dir path)
 chmod go-r "$YAK_OUTPUT"
-
-#logger -i -t "$shortname" "ssh-command is $SSH_ORIGINAL_COMMAND"
-
 (
-echo SSH-COMMAND::BEGIN
-echo "$SSH_ORIGINAL_COMMAND"
-echo SSH-COMMAND::END
-echo
-
-# shouldn't be set, unless perhaps `ssh -t` used for some reason
-if test -t 0; then
-  echo TTY::BEGIN
-  tty
-  echo TTY::END
-else
-  echo TTY:NONE
-fi
-echo
-
-# might instead do env(1) if interested in exported variables vs. what the
-# shell sets
-echo ENV::BEGIN
-set
-echo ENV::END
-echo
-
+   printf "$SSH_ORIGINAL_COMMAND\n\n"
+   if [ -t 0 ]; then
+      tty
+      printf "\n"
+   fi
+   env
 ) >> "$YAK_OUTPUT"
 
-# but need eval not exec to deal with shell quoting and whatnot in the
-# env var...
+# if there's no fancy shell syntax then instead
+#exec $SSH_ORIGINAL_COMMAND
 eval "$SSH_ORIGINAL_COMMAND"
