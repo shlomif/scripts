@@ -9,10 +9,10 @@ nodupenv: nodupenv.c redblack-bst.h redblack-bst.o
 redblack-bst.o: redblack-bst.c redblack-bst.h
 	$(CC) $(CFLAGS) -c redblack-bst.c -o redblack-bst.o 
 
-test: dupenv nodupenv
-	@prove --nocolor
-
 clean:
 	git clean --force -x
+
+test: dupenv nodupenv
+	@prove --nocolor
 
 .PHONY: clean test

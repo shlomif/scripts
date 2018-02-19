@@ -2,20 +2,22 @@ various C and Perl and TCL and shell scripts for unix
 
 there are sporadically unit tests, run
 
-    make depend
-    make test
+   make depend
+   make test
 
 these require Perl (or TCL) and various Perl (or TCL) modules
 
- * the C is mostly written for Mac OS X or OpenBSD; portability beyond
-   that is largely untested. most of it requires C99 and various modern
-   system calls. where there is reluctant Linux support, compile coaxing
-   has been mostly done on Centos 7. use `make ... CC=... CFLAGS=...` if
-   you need a different C compiler or CFLAGS set. in theory, either a
-   clang or gcc of recent enough vintage should work
- * on OpenBSD, `doas pkg_add gcc` and `make ... CC=egcc` or remove
-   -fno-diagnostics-color from the CFLAGS (though the base compiler may
-   still have trouble with some of the inline C code...)
+ * the C is primarily written for Mac OS X or OpenBSD; portability is
+   largely untested. most of it requires C99 and various modern system
+   calls. use `make ... CC=... CFLAGS=...` if you need a different C
+   compiler or CFLAGS set
+ * on OpenBSD, `doas pkg_add gcc` and then `make ... CC=egcc` or remove
+   -fno-diagnostics-color from the CFLAGS (though the base compiler in
+   6.2 does have trouble with some of the inline C code...)
+ * if on Linux, have fun with the feature_test_macros(7) which may or
+   may not require random defines like -D_POSIX_C_SOURCE=200809L when
+   compiling. code herein that uses glob(3) is likely not at all
+   compatible with Linux
  * Perl verion 5.14 is assumed for the tests, though some of the scripts
    will work on older versions. Perl::MinimumVersion is most handy here
  * TCL version 8.5 or higher is required for much of the TCL code

@@ -1,17 +1,13 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-use Test::Most tests => 19;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Time::HiRes qw(gettimeofday tv_interval);
 
 # environment sanitization and ease of testing
 delete @ENV{qw(OUTPUT_PREFIX TIMEOUT)};
 $ENV{CLIPBOARD} = 'cat';
 
-# see TODOs elsewhere (in snooze.t in particular)
+# NOTE see TODOs elsewhere (snooze.t)
 my $tolerance = 0.15;
 
 my $test_prog = './forexample';
@@ -78,3 +74,4 @@ exit_is( $?, 0 );
 
     ok( tv_interval($start) < 3 );
 }
+done_testing(19);

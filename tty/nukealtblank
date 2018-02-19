@@ -4,7 +4,6 @@
 # in the man page does not vanish after the man page viewer is exited
 
 set -e
-
 TF=`mktemp`
 
 infocmp \

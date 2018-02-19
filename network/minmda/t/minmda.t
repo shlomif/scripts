@@ -1,13 +1,7 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../../lib/perl5);
+use UtilityTestBelt;
 use File::Cmp qw(fcmp);
-use File::Spec ();
-use File::Temp qw(tempdir);
-use Test::Cmd;
-use Test::Most tests => 47;
-use Test::UnixExit;
 
 # these should be kept in sync with ../minmda.h
 sub MBUF_MAX ()     { 8192 }
@@ -16,11 +10,7 @@ sub MEXIT_STATUS () { 75 }
 my $test_prog = './minmda';
 my $test_dir = tempdir( "minmda.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );
 
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 # invalid arguments
 {
@@ -179,5 +169,7 @@ my $message = "blah blah blah";
 
     $testcmd->prog($test_prog);
 }
+
+done_testing(47);
 
 # Tekeli-li! Tekeli-li!

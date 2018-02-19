@@ -1,6 +1,4 @@
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#define _BSD_SOURCE
-#endif
+/* dupenv - duplicates environment variables */
 
 #include <err.h>
 #include <getopt.h>

@@ -1,5 +1,4 @@
 #!perl
-
 use 5.14.0;
 use warnings;
 use Test::Cmd;
@@ -61,7 +60,6 @@ my @tests = (
         stdout => [qr/^=nameless$/],
     },
 );
-
 my $testcmd = Test::Cmd->new(
     prog    => $test_prog,
     verbose => 0,

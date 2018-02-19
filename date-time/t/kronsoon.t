@@ -1,12 +1,7 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use POSIX qw(strftime);
-use Test::Cmd;
-# 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 4 + 5;
-use Test::UnixExit;
 
 my $test_prog = './kronsoon';
 
@@ -17,25 +12,18 @@ $ENV{TZ} = 'US/Pacific';
 my @tests = (
     {   args   => 'cmd to run',
         stdout => ['MM HH DD mm * cmd to run'],
-
     },
     {   stdin  => "filter\nrun\nthrough\n",
         stdout => [ 'MM HH DD mm * filter', 'run', 'through' ],
-
     },
     {   args   => '--gmtime',
         stdout => ['MM HH DD mm *'],
-
     },
     {   args   => '--padby=200',
         stdout => ['MM HH DD mm *'],
     },
 );
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 for my $test (@tests) {
     $test->{stderr}      //= '';
@@ -66,9 +54,6 @@ for my $test (@tests) {
     );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }
-
-# any extras
-
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
@@ -85,3 +70,4 @@ $testcmd->run();
 my $expected = strftime( '%M %H %d %m *', localtime( $now + 89 ) );
 my ($got) = map { s/\s+$//r } split $/, $testcmd->stdout;
 is( $got, $expected, "time test" );
+done_testing( @tests * 3 + 5 );

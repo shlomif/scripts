@@ -1,10 +1,4 @@
-/* Validate an IP address via inet_pton(3) (and emit via inet_ntop(3)) */
-
-#if defined(linux) || defined(__linux) || defined(__linux__)
-extern char *optarg;
-extern int optind, opterr, optopt;
-#define _GNU_SOURCE
-#endif
+/* validate an IP address via inet_pton(3) (and emit via inet_ntop(3)) */
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -87,7 +81,7 @@ int main(int argc, char *argv[])
         }
         exit(EXIT_SUCCESS);
     case 0:
-        // not parseable
+        /* not parseable */
         break;
     case -1:
         err(EX_OSERR, "inet_pton() for IPv6 failed");

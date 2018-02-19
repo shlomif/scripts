@@ -1,10 +1,5 @@
 /* waits for a command to complete, or not (on user input) */
 
-#ifdef __linux__
-#define _POSIX_SOURCE
-#include <sys/types.h>
-#endif
-
 #include <err.h>
 #include <fcntl.h>
 #include <getopt.h>

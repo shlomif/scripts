@@ -1,13 +1,6 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use File::Spec;
-use File::Temp qw(tempdir);
-use Test::Cmd;
-# 3 tests per item in @tests plus any extras
-use Test::Most tests => 1 + 3 * 8 + 2;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
 my $test_prog = './fbd';
 
@@ -31,15 +24,11 @@ for my $tf (@test_files) {
 }
 utime $test_dir_epoch, $test_dir_epoch, $test_dir;
 
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 # NOTE a File::Find bug may cause the mtime of the files to incorrectly
-# be that of the parent directory. Check for that condition first, as if
-# present it will make a bunch of the regular tests mysteriously fail.
+# be that of the parent directory. check for that condition first, as if
+# present it will make a bunch of the regular tests mysteriously fail
 $testcmd->run( args => "-e $test_dir_epoch -a 5m", chdir => $test_dir );
 
 is( $testcmd->stdout, "", "cached mtime of parent dir afflicts subfiles" )
@@ -97,9 +86,7 @@ for my $test (@tests) {
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }
-
-# any extras
-
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
+done_testing( @tests * 3 + 3 );

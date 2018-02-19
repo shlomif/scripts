@@ -7,13 +7,13 @@ mycal: mycal.c
 now: now.c
 timeout: timeout.c
 
+clean:
+	git clean --force -x
+
 depend:
 	cpanm --installdeps ..
 
 test: date2epoch now timeout
 	@prove --nocolor
-
-clean:
-	@-rm c-delta-time date2epoch myat mycal now timeout 2>/dev/null
 
 .PHONY: clean depend test

@@ -1,7 +1,5 @@
 #!perl
-#
-# if dupenv is buggy things here will be sad, too
-
+# NOTE if dupenv is buggy then things here will be sad, too
 use 5.14.0;
 use warnings;
 use Test::Cmd;

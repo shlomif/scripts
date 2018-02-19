@@ -1,23 +1,15 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Expect;
-use Test::Cmd;
-use Test::Most tests => 31;
-use Test::UnixExit;
 use Time::HiRes qw(gettimeofday tv_interval);
 
-# see TODOs elsewhere (in snooze.t in particular)
+# NOTE see TODOs elsewhere (snooze.t)
 my $tolerance = 0.15;
 
 my $test_prog = './waitornot';
 
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 # no args should be same as -h
 $testcmd->run();
@@ -109,6 +101,7 @@ $exp->send("\003");
 eof_or_timeout( $exp, 3, \$eoft_result );
 is( $eoft_result, 'eof', "$test_prog exited" );
 exit_is( $exp->exitstatus, 1, "default exit for user interrupt" );
+done_testing(31);
 
 sub eof_or_timeout {
     my ( $e, $timeout, $resultref ) = @_;

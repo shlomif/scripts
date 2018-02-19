@@ -1,16 +1,8 @@
 #!perl
-#
-# There is some risk of false positives should the system be very busy,
-# as there are timeouts that could be run into (assuming this code isn't
-# likewise delayed with that busy system) or too much error could be
-# introduced into the was-the-elapsed-duration-about-right? tests.
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Expect;
-use Test::Most tests => 16;
 use Time::HiRes qw(gettimeofday tv_interval);
-use Test::UnixExit;
 
 # TODO how tight can this be vs. false positive risk? TODO also should
 # skew to allow for longer durations, but not shorter ones
@@ -27,6 +19,8 @@ sleep_for( '3',      3, 10 );
 sleep_for( '1s1s1s', 3, 10 );
 
 sig_info();
+
+done_testing(16);
 
 sub control_plus_c {
     my $exp = newexpect();

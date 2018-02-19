@@ -29,15 +29,15 @@ unatomappend: unatomappend.c
 makeloimage: makeloimage.c
 	$(CC) $(CFLAGS) -lbsd -o makeloimage makeloimage.c
 
+clean:
+	git clean --force -x
+
 depend:
 	cpanm --installdeps ..
 	pkg-config --exists goptfoo
 	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
-test: fdsplit findin getpof llcount seek twiddle
+test: fdsplit findin findup getpof llcount seek twiddle
 	@prove --nocolor
-
-clean:
-	@-rm -f corrupt fdsplit fillerup findin findup getpof llcount nomfd permcheck seek stripeofeol twiddle unatomappend *.core *.o 2>/dev/null
 
 .PHONY: clean depend test

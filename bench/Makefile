@@ -12,6 +12,9 @@ repcharcount: repcharcount.c
 usemem: usemem.c
 	$(CC) $(CFLAGS) -g `pkg-config --cflags --libs goptfoo jkiss` -g usemem.c -o usemem
 
+clean:
+	git clean --force -x
+
 depend:
 	cpanm --installdeps ..
 	pkg-config --exists goptfoo
@@ -20,8 +23,5 @@ depend:
 
 test: repcharcount
 	@prove --nocolor
-
-clean:
-	@-rm -f lockalot malloc repcharcount usemem *.core *.o 2>/dev/null
 
 .PHONY: clean depend test

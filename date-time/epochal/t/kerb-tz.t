@@ -1,13 +1,9 @@
 #!perl
-#
-# Those wacky Kerberos timestamps, the ones that cause segfaults on
-# OpenBSD (though they did patch that, eventually).
+use lib qw(../../lib/perl5);
+use UtilityTestBelt;
 
-use strict;
-use warnings;
-use Test::Cmd;
-use Test::More tests => 4;
-use Test::UnixExit;
+# because wacky Kerberos timestamps put the year after the zone (and,
+# formerly, segfaults on OpenBSD)
 
 $ENV{TZ} = 'UTC';
 
@@ -27,7 +23,6 @@ my $test = Test::Cmd->new(
     prog    => q{epochal -f '%a %b %d %H:%M:%S %Z %Y'},
     workdir => '',
 );
-
 $test->run( stdin => $dates );
 
 is( $test->stdout, $dates_epoch, 'dates converted to epoch' );
@@ -38,8 +33,9 @@ $test = Test::Cmd->new(
     workdir => '',
     stdin   => $dates
 );
-
 $test->run( stdin => $dates );
 
 is( $test->stdout, $dates_only_epoch, 'dates reduced to epoch' );
 exit_is( $?, 0, 'exit status ok' );
+
+done_testing(4);

@@ -20,6 +20,6 @@ udp-sink: udp-sink.o getopts.o
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` udp-sink.o getopts.o -o udp-sink
 
 clean:
-	@-rm -f showip udp-sender udp-sink *.o *.core 2>/dev/null
+	git clean --force -x
 
 .PHONY: all clean

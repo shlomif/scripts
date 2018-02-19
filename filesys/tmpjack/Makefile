@@ -3,6 +3,6 @@ CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 bruteln: bruteln.c
 
 clean:
-	@-rm bruteln sym 2>/dev/null
+	git clean --force -x
 
 .PHONY: clean

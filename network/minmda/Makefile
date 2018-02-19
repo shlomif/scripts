@@ -9,6 +9,9 @@ minmda-corrupts: minmda.c minmda.h files.o Makefile
 files.o: files.c
 	$(CC) $(CFLAGS) -c files.c -o files.o
 
+clean:
+	git clean --force -x
+
 # this does not attempt the install as that will vary between platform
 depend:
 	pkg-config --exists libsodium
@@ -19,8 +22,5 @@ test-depend:
 test: minmda minmda-corrupts
 	@prove --nocolor
 	@-rm minmda-corrupts 2>/dev/null
-
-clean:
-	git clean --force -x
 
 .PHONY: clean depend test test-depend

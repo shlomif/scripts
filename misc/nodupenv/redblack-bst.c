@@ -1,10 +1,6 @@
 /* red-black binary search tree implmentation based on code in "Algorithms"
  * (4th Edition) by Robert Sedgewick and Kevin Wayne */
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#define _BSD_SOURCE
-#endif
-
 #include "redblack-bst.h"
 
 void rbbst_flip_colors(rbbst_node n);

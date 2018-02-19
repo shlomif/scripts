@@ -1,10 +1,6 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-use Test::Most;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
 my $test_prog = './nocolor';
 
@@ -49,11 +45,7 @@ my @tests = (
         stderr => qr/^no color$/,
     },
 );
-my $command = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $command = Test::Cmd->new( prog => $test_prog, workdir => '', );
 my $test_count = 3 * @tests;
 
 for my $test (@tests) {
@@ -81,8 +73,6 @@ for my $test (@tests) {
     ok( $err =~ m/$test->{stderr}/, "STDERR $test_prog $args" )
       or diag "WANT $test->{stderr} GOT '$err'";
 }
-
 # should any unescaped escaped escape codes leave things in a bad state
 diag "set terminal to default...\e[0m";
-
 done_testing($test_count);

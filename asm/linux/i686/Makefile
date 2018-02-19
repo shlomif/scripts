@@ -3,6 +3,6 @@ register2hex32: register2hex32.asm
 	@chmod +x register2hex32
 
 clean:
-	@rm -f register2hex32 2>/dev/null
+	git clean --force -x
 
 .PHONY: clean

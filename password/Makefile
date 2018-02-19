@@ -13,9 +13,6 @@ testsalt: testsalt.c salt.o
 	$(CC) -std=c99 $(CFLAGS) `pkg-config --cflags --libs libsodium` -Werror -Wall -Wextra -Wundef -ftrapv -fno-diagnostics-color -fstack-protector-all -pedantic -pipe -o testsalt testsalt.c salt.o
 
 clean:
-	@-rm bigpass mkpwhash testsalt 2>/dev/null
+	git clean --force -x
 
-realclean: clean
-	@-rm salt.o 2>/dev/null
-
-.PHONY: clean realclean
+.PHONY: clean

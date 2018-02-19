@@ -43,13 +43,13 @@ bench: echo false true
 	@perl bench-echo
 	@perl bench-truefalse
 
+clean:
+	git clean --force -x
+
 depend:
 	cpanm --installdeps .
 
 test: false localarchdir regpollute true
 	@prove --nocolor
-
-clean:
-	@-rm -f echo false hexip4todottedquad localarchdir regpollute true *.o 2>/dev/null
 
 .PHONY: bench depend test clean

@@ -1,9 +1,5 @@
 /* minmda - a minimal mail delivery agent */
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#define _GNU_SOURCE
-#endif
-
 #include <locale.h>
 #include <signal.h>
 

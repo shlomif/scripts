@@ -1,13 +1,8 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Cwd qw(getcwd);
-use File::Spec ();
-use File::Temp qw(tempdir);
 use Expect;
-use Test::Most tests => 21;
-use Test::UnixExit;
 
 my $test_prog = File::Spec->catfile( getcwd, 'bt' );
 my $exp;
@@ -23,9 +18,9 @@ $exp = expect_spawn_ok($test_prog);
 expect_eoft( $exp, 3, 'eof', 'echo should have exited' );
 ok( $exp->before =~ m/by env $$/, "env passthrough of pid" );
 
-# Could test that gdb runs, but that's somewhat complicated, and
+# could test that gdb runs, but that's somewhat complicated, and
 # something the user will be directly interacting with, so in theory
-# errors will be spotted. Can create a directory with known contents and
+# errors will be spotted. can create a directory with known contents and
 # confirm that at least the *.core and executable detection works...
 
 $ENV{BT_DEBUGGER} = "echo gdb";
@@ -55,6 +50,7 @@ $exp = expect_spawn_ok( $test_prog, '-h' );
 expect_eoft( $exp, 3, 'eof', 'program exited' );
 exit_is( $exp->exitstatus, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $exp->before =~ m/Usage/, "help mentions usage" );
+done_testing(21);
 
 sub expect_eoft {
     my ( $exp, $timeout, $wanted, $name ) = @_;

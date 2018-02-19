@@ -1,16 +1,8 @@
 #!perl
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-use Test::Most tests => 6;
-use Test::UnixExit;
-
-my $command = Test::Cmd->new(
-    prog    => './coinflip',
-    verbose => 0,
-    workdir => '',
-);
+my $command = Test::Cmd->new( prog => './coinflip', workdir => '', );
 
 $command->run( args => '-q' );
 is( $command->stdout, "" );
@@ -29,3 +21,4 @@ $command->run( args => '-h' );
 exit_is( $?, 64 );
 is( $command->stdout, "" );
 ok( $command->stderr =~ qr/Usage: / );
+done_testing(6);

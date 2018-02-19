@@ -1,13 +1,6 @@
-/*
- * Parses timestamps in the input data via strptime(3), and emits that data in
- * epoch form (or with format as formatted by strftime(3)) to standard out.
- */
-
-/* ugh, linux */
-#ifdef __linux__
-#define _GNU_SOURCE
-#define _XOPEN_SOURCE
-#endif
+/* epochal - parses timestamps in the input data via strptime(3), and
+ * emits that data in epoch form (or with format as formatted by
+ * strftime(3)) to standard out */
 
 #include <sys/types.h>
 
@@ -22,20 +15,19 @@
 #include <time.h>
 #include <unistd.h>
 
-/* Limit on realloc() of strftime output buffer, mostly for if someone
- * specifies a stupidly long strftime() format. */
+/* limit on realloc() of strftime output buffer, mostly for if someone
+ * specifies a stupidly long strftime() format */
 #define OUTBUF_LEN_MIN 32
 #define OUTBUF_LEN_MAX 8192
 
-/* Command Line Options */
 char *Flag_Input_Format;        /* -f for strptime - required */
 bool Flag_Global;               /* -g multiple times per line */
 char *Flag_Output_Format;       /* -o for strftime */
 bool Flag_Suppress;             /* -s suppress other output */
 bool Flag_Custom_Year;          /* -y or -Y YYYY custom year */
 
-/* This gets filled in by CLI defaults (if any) and then clobbered by each
- * strptime call. I suspect this will be fine for most cases. */
+/* this gets filled in by CLI defaults (if any) and then clobbered by
+ * each strptime call */
 struct tm When;
 
 const char *File_Name = "-";    /* file name being read from */
@@ -56,8 +48,9 @@ int main(int argc, char *argv[])
     if (!setlocale(LC_ALL, ""))
         errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
 
-    /* As otherwise the default of 0 could cause time formats that do not
-     * include the date to skip back to a date in the previous month. */
+    /* as otherwise the default of 0 could cause time formats that
+     * do not include the date to skip back to a date in the
+     * previous month */
     When.tm_mday = 1;
 
     while ((ch = getopt(argc, argv, "f:gh?lo:syY:")) != -1) {
@@ -102,9 +95,9 @@ int main(int argc, char *argv[])
     if (!Flag_Input_Format)
         emit_help();
 
-    /* Due to crazy behavior on Mac OS X (see also guard for it, below), and
-     * otherwise there are less expensive syscalls that can better deal with
-     * epoch values. */
+    /* due to buggy behavior on Mac OS X (see also guard for it, below)
+     * and otherwise there are less expensive syscalls that can better
+     * deal with epoch values */
     if (strncmp(Flag_Input_Format, "%s", (size_t) 2) == 0)
         errx(EX_DATAERR, "%%s is not supported as input format");
 
@@ -152,10 +145,9 @@ void parseline(char *line, const ssize_t linenum)
         }
 
         if ((past_date_p = strptime(line, Flag_Input_Format, &When)) != NULL) {
-            /* Uhh so yeah about that %s thing on Mac OS X. Guard
-             * for it. This was reported in Apple Bug 15753871 years
-             * ago but hey I guess there's more important things to
-             * deal with? Bueller... bueller... bueller... */
+            /* uhh so yeah about that %s thing on Mac OS X. guard for
+             * it. this was reported in Apple Bug 15753871 years ago.
+             * bueller... bueller... bueller... */
             if (past_date_p - line < 1)
                 errx(EX_SOFTWARE, "error: zero-width timestamp parse");
 

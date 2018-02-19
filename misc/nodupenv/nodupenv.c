@@ -1,6 +1,4 @@
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#define _BSD_SOURCE
-#endif
+/* nodupenv - disallow duplicate environment variables past the first */
 
 #include <stdio.h>
 #include "redblack-bst.h"

@@ -20,11 +20,6 @@
  * Also, use arc4random() and family instead of srandomdev/random anyways.
  */
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#include <sys/types.h>
-#include <time.h>
-#endif
-
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>

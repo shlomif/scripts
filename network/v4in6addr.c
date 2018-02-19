@@ -1,20 +1,10 @@
-/*
- * Converts the IPv4 address given as the first argument into an IPv6
- * embedded form as per [RFC 6052], for example with the "well known"
- * prefix mentioned in TCP/IP Illustrated, Vol 1, 2nd edition (p.52):
+/* v4in6addr - converts the IPv4 address given as the first argument
+ * into an IPv6 embedded form as per [RFC 6052], for example with the
+ * "well known" prefix mentioned in TCP/IP Illustrated, Vol 1, 2nd
+ * edition (p.52):
  *
  *   v4in6addr -t 64:ff9b:: 192.0.2.1
- *
- * Requires -std=c99 to compile. Tested (albeit briefly) on both
- * OpenBSD/amd64 and Debian/ppc for little- vs. big-endian needs.
  */
-
-/* ugh, linux */
-#if defined(linux) || defined(__linux) || defined(__linux__)
-extern char *optarg;
-extern int optind, opterr, optopt;
-#define _GNU_SOURCE
-#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -88,10 +78,10 @@ int main(int argc, char *argv[])
             errx(EX_DATAERR, "inet_pton() could not parse '%s'", *argv);
     }
 
-    /* little endian arch? big endian? other? normalize. */
+    /* little endian arch? big endian? other? normalize */
     v4addr.s_addr = htonl(v4addr.s_addr);
 
-    /* In all cases bits 64-71 must be zero [RFC 4291] */
+    /* in all cases bits 64-71 must be zero [RFC 4291] */
     v6addr.s6_addr[8] = 0;
 
     /* figure out what else needs to happen to v6 address */
@@ -100,28 +90,23 @@ int main(int argc, char *argv[])
         /* just copy v4 into ultimate 32 bits - nothing else to zero */
         for (int i = 0; i < 4; i++)
             v6addr.s6_addr[i + 12] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
-
         break;
     case 64:
         /* v4 address follows bits 64-71 */
         for (int i = 0; i < 4; i++)
             v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
-
         /* zero ultimate 24 bits (reserved suffix) */
         for (int i = 13; i < S6ADDR_MAX; i++)
             v6addr.s6_addr[i] = 0;
-
         break;
     case 56:
         /* 8 bits prior to bits 64-71, remaining 24 after */
         v6addr.s6_addr[7] = v4addr.s_addr >> 24 & 0xff;
         for (int i = 0; i < 3; i++)
             v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((2 - i) * 8) & 0xff;
-
         /* zero ultimate 32 bits (reserved suffix) */
         for (int i = 12; i < S6ADDR_MAX; i++)
             v6addr.s6_addr[i] = 0;
-
         break;
     case 48:
         /* 16 bits prior to bits 64-71, 16 after */
@@ -129,33 +114,26 @@ int main(int argc, char *argv[])
             v6addr.s6_addr[i + 6] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
         for (int i = 0; i < 2; i++)
             v6addr.s6_addr[i + 9] = v4addr.s_addr >> ((1 - i) * 8) & 0xff;
-
         /* zero ultimate 40 bits (reserved suffix) */
         for (int i = 11; i < S6ADDR_MAX; i++)
             v6addr.s6_addr[i] = 0;
-
         break;
     case 40:
         /* 24 bits prior to bits 64-71, remaining 8 after */
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++)
             v6addr.s6_addr[i + 5] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
-        }
         v6addr.s6_addr[9] = v4addr.s_addr & 0xff;
-
         /* zero ultimate 48 bits (reserved suffix) */
         for (int i = 10; i < S6ADDR_MAX; i++)
             v6addr.s6_addr[i] = 0;
-
         break;
     case 32:
         /* v4 address follows 32-bit prefix */
         for (int i = 0; i < 4; i++)
             v6addr.s6_addr[i + 4] = v4addr.s_addr >> ((3 - i) * 8) & 0xff;
-
         /* zero ultimate 56 bits (reserved suffix) */
         for (int i = 9; i < S6ADDR_MAX; i++)
             v6addr.s6_addr[i] = 0;
-
         break;
     default:
         errx(EX_DATAERR,

@@ -1,10 +1,6 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-use Test::Most;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
 my @tests = (
     {   args   => "xom",
@@ -21,24 +17,19 @@ my @tests = (
         stderr      => qr/^Usage: /,
     },
 );
-my $command = Test::Cmd->new(
-    prog    => './oneof',
-    verbose => 0,
-    workdir => '',
-);
+my $command = Test::Cmd->new( prog => './oneof', workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
-    $test->{stderr} //= qr/^$/;
+    $test->{stderr}      //= qr/^$/;
 
-    $command->run( exists $test->{args}  ? ( args  => $test->{args} ) : () );
+    $command->run( exists $test->{args} ? ( args => $test->{args} ) : () );
 
     my $args = ' ' . ( $test->{args} // '' );
     exit_is( $?, $test->{exit_status}, "STATUS ./oneof$args" );
     is( $command->stdout, $test->{stdout}, "STDOUT ./oneof$args" );
     ok( $command->stderr =~ $test->{stderr}, "STDERR ./oneof$args" );
 }
-
 my %seen;
 for ( 1 .. 30 ) {
     $command->run( args => "a b c" );
@@ -46,5 +37,4 @@ for ( 1 .. 30 ) {
     $seen{$out}++;
 }
 eq_or_diff( [ sort keys %seen ], [qw/a b c/] );
-
 done_testing( @tests * 3 + 1 );

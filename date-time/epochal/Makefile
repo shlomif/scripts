@@ -2,13 +2,13 @@ CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 
 epochal: epochal.c
 
+clean:
+	git clean --force -x
+
 depend:
 	cpanm --installdeps ../..
 
 test: epochal
 	@prove --nocolor
-
-clean:
-	@-rm -f epochal *.core >/dev/null 2>&1
 
 .PHONY: clean depend test

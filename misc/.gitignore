@@ -2,6 +2,7 @@ bt
 copycat
 justblocks
 muss-with-environ
+pcre-precompile
 setsid
 sgrax
 threading

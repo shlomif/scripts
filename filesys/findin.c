@@ -1,11 +1,6 @@
-/* Finds files by glob in PATH or the given colon-delimited
- * environment variable, or instead with a directory list read from
- * from standard input. */
-
-#ifdef __linux__
-#define _BSD_SOURCE
-#define _POSIX_C_SOURCE 200809L
-#endif
+/* findin - finds files by glob in PATH or the given colon-delimited
+ * environment variable, or instead with a directory list read from from
+ * standard input */
 
 #include <err.h>
 #include <errno.h>
@@ -22,9 +17,9 @@
 #define STDIN_DELIMITER '\n'
 #define STDOUT_DELIMITER '\n'
 
-/* Note that the tilde is a non-standard extension to IEEE Std 1003.2
- * (``POSIX.2''). Used to have GLOB_LIMIT as well, though that is
- * problematical on Mac OS X. */
+/* NOTE tilde is a non-standard extension to IEEE Std 1003.2
+ * (``POSIX.2''). used to have GLOB_LIMIT as well, though that is
+ * problematical on Mac OS X */
 #define GLOB_FLAGS GLOB_BRACE | GLOB_TILDE
 
 void check_dir(char *directory, size_t dir_len, const char *expr,
@@ -33,8 +28,8 @@ void emit_help(void);
 void parse_env(const char *envname, const char *expr, char output_delim);
 void parse_stdin(const char *expr, char input_delim, char output_delim);
 
-bool Flag_Nulsep;               // -0
-bool Flag_Quiet;                // -q
+bool Flag_Nulsep;               /* -0 */
+bool Flag_Quiet;                /* -q */
 
 int exit_status = EXIT_SUCCESS;
 bool File_Hits;
@@ -87,7 +82,7 @@ void check_dir(char *directory, size_t dir_len, const char *expr,
     size_t tail = dir_len - 1;
 
     /* NOTE dir_len may be out of sync with directory afterwards, but is
-     * not presently relevant hence. */
+     * not presently relevant hence */
     while (tail > 0 && directory[tail] == '/')
         directory[tail--] = '\0';
 
@@ -149,7 +144,7 @@ void parse_stdin(const char *expr, char input_delim, char output_delim)
     while ((numchars = getdelim(&line, &linebuflen, input_delim, stdin)) != -1) {
         if (numchars > 1) {
             /* NOTE line includes the delimiter, except when the caller
-             * fails to append the delimiter to the ultimate line. */
+             * fails to append the delimiter to the ultimate line */
             if (line[numchars - 1] == input_delim)
                 line[--numchars] = '\0';
             check_dir(line, numchars, expr, output_delim);

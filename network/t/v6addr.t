@@ -1,11 +1,6 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-# 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 7 + 0;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
 my $test_prog = './v6addr';
 
@@ -13,24 +8,22 @@ my @tests = (
     {   args   => '::1',
         stdout => ["0000:0000:0000:0000:0000:0000:0000:0001"],
     },
-    {   args => '-r ::1',
+    {   args => '-r 2001:db8::c000:22a',
         stdout =>
-          ["1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."],
+          ["a.2.2.0.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa."],
     },
-    {   args   => '-R ::1',
+    {   args   => '-rR ::1',
         stdout => ["1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"],
     },
-    # should not parse
     {   args        => '::x',
         exit_status => 65,
         stdout      => [],
-        stderr      => qr/could not parse ipv6-address/,
+        stderr      => qr/could not parse/,
     },
-    {   args        => '-q ::x',
+    {   args        => '-q 2001::2010::2040',
         exit_status => 65,
         stdout      => [],
     },
-    # standard help
     {   args        => '-h',
         exit_status => 64,
         stdout      => [],
@@ -41,12 +34,7 @@ my @tests = (
         stderr      => qr/Usage/,
     },
 );
-
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
@@ -61,5 +49,4 @@ for my $test (@tests) {
         $test->{stdout}, "STDOUT $test_prog $args" );
     ok( $testcmd->stderr =~ m/$test->{stderr}/, "STDERR $test_prog $args" );
 }
-
-# any extras
+done_testing( @tests * 3 );

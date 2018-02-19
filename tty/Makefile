@@ -19,8 +19,8 @@ ttytest: ttytest.c
 ttywrite: ttywrite.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` ttywrite.c -o ttywrite
 
-test: nocolor
-	@prove --nocolor
+clean:
+	git clean --force -x
 
 depend:
 	cpanm --installdeps ..
@@ -29,7 +29,7 @@ depend:
 	pkg-config --exists libpcre
 	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
-clean:
-	@-rm -f nocolor rdcomm torc ttytest ttywrite *.core *.o >/dev/null 2>&1
+test: nocolor
+	@prove --nocolor
 
-.PHONY: clean depend
+.PHONY: clean depend test

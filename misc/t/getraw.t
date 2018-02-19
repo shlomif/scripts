@@ -1,10 +1,7 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Expect;
-use Test::Most tests => 23;
-use Test::UnixExit;
 
 my $test_prog = './getraw';
 
@@ -70,6 +67,7 @@ eof_or_timeout( $exp, 3, \$eoft_result );
 is( $eoft_result, 'eof', "getraw exited" );
 exit_is( $exp->exitstatus, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $exp->before =~ m/Usage/, "help mentions usage" );
+done_testing(23);
 
 sub eof_or_timeout {
     my ( $e, $timeout, $resultref ) = @_;

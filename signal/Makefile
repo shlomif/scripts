@@ -11,6 +11,6 @@ sigint-on: sigint-on.c
 slay-self: slay-self.c
 
 clean:
-	@-rm -f blocksig jitterbits sigint-on sigratetest slay-self *.core 2>/dev/null
+	git clean --force -x
 
 .PHONY: clean

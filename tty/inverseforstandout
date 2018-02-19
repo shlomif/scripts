@@ -12,7 +12,6 @@
 # these changes, remove the definitions in ~/.terminfo
 
 set -e
-
 TF=`mktemp`
 
 infocmp \

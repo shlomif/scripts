@@ -1,14 +1,8 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Cwd qw(getcwd);
-use File::Spec ();
 use File::Which;
-use Test::Cmd;
-# 3 tests per item in @tests plus any extras
-use Test::Most tests => 1 + 3 * 10 + 5;
-use Test::UnixExit;
 
 my $test_prog = './findin';
 
@@ -33,7 +27,7 @@ $ENV{FINDIN_EMPTY} = '';
 
 my $findin_path = File::Spec->catfile( $prog_dir, 'findin' );
 
-my $findin_dirpath1 = $ENV{FINDIN_PATH1} =~ s/:/\n/gr;
+my $findin_dirpath1      = $ENV{FINDIN_PATH1} =~ s/:/\n/gr;
 my $findin_dirpath1_null = $ENV{FINDIN_PATH1} =~ s/:/\0/gr;
 
 my @tests = (
@@ -76,11 +70,7 @@ my @tests = (
         stdout => ["$ls_path\0"],
     },
 );
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
@@ -96,21 +86,21 @@ for my $test (@tests) {
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }
-
-# any extras
-
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
 
-# Note, be sure to quote:
+# note, be sure to quote:
 # for the shell will glob
+# and all that you wrote
+# oh--a belly flop
 $testcmd->run( args => q{'findin.*' FINDIN_PATH1} );
 exit_is( $?, 0, "found files by glob" );
 my $count;
 $count++ for $testcmd->stdout =~ m{.findin\.[1c]$}gm;
 is( $count, 2, "dot c and man page found" );
 ok( $testcmd->stderr =~ m/^$/, "no stderr" );
+done_testing( @tests * 3 + 6 );
 
 sub random_filename {
     my @allowed = ( 'A' .. 'Z', 'a' .. 'z', 0 .. 9, '_' );

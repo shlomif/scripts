@@ -1,18 +1,7 @@
-/* IPv6 address qualifier (-f, the default) or reverse DNSer (-r).
- * Attempts a manual parse of the v6 address supplied as the first
- * argument, and will report where that parsing goes awry. Otherwise,
- * inet_pton(3) is used for a final opinion on the input and to produce
- * the output address.
- *
- * Briefly tested on OpenBSD/amd64 and Debian/ppc, no apparent endian
- * issues present in this code.
- */
-
-#if defined(linux) || defined(__linux) || defined(__linux__)
-extern char *optarg;
-extern int optind, opterr, optopt;
-#define _GNU_SOURCE
-#endif
+/* v6addr - IPv6 address qualifier or reverse DNSer. attempts a manual
+ * parse of the v6 address supplied as the first argument, and will
+ * report where that parsing goes awry. otherwise, inet_pton(3) is used
+ * for a final opinion on the input and to produce the output address */
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -39,10 +28,11 @@ extern int optind, opterr, optopt;
 void emit_help(void);
 void emit_unparsable(const char *str, const int idx, const char *err_str);
 
-enum { METHOD_FORWARD, METHOD_REVERSE_ARPA, METHOD_REVERSE };
 enum { STATE_START, STATE_WANTHEX, STATE_WANTCOLON };
 
-int Flag_Method;                /* -f -r -R */
+bool Flag_Forward = true;       /* -f, default */
+bool Flag_OmitArpa = false;     /* -R */
+bool Flag_Reverse = false;      /* -r */
 bool Flag_Quiet = false;        /* -q */
 
 uint16_t addr[QUADS];
@@ -63,17 +53,22 @@ int main(int argc, char *argv[])
     int ret = 0;
     struct in6_addr v6addr;
 
-    while ((ch = getopt(argc, argv, "fhrRq")) != -1) {
+    while ((ch = getopt(argc, argv, "afhrRq")) != -1) {
         switch (ch) {
-            /* last of these mentioned wins, in event shell aliases involved */
+        case 'a':
+            Flag_Forward = true;
+            Flag_Reverse = true;
+            break;
         case 'f':
-            Flag_Method = METHOD_FORWARD;
+            Flag_Forward = true;
+            Flag_Reverse = false;
             break;
         case 'r':
-            Flag_Method = METHOD_REVERSE_ARPA;
+            Flag_Forward = false;
+            Flag_Reverse = true;
             break;
         case 'R':
-            Flag_Method = METHOD_REVERSE;
+            Flag_OmitArpa = true;
             break;
         case 'q':
             Flag_Quiet = true;
@@ -144,7 +139,7 @@ int main(int argc, char *argv[])
         if (ret == EOF)
             break;
         /* % treated like EOF as address might have trailing %lo0 (but
-         * inet_pton() does not like that, so NUL it out here). */
+         * inet_pton() does not like that, so NUL it out here) */
         if (*ap == '%') {
             *ap = '\0';
             break;
@@ -176,10 +171,10 @@ int main(int argc, char *argv[])
                 addr[quads_offset - i] = 0;
             }
         } else {
-            /* Nothing for :: to do if no zeros to fill in on either side, as
-             * if here have a full eight quads. The :: might otherwise be
-             * invalid if there's a longer run of zeros elsewhere, but
-             * checking for that would be annoying. */
+            /* nothing for :: to do if no zeros to fill in on either
+             * side, as if here have a full eight quads. the :: might
+             * otherwise be invalid if there's a longer run of zeros
+             * elsewhere, but checking for that would be annoying */
             if ((addr[dblcln_idx - 1] & 15) != 0 && addr[dblcln_idx] > 0xfff)
                 emit_unparsable(*argv, dblcln_offset, "invalid double colon");
         }
@@ -187,7 +182,7 @@ int main(int argc, char *argv[])
         emit_unparsable(*argv, input_offset, "incomplete address");
     }
 
-    /* A final opinion (but does not show where the address goes awry) */
+    /* final opinion (but does not show where the address goes awry) */
     if ((ret = inet_pton(AF_INET6, *argv, &v6addr)) != 1) {
         if (ret == -1) {
             emit_unparsable(*argv, input_offset, strerror(errno));
@@ -197,32 +192,35 @@ int main(int argc, char *argv[])
     }
 
     /* emit address (using the inet_pton() parsed results) */
-    ap = output;
-    if (Flag_Method == METHOD_FORWARD) {
+    if (Flag_Forward) {
+        ap = output;
         for (int i = 0; i < S6ADDR_MAX; i++) {
             sprintf(ap, "%02x", v6addr.s6_addr[i]);
             ap += 2;
             if (i < S6ADDR_MAX - 1 && i % 2 == 1)
                 *ap++ = ':';
         }
-    } else {
-        /* reverse for DNS is slightly trickier */
+        *ap++ = '\n';
+        write(STDOUT_FILENO, output, (size_t) (ap - output));
+    }
+    if (Flag_Reverse) {
+        ap = output;
         for (int i = S6ADDR_MAX - 1; i >= 0; i--) {
             for (int j = 0; j < 2; j++) {
                 sprintf(ap, "%1x.", v6addr.s6_addr[i] >> (j * 4) & 15);
                 ap += 2;
             }
         }
-        if (Flag_Method == METHOD_REVERSE_ARPA) {
-            strncpy(ap, "ip6.arpa.", 9);
-            ap += 9;
-        } else {
+        if (Flag_OmitArpa) {
             /* wipe out the trailing dot */
             ap--;
+        } else {
+            strncpy(ap, "ip6.arpa.", 9);
+            ap += 9;
         }
+        *ap++ = '\n';
+        write(STDOUT_FILENO, output, (size_t) (ap - output));
     }
-    *ap++ = '\n';
-    write(STDOUT_FILENO, output, (size_t) (ap - output));
 
     exit(EXIT_SUCCESS);
 }

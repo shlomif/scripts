@@ -13,10 +13,15 @@
 #   printf "$SSH_ORIGINAL_COMMAND\n" >> "$HOME"/tmp/ssh-yak
 #   eval "$SSH_ORIGINAL_COMMAND"
 #
+# and because I keep forgetting these:
+#
+#   SSH_CLIENT="srcip srcport dstport"
+#   SSH_CONNECTION="srcip srcport dstip dstport'
+#
 # NOTE software may already support limited access via ssh e.g. git-shell(1)
 
-YAK_OUTPUT=`mktemp -q "/tmp/yak-ssh.XXXXXXXXXX`" || {
-   echo >&2 "mktemp failed to create /tmp file"
+YAK_OUTPUT=`mktemp -q /tmp/yak-ssh.XXXXXXXXXX` || {
+   printf >&2 "mktemp failed to create /tmp file\n"
    exit 1
 }
 chmod go-r "$YAK_OUTPUT"
@@ -24,8 +29,10 @@ chmod go-r "$YAK_OUTPUT"
    printf "$SSH_ORIGINAL_COMMAND\n\n"
    if [ -t 0 ]; then
       tty
-      printf "\n"
+   else
+      printf "no tty on stdin\n"
    fi
+   printf "\n"
    env
 ) >> "$YAK_OUTPUT"
 

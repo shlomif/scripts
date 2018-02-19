@@ -1,7 +1,3 @@
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#define _GNU_SOURCE
-#endif
-
 #include <errno.h>
 
 #include "minmda.h"

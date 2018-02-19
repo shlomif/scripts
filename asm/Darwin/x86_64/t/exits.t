@@ -1,8 +1,6 @@
 #!perl
-use 5.14.0;
-use warnings;
-use Test::Most;
-use Test::UnixExit;
+use lib qw(../../../lib/perl5);
+use UtilityTestBelt;
 
 my $test_count = 6;
 

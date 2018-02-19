@@ -1,12 +1,6 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use File::Spec ();
-use Test::Cmd;
-# 3 tests per item in @tests
-use Test::Most tests => 3 * 2;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
 my $test_prog = './here';
 
@@ -18,11 +12,7 @@ my @tests = (
         stdout => '^' . File::Spec->catfile(qw/co scripts filesys subdir/) . '$'
     },
 );
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
@@ -36,3 +26,4 @@ for my $test (@tests) {
         "STDOUT $test_prog $test->{args}: " . $testcmd->stdout );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }
+done_testing( @tests * 3 );

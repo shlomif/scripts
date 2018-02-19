@@ -1,8 +1,6 @@
 #!perl
-use 5.14.0;
-use warnings;
-use Test::Most tests => 4;
-use Test::UnixExit;
+use lib qw(../../../lib/perl5);
+use UtilityTestBelt;
 
 my $expected = "OpenBSD6.2-amd64\n";
 my $output;
@@ -14,6 +12,8 @@ ok( $output eq $expected ) or compare( $output, $expected );
 $output = qx(./localarchdir >&-);
 exit_is( $?, 1 );
 is( $output, "" );
+
+done_testing(4);
 
 sub compare {
     for my $arg (@_) {

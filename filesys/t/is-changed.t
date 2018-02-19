@@ -1,17 +1,14 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Expect;
-use File::Temp qw(tempfile);
-use Test::Most tests => 4;
 
 my $test_prog = './is-changed';
 
-my ( $tfh, $test_file );
+my ( $tfh, $tf );
 lives_ok(
     sub {
-        ( $tfh, $test_file ) = tempfile( "ic.XXXXXXXXXX", TMPDIR => 1, UNLINK => 1 );
+        ( $tfh, $tf ) = tempfile( "ic.XXXXXXXXXX", TMPDIR => 1, UNLINK => 1 );
     },
     'tempfile creation should not croak'
 );
@@ -19,7 +16,7 @@ lives_ok(
 $tfh->autoflush;
 
 my $exp = newexpect();
-ok( $exp->spawn( $test_prog, '5s', "$^X -E 'say q{poke}'", $test_file ),
+ok( $exp->spawn( $test_prog, '5s', "$^X -E 'say q{poke}'", $tf ),
     "expect object spawned" );
 
 diag "tests will take some time...";
@@ -45,6 +42,8 @@ is( $return, 'eof', "exits after control+c" );
 my $pokes;
 $pokes++ for $exp->before =~ m/poke/g;
 is( $pokes, 1, "one poke from two changes" );
+
+done_testing(4);
 
 sub newexpect {
     my $exp = Expect->new;

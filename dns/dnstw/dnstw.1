@@ -1,0 +1,256 @@
+.Dd February 28 2018
+.Dt DNSTW 1
+.nh
+.Os
+.Sh NAME
+.Nm dnstw
+.Nd wrapper around nsupdate(1) for dynamic DNS changes
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl nF
+.Op Fl S Ar server
+.Op Fl T Ar TTL
+.Op Fl d Ar domain
+.Ar module
+.Op Ar module args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+wraps
+.Xr nsupdate 1
+and provides a means to perform various dynamic DNS related record
+changes from the command line.
+Options:
+.Bl -tag -width Ds
+.It Fl F
+Input records must be fully qualified. By default records are instead
+assumed to be relative to the
+.Cm domain
+that is set either in the configuration for
+.Nm
+or via the
+.Fl d
+flag.
+.It Fl S Ar server
+Send the DNS updates to the given DNS server. This causes a
+.Cm server $server
+line to appear at the beginning of the commands.
+.It Fl T Ar TTL
+Set the given TTL for records created. A default TTL is set in the
+configuration for
+.Nm .
+There may be limits on what value the
+.Cm $TTL
+can be.
+.It Fl d Ar domain
+Set the domain that records are subordinate to, unless
+.Fl F
+is set.
+.It Fl n
+Preview. Emits to standard output the commands that would be sent to
+.Xr nsupdate 1
+and then exits the program.
+.El
+.Sh MODULES
+These provide translation between command line arguments and 
+suitable input to
+.Xr nsupdate 1 .
+.Pp
+.Bl -tag -width Ds -offset indent -compact
+.It Cm create-cname Ar host Ar cname
+Creates a CNAME record for
+.Ar cname
+that points to
+.Ar host .
+The
+.Ar host
+must exist and no record may exist for the
+.Ar cname .
+Use 
+.Cm repoint-name
+to change where an existing CNAME points to.
+.Pp
+.It Cm create-host Ar host Ar ip Op Ar ip2 ..
+Creates appropriate A or AAAA records depending on the
+.Ar ip
+and also corresponding PTR records for the given
+.Ar host .
+.Pp
+.It Cm create-mx Ar host Ar mxhost
+.It Cm create-mx Ar host Ar priority Ar mxhost
+Creates a MX record for
+.Ar host
+pointing to the host
+.Ar mxhost .
+Note that some DNS servers (and especially some Mail Transport Agents)
+are rather picky about what a MX record points to. This is why IP
+addresses are not accepted as a target for the MX. Nor should the MX
+point to a CNAME.
+.Pp
+If the priority is unspecified a default will be used.
+.Pp
+.It Cm create-reverse Ar host Ar ip
+Creates a PTR from the given
+.Ar host
+and
+.Ar ip .
+.Pp
+.It Cm delete-cname Ar cname
+Deletes the given
+.Ar cname
+if it exists.
+.Pp
+.It Cm delete-host Ar host Op Ar ip ..
+Deletes all records for the given
+.Ar host
+and if IP addresses are given PTR records associated with those.
+.Pp
+Will not delete any
+.Ar host
+that has a NS record associated with it.
+.Pp
+.It Cm delete-mx Ar host Op Ar priority mxhost Op Ar pri mxhost ..
+Deletes all MX records for the given
+.Ar host
+unless priority and MX host pairs are given in which case only those
+records will be deleted.
+.Pp
+.It Cm delete-reverse Ar ip
+Deletes the PTR record, if any, for the given
+.Ar ip .
+.Pp
+.It Cm make-record Ar ..
+Makes an arbitrary DNS record with rather little in the way of
+error checking of the input.
+.Pp
+.It Cm nscat
+Sends whatever is input via standard input to
+.Xr nsupdate 1 .
+This can be used to send custom commands, or the collected output from
+other modules saved via
+.Cm dnstw -n .
+.Pp
+.It Cm repoint-cname Ar host Ar cname
+Assuming there is a CNAME record for
+.Ar cname
+that CNAME is deleted and a new CNAME is created that points to
+.Ar host .
+.Pp
+.It Cm unmake-record Ar ..
+Removes an arbitrary DNS record with rather little in the way of error
+checking of the input.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Create a host with both IPv4 and IPv6 addresses. This happens in the default
+.Cm $domain
+which here is
+.Ar example.net .
+.Pp
+.Dl $ Ic dnstw create-host skami042 192.0.2.42 2001:0db8::c000:22a
+.Dl $ Ic dig @localhost axfr example.net \&| grep skami
+.Dl skami042.example.net.	3600	IN	AAAA	2001:db8::c000:22a
+.Dl skami042.example.net.	3600	IN	A	192.0.2.42
+.Dl $ Ic host 192.0.2.42 localhost \&| sed -n '$p'
+.Dl 42.2.0.192.in-addr.arpa domain name pointer skami042.example.net.
+.Pp
+CNAME and MX records for the host.
+.Pp
+.Dl $ Ic dnstw create-cname skami042 foo
+.Dl $ Ic create-mx skami042 skami042
+.Dl $ Ic host -t MX skami042.example.net
+.Dl skami042.example.net mail is handled by 10 skami042.example.net.
+.Dl $ Ic host -t CNAME foo.example.net
+.Dl foo.example.net is an alias for skami042.example.net.
+.Pp
+Fully qualified hostnames are more typing but may be required if a
+record from a foreign domain needs to be added. Also, custom TTL.
+.Pp
+.Dl $ Ic dnstw -F -T 999 create-reverse aliens.example.com. 192.0.2.2
+.Dl $ Ic host 192.0.2.2
+.Dl 2.2.0.192.in-addr.arpa domain name pointer aliens.example.com.
+.Pp
+Moving CNAME around is a common request.
+.Pp
+.Dl $ Ic dnstw create-host skami043 192.0.2.43
+.Dl $ Ic dnstw repoint-cname skami043 foo
+.Pp
+Arbitrary records can be created. However it may be easier in some cases
+to freeze the necessary zones and manually make the required changes.
+.Pp
+.Dl $ Ic Nm make-record _VLMCS._TCP IN SRV 0 100 1688 mskms.example.net
+.Dl $ Ic Nm unmake-record _VLMCS._TCP IN SRV 0 100 1688 mskms.example.net
+.Pp
+.Cm nscat
+reads standard input and feeds
+.Xr nsupdate 1 .
+This could be used to prepare a set of changes for a single update run
+(and perhaps a different file containing updates that would roll back
+the changes).
+.Pp
+.Dl $ Ic dnstw -n create-host skami044 192.0.2.44 > x
+.Dl $ Ic cat x
+.Dl server 127.0.0.1
+.Dl add skami044.example.net. 3600 A 192.0.2.44
+.Dl send
+.Dl nxrrset 44.2.0.192.in-addr.arpa. PTR
+.Dl add 44.2.0.192.in-addr.arpa. 3600 PTR skami044.example.net.
+.Dl send
+.Dl $ Ic dnstw nscat < x
+.Pp
+When combining output be sure to include
+.Cm send
+commands between updates to different zones.
+.Sh WRITING MODULES
+Modules are implemented in TCL. There is additionally a
+.Pa _common.tcl
+module that is used both to set various defaults (or override those set
+in the code for
+.Nm )
+and contains procedures used by other modules.
+.Pp
+An appropriate module path must be set in
+.Nm ,
+and the modules must be located in this directory. Variables must be set
+in
+.Pa _common.tcl
+so that
+.Nm
+can find
+.Xr nsupdate 1
+and pass it suitable arguments (keys, timeout settings, etc).
+.Pp
+Modules may need customization (or creation) to suit the needs of the
+site. There are restrictions on the length and content of module names.
+.Pp
+Only ASCII is supported by the default modules. Code could be written to
+support punycode, if necessary.
+.Pp
+Otherwise, study the existing modules and variable set by the C code.
+.Sh SEE ALSO
+.Xr Tcl n ,
+.Xr dig 1 ,
+.Xr host 1 ,
+.Xr nsupdate 1 ,
+.Xr v4addr 1 ,
+.Xr v4in6addr 1 ,
+.Xr v6addr 1
+.Pp
+.Bl -hang
+.It [RFC 1035]
+Domain names - implementation and specification
+.It [RFC 1123]
+Requirements for Internet Hosts
+.It [RFC 2136]
+Dynamic Updates in the Domain Name System
+.It [RFC 3849]
+IPv6 Address Prefix Reserved for Documentation
+.It [RFC 5737]
+IPv4 Address Blocks Reserved for Documentation
+.It [RFC 5891]
+Internationalized Domain Names in Applications
+.El
+.Sh AUTHOR
+.An Jeremy Mates

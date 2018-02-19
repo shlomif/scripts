@@ -1,13 +1,11 @@
 #!/usr/local/bin/sh
 #
 # *.wav in, normalized *.mp3 out
-
 set -e
-
 for file in "$@"; do
-    rootname=`fdsplit root "$file"`
-    normed=`mktemp`
-    sox --norm "$file" -b 16 -t wav "$normed" rate 44100 dither -s
-    ffmpeg -f wav -i "$normed" "$rootname.mp3"
-    rm "$normed"
+   rootname=`fdsplit root "$file"`
+   normed=`mktemp`
+   sox --norm "$file" -b 16 -t wav "$normed" rate 44100 dither -s
+   ffmpeg -f wav -i "$normed" "$rootname.mp3"
+   rm "$normed"
 done

@@ -1,10 +1,7 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../../../lib/perl5);
+use UtilityTestBelt;
 use Capture::Tiny qw(capture_stderr);
-use Test::Most;
-use Test::UnixExit;
 
 my @tests = (
     {   command => [qw(./echo)],
@@ -96,7 +93,6 @@ for my $t (@tests) {
     # test breaks collect and review the output manually...
     ok( $output eq $argstr, "maximum args output differs from input" );
 }
-
 done_testing( @tests * 2 + 2 );
 
 sub between { int( ( $_[0] + $_[1] ) / 2 ) }

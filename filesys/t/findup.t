@@ -1,14 +1,8 @@
 #!perl
-
-use 5.14.0;
-use warnings;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Cwd qw(getcwd);
 use File::Basename qw(dirname);
-use File::Spec ();
-use Test::Cmd;
-# 3 tests per item in @tests plus any extras
-use Test::Most tests => 3 * 11 + 8;
-use Test::UnixExit;
 
 my $test_prog = './findup';
 
@@ -63,11 +57,7 @@ my @tests = (
         exit_status => 1,
     },
 );
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
@@ -80,9 +70,6 @@ for my $test (@tests) {
         $test->{stdout}, "STDOUT $test_prog $test->{args}" );
     is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
 }
-
-# any extras
-
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
@@ -111,6 +98,7 @@ ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
     ok( $testcmd->stdout eq "/\n", "found dir of first dir" );
     ok( $testcmd->stderr eq "" );
 }
+done_testing( @tests * 3 + 8 );
 
 sub random_filename {
     my @allowed = ( 'A' .. 'Z', 'a' .. 'z', 0 .. 9, '_' );

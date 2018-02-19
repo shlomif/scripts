@@ -4,13 +4,13 @@ localarchdir: localarchdir.o
 localarchdir.o: localarchdir.asm
 	nasm -f elf64 localarchdir.asm -o localarchdir.o
 
+clean:
+	git clean --force -x
+
 depend:
 	cpanm --installdeps .
 
 test: localarchdir
 	@prove --nocolor
-
-clean:
-	@-rm -f *.o *.core localarchdir 2>/dev/null
 
 .PHONY: clean depend test

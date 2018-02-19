@@ -1,11 +1,6 @@
 #ifndef _MINMDA_H
 #define _MINMDA_H 1
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-/* some grepping shows this is where linux hides PATH_MAX ? */
-#include <linux/limits.h>
-#endif
-
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>

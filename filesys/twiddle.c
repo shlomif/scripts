@@ -1,12 +1,8 @@
-/* Twiddles the specified bit at the specfied offset in the
- * specified file(s).
- *
+/* twiddle - twiddles the specified bit at the specfied offset in the
+ * specified file(s)
+ * 
  *   "Tap or untap target artifact, creature, or land."
  *     -- Magic: The Gathering                           */
-
-#ifdef __linux__
-#define _XOPEN_SOURCE 500
-#endif
 
 #include <err.h>
 #include <fcntl.h>

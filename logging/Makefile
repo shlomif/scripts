@@ -9,8 +9,12 @@ buggyservd: buggyservd.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs libevent`_core -o buggyservd buggyservd.c
 
 cts: cts.c
+logsoc: logsoc.c
 
 clean:
-	@-rm buggyservd cts *.core 2>/dev/null
+	git clean --force -x
 
-.PHONY: clean
+depend:
+	cpanm --installdeps ..
+
+.PHONY: clean depend

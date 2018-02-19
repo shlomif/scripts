@@ -106,7 +106,10 @@ int main(int argc, char *argv[])
 
     if (Script) {
         int ret;
-        Interp = Tcl_CreateInterp();
+        if ((Interp = Tcl_CreateInterp()) == NULL)
+            errx(EX_OSERR, "Tcl_CreateInterp failed");
+        if (Tcl_Init(Interp) == TCL_ERROR)
+            errx(EX_OSERR, "Tcl_Init failed");
 
         /* identify this program so code in the config file can detect
          * that. one could instead use Tcl_FindExecutable for this */

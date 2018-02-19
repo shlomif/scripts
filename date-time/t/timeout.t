@@ -1,12 +1,7 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-# 4 tests per item in @tests plus any extras
-use Test::Most tests => 4 * 3 + 2;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 use Time::HiRes qw(gettimeofday tv_interval);
-use Test::UnixExit;
 
 my $test_prog = './timeout';
 
@@ -28,11 +23,7 @@ my @tests = (
         duration => 2,
     },
 );
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
+my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
@@ -53,9 +44,7 @@ for my $test (@tests) {
     ok( $elapsed_error < $tolerance,
         "duration variance out of bounds: $elapsed_error" );
 }
-
-# any extras
-
 $testcmd->run( args => '-h' );
 exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
 ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
+done_testing( @tests * 4 + 2 );

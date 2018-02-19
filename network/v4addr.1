@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd February 24 2018
 .Dt V4ADDR 1
 .nh
 .Os
@@ -8,33 +8,41 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Op Fl fqr
+.Op Fl afqr
 .Ar ipv4-address
 .Ek
 .Sh DESCRIPTION
 .Nm
 parses and prints a given IPv4 address.
-.Pp
 Options:
 .Bl -tag -width Ds
+.It Fl a
+Prints both the regular and then the reverse form.
 .It Fl f
 Prints the address in regular form (the default).
 .It Fl q
-will suppress diagnostic output should the address fail to parse.
+suppress diagnostic output should the address fail to parse.
 .It Fl r
 prints the address in reverse DNS form.
 .El
-.Pp
-Note that the truncated 127.1 form that some software accepts is not
-supported.
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
 .Dl $ Ic v4addr 127.0.0.1
-.Dl $ Ic v4addr -f 127.0.0.1
-.Pp
+.Dl 127.0.0.1
 .Dl $ Ic v4addr -r 127.0.0.1
+.Dl 1.0.0.127.in-addr.arpa. 
+.Dl $ Ic v4addr -a 127.0.0.1
+.Dl 127.0.0.1
+.Dl 1.0.0.127.in-addr.arpa. 
+.Dl $ 
 .Sh SEE ALSO
+.Xr inet_pton 3 ,
 .Xr v6addr 1
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+The truncated 127.1 or other oddball forms (127.0x0.1, 2130706433,
+etc) that some
+.Xr inet_ntoa 3
+implementations accept are not supported.

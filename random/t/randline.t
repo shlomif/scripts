@@ -1,10 +1,6 @@
 #!perl
-
-use 5.14.0;
-use warnings;
-use Test::Cmd;
-use Test::Most;
-use Test::UnixExit;
+use lib qw(../lib/perl5);
+use UtilityTestBelt;
 
 # these are basic interface tests; more than one input line requires
 # statistical guesswork on account of the (hopefully) random nature of
@@ -32,15 +28,11 @@ my @tests = (
         stderr      => qr/^Usage: /,
     },
 );
-my $command = Test::Cmd->new(
-    prog    => './randline',
-    verbose => 0,
-    workdir => '',
-);
+my $command = Test::Cmd->new( prog => './randline', workdir => '', );
 
 for my $test (@tests) {
     $test->{exit_status} //= 0;
-    $test->{stderr} //= qr/^$/;
+    $test->{stderr}      //= qr/^$/;
 
     $command->run(
         exists $test->{args}  ? ( args  => $test->{args} )  : (),
@@ -52,7 +44,6 @@ for my $test (@tests) {
     is( $command->stdout, $test->{stdout}, "STDOUT ./randline$args" );
     ok( $command->stderr =~ $test->{stderr}, "STDERR ./randline$args" );
 }
-
 # this may false alarm if the RNG does not pick one of the choices in
 # the given number of trials (versus wasting more CPU time...)
 # TODO really do need more extensive statistical tests, perhaps by
@@ -64,5 +55,4 @@ for ( 1 .. 30 ) {
     $seen{$out}++;
 }
 eq_or_diff( [ sort keys %seen ], [qw/a b c/] );
-
 done_testing( @tests * 3 + 1 );
