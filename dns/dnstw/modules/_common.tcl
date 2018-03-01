@@ -6,7 +6,7 @@ set nsupdate_cmd /opt/local/bin/nsupdate
 set nsupdate_args {-k /opt/local/etc/nsuk.key -t 60}
 
 set domain example.net.
-set server 127.0.0.1
+#set server 127.0.0.1
 
 set default_mx_priority 10
 
@@ -107,5 +107,17 @@ proc reject_invalid_host_label {name value} {
     }
     if {![regexp -nocase {^([a-z0-9]+|[a-z0-9][a-z0-9-]+[a-z0-9])$} $value]} {
         die "$name label may only contain /a-z0-9/i or with hyphen in middle"
+    }
+}
+
+# or instead with (at least leading) underscores
+proc allow_underscore_hosts {} {
+    proc reject_invalid_host_label {name value} {
+        if {[string length $value] > 63} {
+            die "$name label cannot be longer than 63 characters"
+        }
+        if {![regexp -nocase {^([_a-z0-9]+|[a-z0-9][a-z0-9-]+[a-z0-9])$} $value]} {
+            die "$name label may only contain /a-z0-9/i or with hyphen in middle"
+        }
     }
 }

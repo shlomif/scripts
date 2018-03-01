@@ -3,15 +3,15 @@ if {[llength $argv] < 1} {
 }
 set host [lindex $argv 0]
 
-if {[regexp {[^A-Za-z0-9_ .-]} $host]} {
-    die "invalid data in host record"
-}
+allow_underscore_hosts 
+audit_hostnames host
 
 shift argv
-if {[regexp {[^A-Za-z0-9_ .-]} $argv]} {
+set record [join $argv " "]
+if {[regexp {[^A-Za-z0-9=:?/_ ."-]} $record]} {
     die "invalid data in DNS record"
 }
 
 set nsupdate [ string cat $nsupdate \
-    "del $host.$domain $TTL $argv\n" \
+    "del $host.$domain $TTL $record\n" \
     "send\n" ]

@@ -9,14 +9,20 @@ TCL=tcl85
 # or to create a link pkg-config can find
 #   ln -s /opt/local/lib/pkgconfig/tcl.pc tcl85.pc 
 
-dnstw: dnstw.c
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo $(TCL)` dnstw.c -o dnstw
+dnstw: dnstw.c dnstw.h ipparse.o
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo $(TCL)` dnstw.c ipparse.o -o dnstw
+
+ipparse: dnstw.h ipparse.c
+	$(CC) -c $(CFLAGS) `pkg-config --cflags --libs $(TCL)` ipparse.c -o ipparse.o
 
 clean:
 	git clean --force -x
 
 depend:
-	pkg-config --exists goptfoo
+	pkg-config --exists goptfoo $(TCL)
 	@expect -c "package require Tcl 8.5"
 
-.PHONY: clean depend
+test: dnstw
+	@prove --nocolor
+
+.PHONY: clean depend test

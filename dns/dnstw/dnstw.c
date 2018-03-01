@@ -1,19 +1,23 @@
 /* dnstw - a nsupdate(1) wrapper for dynamic DNS changes */
 
+#include <sys/wait.h>
+
 #include <ctype.h>
-#include <err.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sysexits.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include <goptfoo.h>
-#include <tcl.h>
+
+#include "dnstw.h"
 
 #define DNSTW_MAX_MODULE_LEN 65
+
+/* FIXME these must be fully qualified paths for a site install */
+char *Module_Dir = "modules";
+char *Common_Lib = "modules/_common.tcl";
 
 int Flag_AcceptFQDN;            /* -F */
 char *Flag_Server;              /* -S */
@@ -24,8 +28,6 @@ int Flag_Preview;               /* -n */
 int Option_MinTTL = 1;
 int Option_MaxTTL = 31536000;
 
-char *Module_Dir = "modules";
-char *Common_Lib = "modules/_common.tcl";
 const char *Nsupdate_Cmd;
 
 Tcl_Interp *Interp;
@@ -121,6 +123,10 @@ int main(int argc, char *argv[])
             err(EX_OSERR, "asprintf failed");
     }
     Tcl_SetVar2(Interp, "nsupdate", NULL, nsupdate_str, 0);
+
+    if (Tcl_CreateObjCommand(Interp, "ipparse", IpParse, (ClientData) NULL,
+                             (Tcl_CmdDeleteProc *) NULL) == NULL)
+        errx(1, "Tcl_CreateObjCommand failed");
 
     if ((ret = Tcl_EvalFile(Interp, module_path)) != TCL_OK) {
         if (ret == TCL_ERROR)

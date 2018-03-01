@@ -1,16 +1,17 @@
-various C and Perl and TCL and shell scripts for unix
+scripts for unix
 
 there are sporadically unit tests, run
 
    make depend
    make test
 
-these require Perl (or TCL) and various Perl (or TCL) modules
+these require Perl and various modules notably App::cpanminus and
+possibly local::lib already installed and configured
 
  * the C is primarily written for Mac OS X or OpenBSD; portability is
-   largely untested. most of it requires C99 and various modern system
-   calls. use `make ... CC=... CFLAGS=...` if you need a different C
-   compiler or CFLAGS set
+   largely untested. most of it requires C99 and modern system calls.
+   use `make ... CC=... CFLAGS=...` if you need a different C compiler
+   or CFLAGS set
  * on OpenBSD, `doas pkg_add gcc` and then `make ... CC=egcc` or remove
    -fno-diagnostics-color from the CFLAGS (though the base compiler in
    6.2 does have trouble with some of the inline C code...)
@@ -20,7 +21,7 @@ these require Perl (or TCL) and various Perl (or TCL) modules
    compatible with Linux
  * Perl verion 5.14 is assumed for the tests, though some of the scripts
    will work on older versions. Perl::MinimumVersion is most handy here
- * TCL version 8.5 or higher is required for much of the TCL code
+ * TCL version 8.5 or higher is required
  * the shell code is generally tested under /bin/sh on OpenBSD and the
    Heirloom Bourne Shell (jsh) on Mac OS X. that's where the
-   /usr/local/bin/sh thing comes from; this helps avoid bash on the Mac
+   /usr/local/bin/sh thing comes from; this avoids bash on the Mac

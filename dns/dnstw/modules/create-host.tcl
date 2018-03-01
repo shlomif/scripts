@@ -7,16 +7,8 @@ audit_hostnames host
 
 shift argv
 foreach arg $argv {
-    set type A
-    if { [catch {exec -- v4addr -aq $arg} output] } {
-        set type AAAA
-        if { [catch {exec -- v6addr -aq $arg} output] } {
-            die "unable to parse ip address: $arg"
-        }
-    }
-    set ret [split $output "\n"]
-    set ipaddr [lindex $ret 0]
-    set reverse [lindex $ret 1]
+    ipparse $arg ipaddr reverse type
+
     # distict "send" used here to avoid a vague "NOZONE" error
     set nsupdate [ string cat $nsupdate \
         "add $host.$domain $TTL $type $ipaddr\n" \

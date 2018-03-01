@@ -1,11 +1,12 @@
-if {[llength $argv] != 1} {
-    die {Usage: dnstw [-F | -d domain] [-n] delete-cname cname}
+if {[llength $argv] < 1} {
+    die {Usage: dnstw [-F | -d domain] [-n] delete-cname cname [cname2 ..]}
 }
-set cname [lindex $argv 0]
 
-audit_hostnames cname
+foreach cname $argv {
+    audit_hostnames cname
 
-set nsupdate [ string cat $nsupdate \
-    "yxrrset $cname.$domain CNAME\n" \
-    "del $cname.$domain CNAME\n" \
-    "send\n" ]
+    set nsupdate [ string cat $nsupdate \
+        "yxrrset $cname.$domain CNAME\n" \
+        "del $cname.$domain CNAME\n" \
+        "send\n" ]
+}

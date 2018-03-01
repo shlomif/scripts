@@ -21,6 +21,7 @@ requires 'POSIX';
 requires 'Scalar::Util';
 requires 'Term::ReadKey';
 requires 'Test::Cmd';
+requires 'Test::Exception';
 requires 'Test::Most';
 requires 'Test::UnixExit';
 requires 'Text::Autoformat';

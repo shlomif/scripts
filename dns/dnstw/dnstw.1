@@ -1,4 +1,4 @@
-.Dd February 28 2018
+.Dd March  4 2018
 .Dt DNSTW 1
 .nh
 .Os
@@ -90,16 +90,17 @@ point to a CNAME.
 .Pp
 If the priority is unspecified a default will be used.
 .Pp
-.It Cm create-reverse Ar host Ar ip
-Creates a PTR from the given
+.It Cm create-reverse Ar host ip Op Ar host2 ip2 Op ..
+Creates PTR records from the given
 .Ar host
 and
-.Ar ip .
+.Ar ip
+pairs.
 .Pp
-.It Cm delete-cname Ar cname
+.It Cm delete-cname Ar cname Op Ar cname2 ..
 Deletes the given
 .Ar cname
-if it exists.
+if they exist.
 .Pp
 .It Cm delete-host Ar host Op Ar ip ..
 Deletes all records for the given
@@ -116,9 +117,8 @@ Deletes all MX records for the given
 unless priority and MX host pairs are given in which case only those
 records will be deleted.
 .Pp
-.It Cm delete-reverse Ar ip
-Deletes the PTR record, if any, for the given
-.Ar ip .
+.It Cm delete-reverse Ar ip Op Ar ip2 ..
+Deletes the PTR records, if any, for the given list of IP addresses.
 .Pp
 .It Cm make-record Ar ..
 Makes an arbitrary DNS record with rather little in the way of
@@ -180,8 +180,18 @@ Moving CNAME around is a common request.
 Arbitrary records can be created. However it may be easier in some cases
 to freeze the necessary zones and manually make the required changes.
 .Pp
-.Dl $ Ic Nm make-record _VLMCS._TCP IN SRV 0 100 1688 mskms.example.net
-.Dl $ Ic Nm unmake-record _VLMCS._TCP IN SRV 0 100 1688 mskms.example.net
+.Dl $ Ic dnstw make-record _VLMCS._TCP IN \e
+.Dl \& \& \&  Ic SRV 0 100 1688 mskms.example.net
+.Dl $ Ic dnstw unmake-record _VLMCS._TCP IN \e
+.Dl \& \& \&  Ic SRV 0 100 1688 mskms.example.net
+.Pp
+Careful quoting may be required for SPF records:
+.Pp
+.Dl $ Ic dnstw -F make-record example.net. \e
+.Dl \& \& \&  Ic TXT '"v=spf1 mx ip6:2001:db8::/32"'
+.Pp
+If in doubt setup a test zone and fiddle around with record creation
+until the desired results are reached.
 .Pp
 .Cm nscat
 reads standard input and feeds

@@ -6,7 +6,7 @@ set host [lindex $argv 0]
 
 audit_hostnames host
 
-if {$argc == 1]} {
+if {$argc == 1} {
     set nsupdate [ string cat $nsupdate \
         "yxrrset $host.$domain MX\n" \
         "del $host.$domain MX\n" \

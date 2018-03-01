@@ -7,7 +7,8 @@ if {$argc == 2} {
     set priority $default_mx_priority
     set mxhost [lindex $argv 1]
 } else {
-    set priority [positive_int_or [lindex $argv 1] $default_mx_priority]
+    set priority [lindex $argv 1]
+    positive_int_or priority $default_mx_priority
     set mxhost [lindex $argv 2]
 }
 

@@ -5,7 +5,9 @@ set host [lindex $argv 0]
 
 audit_hostnames host
 
-# guard on NS is to avoid accidentally deleting a name server
+# guard on NS is to avoid accidentally deleting a name server; use
+# unmake-record or nscat if you really do need to delete a NS (or
+# remove this guard)
 set nsupdate [ string cat $nsupdate \
     "yxdomain $host.$domain\n" \
     "nxrrset $host.$domain NS\n" \
@@ -14,12 +16,8 @@ set nsupdate [ string cat $nsupdate \
 
 shift argv
 foreach arg $argv {
-    if { [catch {exec -- v4addr -aq $arg} output] } {
-        if { [catch {exec -- v6addr -aq $arg} output] } {
-            die "unable to parse ip address: $arg"
-        }
-    }
-    set reverse [lindex [split $output "\n"] 1]
+    ipparse $arg ipaddr reverse type
+
     set nsupdate [ string cat $nsupdate \
         "yxrrset $reverse PTR\n" \
         "del $reverse PTR\n" \
