@@ -6,7 +6,6 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <unistd.h>
 
 #include <goptfoo.h>
@@ -18,6 +17,7 @@
 /* FIXME these must be fully qualified paths for a site install */
 char *Module_Dir = "modules";
 char *Common_Lib = "modules/_common.tcl";
+char *Final_Lib = "modules/_final.tcl";
 
 int Flag_AcceptFQDN;            /* -F */
 char *Flag_Server;              /* -S */
@@ -39,14 +39,14 @@ void stack_dump(int code);
 
 int main(int argc, char *argv[])
 {
-    char *all_args, *module, *module_path;
+    char *module, *module_path;
     char *nsupdate_str = "";
     int ch, ret;
     size_t l, len;
     Tcl_Obj *argsPtr;
 
 #ifdef __OpenBSD__
-    if (pledge("getpw proc rpath stdio", NULL) == -1)
+    if (pledge("dns getpw proc rpath stdio", NULL) == -1)
         err(EX_OSERR, "pledge failed");
 #endif
 
@@ -55,7 +55,6 @@ int main(int argc, char *argv[])
         err(EX_OSERR, "could not disable PR_SET_DUMPABLE");
 #endif
 
-    openlog("dnstw", LOG_PID | LOG_NDELAY, LOG_USER);
     setup_tcl();
 
     while ((ch = getopt(argc, argv, "FS:T:d:nh?")) != -1) {
@@ -100,15 +99,11 @@ int main(int argc, char *argv[])
     }
     if (asprintf(&module_path, "%s/%s.tcl", Module_Dir, module) == -1)
         err(EX_OSERR, "asprintf failed");
-    if (asprintf(&all_args, "%s", module) == -1)
-        err(EX_OSERR, "asprintf failed");
 
     argc--;
     argv++;
     argsPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
     while (*argv != NULL) {
-        if (asprintf(&all_args, "%s %s", all_args, *argv) == -1)
-            err(EX_OSERR, "asprintf failed");
         Tcl_ListObjAppendElement(Interp, argsPtr, Tcl_NewStringObj(*argv, -1));
         argv++;
     }
@@ -139,11 +134,15 @@ int main(int argc, char *argv[])
     if (*nsupdate_str == '\0')
         errx(1, "nothing to send to nsupdate");
 
+    if ((ret = Tcl_EvalFile(Interp, Final_Lib)) != TCL_OK) {
+        if (ret == TCL_ERROR)
+            stack_dump(ret);
+        errx(1, "final library failed (%d)", ret);
+    }
+
     if (Flag_Preview) {
         printf("%s", nsupdate_str);
     } else {
-        syslog(LOG_NOTICE, "uid=%d domain=%s server=%s %s", getuid(),
-               Flag_Domain, Flag_Server, all_args);
         call_nsupdate(nsupdate_str);
     }
     exit(EXIT_SUCCESS);

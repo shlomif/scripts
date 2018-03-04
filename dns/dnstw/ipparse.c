@@ -2,6 +2,9 @@
  * sets the ip, reverse DNS, and DNS type for use by subsequent TCL code
  * (this avoids the need to fork out to v4addr or v6addr) */
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include "dnstw.h"

@@ -231,6 +231,14 @@ so that
 can find
 .Xr nsupdate 1
 and pass it suitable arguments (keys, timeout settings, etc).
+.Pa _final.tcl
+runs after the module code and just before
+.Xr nsupdate 1
+is run; it could be used for logging.
+.Cm $nsupdate
+should be considered read-only in
+.Pa _final.tcl
+code.
 .Pp
 Modules may need customization (or creation) to suit the needs of the
 site. There are restrictions on the length and content of module names.
@@ -264,3 +272,13 @@ Internationalized Domain Names in Applications
 .El
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh SECURITY CONSIDERATIONS
+A site using
+.Nm
+may need to add logging or business logic to limit who can do what, or
+to change what modules are offered. The module
+.Cm nscat
+in particular allows most anything to be passed to
+.Xr nsupdate 1 .
+Larger sites will likely instead need a database and API that tracks who
+owns what records in DNS, when records were changed, and so forth.

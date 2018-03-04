@@ -6,6 +6,9 @@ set nsupdate_cmd /opt/local/bin/nsupdate
 set nsupdate_args {-k /opt/local/etc/nsuk.key -t 60}
 
 set domain example.net.
+# this is disabled for the tests that do not molest a DNS server but
+# likely should be enabled if one is "authoritative" for zones that do
+# exist elsewhere
 #set server 127.0.0.1
 
 set default_mx_priority 10
