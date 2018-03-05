@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     Tcl_Obj *argsPtr;
 
 #ifdef __OpenBSD__
-    if (pledge("dns getpw proc rpath stdio", NULL) == -1)
+    if (pledge("dns exec getpw proc rpath stdio", NULL) == -1)
         err(EX_OSERR, "pledge failed");
 #endif
 

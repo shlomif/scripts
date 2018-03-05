@@ -5,10 +5,15 @@ set nsupdate_cmd /opt/local/bin/nsupdate
 # message appears before nsupdate fails
 set nsupdate_args {-k /opt/local/etc/nsuk.key -t 60}
 
-set domain example.net.
-# this is disabled for the tests that do not molest a DNS server but
-# likely should be enabled if one is "authoritative" for zones that do
-# exist elsewhere
+# this used to be example.net but that is variously problematical; per
+# RFC 6761 going instead with a .test subdomain which doubtless will be
+# problematical in new and exciting ways
+set domain dnstw.test.
+
+# this is disabled so unit tests can tell the difference between server
+# not being set and when -s is given at the command line though likely
+# should be set if you want to ensure that the updates go to a
+# particular server and do not wander out somewhere to the Internet
 #set server 127.0.0.1
 
 set default_mx_priority 10

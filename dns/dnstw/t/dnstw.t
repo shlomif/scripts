@@ -7,7 +7,7 @@ my $test_prog = './dnstw';
 diag( "srand seed " . srand );
 
 # NOTE these must be kept in sync with dnstw.c and modules/_common.tcl
-my $test_domain  = 'example.net';
+my $test_domain  = 'dnstw.test';
 my $test_mx_prio = 10;
 my $test_ttl     = 3600;
 
@@ -27,7 +27,7 @@ my @tests = (
     },
     # TODO does $domain need to be dot-qualified?
     {   args =>
-          "-d $rlabel.example.net -n -S 192.0.2.$rv4o -T $rttl create-cname h$rlabel p$rlabel",
+          "-d $rlabel.$test_domain -n -S 192.0.2.$rv4o -T $rttl create-cname h$rlabel p$rlabel",
         stdout => [
             "server 192.0.2.$rv4o",
             "yxdomain h$rlabel.$rlabel.$test_domain",
@@ -36,7 +36,7 @@ my @tests = (
             "send",
         ],
     },
-    {   args   => "-F -n create-cname h$rlabel.example.net. p$rlabel.example.net.",
+    {   args   => "-F -n create-cname h$rlabel.$test_domain. p$rlabel.$test_domain.",
         stdout => [
             "yxdomain h$rlabel.$test_domain.",
             "nxdomain p$rlabel.$test_domain.",
@@ -159,9 +159,9 @@ my @tests = (
             "send",
         ],
     },
-    {   args   => '-n unmake-record _VLMCS._TCP IN SRV 0 100 1688 mskms.example.net',
+    {   args   => "-n unmake-record _VLMCS._TCP IN SRV 0 100 1688 mskms.$test_domain",
         stdout => [
-            "del _VLMCS._TCP.example.net. 3600 IN SRV 0 100 1688 mskms.example.net", "send",
+            "del _VLMCS._TCP.$test_domain. 3600 IN SRV 0 100 1688 mskms.$test_domain", "send",
         ],
     },
     # limits

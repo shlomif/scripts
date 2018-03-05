@@ -12,16 +12,16 @@ possibly local::lib already installed and configured
    largely untested. most of it requires C99 and modern system calls.
    use `make ... CC=... CFLAGS=...` if you need a different C compiler
    or CFLAGS set
- * on OpenBSD, `doas pkg_add gcc` and then `make ... CC=egcc` or remove
-   -fno-diagnostics-color from the CFLAGS (though the base compiler in
-   6.2 does have trouble with some of the inline C code...)
- * if on Linux, have fun with the feature_test_macros(7) which may or
-   may not require random defines like -D_POSIX_C_SOURCE=200809L when
-   compiling. code herein that uses glob(3) is likely not at all
-   compatible with Linux
- * Perl verion 5.14 is assumed for the tests, though some of the scripts
-   will work on older versions. Perl::MinimumVersion is most handy here
- * TCL version 8.5 or higher is required
+   - on OpenBSD, `doas pkg_add gcc` and then `make ... CC=egcc` or
+     remove -fno-diagnostics-color from the CFLAGS (though the base
+     compiler in 6.2 on amd64 does have trouble with "inline"
+   - if on Linux, have fun with the feature_test_macros(7) which may or
+     may not require random defines like -D_POSIX_C_SOURCE=200809L when
+     compiling. code herein that uses glob(3) is likely not at all
+     compatible with Linux
+ * Perl verion 5.14 is assumed for the tests; some scripts will work on
+   older versions. Perl::MinimumVersion is most handy here
  * the shell code is generally tested under /bin/sh on OpenBSD and the
    Heirloom Bourne Shell (jsh) on Mac OS X. that's where the
    /usr/local/bin/sh thing comes from; this avoids bash on the Mac
+ * TCL version 8.6 is required for some of the TCL code, 8.5 otherwise
