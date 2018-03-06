@@ -1,0 +1,34 @@
+wrapper around nsupdate(1) for dynamic DNS changes
+
+ * assumes ISC BIND, requires TCL 8.6
+ * at least dnstw.c and modules/_common.tcl will need to be adjusted on
+   a per-site basis, possibly other module code as well
+ * the DNS server will likewise need to be setup with appropriate keys
+   and configuration to allow dynamic updates
+
+rndc-confgen
+
+    rndc-confgen -A hmac-sha512 -k ddns-key.nsuk
+
+named.conf - for testing on loopback nameserver
+
+    include "/path/to/nsuk.key";
+
+    # RFC 6761
+    zone "test" {
+        file "db.test";
+        type master;
+        update-policy { grant ddns-key.nsuk zonesub ANY; };
+    };
+    # RFC 5737 test network for IPv4
+    zone "2.0.192.in-addr.arpa" {
+        type master;
+        file "db.arpa.192.0.2";
+        update-policy { grant ddns-key.nsuk zonesub ANY; };
+    };
+    # RFC 3849 documentation subnet - 2001:db8::/32
+    zone "8.b.d.0.1.0.0.2.ip6.arpa" {
+        type master;
+        file "db.arpa.ip6.2001.db8";
+        update-policy { grant ddns-key.nsuk zonesub ANY; };
+    };

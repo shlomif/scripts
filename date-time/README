@@ -1,0 +1,7 @@
+ * epochal - strptime timestamp conversion tool
+ * myat - ISO 8601 > strange format at(1) uses
+ * now - offset calculator for fermentation eg `now +4w` for the day
+   four weeks fro now
+ * snooze - sleep(1) only you cannot ^C it and time remaining
+ * stardate - the TCL docs on this are funny
+ * timeout - is not the GNU version (which came along sometime later)

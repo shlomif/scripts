@@ -1,0 +1,10 @@
+ * autoformat - text wapper thing
+ * bt - gdb(1) wrapper for core files. really not portable
+   because glob(3)
+ * cfu - compiles and (maybe) runs C code passed to it
+ * dmanview - what I use to install and preview man pages the
+   documentation is written in in this repo
+ * feed - a REPL wrapper so I can stay in vim and mostly not use a REPL
+ * mopen - mupdf wrapper to open or HUP an already open PDF
+ * nodupenv - because unix (may) allow duplicate environment variables
+ * xpquery - grepish tool for XML using XPath

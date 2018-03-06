@@ -1,0 +1,9 @@
+things vaguely related to the filesystem
+
+ * findin - applies glob expressions to PATH (or MANPATH or whatever)
+ * findup - searches up directories for something
+ * getpof - searches down a directory tree (possibly for .git)
+ * is-changed - you probably instead want entr(1)
+ * rename - yet another version of this Larry Wall script
+ * repod - makes git repositories go various places eg to a remote host
+   or bare repo elsewhere

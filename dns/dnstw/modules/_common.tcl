@@ -42,9 +42,9 @@ proc warn {msg} { puts stderr $msg }
 proc audit_hostnames {args} {
     global accept_fqdn
     if {$accept_fqdn} {
-        reject_invalid_fqhost {*}$args
+        reject_invalid_fqdn {*}$args
     } else {
-        reject_invalid_subhost {*}$args
+        reject_invalid_subdomain {*}$args
     }
 }
 
@@ -59,13 +59,14 @@ proc positive_int_or {name default} {
     }
 }
 
-# [RFC 1035] section 2.3.4 and [RFC 1123] section 2.1 for hosts (which
-# cannot have _ unlike SRV records). i18n data must already be in
-# punycode form [RFC 5891]
+# [RFC 1035] section 2.3.4 and [RFC 1123] section 2.1 for hosts
+# (which cannot have _ unlike SRV records). i18n data must already be
+# in punycode form [RFC 5891]. terminology where possible taken from
+# [RFC 7719]
 
 # fully qualified name such as "foo.bar.example.net."
 # expects to be called via audit_hostnames
-proc reject_invalid_fqhost {args} {
+proc reject_invalid_fqdn {args} {
     foreach name $args {
         upvar 2 $name value
         if {[string length $value] > 253} {
@@ -86,10 +87,9 @@ proc reject_invalid_fqhost {args} {
     }
 }
 
-# sub-host fragment such as "zot" or "foo.bar" under the $domain
-# (is there an official term for these?)
+# subdomain such as "zot" or "foo.bar" under the $domain
 # expects to be called via audit_hostnames
-proc reject_invalid_subhost {args} {
+proc reject_invalid_subdomain {args} {
     global domain
     foreach name $args {
         upvar 2 $name value

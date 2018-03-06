@@ -1,0 +1,4 @@
+DNS related utilities. see also the ../network directory
+
+ * dns-oddity - reports on DNAME and wildcard DNS records
+ * dnstw - nsupdate(1) wrapper for dynamic DNS requests

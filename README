@@ -6,8 +6,13 @@ there are sporadically unit tests, run
    make test
 
 these require Perl and various modules notably App::cpanminus and
-possibly local::lib already installed and configured
+possibly local::lib already installed and configured (and make, a
+compiler, etc)
 
+there is also sometimes documentation; the *.1 files should be copied
+somewhere into $MANPATH unless you like reading roff
+
+ * the assembly is mostly just for practice (though may be educational)
  * the C is primarily written for Mac OS X or OpenBSD; portability is
    largely untested. most of it requires C99 and modern system calls.
    use `make ... CC=... CFLAGS=...` if you need a different C compiler
@@ -25,3 +30,4 @@ possibly local::lib already installed and configured
    Heirloom Bourne Shell (jsh) on Mac OS X. that's where the
    /usr/local/bin/sh thing comes from; this avoids bash on the Mac
  * TCL version 8.6 is required for some of the TCL code, 8.5 otherwise
+ * there's also some Common Lisp and Go if you dig around enough

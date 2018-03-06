@@ -1,1 +1,10 @@
-There are also some "network" related scripts over in the ../dns directory.
+there are some network related things in the ../dns directory
+
+ * ip6tomac - unembeds MAC addresses that (may) be embedded in
+   IPv6 addresses
+ * minmda - I wrote my own Mail Delivery Agent, for better or worse
+ * ow - browser shortcut thing
+ * v4addr - because v6addr
+ * v4in6addr - theres an RFC for embedding IPv4 addresses in IPv6.
+   this is how
+ * v6addr - sipcalc(1) is nice but the output is hard to parse
