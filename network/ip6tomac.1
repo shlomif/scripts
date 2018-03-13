@@ -1,0 +1,30 @@
+.Dd March 12 2018
+.Dt IP6TOMAC 1
+.nh
+.Os
+.Sh NAME
+.Nm ip6tomac
+.Nd extracts vendor portion of MAC from IPv6 address
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar ip6-address
+.Ek
+.Sh DESCRIPTION
+.Nm
+Attempts to extract the vendor portion of a MAC address from the given
+IPv6 address.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic grep `ip6tomac fe80::200:aaff:fe01:0203` oui.txt
+.Dl 00-00-AA   (hex)		XEROX CORPORATION
+.Pp
+Though do note that some folks do forge their MAC address.
+.Sh SEE ALSO
+.Xr macnorm 1 ,
+.Xr randmac 1
+.Pp
+http://standards.ieee.org/develop/regauth/oui/oui.txt
+.Sh AUTHOR
+.An Jeremy Mates

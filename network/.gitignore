@@ -2,6 +2,7 @@
 endian
 getsockname
 ip6tomac
+macnorm
 macutil
 portpester
 randmac

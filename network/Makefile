@@ -4,12 +4,14 @@ endian: endian.c
 getsockname: getsockname.c
 ip6tomac: ip6tomac.c
 ipvalid: ipvalid.c
-macutil: macutil.c
+
+macnorm: macnorm.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` macnorm.c -o macnorm
+
 portpester: portpester.c
 
 macutil.o: macutil.c macutil.h
 	$(CC) -c $(CFLAGS) macutil.c -o macutil.o
-
 randmac: randmac.c macutil.o macutil.h
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` macutil.o randmac.c -o randmac
 
@@ -32,7 +34,7 @@ depend:
 	pkg-config --exists goptfoo
 	@expect -c "package require Tcl 8.5;"
 
-test: v4addr v6addr
+test: macnorm v4addr v6addr
 	@prove --nocolor
 
 .PHONY: clean depend test

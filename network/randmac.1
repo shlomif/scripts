@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd March 12 2018
 .Dt RANDMAC 1
 .nh
 .Os
@@ -112,8 +112,9 @@ XXs); IPv4 multicast uses a prefix of 01:00:5e, and IPv6 multicast the
 prefix 33:33. This tool at present takes no effort not to generate
 something inside these various ranges.
 .Sh SEE ALSO
-.Xr ifconfig 8
-on OpenBSD can randomize the MAC address.
+.Xr ifconfig 8 ,
+.Xr ip6tomac 1 ,
+.Xr macnorm 1
 .Pp
 http://standards.ieee.org/develop/regauth/oui/oui.txt
 .Sh AUTHOR

@@ -1,21 +1,4 @@
-/* 
- * (Tries to) extract the vendor portion of a MAC from a IPv6 address,
- * which in theory can then be grepped for in the oui.txt registration
- * database, or at least via the vendor bit of said MAC, assuming there
- * is even one embedded.
- *
- * Usage: obtain:
- *   http://standards.ieee.org/develop/regauth/oui/oui.txt
- *
- * then:
- *
- *   grep `ip6tomac fe80::200:aaff:fe01:0203` oui.txt
- *
- * which claims to be:
- *     00-00-AA   (hex)              XEROX CORPORATION
- *
- * though bear in mind some folks do forge or randomize their MAC.
- */
+/* ip6tomac - extracts vendor portion of MAC address from IPv6 address */
 
 #include <sys/types.h>
 #include <sys/socket.h>
