@@ -1,4 +1,4 @@
-.Dd March 12 2018
+.Dd March 13 2018
 .Dt MACNORM 1
 .nh
 .Os
@@ -8,10 +8,10 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
+.Op Fl qTxX
 .Op Fl O Ar octets
 .Op Fl p Ar prefix
 .Op Fl s Ar sep
-.Op Fl T
 .Ar mac Op Ar ..
 .Ek
 .Sh DESCRIPTION
@@ -25,11 +25,15 @@ Expected number of octets. Defaults to
 (48-bit address).
 .It Fl p Ar prefix
 Prefix string added before each normalized MAC address.
+.It Fl q
+Hide error messages during the parse of the MAC address.
 .It Fl s
-Separator character used between octets (when printing, the input can
-use most anything).
+Separator character used between octets (for output; the input can
+use most anything). Default: ':'
 .It Fl T
 Allow trailing garbage to follow the MAC address. also: "truncate"
+.It Fl X Fl x
+Upper or lower case the output hex digits. Default: lower.
 .El
 .Sh EXIT STATUS
 .Ex -std
@@ -39,7 +43,7 @@ Allow trailing garbage to follow the MAC address. also: "truncate"
 .Pp
 Generate a PXE boot configuration filename from a MAC.
 .Pp
-.Dl $ Ic macnorm -p grub.cfg-01- -s - 00:00:36:AA:BB:CC
+.Dl $ Ic macnorm -p grub.cfg-01- -s - -x 00:00:36:AA:BB:CC
 .Dl grub.cfg-01-00-00-36-aa-bb-cc
 .Pp
 And some more examples.

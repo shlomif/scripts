@@ -18,9 +18,12 @@ enum { A_NUMBER, A_SEPARATOR };
 
 int Flag_Octets = 6;            /* -O */
 char *Flag_Prefix;              /* -p */
+int Flag_Quiet;                 /* -q */
 int Flag_Sep = ':';             /* -s */
 int Flag_TrailingGarbage;       /* -T */
+char *Flag_OctetFormat = "%02x";        /* -X */
 
+void emit_error(const char *input, int offset, char *msg);
 void emit_help(void);
 void normalize_mac(const char *input, int octets, char *out, int ofsep);
 
@@ -29,7 +32,7 @@ int main(int argc, char *argv[])
     char *buf;
     int ch;
 
-    while ((ch = getopt(argc, argv, "h?O:p:qs:T")) != -1) {
+    while ((ch = getopt(argc, argv, "h?O:p:qs:TxX")) != -1) {
         switch (ch) {
         case 'O':
             Flag_Octets = (int) flagtoul(ch, optarg, 1UL, 100UL);
@@ -37,11 +40,20 @@ int main(int argc, char *argv[])
         case 'p':
             Flag_Prefix = optarg;
             break;
+        case 'q':
+            Flag_Quiet = 1;
+            break;
         case 's':
             Flag_Sep = *optarg;
             break;
         case 'T':
             Flag_TrailingGarbage = 1;
+            break;
+        case 'x':
+            Flag_OctetFormat = "%02x";
+            break;
+        case 'X':
+            Flag_OctetFormat = "%02X";
             break;
         case 'h':
         case '?':
@@ -69,9 +81,21 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
+void emit_error(const char *input, int offset, char *msg)
+{
+    if (!Flag_Quiet) {
+        if (*input != '\0')
+            fprintf(stderr, "  %s\n  %*c\n", input, offset + 1, '^');
+        errx(EX_DATAERR, msg);
+    } else {
+        exit(EX_DATAERR);
+    }
+}
+
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: macnorm [-p prefix] [-s sep] macaddr [..]\n");
+    fprintf(stderr,
+            "Usage: macnorm [-qTxX] [-p prefix] [-s sep] macaddr [..]\n");
     exit(EX_USAGE);
 }
 
@@ -85,20 +109,20 @@ void normalize_mac(const char *input, int octets, char *out, int ofsep)
     unsigned int value;
 
     if (*input == '\0')
-        errx(EX_DATAERR, "cannot parse empty string");
+        emit_error(input, 0, "cannot parse empty string");
     /* disallow leading garbage. also prevents negative hex numbers from
      * being supplied to sscanf */
     if (!isxdigit(*input))
-        errx(EX_DATAERR, "string must begin with xdigit");
+        emit_error(input, 0, "string must begin with xdigit");
 
     ip = (char *) input;
 
     while (1) {
         if (expect == A_NUMBER) {
             if (sscanf(ip, "%2X%n", &value, &offset) != 1)
-                errx(EX_DATAERR, "did not match an xdigit");
+                emit_error(input, ip - input, "did not match an xdigit");
             ip += offset;
-            sprintf(out, "%02x", value);
+            snprintf(out, 3, Flag_OctetFormat, value);
             out += 2;
             expect = A_SEPARATOR;
         } else {
@@ -108,14 +132,16 @@ void normalize_mac(const char *input, int octets, char *out, int ofsep)
                 if (*ip == sep)
                     ip++;
                 else
-                    errx(EX_DATAERR, "expected separator not found");
+                    emit_error(input, ip - input,
+                               "expected separator not found");
             } else if (sep == NOTHING) {
                 ;
             } else {
                 /* allow for most any separator (including nothing)
                  * provided that it is used consistently */
                 if (*ip == '\0') {
-                    errx(EX_DATAERR, "NUL may not be used as separator");
+                    emit_error(input, ip - input,
+                               "NUL may not be used as separator");
                 } else if (isxdigit(*ip)) {
                     sep = NOTHING;
                 } else {
@@ -132,7 +158,7 @@ void normalize_mac(const char *input, int octets, char *out, int ofsep)
         }
     }
     if (!Flag_TrailingGarbage && *ip != '\0')
-        errx(EX_DATAERR, "trailing garbage");
+        emit_error(input, ip - input, "trailing garbage");
     *out++ = '\n';
     *out = '\0';
 }

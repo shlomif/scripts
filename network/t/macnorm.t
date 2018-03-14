@@ -25,6 +25,13 @@ my @tests = (
     {   args   => q{00:00:36:af:Af:AF 00-00-36-af-Af-AF},
         stdout => [ "00:00:36:af:af:af", "00:00:36:af:af:af" ],
     },
+    # case choice
+    {   args   => '-X -O 1 aa',
+        stdout => [ "AA" ],
+    },
+    {   args   => '-X -x -O 1 aa',
+        stdout => [ "aa" ],
+    },
     # invalid stuff
     {   args        => q{''},
         exit_status => 65,
@@ -56,6 +63,9 @@ my @tests = (
     {   args        => '0:0:0:0:0:0:0:0:0:0:0',
         exit_status => 65,
         stderr      => qr/garbage/,
+    },
+    {   args        => '-q 0:0:0:0:0:0:0:0:0:0:0',
+        exit_status => 65,
     },
     # not a feature unless you can turn it off
     {   args   => q{-O 1 -T eat},
