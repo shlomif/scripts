@@ -146,7 +146,7 @@ void parseline(char *line, const ssize_t linenum)
 
         if ((past_date_p = strptime(line, Flag_Input_Format, &When)) != NULL) {
             /* uhh so yeah about that %s thing on Mac OS X. guard for
-             * it. this was reported in Apple Bug 15753871 years ago.
+             * it. this was reported in Apple Bug 15753871 on Jan  6 2014
              * bueller... bueller... bueller... */
             if (past_date_p - line < 1)
                 errx(EX_SOFTWARE, "error: zero-width timestamp parse");
