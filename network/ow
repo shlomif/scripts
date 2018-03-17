@@ -15,14 +15,16 @@ use URI ();
 my $do_something = basename($0) eq 'wv' ? \&do_directory : \&do_shortcut;
 
 GetOptions(
-    'chdir|C:s'   => \my $Flag_Chdir,
-    'directory|d' => sub { $do_something = \&do_directory },
-    'help|h|?'    => \&emit_help,
-    'list|l'      => \my $Flag_ListURL,
-    'open|o=s'    => \my $Flag_Method,
+    'always-remap|A' => \my $Flag_AlwaysRemap,
+    'chdir|C:s'      => \my $Flag_Chdir,
+    'directory|d'    => sub { $do_something = \&do_directory },
+    'help|h|?'       => \&emit_help,
+    'list|l'         => \my $Flag_ListURL,
+    'open|o=s'       => \my $Flag_Method,
 ) or exit 65;
 
-my $Open_With = loadconfig( path_to('browsers') );
+my $Open_With       = loadconfig( path_to('browsers') );
+my $Re_Map          = loadremap( path_to('remap') );
 my $Browser_Command = env_option_or( 'OW_METHOD', $Flag_Method, 'w3m' );
 
 exit $do_something->();
@@ -91,13 +93,14 @@ sub do_shortcut {
 
 sub emit_help {
     warn <<"END_USAGE";
-Usage: ow [options] site [site args ..]
+Usage: ow [options] [ shortcut [shortcut args ..] | file | url ]
 
-Shortcuts and file to URL mapping.
+Shortcuts or file to URL or browser mapping.
 
-  -d     Perform directory mapping instead of shortcut lookup ("wv").
-  -l     Print URL instead of calling web client.
-  -o oo  Use specified open method instead of the default.
+  -A     Always perform remapping (even if -o used)
+  -d     Perform directory mapping instead of shortcut lookup ("wv")
+  -l     Print URL instead of calling web client
+  -o oo  Use specified open method instead of the default
 
 END_USAGE
     exit 64;
@@ -128,17 +131,26 @@ sub fill_in {
 
 sub loadconfig {
     my ($file) = @_;
-    my $hashref;
     open my $fh, '<', $file or die "ow: could not open '$file': $!\n";
+    my $hashref;
     while ( readline $fh ) {
-        chomp;
-        next if /^\s*#/;
-        s/\s+$//;
-        next if /^$/;
-        my ( $key, $value ) = split ' ', $_, 2;
-        $hashref->{$key} = $value if $key and $value;
+        next if /^(?:#|$)/;
+        my @pair = $_ =~ m/^(\S+)\s+(\S.+?)\s*$/;
+        $hashref->{$pair[0]} = $pair[1] if @pair == 2;
     }
     return $hashref;
+}
+
+sub loadremap {
+    my ($file) = @_;
+    open my $fh, '<', $file or die "ow: could not open '$file': $!\n";
+    my $relist;
+    while ( readline $fh ) {
+        next if /^(?:#|$)/;
+        my @pair = $_ =~ m/^(\S+)\s+(\S.+?)\s*$/;
+        push @$relist, \@pair if @pair == 2;
+    }
+    return $relist;
 }
 
 sub path_to { File::Spec->catfile( File::HomeDir->my_home, '.ow', $_[0] ) }
@@ -151,10 +163,14 @@ sub visit {
         return;
     }
 
-    # KLUGE target Dictionary.app on Mac OS X - otherwise would need a
-    # more complicated configuration that would map certain shortcuts to
-    # certain methods on certain OS...
-    $Browser_Command = ['open'] if $url =~ m{^dict://};
+    if ( $Flag_AlwaysRemap xor !$Flag_Method ) {
+        for my $map (@$Re_Map) {
+            if ( $url =~ m{$map->[0]} ) {
+                $Browser_Command = [ $map->[1] ];
+                last;
+            }
+        }
+    }
 
     if ( defined $Flag_Chdir ) {
         $Flag_Chdir = File::HomeDir->my_home unless length $Flag_Chdir;

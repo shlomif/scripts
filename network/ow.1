@@ -1,4 +1,4 @@
-.Dd December 30 2017
+.Dd March 16 2018
 .Dt OW 1
 .nh
 .Os
@@ -8,26 +8,31 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Op Fl dl
+.Op Fl Adl
 .Op Fl C Ar dir
 .Op Fl o Ar method
-.Ar url-or-abbr
+.Ar file-or-url-or-abbr
 .Op Ar abbr args ..
 .Ek
 .Bk -words
 .Nm wv
 .Bk -words
-.Op Fl l
+.Op Fl Al
 .Op Fl C Ar dir
 .Op Fl o Ar method
 .Ek
 .Sh DESCRIPTION
 .Nm
-maps shortcuts or the current working directory to a fully qualified URL
-and passes that URL off to what usually is a web browser.
+maps shortcuts or files or URLs or the current working directory to
+a fully qualified URL and passes that URL off to what may be a
+web browser.
 Options:
 .Pp
 .Bl -tag -width Ds
+.It Cm --always-remap Fl A
+Always perform remapping of URL, regardless of whether
+.Fl o
+was specified.
 .It Cm --chdir Ns [= Ns Ar dir ] Fl C Op Ar dir
 Change the working to the given
 .Ar dir
@@ -40,7 +45,15 @@ to act in
 mode, that is, to map the current working directory to a URL and to pass
 that URL to a browser.
 .It Cm --list Op Fl l
-List the URL to standard out and exit instead of calling a browser.
+List the URL to standard out and exit instead of calling a browser,
+commonly then for copying and pasting. Another way to do this (with
+.Xr copycat 1
+and
+.Xr sgrax 1
+installed) is
+.Pp
+.Dl $ Ic ow -l ... \&| pbcopy
+.Dl $ Ic ow -o copycat ...
 .It Cm --open= Ns Ar method Op Fl o Ar method
 Use the browser specified by the given
 .Ar method
@@ -49,20 +62,32 @@ to visit the URL. The method may be set within the
 file or can be a full command to execute. The generated URL will be
 given as the last argument to the
 .Ar method .
+.Pp
+If
+.Fl o
+is set remapping will be disabled unless
+.Fl A
+is set.
 .El
 .Sh FILES
+These file must be setup for
+.Nm
+to do anything at all.
 .Bl -tag -width Ds
 .It Pa ~/.ow/browsers
 A list of names to browser command mappings, for example
 .Pp
 .Dl copycat sgrax copycat
-.Dl lwp lwp-request -f -t 7 -u -s -E
-.Dl open open --background
-.Dl # for the dict:// KLUGE (see source)
-.Dl openfg open
-.Dl safari open -a Safari --background
-.Dl # must enable_socket
-.Dl xombrero xombrero -n
+.Dl elinks  elinks
+.Dl lwp     lwp-request -f -t 7 -u -s -E -d
+.Dl open    open -g
+.Dl safari  open -g -a Safari
+.Pp
+These are used by
+.Fl o
+to pick a browser or can also appear in the
+.Pa ~/.ow/remap
+file.
 .It Pa ~/.ow/dirmap
 A list of directory path fragments to URLs used by the
 .Nm wv
@@ -71,12 +96,22 @@ match wins) and a file:// URL will be generated if no match is found. A
 .Ar %1
 in the URL will be filled in with the directory fragment. Example:
 .Pp
-.Dl co/scripts https://github.com/thrig/scripts/tree/master/%1
+.Dl co/scripts https://github...scripts/tree/master/%1
 .Pp
 This indicates that if the current working directory contains
 .Pa co/scripts
-then the directory fragment thereunder should be appended to the github
-URL, and then passed off to the browser.
+then the directory fragment thereunder should be appended to the
+github URL.
+.It Pa ~/.ow/remap
+URL remapping file that contains regular expressions followed by a
+browser shortcut to use should a regular expression match the generated
+URL. First match wins.
+.Pp
+.Dl # handle dict:// URL with open(1)
+.Dl ^dict:// open
+.Pp
+.Dl # send #perl cat pictures to the bloaty browser
+.Dl imgur\e.com safari
 .It Pa ~/.ow/shortcuts
 Shortcut to URL mapping. Shortcuts that take arguments must be
 followed by a
@@ -88,17 +123,23 @@ and the numbered
 will be filled in from the arguments given on the command line. Some
 examples may help.
 .Pp
-.Dl # Apple Dictionary.app kluge (see source)
+.Dl # Apple Dictionary.app
 .Dl d@ dict://%1
+.Pp
 .Dl # man -k
 .Dl man@ http://man.openbsd.org/?query=%@&apropos=1
-.Dl # positional arguments direct to a page (ow mansect 1 ls)
+.Dl # direct to a page (ow mansect 1 ls)
 .Dl mansect@ http://man.openbsd.org/man%1/%2.%1
+.Pp
 .Dl # no argument, visit URL directly
 .Dl metacpan    http://search.metacpan.org/
 .Dl # with %@ arguments will be + joined and passed along
 .Dl metacpan@   https://metacpan.org/search?q=%@
-.El
+.Pp
+.Dl # RFC must be readable offline; download with
+.Dl # rsync -avz --delete --delete-excluded \e
+.Dl # ftp.rfc-editor.org::rfcs-text-only rfcs
+.Dl rfc@ file:///path/to/rfcs/rfc%1.txt
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
@@ -106,11 +147,14 @@ examples may help.
 .Dl g@ https://duckduckgo.com/html?q=%@
 .Dl $ Ic ow -l g web search
 .Dl https://duckduckgo.com/html?q=web+search
-.Dl $
+.Dl $ Ic ow -l rfc 1149
+.Dl file:///.../rfcs/rfc1149.txt
 .Sh SEE ALSO
-.Xr ftp 1 ,
+.Xr copycat 1 ,
 .Xr lwp-request 1 ,
 .Xr open 1 ,
+.Xr pbcopy 1 ,
+.Xr sgrax 1 ,
 .Xr w3m 1
 .Sh AUTHOR
 .An Jeremy Mates
