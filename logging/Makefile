@@ -16,5 +16,6 @@ clean:
 
 depend:
 	cpanm --installdeps ..
+	expect -c "package require Tcl 8.5"
 
 .PHONY: clean depend

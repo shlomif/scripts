@@ -1,0 +1,50 @@
+.Dd March 17 2018
+.Dt YAK 1
+.nh
+.Os
+.Sh NAME
+.Nm yak
+.Nd yaks about the environment it is invoked in
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+writes information about the environment it is run in to a temporary
+file and then exits. This may be useful to determine the arguments and
+inputs a particular program is run with--LPRng filters or
+.Cm procmail
+at the time
+.Nm
+was written, or whatever else new that has come along since.
+.Pp
+Alternatives would be to log processes with utilities such as
+.Cm strace
+or
+.Cm sysdig
+or to increase the logging level of the program in question. These
+however lack portability or may be more complicated to setup than
+simply having whatever it is call
+.Nm .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic git config core.hooksPath
+.Dl .git/hooks
+.Dl $ Ic cp yak .git/hooks/update
+.Dl $ Ic chmod +x .git/hooks/update
+.Dl $ Ic git pull --ff-only
+.Dl $ Ic ls /tmp/yak*
+.Sh SEE ALSO
+.Xr cat 1 ,
+.Xr env 1 ,
+.Xr id 1 ,
+.Xr tty 1 ,
+.Xr what-args 1
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+.Nm
+will consume standard input if that is not attached to a tty.

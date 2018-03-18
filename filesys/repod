@@ -1,43 +1,35 @@
 #!/usr/bin/env expect
 #
-# Git repository remote wrapper with some remote init on the side.
+# repod - git repository remote wrapper with some remote init on the side.
 
-array set checkout_dir {}
-catch {source $env(HOME)/.repodrc} cresult coptions
+set git_init_cmd {git init --bare}
+set ssh_cmd {ssh -aqx -e none -o BatchMode=yes -o ClearAllForwardings=yes -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic -o StrictHostKeyChecking=yes}
 
-set prog_name [lindex [split $argv0 "/"] end]
-
-proc emit_help {} {
-    global prog_name
-    puts stderr "Usage: $prog_name \[github|init hostname|remote hostname]"
-    exit 64
-}
-if {[llength $argv] == 0} { emit_help }
+proc alter_path {target host path} { return $path }
 
 proc finddirup {what} {
     set cur_dir [pwd]
+    set no_enter [file dirname ~]
     while 1 {
         set wanted [file join $cur_dir $what]
-        if {[file isdirectory $wanted]} {
-            return $cur_dir
-        }
+        if {[file isdirectory $wanted]} { return $cur_dir }
         set new_dir [file dirname $cur_dir]
-        if {$new_dir eq $cur_dir} {
-            return ""
-        }
+        if {$new_dir eq $cur_dir} { return "" }
+        if {$new_dir eq $no_enter} { return "" }
         set cur_dir $new_dir
     }
 }
 
-proc warn {msg} {
-    global prog_name
-    puts stderr "$prog_name: $msg"
-}
+catch {source $env(HOME)/.repodrc} cresult coptions
 
-proc die {{msg ""}} {
-    if {$msg ne ""} { warn $msg }
-    exit 1
+proc die  {msg} { warn $msg; exit 1 }
+proc warn {msg} { puts stderr "repod: $msg" }
+
+proc emit_help {} {
+    puts stderr "Usage: repod github\n       repod \[init|remote] hostname \[dir]"
+    exit 64
 }
+if {[llength $argv] == 0} { emit_help }
 
 if {[dict get $coptions -code] != 0} {
     if {![string match "POSIX ENOENT *" [dict get $coptions -errorcode]]} {
@@ -45,58 +37,36 @@ if {[dict get $coptions -code] != 0} {
         die "could not source ~/.repodrc"
     }
 }
-if {![array exists checkout_dir]} {
-    die "checkout_dir must be TCL array (check ~/.repodrc)"
-}
 
 set repo_path [finddirup .git]
-if {$repo_path eq ""} {
-    die "could not find a git repo above [pwd]"
-}
-set repo_name [lindex [split $repo_path "/"] end]
+if {$repo_path eq ""} { die "could not find a git repo above [pwd]" }
+set repo [lindex [split $repo_path "/"] end]
 
-proc checkout_dir_sub {host path} {
-    global checkout_dir
-    if {[array get checkout_dir "localhost"] ne "" \
-     && [array get checkout_dir $host] ne ""} {
-        set path [regsub $checkout_dir(localhost) $path $checkout_dir($host)]
-    }
-    return $path
-}
-
-proc git_remote_geturl {name} {
-    set url ""
-    catch {exec git remote get-url $name} cresult coptions
-    if {[dict get $coptions -code] == 0} {
-        set url $cresult
-    }
-    return $url
-}
-
-proc git_remote_add {name newurl} {
+proc add_git_remote {name newurl} {
     set oldurl [git_remote_geturl $name]
     if {$oldurl eq ""} {
         set means "add"
     } elseif {$oldurl ne $newurl} {
         warn "notice: $name changes $oldurl to $newurl"
         set means "set-url"
-    } else {
-        exit
     }
     catch {exec git remote $means $name $newurl} cresult coptions
-    if {[dict get $coptions -code] != 0} {
-        die "$cmd $name $newurl: $cresult"
-    }
+    if {[dict get $coptions -code] != 0} { die "$cmd $name $newurl: $cresult" }
 }
 
-proc git_ssh_remote {name path} {
-    if {[file pathtype $path] eq "relative"} {
-        set path "~/$path"
-    }
-    git_remote_add $name ssh://$name/$path
+proc add_git_ssh_remote {host path} {
+    if {[file pathtype $path] eq "relative"} { set path "/~/$path" }
+    add_git_remote $host ssh://$host$path
 }
 
-proc repo_nohome {path} {
+proc git_remote_geturl {name} {
+    set url ""
+    catch {exec git remote get-url $name} cresult coptions
+    if {[dict get $coptions -code] == 0} { set url $cresult }
+    return $url
+}
+
+proc relative2home {path} {
     global env
     regsub $env(HOME)/ $path ""
 }
@@ -105,52 +75,34 @@ proc repo_nohome {path} {
 #
 # TARGETS
 
-set target [lindex $argv 0]
+set target [lindex $argv 0]; if {$target eq ""} { emit_help }
 
-if {$target eq "init"} {
-
-    set host_name [lindex $argv 1]
-    if {$host_name eq ""} {
-        warn "'$target' target requires a hostname argument"
-        emit_help
-    }
-    set homeless_repo_path [repo_nohome $repo_path]
-    set homeless_repo_path "[checkout_dir_sub $host_name $homeless_repo_path].git"
-
-    # per git-init(1) "Running git init in an existing repository is
-    # safe" and git handles the creation of any necessary parent
-    # directories, so just do that
-    exec ssh -aqx -e none \
-      -o BatchMode=yes \
-      -o ClearAllForwardings=yes \
-      -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic \
-      -o StrictHostKeyChecking=yes $host_name \
-      "git init --bare $homeless_repo_path"
-
-    git_ssh_remote $host_name $homeless_repo_path
-
-} elseif {$target eq "remote"} {
-
-    set host_name [lindex $argv 1]
-    if {$host_name eq ""} {
-        warn "'$target' target requires a hostname argument"
-        emit_help
-    }
-    set homeless_repo_path [repo_nohome $repo_path]
-    set homeless_repo_path [checkout_dir_sub $host_name $homeless_repo_path]
-
-    git_ssh_remote $host_name $homeless_repo_path
-
-} elseif {$target eq "github"} {
-
-    set git_user [exec git config --get github.user]
-    if {$git_user eq ""} {
-        die "no username from 'git config --get github.user'"
-    }
-
-    git_remote_add github git@github.com:$git_user/$repo_name
-
-} else {
+if {$target eq "github"} {
+    set git_user [exec git config github.user]
+    if {$git_user eq ""} { die "no username from 'git config github.user'" }
+    add_git_remote github git@github.com:$git_user/$repo
+    exit
+} elseif {$target ne "init" && $target ne "remote"} {
     warn "unknown target '$target'"
     emit_help
 }
+
+set hostname [lindex $argv 1]
+if {$hostname eq ""} {
+    warn "target '$target' requires a hostname"
+    emit_help
+}
+set directory [lindex $argv 2]
+if {$directory eq ""} {
+    set directory "[alter_path $target $hostname [relative2home $repo_path]]"
+}
+
+if {$target eq "init"} {
+    set directory [string cat $directory .git]
+    # per git-init(1) "Running git init in an existing repository is
+    # safe" and git handles the creation of any necessary parent
+    # directories, so just do that
+    exec {*}$ssh_cmd $hostname "$git_init_cmd $directory"
+}
+
+add_git_ssh_remote $hostname $directory

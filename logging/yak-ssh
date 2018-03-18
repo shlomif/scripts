@@ -1,9 +1,9 @@
 #!/bin/sh
 #
 # yak-ssh - like yak, but for SSH_ORIGINAL_COMMAND via SSH sessions. in
-# ~/.ssh/authorized_keys add a command restriction for the key
+# $HOME/.ssh/authorized_keys add a command restriction for the key
 #
-#   command="/path/to/yak-ssh" ssh-rsa AAAA...
+#   command="/path/to/yak-ssh" ssh-ed25519 AAAA...
 #
 # then use SSH and inspect the ssh-yak.* output for the command and env
 # gleanings. a shorter version less concerned with the env and tmp
@@ -13,29 +13,22 @@
 #   printf "$SSH_ORIGINAL_COMMAND\n" >> "$HOME"/tmp/ssh-yak
 #   eval "$SSH_ORIGINAL_COMMAND"
 #
-# and because I keep forgetting these:
+# and because I keep forgetting these
 #
 #   SSH_CLIENT="srcip srcport dstport"
 #   SSH_CONNECTION="srcip srcport dstip dstport'
 #
 # NOTE software may already support limited access via ssh e.g. git-shell(1)
-
-YAK_OUTPUT=`mktemp -q /tmp/yak-ssh.XXXXXXXXXX` || {
-   printf >&2 "mktemp failed to create /tmp file\n"
-   exit 1
-}
-chmod go-r "$YAK_OUTPUT"
-(
-   printf "$SSH_ORIGINAL_COMMAND\n\n"
+yakout=`mktemp /tmp/yak-ssh.XXXXXXXXXX` || exit 1
+chmod go-r "$yakout"
+(  printf "$SSH_ORIGINAL_COMMAND\n\n"
    if [ -t 0 ]; then
       tty
    else
       printf "no tty on stdin\n"
    fi
-   printf "\n"
-   env
-) >> "$YAK_OUTPUT"
-
+   printf "\n" ; env
+) >> "$yakout"
 # if there's no fancy shell syntax then instead
 #exec $SSH_ORIGINAL_COMMAND
 eval "$SSH_ORIGINAL_COMMAND"

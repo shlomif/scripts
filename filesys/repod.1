@@ -1,103 +1,130 @@
-.Dd November 22 2017
+.Dd March 19 2018
 .Dt REPOD 1
 .nh
 .Os
 .Sh NAME
 .Nm repod
-.Nd git remote utility
+.Nd git remote repository utility
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Ar github|init|remote
-.Op Ar hostname
+.Ar github
+.Nm
+init|remote
+.Ar hostname
+.Op Ar directory
 .Ek
 .Sh DESCRIPTION
 .Nm
 adds remote branches to 
-.Xr git 1
-repositories; the first argument determines how this is done, and the
+.Cm git
+repositories; the first argument determines how this is done. The
 repository name is taken from the directory name of the first upwards
 directory that contains a
 .Pa .git
-entry. The first arguments include:
+entry. First arguments include:
 .Bl -tag -width -indent
 .It Ar github
-A remote branch named
+The remote branch 
 .Qq github
-is added, with a git user as parsed by the 
+is added, with the git user as parsed by the 
 .Xr git-config 1
 command.
-.It Ar init Ar hostname
-A 
-.Xr git-init 1
-is performed via
-.Xr ssh 1
-and a remote branch named after the
-.Ar hostname
-is added. The directory path may be modified via the
-.Dv checkout_dir
-array specified in
-.Pa ~/.repodrc .
-.It Ar remote Ar hostname
-Adds a remote branch named after the
-.Ar hostname .
-The directory path may be modified via the
-.Dv checkout_dir
-array specified within
-.Pa ~/.repodrc .
+.It Ar init Ar hostname Op Ar remote-directory
+.Cm git init --bare
+is done via SSH and the branch
+.Qq hostname
+is added. The directory to use may be supplied otherwise it will be
+generated from the local repository name with
+.Qq .git
+appended.
+.It Ar remote Ar hostname Op Ar remote-directory
+Adds a remote
+.Qq hostname
+branch with the same directory handling as for
+.Ar init
+except that
+.Qq .git
+is not appended.
 .El
 .Pp
-The SSH configuration may need tweaks such that the
-.Ar hostname
-is suitable for a branch name and to find the appropriate SSH
-configuration; one method is to use an alias
-.Qq foo
-specified via
-.Xr ssh_config 5
-for the branch name:
-.Pp
-.Dl Host somehost foo
-.Dl \& \& \& \& Hostname somehost.example.org
-.Dl \& \& \& \& ...
-.Pp
-And then that alias for the remote branch name:
-.Pp
-.Dl $ Ic repod init foo
-.Pp
-As
 .Nm
-only sets up the remote branch entries, various push or pull will need
-to be done as necessary following.
+does not copy any files; a
+.Cm git push
+may also be necessary.
 .Sh FILES
-The
-.Pa ~/.repodrc
-file will be read if it exists. In particular this allows the
-.Dv checkout_dir
-array to be set, in which the first instance of a
-.Qq localhost
-entry will be replaced with the corresponding
-.Ar hostname
-value. For example, if on the local system a
-.Pa co
-directory is used for checkouts, and on a remote host the repositories
-are instead saved under the
-.Pa share
-directory, 
-.Pa ~/.repodrc
-should contain:
+Directory paths may need to vary for the
+.Ar init
+and
+.Ar remote
+targets. If
+.Ar remote-directory
+is not given the path will be the same as on the local system,
+made relative to
+.Dv HOME
+so that the same user may use systems with different home directories or
+different accounts can be pushed to without having to manually specify
+the directory path. This behavior can be changed with TCL code in
+.Pa ~/.repodrc .
 .Pp
-.Dl set checkout_dir(localhost) \& "co"
-.Dl set checkout_dir(remotehost) "share"
+.Bd -literal -offset indent
+proc alter_path {target host path} {
+    if {$target eq "init" && $host eq "backup"} {
+        regsub "^src/" $path "var/backups/" path
+    }
+    return $path
+}
+.Ed
 .Pp
-The file can actually contain any valid TCL commands, though is run
-very early in the process.
+Assuming repositories are located under the
+.Pa ~/src
+directory the above would for the
+.Ar init
+target and the
+.Qq backup
+host change the remote repository path to instead be under
+.Pa ~/var/backups .
 .Sh EXIT STATUS
 .Ex -std
+.Sh EXAMPLES
+The SSH configuration may need an alias set
+.Pp
+.Bd -literal -offset indent
+Host somehost backup
+  Hostname somehost.example.org
+  ...
+.Ed
+.Pp
+so that that alias can be used as the remote name:
+.Pp
+.Dl $ Ic pwd \&| perl -pe \&"s{\eQ$HOME}{~}\&"
+.Dl ~/src/testrepo
+.Dl $ Ic repod init backup
+.Dl $ Ic git remote get-url backup
+.Dl ssh://backup/~/var/backups/testrepo.git
+.Dl $ Ic git push backup master
+.Pp
+A specific directory will instead be used without alterations:
+.Pp
+.Dl $ Ic repod remote somewhere /some/path
+.Dl $ Ic git remote get-url somewhere
+.Dl ssh://somewhere/some/path
+.Dl $ Ic repod remote somewhere /new/path
+.Dl repod: notice: somewhere changes ssh://...
+.Dl $ Ic git remote get-url somewhere
+.Dl ssh://somewhere/new/path
+.Pp
+A rename would also require that the remote path be changed;
 .Nm
-should be safe to run again if a previous run fails.
+here with
+.Ar remote
+is only updating the local
+.Cm git
+configuration;
+.Ar init
+by contrast does attempt a remote
+.Cm git init .
 .Sh SEE ALSO
-.Xr findup 1 ,
-.Xr git 1 ,
 .Xr git-config 1 ,
 .Xr git-init 1 ,
 .Xr git-remote 1 ,
@@ -105,3 +132,13 @@ should be safe to run again if a previous run fails.
 .Xr ssh_config 5
 .Sh AUTHOR
 .An Jeremy Mates
+.Sh CAVEATS
+.Nm
+will not search up the filesystem tree outside of a user's home
+directory by default. This can be set for
+.Xr git 1
+using the
+.Pp
+.Dl GIT_CEILING_DIRECTORIES=$HOME
+.Pp
+environment variable.

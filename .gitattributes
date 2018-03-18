@@ -7,6 +7,7 @@
 /filesys/repod linguist-language=TCL
 /filesys/zcomppoke linguist-language=TCL
 /logging/expectless linguist-language=TCL
+/logging/git-allhook linguist-language=TCL
 /misc/feed linguist-language=TCL
 /misc/forexample linguist-language=TCL
 /misc/maxof linguist-language=TCL

@@ -1,0 +1,36 @@
+#!/usr/bin/env expect
+#
+# git-allhook - links the below hook names in core.hooksPath to the
+# given program (yak(1) by default)
+#
+#   git config core.hooksPath some/where
+#   git-allhook [someprogram]
+
+set hookdir [exec git config core.hooksPath]
+# this may not exist e.g. if init.templateDir was /var/empty and then
+# later core.hooksPath was set to .git/hooks or if hooksPath has been
+# temporarily pointed somewhere else
+file mkdir $hookdir
+
+proc programpath {name} {
+    global env
+    if {[string length $name] == 0} { set name yak }
+    # "/path/to/foo" or "./foo" are used as is...
+    if {[llength [file split $name]] > 1} { return $name }
+    # ...while bare names "foo" get a $PATH search
+    foreach dir [split $env(PATH) :] {
+        set path [file join $dir $name]
+        if {[file executable $path]} { return $path }
+    }
+    puts stderr "no such executable '$name'"; exit 1
+}
+set prog [programpath [lindex $argv 0]]
+
+# from githooks(5) git 2.16.2
+foreach hook {applypatch-msg pre-applypatch post-applypatch pre-commit prepare-commit-msg commit-msg post-commit pre-rebase post-checkout post-merge pre-push pre-receive update post-receive post-update push-to-checkout pre-auto-gc post-rewrite} {
+    set hookpath [file join $hookdir $hook]
+    if {[file exists $hookpath]} {
+        puts stderr "skip extant hook '$hookpath'"; continue
+    }
+    file link $hookpath $prog
+}
