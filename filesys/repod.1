@@ -1,4 +1,4 @@
-.Dd March 19 2018
+.Dd March 21 2018
 .Dt REPOD 1
 .nh
 .Os
@@ -10,7 +10,7 @@
 .Nm
 .Ar github
 .Nm
-init|remote
+init|put|remote
 .Ar hostname
 .Op Ar directory
 .Ek
@@ -18,34 +18,40 @@ init|remote
 .Nm
 adds remote branches to 
 .Cm git
-repositories; the first argument determines how this is done. The
-repository name is taken from the directory name of the first upwards
+repositories; the first argument (the
+.Qq target )
+specifies how this is done. The
+repository path is taken from the directory of the first upwards
 directory that contains a
 .Pa .git
-entry. First arguments include:
+entry unless a remote directory to use is given.
+Targets include:
 .Bl -tag -width -indent
 .It Ar github
 The remote branch 
 .Qq github
-is added, with the git user as parsed by the 
+is added and the git user is taken from the
 .Xr git-config 1
 command.
 .It Ar init Ar hostname Op Ar remote-directory
+A
 .Cm git init --bare
 is done via SSH and the branch
 .Qq hostname
-is added. The directory to use may be supplied otherwise it will be
-generated from the local repository name with
+is added. The exact directory to use may be supplied otherwise it will
+be generated from the local repository name with
 .Qq .git
-appended.
+added to the end.
+.It Ar put Ar hostname Op Ar remote-directory
+Creates a repository with
+.Cm git init
+and allows for remote push via
+.Qq receive.denyCurrentBranch=ignore .
+Use with caution.
 .It Ar remote Ar hostname Op Ar remote-directory
 Adds a remote
 .Qq hostname
-branch with the same directory handling as for
-.Ar init
-except that
-.Qq .git
-is not appended.
+branch to the local repository.
 .El
 .Pp
 .Nm
@@ -57,7 +63,7 @@ Directory paths may need to vary for the
 .Ar init
 and
 .Ar remote
-targets. If
+targets. If the
 .Ar remote-directory
 is not given the path will be the same as on the local system,
 made relative to
@@ -76,14 +82,14 @@ proc alter_path {target host path} {
 }
 .Ed
 .Pp
-Assuming repositories are located under the
+When repositories are located under the
 .Pa ~/src
-directory the above would for the
-.Ar init
-target and the
+directory this code alters the remote repository path to be under
+.Pa ~/var/backups
+for the
 .Qq backup
-host change the remote repository path to instead be under
-.Pa ~/var/backups .
+host when the target is
+.Ar init .
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
@@ -118,12 +124,22 @@ A rename would also require that the remote path be changed;
 .Nm
 here with
 .Ar remote
-is only updating the local
+only updates the local
 .Cm git
-configuration;
-.Ar init
-by contrast does attempt a remote
-.Cm git init .
+configuration.
+.Pp
+.Cm repod put
+requires caution; its intended use is to push repositories to test
+virtual machines where one does not care about the state of that remote
+repository:
+.Pp
+.Dl $ Ic repod put centos7
+.Dl ...
+.Dl $ Ic git push centos7 master
+.Dl ...
+.Dl $ Ic ssh centos7
+.Dl centos7$ Ic cd ...
+.Dl centos7$ Ic git reset --hard
 .Sh SEE ALSO
 .Xr git-config 1 ,
 .Xr git-init 1 ,

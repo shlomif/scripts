@@ -1,8 +1,8 @@
 #!/usr/bin/env expect
 #
-# repod - git repository remote wrapper with some remote init on the side.
+# repod - git repository remote wrapper with some remote init on the side
 
-set git_init_cmd {git init --bare}
+set git_init_cmd {git init}
 set ssh_cmd {ssh -aqx -e none -o BatchMode=yes -o ClearAllForwardings=yes -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic -o StrictHostKeyChecking=yes}
 
 proc alter_path {target host path} { return $path }
@@ -49,9 +49,9 @@ proc add_git_remote {name newurl} {
     } elseif {$oldurl ne $newurl} {
         warn "notice: $name changes $oldurl to $newurl"
         set means "set-url"
-    }
+    } else { return }
     catch {exec git remote $means $name $newurl} cresult coptions
-    if {[dict get $coptions -code] != 0} { die "$cmd $name $newurl: $cresult" }
+    if {[dict get $coptions -code] != 0} { die "git remote $means $name $newurl: $cresult" }
 }
 
 proc add_git_ssh_remote {host path} {
@@ -82,7 +82,7 @@ if {$target eq "github"} {
     if {$git_user eq ""} { die "no username from 'git config github.user'" }
     add_git_remote github git@github.com:$git_user/$repo
     exit
-} elseif {$target ne "init" && $target ne "remote"} {
+} elseif {$target ne "init" && $target ne "put" && $target ne "remote"} {
     warn "unknown target '$target'"
     emit_help
 }
@@ -102,7 +102,14 @@ if {$target eq "init"} {
     # per git-init(1) "Running git init in an existing repository is
     # safe" and git handles the creation of any necessary parent
     # directories, so just do that
+    exec {*}$ssh_cmd $hostname "$git_init_cmd --bare $directory"
+} elseif {$target eq "put"} {
     exec {*}$ssh_cmd $hostname "$git_init_cmd $directory"
+    exec {*}$ssh_cmd $hostname "git --git-dir=$directory/.git config receive.denyCurrentBranch ignore"
 }
 
 add_git_ssh_remote $hostname $directory
+
+if {$target eq "put"} {
+    puts stderr "after push will need on remote\n    git reset --hard"
+}
