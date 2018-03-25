@@ -1,4 +1,4 @@
-.Dd March  6 2018
+.Dd March 28 2018
 .Dt DNSTW 1
 .nh
 .Os
@@ -68,7 +68,7 @@ The
 must exist and no record may exist for the
 .Ar cname .
 Use 
-.Cm repoint-name
+.Cm repoint-cname
 to change where an existing CNAME points to.
 .Pp
 .It Cm create-host Ar host Ar ip Op Ar ip2 ..
@@ -137,6 +137,20 @@ Assuming there is a CNAME record for
 that CNAME is deleted and a new CNAME is created that points to
 .Ar host .
 .Pp
+.It Cm repoint-domain Ar ip Op Ar ip2 ..
+Removes A or AAAA records for the
+.Cm $domain
+of the given IP address types of the input (so if only IPv4 addresses
+are specified any AAAA records will not be removed) and adds appropriate
+domain records for the given IP addresses. May be necessary in
+conjunction with a
+.Qq www
+label change if
+.Qq www.$domain
+and
+.Qq $domain
+must point to the same system.
+.Pp
 .It Cm unmake-record Ar ..
 Removes an arbitrary DNS record with rather little in the way of error
 checking of the input.
@@ -151,8 +165,8 @@ which here is
 .Pp
 .Dl $ Ic dnstw create-host skami042 192.0.2.42 2001:0db8::c000:22a
 .Dl $ Ic dig @localhost axfr example.net \&| grep skami
-.Dl skami042.example.net.	3600	IN	AAAA	2001:db8::c000:22a
-.Dl skami042.example.net.	3600	IN	A	192.0.2.42
+.Dl skami042.example.net.       3600    IN      AAAA    2001:db8::c000:22a
+.Dl skami042.example.net.       3600    IN      A       192.0.2.42
 .Dl $ Ic host 192.0.2.42 localhost \&| sed -n '$p'
 .Dl 42.2.0.192.in-addr.arpa domain name pointer skami042.example.net.
 .Pp

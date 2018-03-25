@@ -1,13 +1,13 @@
-# for testing via MacPorts installed named
+# FIXME for testing via MacPorts installed named
 set nsupdate_cmd /opt/local/bin/nsupdate
 # NOTE "-t 0" per nsupdate(1) says it should "disable the timeout" but
 # instead with bind 9.12 a "dns_request_createvia3: out of range"
 # message appears before nsupdate fails
 set nsupdate_args {-k /opt/local/etc/nsuk.key -t 60}
 
-# this used to be example.net but that is variously problematical; per
-# RFC 6761 going instead with a .test subdomain which doubtless will be
-# problematical in new and exciting ways
+# FIXME this used to be example.net but that is variously problematical;
+# per RFC 6761 going instead with a .test subdomain which doubtless will
+# be problematical in new and exciting ways
 set domain dnstw.test.
 
 # this is disabled so unit tests can tell the difference between server
@@ -64,7 +64,24 @@ proc positive_int_or {name default} {
 # in punycode form [RFC 5891]. terminology where possible taken from
 # [RFC 7719]
 
-# fully qualified name such as "foo.bar.example.net."
+# FIXME some sites may want to limit $domain to be only particular names
+# (to prevent typos from going to unknown places, or...)
+proc reject_invalid_domain {} {
+    global domain
+    if {[string index $domain end] ne "."} {
+        die "\$domain must end with a ."
+    }
+    # NOTE in contrast to FQDN must preserve trailing . on $domain
+    set dom [string range $domain 0 end-1]
+    foreach label [split $dom "."] {
+        if {[string length $label] == 0} {
+            die "$name labels must have some length"
+        }
+        reject_invalid_host_label $domain $label
+    }
+}
+
+# fully qualified name such as "foo.bar.example.net." (this ignores $domain)
 # expects to be called via audit_hostnames
 proc reject_invalid_fqdn {args} {
     foreach name $args {
@@ -74,6 +91,10 @@ proc reject_invalid_fqdn {args} {
         }
         if {[string index $value end] ne "."} {
             die "$name must end with a ."
+        }
+        # pretty sure folks won't be editing "." zone
+        if {[string length $value] < 2} {
+            die "$name must be longer than a character"
         }
         # NOTE the trailing . is removed here for both the label split
         # and for when building $nsupdate
@@ -90,6 +111,7 @@ proc reject_invalid_fqdn {args} {
 # subdomain such as "zot" or "foo.bar" under the $domain
 # expects to be called via audit_hostnames
 proc reject_invalid_subdomain {args} {
+    reject_invalid_domain
     global domain
     foreach name $args {
         upvar 2 $name value
@@ -98,6 +120,9 @@ proc reject_invalid_subdomain {args} {
         }
         if {[string index $value end] eq "."} {
             die "$name must not end with a ."
+        }
+        if {$value eq ""} {
+            die "$name cannot be empty string"
         }
         foreach label [split $value "."] {
             if {[string length $label] == 0} {

@@ -25,14 +25,13 @@ my @tests = (
             "add pointer.$test_domain. $test_ttl CNAME host.$test_domain.", "send",
         ],
     },
-    # TODO does $domain need to be dot-qualified?
     {   args =>
-          "-d $rlabel.$test_domain -n -S 192.0.2.$rv4o -T $rttl create-cname h$rlabel p$rlabel",
+          "-d $rlabel.$test_domain. -n -S 192.0.2.$rv4o -T $rttl create-cname h$rlabel p$rlabel",
         stdout => [
             "server 192.0.2.$rv4o",
-            "yxdomain h$rlabel.$rlabel.$test_domain",
-            "nxdomain p$rlabel.$rlabel.$test_domain",
-            "add p$rlabel.$rlabel.$test_domain $rttl CNAME h$rlabel.$rlabel.$test_domain",
+            "yxdomain h$rlabel.$rlabel.$test_domain.",
+            "nxdomain p$rlabel.$rlabel.$test_domain.",
+            "add p$rlabel.$rlabel.$test_domain. $rttl CNAME h$rlabel.$rlabel.$test_domain.",
             "send",
         ],
     },
@@ -159,9 +158,23 @@ my @tests = (
             "send",
         ],
     },
+    {   args   => q{-n repoint-domain 2001:db8::200:36ff:fecd:2fa 192.0.2.104},
+        stdout => [
+            "del $test_domain. AAAA",
+            "del $test_domain. A",
+            "add $test_domain. 3600 AAAA 2001:db8::200:36ff:fecd:2fa",
+            "add $test_domain. 3600 A 192.0.2.104",
+            "send",
+        ],
+    },
+    # dynamic updates to . probably could actually be valid...
+    {   args   => q{-n -d . repoint-domain 192.0.2.99},
+        stdout => [ "del . A", "add . 3600 A 192.0.2.99", "send", ],
+    },
     {   args   => "-n unmake-record _VLMCS._TCP IN SRV 0 100 1688 mskms.$test_domain",
         stdout => [
-            "del _VLMCS._TCP.$test_domain. 3600 IN SRV 0 100 1688 mskms.$test_domain", "send",
+            "del _VLMCS._TCP.$test_domain. 3600 IN SRV 0 100 1688 mskms.$test_domain",
+            "send",
         ],
     },
     # limits
@@ -179,9 +192,19 @@ my @tests = (
         exit_status => 1,
         stderr      => qr/host cannot/,
     },
+    # counterpoint to stupidly long labels
+    {   args        => q{-n -d '' repoint-domain 192.0.2.99},
+        exit_status => 1,
+        stderr      => qr/\$domain must end/,
+    },
     {   args        => '-n -T 0 nscat',
         exit_status => 65,
         stderr      => qr/value for -T is below min/,
+    },
+    # -F does not make sense with this module so not allowed
+    {   args        => q{-F repoint-domain 192.0.2.99},
+        exit_status => 1,
+        stderr      => qr/repoint-domain ip/,
     },
     {   args        => '-n -T 9999999 nscat',
         exit_status => 65,

@@ -71,7 +71,8 @@ int main(int argc, char *argv[])
                                (unsigned long) Option_MaxTTL);
             break;
         case 'd':
-            Flag_Domain = optarg;
+            if ((Flag_Domain = strndup(optarg, 251)) == NULL)
+                err(EX_OSERR, "strndup failed");
             break;
         case 'n':
             Flag_Preview = 1;
@@ -108,7 +109,6 @@ int main(int argc, char *argv[])
         argv++;
     }
     Tcl_SetVar2Ex(Interp, "argv", NULL, argsPtr, 0);
-
     if (Flag_Domain == NULL || Flag_AcceptFQDN)
         Flag_Domain = "";
     if (Flag_Server == NULL) {

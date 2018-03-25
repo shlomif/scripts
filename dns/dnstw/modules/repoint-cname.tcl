@@ -8,6 +8,12 @@ if {$host eq $cname} { die "cname must be different than host" }
 
 audit_hostnames host cname
 
+# folks forget to do this at $work when the www CNAME changes; see also
+# repoint-domain. but this strays into business logic territory
+if {$cname eq "www"} {
+    puts stderr "info: be sure to update A/AAAA for the domain if necessary"
+}
+
 set nsupdate [ string cat $nsupdate \
     "yxrrset $cname.$domain CNAME\n" \
     "yxdomain $host.$domain\n" \

@@ -1,0 +1,29 @@
+#!/usr/bin/env perl
+#
+# create OpenSMTPD table(5) entries to ban spammer domains
+#
+#   table badsenders db:/etc/mail/notfromthese.db
+#   accept from any sender ! <badsenders> for domain ...
+
+use 5.14.0;
+use warnings;
+use Net::DNS;
+
+my $spammer = shift // die "Usage: badsender smtp-server\n";
+my $res     = Net::DNS::Resolver->new;
+
+if ( my ($domain) = $spammer =~ m/\.([^.]{1,63}\.[^.]{1,63})\s*$/ ) {
+    ban($domain);
+} else {
+    ban($spammer);
+}
+
+sub ban {
+    for my $prefix ( '@', '@*.' ) {
+        my $pattern = $prefix . $_[0];
+        say $pattern;
+    }
+    for my $rr ( mx( $res, $_[0] ) ) {
+        warn "info: mx " . $rr->exchange . "\n";
+    }
+}
