@@ -1,4 +1,4 @@
-.Dd March 16 2018
+.Dd April  3 2018
 .Dt OW 1
 .nh
 .Os
@@ -78,7 +78,6 @@ to do anything at all.
 A list of names to browser command mappings, for example
 .Pp
 .Dl copycat sgrax copycat
-.Dl elinks  elinks
 .Dl lwp     lwp-request -f -t 7 -u -s -E -d
 .Dl open    open -g
 .Dl safari  open -g -a Safari
@@ -104,8 +103,8 @@ then the directory fragment thereunder should be appended to the
 github URL.
 .It Pa ~/.ow/remap
 URL remapping file that contains regular expressions followed by a
-browser shortcut to use should a regular expression match the generated
-URL. First match wins.
+browser to use should a regular expression match the generated URL.
+First match wins.
 .Pp
 .Dl # handle dict:// URL with open(1)
 .Dl ^dict:// open

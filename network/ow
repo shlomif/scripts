@@ -23,9 +23,8 @@ GetOptions(
     'open|o=s'       => \my $Flag_Method,
 ) or exit 65;
 
-my $Open_With       = loadconfig( path_to('browsers') );
-my $Re_Map          = loadremap( path_to('remap') );
-my $Browser_Command = env_option_or( 'OW_METHOD', $Flag_Method, 'w3m' );
+my $Open_With = loadconfig( path_to('browsers') );
+my $Re_Map    = loadremap( path_to('remap') );
 
 exit $do_something->();
 
@@ -45,11 +44,9 @@ sub do_directory {
             $dirmap->{$mapent} =~ s{%(\@|\d+)/}{%$1}g if $frag eq q{};
 
             visit( fill_in( $dirmap->{$mapent}, $frag ) );
-            return 0;
         }
     }
     visit( 'file://' . $dir );
-    return 0;
 }
 
 sub do_shortcut {
@@ -88,7 +85,6 @@ sub do_shortcut {
             die "ow: no such shortcut '$key'\n";
         }
     }
-    return 0;
 }
 
 sub emit_help {
@@ -104,19 +100,6 @@ Shortcuts or file to URL or browser mapping.
 
 END_USAGE
     exit 64;
-}
-
-sub env_option_or {
-    my ( $env, $option, $fallback ) = @_;
-    my @cmd = (
-          defined $option   ? shellwords($option)
-        : exists $ENV{$env} ? shellwords( $ENV{$env} )
-        :                     $fallback
-    );
-    if ( @cmd == 1 and exists $Open_With->{ $cmd[0] } ) {
-        @cmd = shellwords( $Open_With->{ $cmd[0] } );
-    }
-    return \@cmd;
 }
 
 sub fill_in {
@@ -136,7 +119,7 @@ sub loadconfig {
     while ( readline $fh ) {
         next if /^(?:#|$)/;
         my @pair = $_ =~ m/^(\S+)\s+(\S.+?)\s*$/;
-        $hashref->{$pair[0]} = $pair[1] if @pair == 2;
+        $hashref->{ $pair[0] } = $pair[1] if @pair == 2;
     }
     return $hashref;
 }
@@ -160,23 +143,35 @@ sub visit {
 
     if ($Flag_ListURL) {
         say $url;
-        return;
+        exit;
     }
+
+    my @command;
 
     if ( $Flag_AlwaysRemap xor !$Flag_Method ) {
         for my $map (@$Re_Map) {
             if ( $url =~ m{$map->[0]} ) {
-                $Browser_Command = [ $map->[1] ];
+                @command = shellwords( $map->[1] );
                 last;
             }
         }
+    }
+
+    if ( !@command ) {
+        @command = (
+              defined $Flag_Method   ? shellwords($Flag_Method)
+            : exists $ENV{OW_METHOD} ? shellwords( $ENV{OW_METHOD} )
+            :                          'w3m'
+        );
+    }
+
+    if ( @command == 1 and exists $Open_With->{ $command[0] } ) {
+        @command = shellwords( $Open_With->{ $command[0] } );
     }
 
     if ( defined $Flag_Chdir ) {
         $Flag_Chdir = File::HomeDir->my_home unless length $Flag_Chdir;
         chdir($Flag_Chdir) or die "ow: could not chdir '$Flag_Chdir': $!\n";
     }
-
-    system( @$Browser_Command, $url ) == 0
-      or die "ow: error calling '@$Browser_Command': $?\n";
+    exec( @command, $url ) or die "ow: could not exec '@command': $!\n";
 }
