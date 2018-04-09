@@ -21,6 +21,7 @@ requires 'List::Util';
 requires 'List::UtilsBy';
 requires 'Math::Random';
 requires 'Math::Random::Discrete';
+requires 'Module::Starter::XSimple';
 requires 'POSIX';
 requires 'Perl::MinimumVersion';
 requires 'Scalar::Util';
