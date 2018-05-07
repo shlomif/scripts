@@ -19,7 +19,7 @@ Usage:
     -c n        Send count packets (default is a large number)
     -d ms | -f  Delay in milliseconds or flood the packets (default 5 ms)
     -N          -d is in nanoseconds not milliseconds
-    -P bytes    Pad packet to this many bytes (default sizeof(uint32_t))
+    -P octets   Pad packet to this many octets (default sizeof(uint32_t))
     -p portnum  Port number to send to - mandatory
     hostname    Host to connect to - mandatory
 
@@ -29,7 +29,7 @@ Usage:
     -d ms       Delay in milliseconds after processing packet (-f is implicit)
     -l          Line buffer output instead of default - see setbuf(3)
     -N          -d is in nanoseconds not milliseconds
-    -P bytes    Pad packet to this many bytes (default sizeof(uint32_t))
+    -P octets   Pad packet to this many octets (default sizeof(uint32_t))
     -p portnum  Port number to listen on - mandatory
 
 So to test:

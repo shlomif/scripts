@@ -45,7 +45,7 @@
 #include "macutil.h"
 
 /* http://tools.ietf.org/html/rfc2373 - section 2.5.1 - 2 or 0010 for
- * the 2nd byte (index 1) of eui[] */
+ * the 2nd octet (index 1) of eui[] */
 #define IPV6_FLIP     1U<<1
 
 /* How to toggle the appropriate bits for the flags */

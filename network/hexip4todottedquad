@@ -8,15 +8,16 @@ eval 'exec sbcl --script "$0" ${1+"$@"}'
 ; or
 ;   perl -e 'printf "%v*d\n", ".", pack "N", hex shift'
 ;
-; but with a little more error checking. there is also an assembly
-; implementation of this under the ../asm directory, for comparison
+; to convert such inputs as 7f000001 into a more common form but with a
+; little more error checking. there is also an assembly implementation
+; of this under the ../asm directory
 
 (defun hexip-to-octets (hexip)
   (handler-case
     (loop for i from 0 to (1- (length hexip)) by 2 collecting
-          (let ((bytes (list (char hexip (1+ i)))))
-            (push (char hexip i) bytes)
-            (parse-integer (coerce bytes 'string) :radix 16)))
+          (let ((highlow (list (char hexip (1+ i)))))
+            (push (char hexip i) highlow)
+            (parse-integer (coerce highlow 'string) :radix 16)))
     (error (condition) (exit :abort t))))
 
 (defparameter ol (hexip-to-octets (cadr *posix-argv*)))

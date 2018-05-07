@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 {
     int ch, fd;
     char buf;
-    ssize_t bytes_read, bytes_written;
+    ssize_t amnt_read, amnt_written;
 
     while ((ch = getopt(argc, argv, "b:h?o:")) != -1) {
         switch (ch) {
@@ -54,20 +54,20 @@ int main(int argc, char *argv[])
         if ((fd = open(*argv, O_RDWR)) == -1)
             err(EX_IOERR, "could not open '%s'", *argv);
 
-        bytes_read = pread(fd, &buf, (size_t) 1, Flag_Offset);
-        if (bytes_read == -1)
+        amnt_read = pread(fd, &buf, (size_t) 1, Flag_Offset);
+        if (amnt_read == -1)
             err(EX_IOERR, "pread() failure on '%s'", *argv);
-        else if (bytes_read == 0)
+        else if (amnt_read == 0)
             errx(EX_IOERR, "read of '%s': EOF", *argv);
-        else if (bytes_read != 1)
+        else if (amnt_read != 1)
             errx(EX_IOERR, "unexpected pread() on '%s'", *argv);
 
         buf ^= (1 << Flag_Bit);
 
-        bytes_written = pwrite(fd, &buf, (size_t) 1, Flag_Offset);
-        if (bytes_written == -1)
+        amnt_written = pwrite(fd, &buf, (size_t) 1, Flag_Offset);
+        if (amnt_written == -1)
             err(EX_IOERR, "pwrite() failure on '%s'", *argv);
-        else if (bytes_written != 1)
+        else if (amnt_written != 1)
             errx(EX_IOERR, "unequal pwrite() on '%s'", *argv);
 
         if (close(fd) == -1)

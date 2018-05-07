@@ -20,7 +20,7 @@ start:
     jne _failure
 
     xorl %eax,%eax              # evict any stray bits
-    xorq %r12,%r12              # high or low byte toggle
+    xorq %r12,%r12              # high or low octet toggle
     xorq %r14,%r14              # number of octets seen
 
     addq $16,%rbp               # move past argc and name
@@ -60,14 +60,14 @@ _convert:
     jnz _low
     movb %dl,%al                # high: clobber existing value
     shlb $4,%al                 # and scoot those bits over
-    xorq $1,%r12                # toggle next byte low
+    xorq $1,%r12                # toggle next octet low
 
     incq %r13
     jmp _nextchar
 
 _low:
     xorb %dl,%al                # low: bool the bits in
-    xorq $1,%r12                # toggle next byte high
+    xorq $1,%r12                # toggle next octet high
 
     call _hextonum
 

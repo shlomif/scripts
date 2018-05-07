@@ -1,4 +1,4 @@
-.Dd April  3 2018
+.Dd April 24 2018
 .Dt OW 1
 .nh
 .Os
@@ -139,6 +139,10 @@ examples may help.
 .Dl # rsync -avz --delete --delete-excluded \e
 .Dl # ftp.rfc-editor.org::rfcs-text-only rfcs
 .Dl rfc@ file:///path/to/rfcs/rfc%1.txt
+.Pp
+.Dl # same story for CommonLISP docs
+.Dl cli \& file:///.../HyperSpec/FrontMatter/Master-Index.html
+.Dl cli@ file:///.../HyperSpec/FrontMatter/Master-Index-%1.html
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES

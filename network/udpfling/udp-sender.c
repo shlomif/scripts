@@ -124,7 +124,7 @@ void catch_intr(int sig)
 void emit_usage(void)
 {
     errx(EX_USAGE,
-         "[-4|-6] [-C maxsend] [-c stati] [-d ms|-f] [-l] [-N] [-P bytes] -p port hostname");
+         "[-4|-6] [-C maxsend] [-c stati] [-d ms|-f] [-l] [-N] [-P octets] -p port hostname");
 }
 
 inline void report_counts(void)

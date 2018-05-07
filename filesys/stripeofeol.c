@@ -63,7 +63,7 @@ void trim_file(const int fd, const char *file)
 {
     char *bp, buf[BUF_SIZE];
     off_t offset, read_where, read_size, total_size, trunc_size;
-    ssize_t byte_count, i;
+    ssize_t amnt_read, i;
 
     if ((total_size = lseek(fd, (off_t) 0, SEEK_END)) < 0)
         err(EX_IOERR, "could not seek '%s'", file);
@@ -81,18 +81,18 @@ void trim_file(const int fd, const char *file)
             read_where = 0;
         }
 
-        byte_count = pread(fd, &buf, (size_t) read_size, read_where);
+        amnt_read = pread(fd, &buf, (size_t) read_size, read_where);
 
-        if (byte_count == 0)
+        if (amnt_read == 0)
             errx(EX_IOERR, "unexpected EOF on pread of '%s'", file);
-        else if (byte_count == -1)
+        else if (amnt_read == -1)
             err(EX_IOERR, "pread failed on '%s'", file);
-        else if (byte_count < -1)
+        else if (amnt_read < -1)
             errx(EX_IOERR, "unexpected return from pread of '%s': %ld", file,
-                 byte_count);
+                 amnt_read);
         else {
-            bp = buf + byte_count;
-            for (i = 0; i < byte_count; i++) {
+            bp = buf + amnt_read;
+            for (i = 0; i < amnt_read; i++) {
                 switch (*--bp) {
                 case '\n':
                 case '\r':
@@ -100,7 +100,7 @@ void trim_file(const int fd, const char *file)
                 default:
                     trunc_size -= i;
                     /* to escape from both loops */
-                    i = byte_count;
+                    i = amnt_read;
                     offset = 0;
                 }
             }
@@ -109,8 +109,8 @@ void trim_file(const int fd, const char *file)
         /* buffer all newlines, truncate to at least here, but only if
          * not escaping from the loop */
         if (offset > 0) {
-            trunc_size -= byte_count;
-            offset -= byte_count;
+            trunc_size -= amnt_read;
+            offset -= amnt_read;
         }
     }
 
