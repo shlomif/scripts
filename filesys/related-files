@@ -1,0 +1,13 @@
+#!/usr/bin/env expect
+#
+# what other files are involved in git commits for a given file?
+
+if {[llength $argv] == 0} {
+    puts stderr "Usage: related-files filename"
+    exit 1
+}
+
+set fh [open "| git log --format=%H -- [lindex $argv 0]"]
+while {[gets $fh commit] >= 0} {
+    puts "[exec -- git show --abbrev-commit --format=%H --name-only $commit]\n"
+}

@@ -1,80 +1,54 @@
-/*
- * Utility to pester TCP ports with: connect flood testing. Tested on OpenBSD,
- * Mac OS X. 389-ds had a production flaw that this utility was handy to
- * test whether they had fixed it yet:
- *
- * https://bugzilla.redhat.com/show_bug.cgi?id=668619
- *
- * Previously I was testing with `while true; do nmap -PN -sT ...` in
- * the shell, which caused huge overhead launching the many millions of
- * nmap processes. This vastly more efficient while-loop-around-TCP-connect
- * is much faster, though shifts the bottleneck to the available
- * ephemeral port range of the test system. (Which, on a multi-use system,
- * may adversely affect other programs.) So want something that can auto-tune,
- * or to accept shaping arguments that specify how far the program can go.
- *
- * TODO grab standard tuning algorithm (naive approach I tried had...problems).
- *
- * For greater efficiency, root + raw sockets would be required, as could then
- * drop packets onto the network, and (perhaps) ignore responses?
- *
- * TODO means to throw data out over the connection.
- */
+/* portpester - pesters a TCP port with lots of connections */
 
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
 #include <netinet/in.h>
 
 #include <err.h>
+#ifdef SYSDIG
+#include <fcntl.h>
+#endif
 #include <getopt.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
 
-#define LOG_PERIOD 60           /* Frequency in seconds of how often to log */
+// https://github.com/thrig/goptfoo
+#include <goptfoo.h>
 
-/* TODO rewrite to use sysexits.h */
-enum returns { R_OKAY, R_USAGE, R_SYS_ERR };
-int exit_status = R_OKAY;
+#define MS_TO_NANOSEC 1000000U
+#define MS_TO_MICROSEC 1000U
 
-/* Command Line Options */
-int nflag;                      /* Don't do name look up */
-int vflag;                      /* Verbosity */
+int Flag_BaseDelay = 10;        /* b (milliseconds) */
+int Flag_LogPeriod = 1;         /* L (seconds) */
+int Flag_NumericHost;           /* n - AI_NUMERICHOST */
+int Flag_Timeout = 10;          /* t (milliseconds) */
 
-int family = AF_UNSPEC;
+#ifdef SYSDIG
+int nullfd;
+#endif
+
+void emit_help(void);
+void handle_alarm(int sig);
+void pester(struct addrinfo *target);
 
 int main(int argc, char *argv[])
 {
-    int ch, error, s;
-    char *host, *port, *tmp;
-    struct addrinfo hints, *res;
-    struct timespec rqtp;
-    unsigned long req_count, err_count, prev_req_count, prev_err_count;
-    long sleep_ms, prev_log_bucket, cur_log_bucket;
+    char *host = NULL;
+    char *port = NULL;
+    char *tmp;
+    int ch;
+    int family = AF_UNSPEC;
+    struct addrinfo hints, *target;
 
-    host = NULL;
-    port = NULL;
-    req_count = 0;
-    err_count = 0;
-    prev_req_count = 0;
-    prev_err_count = 0;
-    prev_log_bucket = time(NULL) / LOG_PERIOD;
-
-    // TODO this base rate should be settable by option
-    sleep_ms = 10;
-
-    rqtp.tv_sec = 0;
-    rqtp.tv_nsec = sleep_ms * 1000 * 1000;
-
-    // TODO option to specify timeout of connection, another to supply
-    // count of connections to make (if one wants, say 15 million attempts,
-    // so can have program quit after that many), rate of connections...
-    // Also option if err_count gets too high to bail?
-    while ((ch = getopt(argc, argv, "46nv")) != -1) {
+    while ((ch = getopt(argc, argv, "h?46b:L:nt:")) != -1) {
         switch (ch) {
         case '4':
             family = AF_INET;
@@ -82,14 +56,23 @@ int main(int argc, char *argv[])
         case '6':
             family = AF_INET6;
             break;
+        case 'b':
+            Flag_BaseDelay = (int) flagtoul(ch, optarg, 1UL, 1000UL);
+            break;
+        case 'L':
+            Flag_LogPeriod = (int) flagtoul(ch, optarg, 1UL, 86400UL);
+            break;
         case 'n':
-            nflag = 1;
+            Flag_NumericHost = AI_NUMERICHOST;
             break;
-        case 'v':
-            vflag = 1;
+        case 't':
+            Flag_Timeout = (int) flagtoul(ch, optarg, 1UL, 1000UL);
             break;
+        case 'h':
+        case '?':
         default:
-            ;
+            emit_help();
+            /* NOTREACHED */
         }
     }
     argc -= optind;
@@ -97,13 +80,11 @@ int main(int argc, char *argv[])
 
     host = argv[0];
     if (!host || host[0] == '\0')
-        errx(R_USAGE, "no hostname specified");
+        emit_help();
     port = argv[1];
 
-    /*
-     * Support both "host port" and "host:port" calling syntax, though
-     * only if IPv4 option forced. IPv6 uses the colon for other things.
-     */
+    /* support both "host port" and "host:port" calling syntax, though
+     * only if IPv4 option forced. v6 uses the colon for other things */
     if (family == AF_INET) {
         tmp = strtok(host, ":");
         if (tmp) {
@@ -111,72 +92,108 @@ int main(int argc, char *argv[])
             tmp = strtok(NULL, ":");
             if (tmp) {
                 if (port)
-                    errx(R_USAGE, "cannot mix host:port and host port usages");
+                    errx(1, "cannot mix host:port with host port form");
                 port = tmp;
             }
         }
     }
-    if (!port)
-        errx(R_USAGE, "no port specified");
-
-    /* play adequately with tee(1) */
-    setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+    if (!port || port[0] == '\0')
+        emit_help();
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = family;
-    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags |= Flag_NumericHost;
     hints.ai_protocol = IPPROTO_TCP;
-    if (nflag)
-        hints.ai_flags |= AI_NUMERICHOST;
+    hints.ai_socktype = SOCK_STREAM;
 
-    // TODO this can return a list; may want option to pick-first or
-    // randomize or poke away at all the results, depending.
-    if ((error = getaddrinfo(host, port, &hints, &res)))
-        errx(R_SYS_ERR, "getaddrinfo: %s", gai_strerror(error));
+    if ((ch = getaddrinfo(host, port, &hints, &target)))
+        errx(1, "getaddrinfo: %s", gai_strerror(ch));
+
+    setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
+
+#ifdef SYSDIG
+    if ((nullfd = open("/dev/null", O_WRONLY)) == -1)
+        err(EX_IOERR, "could not open /dev/null");
+#endif
+
+    pester(target);
+
+    /* NOTREACHED */
+    exit(1);
+}
+
+void emit_help(void)
+{
+    fprintf(stderr,
+            "Usage: portpester [-4|-6] [-b delay] [-L period] [-n] [-t timeout] host port\n");
+    exit(EX_USAGE);
+}
+
+void handle_alarm(int sig)
+{
+    ;
+}
+
+void pester(struct addrinfo *target)
+{
+    int s;
+    long cur_log_bucket, prev_log_bucket;
+    struct itimerval cancel, timeout;
+    struct timespec delay;
+    time_t epoch, prev_epoch;
+    unsigned long err_count, req_count;
+
+    memset(&cancel, 0, sizeof(struct itimerval));
+    memset(&timeout, 0, sizeof(struct itimerval));
+    timeout.it_value.tv_usec = Flag_Timeout * MS_TO_MICROSEC;
+
+    delay.tv_sec = 0;
+    delay.tv_nsec = Flag_BaseDelay * MS_TO_NANOSEC;
+
+    req_count = 0;
+    err_count = 0;
+    prev_log_bucket = time(NULL) / Flag_LogPeriod;
+
+    if (signal(SIGALRM, handle_alarm) == SIG_ERR)
+        err(EX_SOFTWARE, "could not handle ALRM signal()");
+
+    if (siginterrupt(SIGALRM, 1) == -1)
+        err(EX_SOFTWARE, "could not siginterrupt()");
+
+    prev_epoch = time(NULL);
+    prev_log_bucket = prev_epoch / Flag_LogPeriod;
 
     while (1) {
+        setitimer(ITIMER_REAL, &timeout, NULL);
+#ifdef SYSDIG
+        dprintf(nullfd, ">::pp-req::\n");
+#endif
         if ((s =
-             socket(res->ai_family, res->ai_socktype,
-                    res->ai_protocol)) < 0) {
-            if (vflag)
-                warn("could not create socket");
+             socket(target->ai_family, target->ai_socktype,
+                    target->ai_protocol)) < 0) {
             err_count++;
         } else {
-            /* TODO may need to set other sockopts here (IP_TOS, SO_SNDBUF?) */
-
-            if (connect(s, res->ai_addr, res->ai_addrlen) < 0) {
-                if (vflag)
-                    warn("connect to %s:%s failed", host, port);
+            if (connect(s, target->ai_addr, target->ai_addrlen) < 0) {
                 err_count++;
             } else {
                 req_count++;
             }
             close(s);
         }
+        setitimer(ITIMER_REAL, &cancel, NULL);
+#ifdef SYSDIG
+        dprintf(nullfd, "<::pp-req::\n");
+#endif
+        nanosleep(&delay, NULL);
 
-        nanosleep(&rqtp, NULL);
-
-        cur_log_bucket = time(NULL) / LOG_PERIOD;
+        epoch = time(NULL);
+        cur_log_bucket = epoch / Flag_LogPeriod;
         if (cur_log_bucket > prev_log_bucket) {
-            printf("%ld %ld %ld\n", time(NULL),
-                   req_count - prev_req_count, err_count);
-
             prev_log_bucket = cur_log_bucket;
-            prev_req_count = req_count;
-            prev_err_count = err_count;
-
-        } else if (cur_log_bucket < prev_log_bucket) {
-            /*
-             * Will only happen if system time retreats, e.g. via a
-             * forced change via ntpdate(8). This throws off stats, so
-             * bail out. Probably not worth worrying about, or the
-             * stats could perhaps instead include ? that gnuplot or
-             * whatever would then ignore.
-             */
-            errx(R_SYS_ERR, "epoch time went backwards %ld to %ld",
-                 prev_log_bucket * LOG_PERIOD, cur_log_bucket * LOG_PERIOD);
+            printf("%ld %ld %ld\n", prev_epoch, req_count, err_count);
+            err_count = 0;
+            req_count = 0;
+            prev_epoch = epoch;
         }
     }
-
-    exit(exit_status);
 }

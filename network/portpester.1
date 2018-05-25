@@ -1,36 +1,119 @@
-.Dd November 22 2017
+.Dd May 30 2018
 .Dt PORTPESTER 1
 .nh
 .Os
 .Sh NAME
 .Nm portpester
-.Nd makes lots of TCP connections to a port
+.Nd pesters a TCP port with lots of connections
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Op Fl 46nv
+.Op Fl 46n
+.Op Fl b Ar delay
+.Op Fl L Ar period
+.Op Fl t Ar timeout
 .Ar host
 .Ar port
 .Ek
 .Sh DESCRIPTION
 .Nm
-floods the given target with lots of TCP connect calls; this may be
-useful to test for buggy handling of such a state.
-.Pp
+pesters a TCP port with lots of connections.
 Options:
+.Pp
 .Bl -tag -width Ds
 .It Fl 4
-forces IPv4
+Force use of IPv4. The default is unspecified.
 .It Fl 6
-forces IPv6
+Force use of IPv6.
+.It Fl b Ar delay
+Delay between connection attempts, milliseconds. Defaults to 10.
+.It Fl L Ar log-period
+How frequently to print a log message with the connect and error counts
+for that period. Seconds, defaults to 1. The first logged
+.Ar log-period
+will likely be incomplete;
+.Nm
+makes no attempt to delay the first connection to the start of a new
+.Ar log-period .
 .It Fl n
-skips hostname resolution
-.It Fl v
-makes things more verbose
+Treat the
+.Ar host
+as a numeric string.
+.It Fl t Ar timeout
+How long to wait for the socket to connect, milliseconds.
+Defaults to 10.
 .El
+.Pp
+Output is via standard out and consists of the epoch, connection count,
+and error count.
 .Sh EXIT STATUS
-.Ex -std
+.Nm
+loops until killed or otherwise terminated.
+.Sh EXAMPLES
+With iptables rate limits set for a port:
+.Bd -literal -offset indent
+*filter
+:FORWARD ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:rl -
+-A FORWARD -j REJECT
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j rl
+-A INPUT -j REJECT
+-A rl -m hashlimit --hashlimit-upto 10/min --hashlimit-name rl --hashlimit-mode srcip -j ACCEPT
+-A rl -j REJECT
+COMMIT
+.Ed
+.Pp
+.Nm
+can be used to test these limits. Given the 10/min restriction a log
+period of 60 seconds may be appropriate to confirm that the overall
+limit is being met, though this will obscure when in those 60 seconds
+packets are allowed through. Here
+.Fl t
+is set higher to reduce the number of errors.
+.Pp
+.Dl $ Ic portpester -L 60 -t 100 testhost.example.edu 22
+.Dl ...
+.Pp
+.Nm
+is single threaded so multiple instances may be necessary to stress test
+a fast system. Ephemeral port pressure may be an issue if only a single
+test host is used.
+.Pp
+There is
+.Cm sysdig
+support if
+.Nm
+is compiled with the
+.Dv SYSDIG
+define; tags will be written by
+.Nm
+if that is the case. These can be logged via
+.Pp
+.Dl # Ic sysdig -w logfile \&"span.tags contains pp-\&"
+.Pp
+and then the
+.Pa logfile
+analyzed for
+.Qq pp-req
+tags to determine how long the connections took to complete. 
 .Sh SEE ALSO
 .Xr nmap 1
+.Sh HISTORY
+.Nm
+was motivated by
+.Xr nmap 1
+in a tight loop being inefficient at pestering a buggy 389-ds LDAP server:
+.Pp
+https://bugzilla.redhat.com/show_bug.cgi?id=668619
+.Pp
+Subsequently
+.Nm
+has been used for iptables rate limit testing to help slow down remote
+brute force SSH password guessers.
 .Sh AUTHOR
 .An Jeremy Mates

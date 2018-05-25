@@ -8,7 +8,9 @@ ipvalid: ipvalid.c
 macnorm: macnorm.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` macnorm.c -o macnorm
 
+# -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DSYSDIG
 portpester: portpester.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` portpester.c -o portpester
 
 macutil.o: macutil.c macutil.h
 	$(CC) -c $(CFLAGS) macutil.c -o macutil.o
