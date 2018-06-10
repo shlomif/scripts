@@ -25,7 +25,7 @@ void find_core_or_prog(char **corefilep, char **prognamep);
 char **parse_debugger_args(char *progname, char *corefile);
 char *prog_of_core(const char *filename);
 
-const char *Flag_Debugger = "gdb -q -tui";      // -D
+const char *Flag_Debugger = "gdb -q";   // -D
 
 int main(int argc, char *argv[])
 {

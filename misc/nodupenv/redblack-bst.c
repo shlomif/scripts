@@ -88,7 +88,7 @@ rbbst_node rbbst_insert(rbbst_node n, rbbst_key key, rbbst_value val)
     return n;
 }
 
-bool rbbst_is_red(rbbst_node n)
+inline bool rbbst_is_red(rbbst_node n)
 {
     if (n == NULL)
         return false;

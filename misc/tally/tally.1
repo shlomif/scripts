@@ -1,0 +1,56 @@
+.Dd June 10 2018
+.Dt TALLY 1
+.nh
+.Os
+.Sh NAME
+.Nm tally
+.Nd tallies up duplicate lines in input
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar
+.Ek
+.Sh DESCRIPTION
+.Nm
+prints the most frequent lines appearing in the input first, along with
+a tally of how many times each unique line was seen. Input may either be
+from standard input, or from one or more files passed to
+.Nm .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic (echo foo; echo bar; echo foo) \&| tally
+.Dl 2 foo
+.Dl 1 bar
+.Pp
+This of course may be done with the shell
+.Pp
+.Dl Ic ... \&| sort \&| uniq -c \&| sort -nr
+.Pp
+or in a higher level language
+.Pp
+.Bd -literal -offset indent
+#!/usr/bin/env perl
+use List::UtilsBy qw(rev_nsort_by);
+my %tally;
+$tally{$_}++ while readline;
+for my $k ( rev_nsort_by { $tally{$_} } keys %tally ) {
+    print $tally{$k} . ' ' . $k;
+}
+.Ed
+.Pp
+at the expense of speed, here benchmarked for some period of time many
+tallies of 10000 input lines consisting of random numbers from 0 to 99.
+.Pp
+.Bd -literal -offset indent
+        Rate shell  perl tally
+shell 87.9/s    --  -35%  -60%
+perl   135/s   54%    --  -38%
+tally  218/s  148%   61%    --
+.Ed
+.Sh SEE ALSO
+.Xr perl 1 ,
+.Xr sort 1 ,
+.Xr uniq 1
+.Sh AUTHORS
+.An Jeremy Mates
