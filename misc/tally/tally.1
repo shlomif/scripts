@@ -1,4 +1,4 @@
-.Dd June 10 2018
+.Dd June 11 2018
 .Dt TALLY 1
 .nh
 .Os
@@ -30,11 +30,10 @@ This of course may be done with the shell
 or in a higher level language
 .Pp
 .Bd -literal -offset indent
-#!/usr/bin/env perl
-use List::UtilsBy qw(rev_nsort_by);
+#!/usr/bin/perl
 my %tally;
 $tally{$_}++ while readline;
-for my $k ( rev_nsort_by { $tally{$_} } keys %tally ) {
+for my $k ( sort { $tally{$b} <=> $tally{$a} } keys %tally ) {
     print $tally{$k} . ' ' . $k;
 }
 .Ed
@@ -44,9 +43,9 @@ tallies of 10000 input lines consisting of random numbers from 0 to 99.
 .Pp
 .Bd -literal -offset indent
         Rate shell  perl tally
-shell 87.9/s    --  -35%  -60%
-perl   135/s   54%    --  -38%
-tally  218/s  148%   61%    --
+shell 88.0/s    --  -41%  -61%
+perl   149/s   70%    --  -34%
+tally  227/s  158%   52%    --
 .Ed
 .Sh SEE ALSO
 .Xr perl 1 ,
