@@ -1,0 +1,18 @@
+#!/usr/bin/env perl
+use 5.14.0;
+use warnings;
+use File::Spec ();
+my $pll = shift // die "Usage: $0 fakeopen.so [interp [interp-args ..]]\n";
+my @interp = @ARGV ? @ARGV : qw(bash);
+my $pllenv = 'LD_PRELOAD=' . File::Spec->rel2abs($pll);
+my %fopenenv = (
+    'FO_CMDLINE' => 'cmdline',
+    'FO_KSINC'   => 'out.include',
+);
+for my $key ( keys %fopenenv ) {
+    $ENV{$key} = $fopenenv{$key} unless exists $ENV{$key};
+}
+my @command = ( qw(env), $pllenv, @interp );
+open( my $fh, '|-', @command ) or die "could not exec '@command': $!\n";
+select $fh;
+print while readline *STDIN;

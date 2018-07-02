@@ -1,0 +1,30 @@
+#!/usr/bin/env perl
+use 5.14.0;
+use warnings;
+use Getopt::Long qw(GetOptions);
+GetOptions( "exclude=s" => \my @excludes ) or exit 1;
+my $fh;
+my $printing = 0;
+my %seen;
+LINE: while (readline) {
+    if (m/^[%](pre|post)/) {
+        my $file = 'ks.' . $1;
+        die "have already seen the section for $file\n" if exists $seen{$file};
+        open $fh, '>', $file or die "could not write '$file': $!\n";
+        select $fh;
+        $printing = 1;
+        $seen{$file}++;
+        next LINE;
+    }
+    if (m/^[%]end/) {
+        close $fh if $printing;
+        $printing = 0;
+        next LINE;
+    }
+    if ($printing) {
+        for my $e (@excludes) {
+            next LINE if m/$e/;
+        }
+        print;
+    }
+}
