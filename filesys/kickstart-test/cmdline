@@ -1,0 +1,1 @@
+drives=vda net.ifnames=0 biosdevname=0 wipedisks console=ttyS0 host=foo dom=bar ks=http://.../kickstart/c7s method=http://.../centos/7/os/x86_64/
