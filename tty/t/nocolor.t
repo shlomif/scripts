@@ -2,6 +2,24 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
+# keep this in sync with the code
+sub NOCOLOR_BUF_SIZE () { 1024 }
+
+my $exact_buf    = "\e[31m";
+my $pad_by       = NOCOLOR_BUF_SIZE - length $exact_buf;
+my $expect_exact = "e" x $pad_by;
+$exact_buf .= $expect_exact;
+
+my $across_buf = "a" x ( NOCOLOR_BUF_SIZE - 1 );
+my $expect_across = $across_buf;
+$across_buf .= "\e[31m" . "b" x 5;
+$expect_across .= "b" x 5;
+
+my $across_buf2 = "a" x ( NOCOLOR_BUF_SIZE - 18 );
+my $expect_across2 = $across_buf2;
+$across_buf2 .= "\e[38:2:255:255:255m" . "b" x 5;
+$expect_across2 .= "b" x 5;
+
 my $test_prog = './nocolor';
 
 my @tests = (
@@ -37,6 +55,29 @@ my @tests = (
     # not otherwise be a problem and would be hard for a test to detect)
     {   args   => qq{'$^X' -E 'say "matching\e[31m\e[32m\e[33mspree"'},
         stdout => "matchingspree\n",
+    },
+    # newlines may be treated specially by regex engines?
+    {   args   => qq{'$^X' -E 'say "\e[33mone\ntwo\e[33m\nth\e[33mree"'},
+        stdout => "one\ntwo\nthree\n",
+    },
+    # buffering is hard (probably needs to be more of these)
+    {   args   => qq{'$^X' -E "print qq{$exact_buf}"},
+        stdout => $expect_exact,
+    },
+    {   args   => qq{'$^X' -E "print qq{$exact_buf$exact_buf}"},
+        stdout => "$expect_exact$expect_exact",
+    },
+    {   args   => qq{'$^X' -E "say qq{$across_buf}"},
+        stdout => "$expect_across\n",
+    },
+    {   args   => qq{'$^X' -E "say qq{$across_buf2}"},
+        stdout => "$expect_across2\n",
+    },
+    {   args   => qq{'$^X' -E "say qq{$exact_buf$across_buf}"},
+        stdout => "$expect_exact$expect_across\n",
+    },
+    {   args   => qq{'$^X' -E "say qq{$across_buf2$exact_buf}"},
+        stdout => "$expect_across2$expect_exact\n",
     },
     # STDERR should get the same treatment (but since it is presently
     # the same code path it is not tested as much)

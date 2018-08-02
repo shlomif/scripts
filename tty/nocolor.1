@@ -1,4 +1,4 @@
-.Dd January  1 2018
+.Dd August  1 2018
 .Dt NOCOLOR 1
 .nh
 .Os
@@ -16,11 +16,6 @@
 removes color codes from the standard output and error streams of the
 given
 .Ar command .
-Output buffering is disabled by default. However, input is read by line
-so
-.Nm
-does not suit interactive utilities.
-.Pp
 The need for this script can be obviated via the
 .Xr xterm 1
 resource
@@ -39,19 +34,13 @@ though--alas!--not all terminal software is so enlightened.
 .Sh AUTHOR
 .An Jeremy Mates
 .Sh CAVEATS
-Interactive utilities are a problem on account of the line-based input
-reads done by
-.Nm .
-Correcting this would require smaller input reads and manual buffer
-wrangling instead of relying on
-.Xr getline 3 .
-.Pp
 .Nm
 uses threaded I/O so may emit data differently than asynchronous I/O
-does.
+does, though assuming a particular relationship between when output
+appears from different streams is likely an error.
 .Pp
 .Nm
-is new code and may have edge cases not yet discovered.
+may have edge cases not yet discovered.
 .Pp
 .Nm
 is not for those who enjoy the double-ended digestive distress of a

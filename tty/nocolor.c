@@ -12,6 +12,16 @@
 
 #define MAX_OFFSET 3
 
+/* NOTE this is also set in the unit tests */
+#ifndef NOCOLOR_BUF_SIZE
+#define NOCOLOR_BUF_SIZE 1024
+#endif
+
+/* one of the ISO-8613-3 can be 19 characters long (or possibly more
+ * if 64-bit integers are supported), see nocolor-regex-gen for
+ * commentary */
+#define NOCOLOR_MAX_FRAG 18
+
 void emit_help(void);
 void *handle_output(void *arg);
 
@@ -74,7 +84,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: nocolor command [arg ..]");
+    fprintf(stderr, "Usage: nocolor command [arg ..]\n");
     exit(EX_USAGE);
 }
 
@@ -82,10 +92,9 @@ void *handle_output(void *arg)
 {
     int *fds = arg;
 
-    FILE *input, *output;
-    char *line = NULL;
-    size_t linebuflen = 0;
-    ssize_t numchars;
+    char buf[NOCOLOR_BUF_SIZE+1], *buf_offset;
+    ssize_t numchars, remain;
+    ssize_t leftover = 0;
 
     const char *error;
     int erroffset, rc;
@@ -95,14 +104,6 @@ void *handle_output(void *arg)
 
     int previous;
 
-    if ((input = fdopen(*fds, "r")) == NULL)
-        err(EX_IOERR, "fdopen failed fd=%d", *fds);
-    if ((output = fdopen(*(fds + 1), "a")) == NULL)
-        err(EX_IOERR, "fdopen failed fd=%d", *(fds + 1));
-
-    if (*(fds + 1) == STDOUT_FILENO)
-        setvbuf(output, (char *) NULL, _IONBF, (size_t) 0);
-
     /* regex built by ./nocolor-regex-gen */
     if ((re =
          pcre_compile
@@ -110,12 +111,30 @@ void *handle_output(void *arg)
           0, &error, &erroffset, NULL)) == NULL)
         err(1, "pcre compile failed at offset %d: %s ??", erroffset, error);
 
-    while ((numchars = getline(&line, &linebuflen, input)) > 0) {
-        rc = pcre_exec(re, NULL, line, numchars, 0, 0, offsets, MAX_OFFSET);
+    /* regex and writes are always done from buf[0]; offset from that is
+     * for when there may be a match broken between reads */
+    buf_offset = buf;
+    previous = 0;
+    /* ensure buffer is a "string" for strrchr */
+    buf[NOCOLOR_BUF_SIZE] = '\0';
+    while (1) {
+        numchars = read(*fds, buf_offset, NOCOLOR_BUF_SIZE - leftover);
+        if (numchars < 1) {
+            switch (numchars) {
+            case 0:            /* EOF */
+                goto ALL_DONE;
+            case -1:
+                err(EX_IOERR, "read failed");
+            default:
+                errx(EX_IOERR, "read failed ??");
+            }
+        }
+        numchars += leftover;
+
+        rc = pcre_exec(re, NULL, buf, numchars, 0, 0, offsets, MAX_OFFSET);
         if (rc < 0) {
-            /* no match in line: print as is */
-            fwrite(line, numchars, (size_t) 1, output);
-            continue;
+            /* no full match */
+            goto LEFTOVER;
         }
         /* should not happen as there should only be one substring */
         if (rc == 0)
@@ -123,15 +142,15 @@ void *handle_output(void *arg)
 
         if (offsets[0] != 0) {
             /* string begins with non-match material, print that */
-            fwrite(line, offsets[0], (size_t) 1, output);
+            write(*(fds + 1), buf, offsets[0]);
         }
         previous = offsets[1];
 
         while (1) {
-            /* NOTE since the regex does not match the empty string the
+            /* since the regex does not match the empty string the
              * PCRE_NOTEMPTY_ATSTART | PCRE_ANCHORED special case is not
              * used; see pcredemo.c */
-            rc = pcre_exec(re, NULL, line, numchars, offsets[1], options,
+            rc = pcre_exec(re, NULL, buf, numchars, offsets[1], options,
                            offsets, MAX_OFFSET);
             if (rc == PCRE_ERROR_NOMATCH) {
                 /* all matches found */
@@ -146,15 +165,34 @@ void *handle_output(void *arg)
             if (rc < 0)
                 errx(1, "unrecoverable condition %d ??", rc);
 
-            fwrite(line + previous, offsets[0] - previous, (size_t) 1, output);
+            write(*(fds + 1), buf + previous, offsets[0] - previous);
             previous = offsets[1];
         }
 
-        /* anything after the last match (possibly only the newline) */
-        fwrite(line + previous, numchars - previous, (size_t) 1, output);
+        /* anything after the ultimate match (if any) complicated by the
+         * possibility of a color code split across the buffer */
+      LEFTOVER:
+        remain = numchars - previous;
+        if (remain > 0) {
+            ssize_t tocheck;
+            tocheck = remain > NOCOLOR_MAX_FRAG ? NOCOLOR_MAX_FRAG : remain;
+            buf[numchars] = '\0';
+            buf_offset = strrchr(buf + numchars - tocheck, '\033');
+            if (buf_offset == NULL) {
+                write(*(fds + 1), buf + previous, remain);
+            } else {
+                write(*(fds + 1), buf + previous, buf_offset - buf + previous);
+                leftover = numchars - (buf_offset - buf);
+                memmove(buf, buf_offset, leftover);
+                buf_offset = buf + leftover;
+                continue;
+            }
+        }
+        buf_offset = buf;
+        leftover = 0;
+        previous = 0;
     }
-    if (ferror(input))
-        err(EX_IOERR, "error reading fd=%d", *fds);
 
+  ALL_DONE:
     return (void *) 0;
 }

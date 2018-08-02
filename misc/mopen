@@ -24,7 +24,7 @@ PDFREADER=mupdf
 set -e
 WHERE="`dirname "$FILE"`"
 cd "$WHERE"
-FILE="`pwd`/$FILE"
+FILE=`pwd`/`basename "$FILE"`
 set +e
 
 trap 'exit 0' USR2

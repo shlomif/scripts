@@ -27,7 +27,9 @@ for my $i ( 9, 10 ) {
     for my $j ( 0 .. 7 ) { $ra->add("EX${i}${j}m") }
 }
 
-# ISO-8613-3 controls
+# ISO-8613-3 controls -- these are the longest at 19 and 18 characters
+# though the second could be even longer if more digits are actually
+# used by a terminal
 for my $i ( 3, 4 ) {
     # this is a bit broad, in theory if you use : instead of ; anything
     # subsequent is supposed to only be a : not a ; (iTerm.app does not
