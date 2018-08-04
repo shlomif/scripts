@@ -1,5 +1,7 @@
 /* nocolor - strip color codes from standard output and error */
 
+#include <sys/wait.h>
+
 #include <err.h>
 #include <pthread.h>
 #include <stdio.h>
