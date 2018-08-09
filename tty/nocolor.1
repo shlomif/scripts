@@ -1,4 +1,4 @@
-.Dd August  1 2018
+.Dd August 11 2018
 .Dt NOCOLOR 1
 .nh
 .Os
@@ -13,8 +13,8 @@
 .Ek
 .Sh DESCRIPTION
 .Nm
-removes color codes from the standard output and error streams of the
-given
+removes (some) color codes from the standard output and error streams
+of the given
 .Ar command .
 The need for this script can be obviated via the
 .Xr xterm 1
@@ -39,8 +39,9 @@ uses threaded I/O so may emit data differently than asynchronous I/O
 does, though assuming a particular relationship between when output
 appears from different streams is likely an error.
 .Pp
-.Nm
-may have edge cases not yet discovered.
+This code has various edge cases and omissions; these in turn depend on
+the terminal software involved and what that parses. A much better place
+to solve this would be in a terminal or library that supports such.
 .Pp
 .Nm
 is not for those who enjoy the double-ended digestive distress of a

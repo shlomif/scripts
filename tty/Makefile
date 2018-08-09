@@ -9,6 +9,9 @@ TCL=tcl86
 nocolor: nocolor.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs libpcre` -lpthread -o nocolor nocolor.c
 
+nocolor-test: nocolor.c Makefile
+	$(CC) -DNOCOLOR_BUF_SIZE=32 -g $(CFLAGS) `pkg-config --cflags --libs libpcre` -lpthread -o nocolor-test nocolor.c
+
 rdcomm: rdcomm.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs $(TCL) goptfoo` rdcomm.c -o rdcomm
 
@@ -28,7 +31,7 @@ depend:
 	pkg-config --exists libpcre goptfoo $(TCL)
 	@expect -c "package require Tcl 8.6; package require fileutil 1.13.0"
 
-test: nocolor
+test: nocolor-test
 	@prove --nocolor
 
 .PHONY: clean depend test

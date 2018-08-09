@@ -1,5 +1,6 @@
 *.o
 nocolor
+nocolor-test
 rdcomm
 torc
 ttytest

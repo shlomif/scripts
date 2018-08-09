@@ -2,8 +2,8 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-# keep this in sync with the code
-sub NOCOLOR_BUF_SIZE () { 1024 }
+# smaller buffer size for testing as that makes it easier to debug
+sub NOCOLOR_BUF_SIZE () { 32 }
 
 my $exact_buf    = "\e[31m";
 my $pad_by       = NOCOLOR_BUF_SIZE - length $exact_buf;
@@ -20,7 +20,9 @@ my $expect_across2 = $across_buf2;
 $across_buf2 .= "\e[38:2:255:255:255m" . "b" x 5;
 $expect_across2 .= "b" x 5;
 
-my $test_prog = './nocolor';
+my $test_prog = './nocolor-test';
+
+$ENV{PERLIO} = ':raw';
 
 my @tests = (
     {   exit_status => 64,
@@ -79,10 +81,14 @@ my @tests = (
     {   args   => qq{'$^X' -E "say qq{$across_buf2$exact_buf}"},
         stdout => "$expect_across2$expect_exact\n",
     },
+    {   args => qq{'$^X' -pe 1 t/nocolor-input1},
+        stdout =>
+          "\e[1;28r\e[2;1H H - an uncursed ring of protection from fire\r\e[3d J - an uncursed ring of magical power\e(B\e[m\e[K\r\e[4dWands          (select all with /)\e(B\e[m\e[K\r\e[5d i - a wand of flame (30)\r\e[6d n - a wand of disintegration (5)\e[K\r\e[7d o - a wand of polymorph (28)\r\e[8d A - a wand of paralysis (25)\r\e[9d U - a wand of acid (2)\n",
+    },
     # STDERR should get the same treatment (but since it is presently
     # the same code path it is not tested as much)
-    {   args   => qq{'$^X' -E 'say STDERR "no \e[37mcolor"'},
-        stdout => "",
+    {   args   => qq{'$^X' -E 'say "o\e[40mut"; say STDERR "no \e[37mcolor"'},
+        stdout => "out\n",
         stderr => qr/^no color$/,
     },
 );

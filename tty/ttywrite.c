@@ -1,24 +1,8 @@
-/*
- * Writes the command line arguments (or standard input) to a tty using
- * the TIOCSTI ioctl. This will typically require root access, the
- * setuid bit set on this binary (danger!), or on Linux the appropriate
- * capability granted. The bytes will be written as given, except on the
- * command line a space will be written between each argument, and a
- * final newline written if the -N option is set.
- *
- * Notable codes (via ttytest.c testing on Mac OS X) include:
- *
- *   sudo ttywrite $(tty) $'\003'   # SIGINT
- *   sudo ttywrite $(tty) $'\004'   # EOF
- *   sudo ttywrite $(tty) $'\014'   # clear (control+l)
- *   sudo ttywrite $(tty) $'\020'   # SIGINFO
- *   sudo ttywrite $(tty) $'\020'   # SIGTSTP
- *   sudo ttywrite $(tty) $'\020'   # SIGQUIT
- */
+/* ttywrite - writes the given inputs to a given tty via the TIOCSTI ioctl */
 
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__)
 #include <sys/ttycom.h>
 #endif
 
@@ -37,8 +21,8 @@
 void emit_help(void);
 void tty_write(int fd, int argc, char *argv[], useconds_t delay);
 
-useconds_t Flag_Delay = 0;      // -d delay in milliseconds
-bool Flag_Newline = false;      // -N
+useconds_t Flag_Delay = 0;      /* -d delay in milliseconds */
+bool Flag_Newline = false;      /* -N */
 
 int main(int argc, char *argv[])
 {
@@ -79,7 +63,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ttywrite [-d delayms] [-N] dev [command...|-]\n");
+    fprintf(stderr, "Usage: ttywrite [-d delayms] [-N] dev [message ...|-]\n");
     exit(EX_USAGE);
 }
 

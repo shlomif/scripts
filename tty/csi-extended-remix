@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+#
+# how long can a \e[x;y;...m CSI escape sequence go on for? and what
+# happens to the terminal? (of four terminals tested in 2018, two crash)
+
+use strict;
+use warnings;
+use Time::HiRes qw(sleep);
+
+my $n   = 1;
+my $csi = "\e[42";
+my @alt = qw(42 41);
+while (1) {
+    open my $fh, '>', "count" or die "could not write 'count': $!\n";
+    print $fh $n;
+    close $fh;
+    $csi .= ';' . $alt[ $n & 1 ];
+    print $csi . "mcolor spam " . $n++ . "\n";
+    sleep 0.1;
+}

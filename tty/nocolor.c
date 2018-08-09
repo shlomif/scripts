@@ -24,6 +24,8 @@
  * commentary */
 #define NOCOLOR_MAX_FRAG 18
 
+pcre *re;
+
 void emit_help(void);
 void *handle_output(void *arg);
 
@@ -34,8 +36,18 @@ int main(int argc, char *argv[])
     pthread_t err_thread;
     int status;
 
+    const char *error;
+    int erroffset;
+
     if (argc < 2)
         emit_help();
+
+    /* regex built by ./nocolor-regex-gen */
+    if ((re =
+         pcre_compile
+         ("(?:\033\\[(?:[34](?:8(?:[:;](?:2[:;][0-9]{1,3}[;:][0-9]{1,3}[;:][0-9]{1,3}|5[:;][0-9]{1,10})|;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))|[01234567](?:;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))?|9?;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))|2(?:[23456789]?;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?)|1(?:;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))?)?|1(?:0[01234567](?:;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))?|;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))|9(?:[01234567](?:;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))?|;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))?|[578](?:;(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))?|[06];(?:[05678]|1(?:0[01234567])?|2[123456789]?|9[01234567]?|[34][0-9]?))m)+",
+          0, &error, &erroffset, NULL)) == NULL)
+        err(1, "pcre compile failed at offset %d: %s ??", erroffset, error);
 
     if (pipe(outp) == -1)
         err(EX_OSERR, "pipe stdout failed");
@@ -93,33 +105,23 @@ void emit_help(void)
 void *handle_output(void *arg)
 {
     int *fds = arg;
-
-    char buf[NOCOLOR_BUF_SIZE+1], *buf_offset;
+    int previous;
     ssize_t numchars, remain;
     ssize_t leftover = 0;
 
-    const char *error;
-    int erroffset, rc;
+    char *buf_offset, buf[NOCOLOR_BUF_SIZE + 1];
+
+    int rc;
     int options = 0;
     int offsets[MAX_OFFSET];
-    pcre *re;
-
-    int previous;
-
-    /* regex built by ./nocolor-regex-gen */
-    if ((re =
-         pcre_compile
-         ("(?:\033\\[(?:[578]|[34](?:[01234567]|8[:;](?:2[:;][0-9]{1,3}[;:][0-9]{1,3}[;:][0-9]{1,3}|5[:;][0-9]{1,10}))|10[01234567]|9[01234567]?|21?)m)+",
-          0, &error, &erroffset, NULL)) == NULL)
-        err(1, "pcre compile failed at offset %d: %s ??", erroffset, error);
 
     /* regex and writes are always done from buf[0]; offset from that is
      * for when there may be a match broken between reads */
     buf_offset = buf;
-    previous = 0;
     /* ensure buffer is a "string" for strrchr */
     buf[NOCOLOR_BUF_SIZE] = '\0';
     while (1) {
+        previous = 0;
         numchars = read(*fds, buf_offset, NOCOLOR_BUF_SIZE - leftover);
         if (numchars < 1) {
             switch (numchars) {
@@ -183,7 +185,8 @@ void *handle_output(void *arg)
             if (buf_offset == NULL) {
                 write(*(fds + 1), buf + previous, remain);
             } else {
-                write(*(fds + 1), buf + previous, buf_offset - buf + previous);
+                write(*(fds + 1), buf + previous,
+                      buf_offset - (buf + previous));
                 leftover = numchars - (buf_offset - buf);
                 memmove(buf, buf_offset, leftover);
                 buf_offset = buf + leftover;
@@ -192,7 +195,6 @@ void *handle_output(void *arg)
         }
         buf_offset = buf;
         leftover = 0;
-        previous = 0;
     }
 
   ALL_DONE:
