@@ -33,8 +33,8 @@ int main(int argc, char *argv[])
     if (pid == 0) {             /* child */
         if (setsid() == -1)
             err(EX_OSERR, "could not setsid()");
-        if (execvp(*argv, argv) == -1)
-            err(EX_OSERR, "could not exec %s", *argv);
+        execvp(*argv, argv);
+        err(EX_OSERR, "could not exec %s", *argv);
 
     } else if (pid > 0) {       /* parent */
         exit(0);

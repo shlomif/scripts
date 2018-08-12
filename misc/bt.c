@@ -76,10 +76,8 @@ int main(int argc, char *argv[])
 
     debugger_args = parse_debugger_args(progname, corefile);
 
-    if (execvp(*debugger_args, debugger_args) == -1)
-        err(EX_OSERR, "could not exec '%s'", *debugger_args);
-
-    exit(1);                    /* NOTREACHED */
+    execvp(*debugger_args, debugger_args);
+    err(EX_OSERR, "could not exec '%s'", *debugger_args);
 }
 
 char *core_of_prog(const char *filename)

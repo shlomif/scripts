@@ -66,9 +66,8 @@ int main(int argc, char *argv[])
 
     pid = vfork();
     if (pid == 0) {             /* child */
-        if (execvp(*argv, argv) == -1)
-            err(EX_OSERR, "could not exec %s", *argv);
-        /* NOTREACHED */
+        execvp(*argv, argv);
+        err(EX_OSERR, "could not exec %s", *argv);
 
     } else if (pid > 0) {       /* parent */
         /* do not restart the wait() after SIGALRM, skip to the end... */

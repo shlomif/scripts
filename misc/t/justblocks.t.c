@@ -34,8 +34,8 @@ int main(void)
 
     } else if (jbpid == 0) {    /* child - justblocks */
         close(STDIN_FILENO);
-        if (execl("./justblocks", "./justblocks", (char *) 0) == -1)
-            err(EX_OSERR, "could not exec justblocks");
+        execl("./justblocks", "./justblocks", (char *) 0);
+        err(EX_OSERR, "could not exec justblocks");
     }
 
     kkpid = fork();

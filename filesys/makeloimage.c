@@ -124,6 +124,7 @@ int losetup(const char *device, const char *path)
     child = vfork();
     if (child == 0) {           // child
         execlp("losetup", "losetup", device, path, (char *) NULL);
+        err(EX_OSERR, "execlp failed");
 
     } else if (child > 0) {     // parent ok
         if (waitpid(-1, &status, 0) == -1)

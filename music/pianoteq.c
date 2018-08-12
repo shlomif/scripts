@@ -47,7 +47,6 @@ int main(int argc, char *argv[])
 
     execv(pianoteq_path, pianoteq_args);
     err(1, "exec failed");
-    exit(1);                    /* NOTREACHED */
 }
 
 char **args_for_file(char *path)

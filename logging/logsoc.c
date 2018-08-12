@@ -62,7 +62,6 @@ int main(int argc, char *argv[])
 
     argv++;
     execvp(*argv, argv);
-
     syslog(LOG_ERR, "error exec failed (%d)", errno);
     return 1;
 }

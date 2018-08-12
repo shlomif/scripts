@@ -44,9 +44,8 @@ int main(int argc, char *argv[])
                 err(EX_OSERR, "dup2 failed");
             close(fd[0]);
         }
-        if (execlp(*argv, *argv, (char *) 0) == -1)
-            err(1, "could not exec '%s'", *argv);
-        /* NOTREACHED */
+        execlp(*argv, *argv, (char *) 0);
+        err(1, "could not exec '%s'", *argv);
     }
 
     /* parent */

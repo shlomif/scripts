@@ -85,10 +85,7 @@ int main(int argc, char *argv[])
 
     environ = newenv;
     execvp(*argv, argv);
-
-    /* NOTREACHED unless exec fails */
     err(EX_OSERR, "could not exec '%s'", *argv);
-    exit(1);
 }
 
 void emit_help(void)

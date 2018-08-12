@@ -85,8 +85,8 @@ void whatmonth(struct tm *date)
         if (strftime((char *) &yearnum, (size_t) 5, "%Y", date) < 1)
             errx(EX_OSERR, "could not strftime() year");
 
-        if (execlp("cal", "cal", &monthnum, &yearnum, (char *) 0) == -1)
-            err(EX_OSERR, "could not execlp() cal");
+        execlp("cal", "cal", &monthnum, &yearnum, (char *) 0);
+        err(EX_OSERR, "could not execlp() cal");
 
     } else {                    // parent
         if (wait(NULL) == -1)

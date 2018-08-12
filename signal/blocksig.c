@@ -77,10 +77,8 @@ int main(int argc, char *argv[])
     if (sigprocmask(SIG_BLOCK, &block, NULL) == -1)
         err(EX_OSERR, "could not set sigprocmask of %d", block);
 
-    if (execvp(*argv, argv) == -1)
-        err(EX_OSERR, "could not exec %s", *argv);
-
-    exit(1);                    /* NOTREACHED */
+    execvp(*argv, argv);
+    err(EX_OSERR, "could not exec %s", *argv);
 }
 
 void emit_help(void)

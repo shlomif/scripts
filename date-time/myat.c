@@ -94,9 +94,8 @@ int main(int argc, char *argv[])
             err(EX_IOERR, "could not chdir to '%s'", Flag_Chdir);
     }
 
-    if (execlp("at", "at", Time_String, (char *) 0) == -1)
-        err(EX_OSERR, "exec failed");
-    exit(1);
+    execlp("at", "at", Time_String, (char *) 0);
+    err(EX_OSERR, "exec failed");
 }
 
 void emit_help(void)

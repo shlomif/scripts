@@ -111,10 +111,9 @@ int main(int argc, char *argv[])
         else
             shortname = clippy;
 
-        if (execlp(clippy, shortname, (char *) 0) < 0) {
-            warn("execlp() of %s failed", clippy);
-            _exit(EX_OSERR);    /* but really the parent eats a SIGPIPE */
-        }
+        execlp(clippy, shortname, (char *) 0);
+        warn("execlp() of %s failed", clippy);
+        _exit(EX_OSERR);    /* but really the parent eats a SIGPIPE */
     }
 
     exit(EXIT_SUCCESS);

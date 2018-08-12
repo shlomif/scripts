@@ -70,9 +70,8 @@ int main(int argc, char *argv[])
             close(errp[1]);
         }
         argv++;                 /* skip our name since not using getopt */
-        if (execvp(*argv, argv) < 0)
-            err(1, "could not exec '%s'", *argv);
-        /* NOTREACHED */
+        execvp(*argv, argv);
+        err(1, "could not exec '%s'", *argv);
     }
 
     /* parent */

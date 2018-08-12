@@ -36,5 +36,4 @@ int main(int argc, char *argv[])
 
     execvp(*argv, argv);
     err(EX_OSERR, "could not exec '%s'", *argv);
-    return 1;                   /* NOTREACHED */
 }
