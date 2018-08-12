@@ -2,7 +2,8 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-# smaller buffer size for testing as that makes it easier to debug
+# smaller buffer size for testing as that makes it easier to debug; NOTE
+# that some tests below assume this length
 sub NOCOLOR_BUF_SIZE () { 32 }
 
 my $exact_buf    = "\e[31m";
@@ -81,9 +82,14 @@ my @tests = (
     {   args   => qq{'$^X' -E "say qq{$across_buf2$exact_buf}"},
         stdout => "$expect_across2$expect_exact\n",
     },
-    {   args => qq{'$^X' -pe 1 t/nocolor-input1},
+    {   args => qq{'$^X' -pe 1 t/nocolor.input1},
         stdout =>
           "\e[1;28r\e[2;1H H - an uncursed ring of protection from fire\r\e[3d J - an uncursed ring of magical power\e(B\e[m\e[K\r\e[4dWands          (select all with /)\e(B\e[m\e[K\r\e[5d i - a wand of flame (30)\r\e[6d n - a wand of disintegration (5)\e[K\r\e[7d o - a wand of polymorph (28)\r\e[8d A - a wand of paralysis (25)\r\e[9d U - a wand of acid (2)\n",
+    },
+    # exactly NOCOLOR_BUF_SIZE characters and with a (false) trailing
+    # potential escape sequence and also EOF
+    {   args   => qq{'$^X' -e "print qq{1234\e[42m5678901234567890\e[3d123}"},
+        stdout => "12345678901234567890\e[3d123",
     },
     # STDERR should get the same treatment (but since it is presently
     # the same code path it is not tested as much)

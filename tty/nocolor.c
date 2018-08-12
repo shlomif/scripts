@@ -125,7 +125,7 @@ void *handle_output(void *arg)
         if (numchars < 1) {
             switch (numchars) {
             case 0:            /* EOF */
-                goto ALL_DONE;
+                goto ALMOST_ALL_DONE;
             case -1:
                 err(EX_IOERR, "read failed");
             default:
@@ -196,6 +196,8 @@ void *handle_output(void *arg)
         leftover = 0;
     }
 
-  ALL_DONE:
+  ALMOST_ALL_DONE:
+    if (leftover > 0)
+        write(*(fds + 1), buf, leftover);
     return (void *) 0;
 }
