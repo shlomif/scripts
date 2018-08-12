@@ -1,7 +1,9 @@
 #!/usr/bin/env perl
 #
 # how long can a \e[x;y;...m CSI escape sequence go on for? and what
-# happens to the terminal? (of four terminals tested in 2018, two crash)
+# happens to the terminal?
+#
+# https://github.com/jwilm/alacritty/issues/1505
 
 use strict;
 use warnings;

@@ -2,11 +2,13 @@
 #
 # build a regular expression of things for nocolor(1) to nuke, mostly
 # based on what I do not like. not complete, as rarely seen inputs are
-# not filtered for. this would be better handled by a state machine
+# not filtered for. this would be better handled by a state machine[1]
 # instead of a regular expression on account of legal yet uncommon
 # sequences such as
 #
 #   \033[32;32;32;32;32;32;32;32;32;32;32;32;32;32;32;32m
+#
+# https://vt100.net/emu/dec_ansi_parser
 
 use 5.14.0;
 use warnings;
