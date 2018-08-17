@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     result %= 2;
 
     if (!Flag_Quiet)
-        printf("%s\n", result ? "heads" : "tails");
+        puts(result ? "heads" : "tails");
 
     exit(result ? 0 : 1);
 }

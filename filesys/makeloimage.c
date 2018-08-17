@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     glob(loopdevs, GLOB_NOSORT, NULL, &lodevs);
     for (glnum = 0; glnum < lodevs.gl_pathc; glnum++) {
         if (losetup(lodevs.gl_pathv[glnum], filename)) {
-            printf("%s\n", lodevs.gl_pathv[glnum]);
+            puts(lodevs.gl_pathv[glnum]);
             exit(EXIT_SUCCESS);
         }
     }

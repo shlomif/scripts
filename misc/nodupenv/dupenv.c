@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 
     if (argc < 1) {
         for (i = 0; i < cur_env; i++) {
-            printf("%s\n", environ[i]);
+            puts(environ[i]);
         }
         exit(EXIT_SUCCESS);
     }

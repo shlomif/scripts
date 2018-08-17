@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
         if (!Flag_Quiet) {
             if (!inet_ntop(AF_INET, &v4addr, (char *) &addr, INET_ADDRSTRLEN))
                 err(EX_OSERR, "inet_ntop() for IPv4 failed");
-            printf("%s\n", addr);
+            puts(addr);
         }
         exit(EXIT_SUCCESS);
     case 0:
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
         if (!Flag_Quiet) {
             if (!inet_ntop(AF_INET6, &v6addr, (char *) &addr, INET6_ADDRSTRLEN))
                 err(EX_OSERR, "inet_ntop() for IPv6 failed");
-            printf("%s\n", addr);
+            puts(addr);
         }
         exit(EXIT_SUCCESS);
     case 0:

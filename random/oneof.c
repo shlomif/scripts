@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
     /* yes this could have worse modulo bias than coinflip.c but I'm not
      * worried about it given the expected numbers of arguments */
-    printf("%s\n", argv[result % argc]);
+    puts(argv[result % argc]);
 
     exit(result ? 0 : 1);
 }

@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     while (1) {
         if (does_match(*argv, search_path)) {
             if (!Flag_Quiet)
-                printf("%s\n", *search_path == '\0' ? "/" : search_path);
+                puts(*search_path == '\0' ? "/" : search_path);
             exit(EXIT_SUCCESS);
         }
         if (Flag_NoEscapeHome && strncmp(search_path, homedir, PATH_MAX) == 0)
