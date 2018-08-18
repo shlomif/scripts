@@ -5,6 +5,7 @@ muss-with-environ
 pcre-precompile
 setsid
 sgrax
+solitary
 threading
 waitornot
 whatargs

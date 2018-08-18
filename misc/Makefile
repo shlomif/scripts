@@ -10,6 +10,7 @@ pcre-precompile: pcre-precompile.c Makefile
 
 setsid: setsid.c
 sgrax: sgrax.c
+solitary: solitary.c
 threading: threading.c
 waitornot: waitornot.c
 
