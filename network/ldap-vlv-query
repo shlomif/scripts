@@ -8,7 +8,7 @@
 #
 # Code mostly just lifted from the SYNOPSIS of the LDAP modules.
 
-use strict;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Net::LDAP;

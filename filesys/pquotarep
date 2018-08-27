@@ -3,7 +3,7 @@
 # Parses output from repquota(8) into formats suitable for further
 # processing such as SQL upload or insertion into RRDTool files.
 
-use strict;
+use 5.16.0;
 use warnings;
 
 use Data::Dumper;

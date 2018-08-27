@@ -2,7 +2,7 @@
 #
 # ASCII up-case table maker (other bytes passed through as-is)
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 
 my @segment;

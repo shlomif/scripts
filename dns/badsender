@@ -5,7 +5,7 @@
 #   table badsenders db:/etc/mail/notfromthese.db
 #   accept from any sender ! <badsenders> for domain ...
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Net::DNS;
 

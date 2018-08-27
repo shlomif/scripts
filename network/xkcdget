@@ -9,7 +9,7 @@
 #   xkcdget
 #   xkcdget 123
 
-use 5.014;
+use 5.16.0;
 use File::HomeDir ();
 use File::Slurper qw(write_binary write_text);
 use File::Spec ();

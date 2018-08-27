@@ -2,7 +2,7 @@
 #
 # Change ownership of files in a tarball, to sanitize them.
 
-use strict;
+use 5.16.0;
 use warnings;
 use Archive::Tar 1.80;
 

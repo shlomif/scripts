@@ -2,7 +2,7 @@
 #
 # MIDI utility routines for the Perl MIDI suite.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 
 use Getopt::Long qw(GetOptionsFromArray);

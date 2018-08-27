@@ -17,8 +17,7 @@
 # set high enough to mostly always remain in key (in which case they
 # repeat too much).
 
-use 5.010000;
-use strict;
+use 5.16.0;
 use warnings;
 
 use Getopt::Long qw(GetOptions);

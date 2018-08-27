@@ -1,5 +1,5 @@
 #!perl
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Test::Cmd;
 use Test::Most tests => 64;

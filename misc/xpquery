@@ -2,7 +2,7 @@
 #
 # Applies XPath expressions to files or URLs.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use File::Temp qw(tempfile);
 use Getopt::Long qw(GetOptions);

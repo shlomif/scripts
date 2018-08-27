@@ -9,7 +9,7 @@
 #
 #   transpose --columns=8 e e f g g f e d c c d e e d d | ly-fu --open -
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 
 use Getopt::Long qw/GetOptions/;

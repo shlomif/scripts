@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use File::Spec ();
 my $pll = shift // die "Usage: $0 fakeopen.so [interp [interp-args ..]]\n";

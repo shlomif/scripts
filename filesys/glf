@@ -3,7 +3,7 @@
 # Get latest file in a directory by mtime, optionally limiting the files
 # to those that match a particular regular expression.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use File::Spec ();
 use Getopt::Long qw(GetOptions);

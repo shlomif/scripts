@@ -3,7 +3,7 @@
 # Humanize file sizes in input, like the new -h option to various Unix
 # commands. (-h being new may help date when this code was written.)
 
-use strict;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 

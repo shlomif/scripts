@@ -2,7 +2,7 @@
 #
 # ow - shortcuts and directory to URL mapping
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Cwd ();
 use File::Basename qw(basename);

@@ -14,7 +14,7 @@
 #   notice: no groups seen on input
 #   +root
 
-use strict;
+use 5.16.0;
 use warnings;
 
 my $group = shift // die "Usage: groupaudit group file|-\n";

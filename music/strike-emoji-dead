@@ -9,7 +9,7 @@
 #
 #   ./strike-emoji-dead < emoji-data.txt > regex
 
-use 5.14.0;
+use 5.16.0;
 use strict;
 
 use Unicode::UTF8 qw(encode_utf8);

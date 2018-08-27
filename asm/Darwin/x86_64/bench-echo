@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+use 5.16.0;
 use Benchmark qw(cmpthese);
 my $short = "asdf";
 my @long  = ("asdf") x 99;

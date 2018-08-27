@@ -4,7 +4,7 @@
 # mixtures given starting amounts (which may be zero) and a desired
 # percentage of flour or also optionally water percentage
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use List::Util qw(sum0);

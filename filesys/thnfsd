@@ -4,7 +4,7 @@
 # the delta from the previous value instead of unreadable counters, "."
 # if no change in that column.
 
-use strict;
+use 5.16.0;
 use warnings;
 
 my %factors = ( s => 1, m => 60, h => 3600, d => 86400 );

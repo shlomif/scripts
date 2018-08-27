@@ -4,7 +4,7 @@
 # connects. (Add a "LocalHost => ..." constructor option to bind only to
 # a particular local address.)
 
-use strict;
+use 5.16.0;
 use warnings;
 use IO::Socket::INET;
 

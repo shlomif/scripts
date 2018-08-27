@@ -3,7 +3,7 @@
 # Generates crontab(5) compatible time specifications for near
 # future runs.
 
-use strict;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);

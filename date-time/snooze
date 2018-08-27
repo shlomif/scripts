@@ -3,7 +3,7 @@
 # snooze - sleep for a given duration, with SIGINFO (control+t maybe)
 # or SIGQUIT (control+\ typically) showing how much time remains.
 
-use strict;
+use 5.16.0;
 use warnings;
 use Term::ReadKey qw(ReadMode);
 

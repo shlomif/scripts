@@ -28,7 +28,7 @@
 # Where SERVERIP is the address the desired TCP traffic is going to, and
 # REPLAYSERVERIP the test server the TCP payloads should be resent to.
 
-use strict;
+use 5.16.0;
 use warnings;
 
 my ( $SRC_IP,       $DST_IP, $PORT );

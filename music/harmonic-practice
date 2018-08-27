@@ -3,7 +3,7 @@
 # Constructs weighted random harmonic sequences. Possibly good for
 # someone to then complete the voices on...
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Math::Random::Discrete;
 

@@ -4,7 +4,7 @@
 # entries that then will also be searched on. (See also the logconv.pl
 # that ships with 389-ds.)
 
-use strict;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw/GetOptions/;
 

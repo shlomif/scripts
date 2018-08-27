@@ -2,7 +2,7 @@
 #
 # Replays terminal foo, with undo of encoding done by `termsplain`.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Time::HiRes qw(sleep);
 

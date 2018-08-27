@@ -1,6 +1,6 @@
 #!perl
 # NOTE if dupenv is buggy then things here will be sad, too
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Test::Cmd;
 use Test::Most tests => 12;

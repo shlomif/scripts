@@ -25,7 +25,7 @@
 # deterministic approaches, while faster, would more easily fall prey to
 # crafted input attacks.)
 
-use strict;
+use 5.16.0;
 use warnings;
 
 # TODO tune this depth, or make it a flag

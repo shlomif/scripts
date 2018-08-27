@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-use strict;
+use 5.16.0;
 use warnings;
 use Digest::SHA1;
 

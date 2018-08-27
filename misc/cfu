@@ -2,7 +2,7 @@
 #
 # cfu - compiles and (maybe) runs C code
 
-use strict;
+use 5.16.0;
 use warnings;
 use File::Spec ();
 use File::Temp qw(tempdir);

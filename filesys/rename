@@ -4,7 +4,7 @@
 # options available. This program is free software; you can redistribute
 # it and/or modify it under the same terms as Perl itself.
 
-use strict;
+use 5.16.0;
 use warnings;
 use File::Basename qw(dirname);
 use File::Copy       ();

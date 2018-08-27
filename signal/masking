@@ -5,7 +5,7 @@
 # terminal that goes to all processes of the foreground process group
 # (unless masked).
 
-use strict;
+use 5.16.0;
 use warnings;
 use POSIX qw(sigprocmask SIGINT SIG_BLOCK SIG_UNBLOCK);
 

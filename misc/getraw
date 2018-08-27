@@ -2,7 +2,7 @@
 #
 # Means to prompt for human interaction.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Term::ReadKey qw(ReadKey ReadMode);

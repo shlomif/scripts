@@ -2,7 +2,7 @@
 #
 # Wrap timidity, reading *.ly files for extra command line arguments.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 
 use File::Basename qw(dirname);

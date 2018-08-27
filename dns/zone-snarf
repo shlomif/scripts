@@ -30,7 +30,7 @@
 # whatever, but still some means may be desired to look at changes over
 # time, in the event unexpected changes are made somehow.
 
-use strict;
+use 5.16.0;
 use warnings;
 
 use File::Path qw/make_path/;

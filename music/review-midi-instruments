@@ -15,7 +15,7 @@
 #
 # See the DATA block, below, for the sample lilypond data.
 
-use strict;
+use 5.16.0;
 use warnings;
 
 use Text::Xslate ();

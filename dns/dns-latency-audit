@@ -12,7 +12,7 @@
 #
 #   $ dns-latency-audit --queryhost microsoft.com 8.8.8.8 >> somelog
 
-use strict;
+use 5.16.0;
 use warnings;
 
 use Getopt::Long qw(GetOptions);

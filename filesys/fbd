@@ -3,7 +3,7 @@
 # Finds files with same (or similar) modification times as specified
 # file (or a user-supplied date).
 
-use strict;
+use 5.16.0;
 use warnings;
 use File::Find qw(find);
 use Getopt::Long qw(GetOptions);

@@ -6,7 +6,7 @@
 # TODO no error from getaddrinfo() if off the Internet, so instead use
 # Net::DNS for those lookups? also TODO ipv6 support
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 
 use Socket qw(:addrinfo unpack_sockaddr_in inet_ntop AF_INET);

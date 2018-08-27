@@ -2,7 +2,7 @@
 #
 # Replays logs with simulated delays.
 
-use strict;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Time::HiRes qw(sleep);

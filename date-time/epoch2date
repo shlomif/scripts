@@ -2,7 +2,7 @@
 #
 # Converts epoch times to strings perhaps more readable by humans.
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);

@@ -30,8 +30,7 @@ This of course may be done with the shell
 or in a higher level language
 .Pp
 .Bd -literal -offset indent
-#!/usr/bin/perl
-my %tally;
+#!/usr/bin/env perl
 $tally{$_}++ while readline;
 for my $k ( sort { $tally{$b} <=> $tally{$a} } keys %tally ) {
     print $tally{$k} . ' ' . $k;

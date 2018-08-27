@@ -3,7 +3,7 @@
 # Prints information about Unix file paths, or checks for Unix
 # permissions problems.
 
-use strict;
+use 5.16.0;
 use warnings;
 use Cwd qw(realpath);
 use File::Spec ();

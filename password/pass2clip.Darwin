@@ -10,7 +10,7 @@
 # during a `stty -echo` sequence. interactive packet timing may also
 # leak information...
 
-use 5.14.0;
+use 5.16.0;
 use warnings;
 use open IO => ':locale';
 use Term::ReadKey;

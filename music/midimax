@@ -8,7 +8,7 @@
 # Also, use at your own risk; sending extreme rates of note on events
 # might tweak shoddy programming or hardware in ways unknown.
 
-use v5.14;
+use 5.16.0;
 use Carp qw(croak);
 use Getopt::Long qw(GetOptions);
 use Scalar::Util qw(looks_like_number);
