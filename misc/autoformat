@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
-use Text::Autoformat;
+use Text::Autoformat qw(autoformat break_wrap);
 
-$default = { right => 72, squeeze => 1, all => 0 };
+$default = { right => 72, squeeze => 1, all => 0, break=>break_wrap };
 $input = '$user = {' . $ARGV[0] . '};';
 eval $input;
 %$user = () if $@;
