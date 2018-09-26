@@ -1,0 +1,11 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use feature qw(say);
+use Astro::MoonPhase qw(phasehunt);
+my @phases = phasehunt();
+say "New Moon      = ", scalar( localtime( $phases[0] ) );
+say "First quarter = ", scalar( localtime( $phases[1] ) );
+say "Full moon     = ", scalar( localtime( $phases[2] ) );
+say "Last quarter  = ", scalar( localtime( $phases[3] ) );
+say "New Moon      = ", scalar( localtime( $phases[4] ) );

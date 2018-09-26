@@ -1,5 +1,6 @@
 requires 'App::Prove';
 requires 'App::cpanoutdated';
+requires 'Astro::MoonPhase';
 requires 'CPAN::Uploader';
 requires 'Carp';
 requires 'Expect';
