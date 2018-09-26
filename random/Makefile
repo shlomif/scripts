@@ -1,5 +1,7 @@
 CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
+16: 16.c
+
 coinflip: coinflip.c
 
 fair-from-unfair: fair-from-unfair.c
