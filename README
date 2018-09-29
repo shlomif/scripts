@@ -2,8 +2,8 @@ scripts for unix
 
 there are sporadically unit tests, run
 
-   make depend
-   make test
+    make depend
+    make test
 
 these require Perl and various modules notably App::cpanminus and
 possibly local::lib already installed and configured (and make, a

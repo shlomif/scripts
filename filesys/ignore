@@ -4,10 +4,10 @@
 # NOTE requires moreutils for sponge
 
 findup -H -q .git && {
-    ( cat .gitignore 2>/dev/null
-      for arg in "$@"; do echo "$arg"; done
-    ) | sort | sponge .gitignore
-    exit
+   ( cat .gitignore 2>/dev/null
+     for arg in "$@"; do echo "$arg"; done
+   ) | sort -u | sponge .gitignore
+   exit
 }
 
 echo >&2 "no suitable version control repository detected"
