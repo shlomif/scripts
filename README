@@ -24,8 +24,9 @@ somewhere into $MANPATH unless you like reading roff
      may not require random defines like -D_POSIX_C_SOURCE=200809L when
      compiling. code herein that uses glob(3) is likely not at all
      compatible with Linux
- * Perl verion 5.14 is assumed for the tests; some scripts will work on
-   older versions. Perl::MinimumVersion is most handy here
+ * Perl verion 5.16 is assumed for the tests (compatibility with the
+   Centos 7 legacy verion of perl); some scripts will work on older
+   versions. Perl::MinimumVersion is most handy here
  * the shell code is generally tested under /bin/sh on OpenBSD and the
    Heirloom Bourne Shell (jsh) on Mac OS X. that's where the
    /usr/local/bin/sh thing comes from; this avoids bash on the Mac
