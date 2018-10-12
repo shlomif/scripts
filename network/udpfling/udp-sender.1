@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd October 11 2018
 .Dt UDP-SENDER 1
 .nh
 .Os
@@ -21,12 +21,10 @@
 .Ek
 .Sh DESCRIPTION
 .Nm
-sends packets to the
+emits UDP packets, possibly to the
 .Xr udp-sink 1
-command. The packets contain a counter value, possibly padded out to
-.Ar packetsize
-amount of data.
-.Pp
+command. The packets contain a counter value that can be padded out to
+.Ar packetsize .
 Options:
 .Bl -tag -width Ds
 .It Fl 4
@@ -53,7 +51,9 @@ Flood send packets.
 .Fl d
 is incompatible with this option.
 .It Fl l
-Make stdout line buffered.
+Make stdout line buffered. See
+.Xr setbuf 3
+for the defaults.
 .It Fl N
 Changes
 .Fl d
@@ -64,17 +64,18 @@ Pad sent data to
 .It Fl p Ar port
 Send to UDP
 .Ar port .
+Mandatory.
 .El
 .Pp
-The arguments used should ideally agree with those in
+The arguments used should agree with those in
 .Xr udp-sink 1
 for any given test. Only one 
 .Nm
 instance should send to a
 .Xr udp-sink 1
-instance, as multiple senders will confuse the packet counting.
+instance; multiple senders will confuse the packet counting.
 .Sh OUTPUT FORMAT
-The statistics are whitespace delimited, and include the timestamp and
+The statistics are whitespace delimited and include the timestamp and
 number of packets set for a given
 .Ar statsinterval
 count of sent packets.
@@ -87,6 +88,8 @@ or the process is terminated. SIGINT will cause
 .Nm
 to emit a final statistics line before exiting.
 .Sh SEE ALSO
+.Xr iperf3 1 ,
+.Xr nmap 1 ,
 .Xr udp-sink 1
 .Sh AUTHOR
 Jeremy Mates

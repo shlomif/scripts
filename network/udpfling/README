@@ -1,64 +1,59 @@
-                       this in! UDP is, news at
+udp-sender sends packets and udp-sink listens for them. a counter is
+passed in the packet soas to detect lost or out-of-order packets. error
+checking is done at most every step, insofar as UDP allows for that.
+packets can be sent quickly, usually to test how network gear reacts to
+such floods. if you want a bandwidth test try instead iperf
 
-Mostly practice via a reading of "Beej's Guide to Network Programming"
-plus a work need to test various UDP related setups (or to see how many
-UDP packets are lost in what circumstances). There are probably better
-ways, altagoobingleduckgo them.
+goptfoo must first be installed
 
- * udp-sender sends packets, udp-sink listens for them. A counter is
-   passed in the packet, soas to detect lost or out-of-order
-   packets. Error checking is done at most every step, insofar as
-   UDP allows for that.
- * Should be portable between Debian (6.0.7) Mac OS X (10.8) OpenBSD
-   (5.2), though most testing done on OS X.
+note that network admins may disable your network access if you generate
+too much traffic
+
+Centos7 requires CFLAGS along the lines of
+
+    -D_BSD_SOURCE -D_POSIX_C_SOURCE=199309L -D_POSIX_SOURCE
+
+to compile
+
 
 Usage:
 
-  ./udp-sender
-    -4 | -6     Selects IPv4 or IPv6 (default is unspecified)
-    -c n        Send count packets (default is a large number)
-    -d ms | -f  Delay in milliseconds or flood the packets (default 5 ms)
-    -N          -d is in nanoseconds not milliseconds
-    -P octets   Pad packet to this many octets (default sizeof(uint32_t))
-    -p portnum  Port number to send to - mandatory
-    hostname    Host to connect to - mandatory
+    ./udp-sender
+      -4 | -6     selects IPv4 or IPv6 (default is unspecified)
+      -c n        send count packets (default is a large number)
+      -d ms | -f  delay in milliseconds or flood the packets (default 5 ms)
+      -N          -d is in nanoseconds not milliseconds
+      -P octets   pad packet to this many octets (default sizeof(uint32_t))
+      -p portnum  port number to send to - mandatory
+      hostname    host or IP address to connect to - mandatory
 
-  ./udp-sink
-    -4 | -6     Selects IPv4 or IPv6 (default is unspecified)
-    -c n        Print stats ever so many packets (default 10000)
-    -d ms       Delay in milliseconds after processing packet (-f is implicit)
-    -l          Line buffer output instead of default - see setbuf(3)
-    -N          -d is in nanoseconds not milliseconds
-    -P octets   Pad packet to this many octets (default sizeof(uint32_t))
-    -p portnum  Port number to listen on - mandatory
+    ./udp-sink
+      -4 | -6     selects IPv4 or IPv6 (default is unspecified)
+      -c n        print stats ever so many packets (default 10000)
+      -d ms       delay in milliseconds after processing a packet
+      -l          line buffer output instead of default - see setbuf(3)
+      -M address  listen to the given multicast address
+      -N          -d is in nanoseconds not milliseconds
+      -P octets   pad packet to this many octets (default sizeof(uint32_t))
+      -p portnum  port number to listen on - mandatory
 
-So to test:
+so to collect packets:
 
-  ./udp-sink   -p 2952 -c 10000 -l | tee log
+    ./udp-sink -p 2952 -c 10000 -l | tee log
 
-And feed it:
+and to elsewhere feed it:
 
-  ./udp-sender -p 2952 -f localhost
+    ./udp-sender -p 2952 -f localhost
 
-(The sink may need a low -c argument if high packet loss is expected,
+the sink may need a low -c argument if high packet loss is expected,
 as fewer packets will get through and thus the stats will be printed
-less often.)
+less often
 
-Questions:
+there is multicast support, though this has not be tested much and will
+likely need additional work and improvements:
 
-What happens via loopback interface? If the system is busy? What happens
-to virts, or between virts? If there is loss, how much does adding delay
-remove the loss? Does running udp-sink & change the loss rate? What
-happens to the loss rate if udp-sink needs to do more work between
-recvfrom() calls? How could multiple sending processes (multiple
-counters) be supported by udp-sink?
+    ./udp-sink -c 100 -4 -p 1234 -M 224.0.66.66
+    ./udp-sink -c 100 -6 -p 1234 -M FF15:0:0:0:0:0:0:101
 
-For More Reading Consider:
-
-G. Sankaranarayanan, L. Potter, B. Hannaford, 'Measurement and
-Simulation of Time Varying Packet Delay with Applications to Networked
-Haptic Virtual Environments,' Proceedings of 1st international
-Conference on Robot Communication and Coordination (Robocom 2007), pp.
-1-8, IEEE Press, Piscataway, NJ., Athens, Greece, October 2007.
-
-http://brl.ee.washington.edu/BRL_Pubs/Pdfs/Rep210.pdf
+    ./udp-sender -4 -p 1234 224.0.66.66
+    ./udp-sender -6 -p 1234 FF15:0:0:0:0:0:0:101

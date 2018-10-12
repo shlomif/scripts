@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd October 11 2018
 .Dt UDP-SINK 1
 .nh
 .Os
@@ -6,7 +6,7 @@
 .Nm udp-sink
 .Nd accepts packets from
 .Xr udp-sender 1
-and emits stats
+and emits statistics
 .Sh SYNOPSIS
 .Bk -words
 .Nm
@@ -18,18 +18,16 @@ and emits stats
 .Ek
 .Sh DESCRIPTION
 .Nm
-accepts packets from the
+accepts packets from 
 .Xr udp-sender 1
-command and emits statistics on the packets received. The packets
-contain a counter value, possibly padded with
-.Ar packetsize
-amount of data.
+and emits statistics on the packets received. The packets contain a
+counter value, possibly padded to
+.Ar packetsize .
 .Nm
 checks the counter value, detects out-of-order packets, and emits
 statistics about packet loss each
 .Ar statsinterval
 number of packets received.
-.Pp
 Options:
 .Bl -tag -width Ds
 .It Fl 4
@@ -39,8 +37,8 @@ Listen on IPv6 addresses only.
 .It Fl c Ar statsinterval
 Emit statistics every
 .Ar statsinterval
-packets received. A lower value will be necessary under heavy packet loss
-situations.
+packets received. A lower value will be necessary when there is heavy
+packet loss.
 .It Fl d Ar delay
 Wait
 .Ar delay
@@ -48,7 +46,13 @@ milliseconds after processing a packet, or instead nanoseconds if
 .Fl N
 is employed.
 .It Fl l
-Make stdout line buffered.
+Make stdout line buffered. See
+.Xr setbuf 3
+for the defaults.
+.It Fl M Ar address
+Listen on the given multicast
+.Ar address
+instead of everywhere else.
 .It Fl N
 Changes
 .Fl d
@@ -61,6 +65,7 @@ is of size
 .It Fl p Ar port
 Listen on UDP
 .Ar port .
+Mandatory.
 .El
 .Pp
 The arguments used should ideally agree with those in
@@ -83,6 +88,8 @@ occurs. SIGINT will cause
 .Nm
 to emit a final statistics line before exiting.
 .Sh SEE ALSO
+.Xr iperf3 1 ,
+.Xr nmap 1 ,
 .Xr udp-sender 1
 .Sh AUTHOR
 Jeremy Mates

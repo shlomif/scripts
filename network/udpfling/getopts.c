@@ -1,8 +1,4 @@
-/***********************************************************************
- *
- * Option parsing for udpfling utils.
- *
- */
+/* option parsing for udp-(sender|sink) */
 
 // https://github.com/thrig/goptfoo
 #include <goptfoo.h>
@@ -21,9 +17,8 @@ int parse_opts(int argc, char *argv[])
     Flag_Delay = DEFAULT_DELAY;
     Flag_Padding = sizeof(uint32_t);
 
-    while ((ch = getopt(argc, argv, "46C:c:d:flNP:p:")) != -1) {
+    while ((ch = getopt(argc, argv, "46C:c:d:flM:NP:p:")) != -1) {
         switch (ch) {
-
         case '4':
             if (fourandsix) {
                 warnx("need just one of -4 or -6");
@@ -74,14 +69,18 @@ int parse_opts(int argc, char *argv[])
             Flag_Line_Buf = true;
             break;
 
+        case 'M':
+            Flag_Multicast = optarg;
+            break;
+
         case 'N':
             Flag_Nanoseconds = true;
             break;
 
         case 'P':
-            // NOTE greatly restrict max size of packet by default
+            /* NOTE greatly restrict max size of packet by default */
             Flag_Padding = (size_t) flagtoul(ch, optarg, 0UL, 8192UL);
-            // ... but do need a minimum size for the counter in the packet
+            /* ... but do need a minimum size for the counter in the packet */
             if (Flag_Padding < sizeof(uint32_t))
                 Flag_Padding = sizeof(uint32_t);
             break;

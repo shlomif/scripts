@@ -1,8 +1,4 @@
-/*
- * Sender of UDP packets. Mostly practice via a reading of "Beej's Guide
- * to Network Programming" plus a work need to test various UDP related
- * setups. There are probably better ways, altagoobingleduckgo them.
- */
+/* udp-sender - sends UDP packets */
 
 #include "udpfling.h"
 
