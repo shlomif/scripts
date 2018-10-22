@@ -2,7 +2,7 @@
 use lib qw(../../../lib/perl5);
 use UtilityTestBelt;
 
-my $expected = "OpenBSD6.2-amd64\n";
+my $expected = "OpenBSD6.4-amd64\n";
 my $output;
 
 $output = qx(./localarchdir);
