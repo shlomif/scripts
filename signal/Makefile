@@ -10,7 +10,10 @@ sigint-on: sigint-on.c
 
 slay-self: slay-self.c
 
+test: blocksig
+	@prove --nocolor
+
 clean:
 	git clean --force -x
 
-.PHONY: clean
+.PHONY: clean test
