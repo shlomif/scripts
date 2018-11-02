@@ -5,8 +5,8 @@ if {[llength $argv] < 1} {
 foreach cname $argv {
     audit_hostnames cname
 
-    set nsupdate [ string cat $nsupdate \
-        "yxrrset $cname.$domain CNAME\n" \
-        "del $cname.$domain CNAME\n" \
-        "send\n" ]
+    append nsupdate \
+      "yxrrset $cname.$domain CNAME\n" \
+      "del $cname.$domain CNAME\n" \
+      "send\n"
 }

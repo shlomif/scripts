@@ -25,7 +25,7 @@ clean:
 depend:
 	cpanm --installdeps ../..
 	pkg-config --exists goptfoo $(TCL)
-	@expect -c "package require Tcl 8.6"
+	@expect -c "package require Tcl 8.5"
 
 test: dnstw
 	@prove --nocolor

@@ -1,6 +1,6 @@
 wrapper around nsupdate(1) for dynamic DNS changes
 
- * assumes ISC BIND, requires TCL 8.6
+ * assumes ISC BIND, requires TCL 8.5
  * at least dnstw.c and modules/_common.tcl will need to be adjusted on
    a per-site basis, possibly other module code as well
  * the DNS server will likewise need to be setup with appropriate keys

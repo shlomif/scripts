@@ -1,1 +1,1 @@
-set nsupdate [string cat $nsupdate [read stdin]]
+append nsupdate [read stdin]

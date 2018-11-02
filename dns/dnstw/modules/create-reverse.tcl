@@ -7,8 +7,8 @@ foreach {host ip} $argv {
 
     ipparse $ip ipaddr reverse type
 
-    set nsupdate [ string cat $nsupdate \
-        "nxrrset $reverse PTR\n" \
-        "add $reverse $TTL PTR $host.$domain\n" \
-        "send\n" ]
+    append nsupdate \
+      "nxrrset $reverse PTR\n" \
+      "add $reverse $TTL PTR $host.$domain\n" \
+      "send\n"
 }

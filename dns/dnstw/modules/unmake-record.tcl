@@ -12,6 +12,6 @@ if {[regexp {[^A-Za-z0-9=:?/_ ."-]} $record]} {
     die "invalid data in DNS record"
 }
 
-set nsupdate [ string cat $nsupdate \
-    "del $host.$domain $TTL $record\n" \
-    "send\n" ]
+append nsupdate \
+  "del $host.$domain $TTL $record\n" \
+  "send\n"

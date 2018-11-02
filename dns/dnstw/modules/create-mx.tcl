@@ -14,8 +14,8 @@ if {$argc == 2} {
 
 audit_hostnames host mxhost
 
-set nsupdate [ string cat $nsupdate \
-    "yxdomain $host.$domain\n" \
-    "yxdomain $mxhost.$domain\n" \
-    "add $host.$domain $TTL MX $priority $mxhost.$domain\n" \
-    "send\n" ]
+append nsupdate \
+  "yxdomain $host.$domain\n" \
+  "yxdomain $mxhost.$domain\n" \
+  "add $host.$domain $TTL MX $priority $mxhost.$domain\n" \
+  "send\n"

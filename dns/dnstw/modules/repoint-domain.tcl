@@ -13,11 +13,11 @@ set seentypes [dict create]
 foreach arg $argv {
     ipparse $arg ipaddr reverse type
     dict set seentypes $type 1
-    set additions [ string cat $additions "add $domain $TTL $type $ipaddr\n" ]
+    append additions "add $domain $TTL $type $ipaddr\n"
 }
 
 dict for {ttt unused} $seentypes {
-    set nsupdate [ string cat $nsupdate "del $domain $ttt\n" ]
+    append nsupdate "del $domain $ttt\n"
 }
-
-set nsupdate [ string cat $nsupdate $additions "send\n" ]
+ 
+append nsupdate $additions "send\n"

@@ -5,8 +5,8 @@ if {[llength $argv] < 1} {
 foreach arg $argv {
     ipparse $arg ipaddr reverse type
 
-    set nsupdate [ string cat $nsupdate \
-        "yxrrset $reverse PTR\n" \
-        "del $reverse $reverse PTR\n" \
-        "send\n" ]
+    append nsupdate \
+      "yxrrset $reverse PTR\n" \
+      "del $reverse $reverse PTR\n" \
+      "send\n"
 }

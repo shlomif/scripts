@@ -11,8 +11,8 @@ audit_hostnames host cname
 # NOTE the nxdomain might be problematical if there are DNSSEC records
 # already there as that's a notable exception to the "no other records
 # for CNAME" rule (or if a site breaks with said rule for some reason)
-set nsupdate [ string cat $nsupdate \
-    "yxdomain $host.$domain\n" \
-    "nxdomain $cname.$domain\n" \
-    "add $cname.$domain $TTL CNAME $host.$domain\n" \
-    "send\n" ]
+append nsupdate \
+  "yxdomain $host.$domain\n" \
+  "nxdomain $cname.$domain\n" \
+  "add $cname.$domain $TTL CNAME $host.$domain\n" \
+  "send\n"

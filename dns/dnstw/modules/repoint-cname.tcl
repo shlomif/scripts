@@ -14,9 +14,9 @@ if {$cname eq "www"} {
     puts stderr "info: be sure to update A/AAAA for the domain if necessary"
 }
 
-set nsupdate [ string cat $nsupdate \
-    "yxrrset $cname.$domain CNAME\n" \
-    "yxdomain $host.$domain\n" \
-    "del $cname.$domain CNAME\n" \
-    "add $cname.$domain $TTL CNAME $host.$domain\n" \
-    "send\n" ]
+append nsupdate \
+  "yxrrset $cname.$domain CNAME\n" \
+  "yxdomain $host.$domain\n" \
+  "del $cname.$domain CNAME\n" \
+  "add $cname.$domain $TTL CNAME $host.$domain\n" \
+  "send\n"
