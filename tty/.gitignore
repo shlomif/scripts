@@ -2,6 +2,7 @@
 nocolor
 nocolor-test
 rdcomm
+termsplain
 torc
 ttytest
 ttywrite
