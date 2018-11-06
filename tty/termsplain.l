@@ -2,10 +2,11 @@
 
 \x07    { printf("\\a"); }
 \x08    { printf("\\b"); }
+\x09    { printf("\\t"); }
 \x0d    { printf("\\r"); }
 \x1b    { printf("\\e"); }
 [[:print:]]+ { printf("%s", yytext); }
-.       { printf("\\x%x", yytext[0]); }
+.       { printf("\\x%02X", yytext[0]); }
 
 %%
 
@@ -23,4 +24,5 @@ int main(void)
         nanosleep(&zzz, NULL);
         fseek(stdin, 0, SEEK_CUR);
     }
+    exit(1);                    /* NOTREACHED */
 }
