@@ -9,6 +9,7 @@ findin: findin.c
 findup: findup.c
 getpof: getpof.c
 llcount: llcount.c
+log-update: log-update.c
 
 nomfd: nomfd.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` nomfd.c -o nomfd

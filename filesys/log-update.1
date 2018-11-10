@@ -1,0 +1,53 @@
+.Dd November  9 2018
+.Dt LOG-UPDATE 1
+.nh
+.Os
+.Sh NAME
+.Nm log-update
+.Nd git repository update logger
+.Sh DESCRIPTION
+.Nm
+records the current working directory to a logfile. Typically it should be
+called as or by a
+.Xr git 1
+hook, perhaps both of
+.Pa post-commit
+and
+.Pa post-merge .
+.Xr flock 2
+is used to lock the file. Repository paths are written
+.Dv NUL
+separated into the log file.
+.Sh ENVIRONMENT
+.Dv HOME
+is used to locate the 
+.Pa .git-updates
+file updates are logged to.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Configure repository hooks individually, or globally in
+.Pa .gitconfig
+via something like
+.Bd -literal -offset indent
+[core]
+  hooksPath = ~/co/hooks
+  ...
+.Ed
+.Pp
+and then compile
+.Nm
+and link the various hook filenames to it.
+.Pp
+.Dl $ Ic make log-update
+.Dl ...
+.Dl $ Ic mv log-update ~/co/hooks
+.Dl $ Ic cd ~/co/hooks
+.Dl $ Ic ln -s log-update post-commit
+.Dl $ Ic ln -s log-update post-merge
+.Sh SEE ALSO
+.Xr flock 2 ,
+.Xr git 1 ,
+.Xr repod 1
+.Sh AUTHOR
+.An Jeremy Mates
