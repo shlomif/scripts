@@ -1,0 +1,58 @@
+.Dd November 11 2018
+.Dt TERMSPLAIN 1
+.nh
+.Os
+.Sh NAME
+.Nm termsplain
+.Nd encodes terminal escape sequences
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Ar file|-
+.Ek
+.Sh DESCRIPTION
+.Nm
+follows standard input or instead the given
+.Ar file
+and prints terminal escape sequences encoded such that an
+.Cm escape
+becomes
+.Qq \ee
+and so forth for certain special characters. Other non-printable 
+characters are rendered using the
+.Qq \e\ex%02X
+format for
+.Xr printf 3 .
+.Sh EXIT STATUS
+.Nm
+exits with a code >0 if an error occurs though tries to tail the input 
+forever.
+.Sh EXAMPLES
+One might be interested in the character sequences a program emits to 
+the terminal; an
+.Xr expect 1
+script can create a log file that
+.Nm
+can read from via the following TCL code.
+.Bd -literal -offset indent
+#!/usr/bin/env expect
+log_file ~/tmp/rogue.log[clock seconds]
+spawn -noecho rogue
+expect -ex {@}
+interact
+.Ed
+.Pp
+Then run
+.Nm
+with the most recent log file using
+.Nm zsh
+via:
+.Pp
+.Dl % Ic termsplain ~/tmp/rogue.log*(om[1])
+.Dl ...
+.Sh SEE ALSO
+.Xr expect 1 ,
+.Xr rogue 6 ,
+\fIXterm Control Sequences\fP
+.Sh AUTHOR
+.An Jeremy Mates
