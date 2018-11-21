@@ -3,7 +3,7 @@ CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 # https://github.com/thrig/goptfoo
 
 # for OpenBSD ports;
-TCL=tcl86
+TCL=tcl85
 # Mac OS X with MacPorts will instead need
 #   make dnstw TCL=tcl
 # or to create a link pkg-config can find

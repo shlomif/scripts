@@ -4,7 +4,7 @@ CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 #   make rdcomm TCL=tcl
 # or to create a link pkg-config can find
 #   ln -s /opt/local/lib/pkgconfig/tcl.pc tcl86.pc 
-TCL=tcl86
+TCL=tcl85
 
 nocolor: nocolor.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs libpcre` -lpthread -o nocolor nocolor.c

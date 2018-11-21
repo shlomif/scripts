@@ -1,0 +1,5 @@
+#!/bin/sh
+for f in --primary --secondary --clipboard; do                                 
+    xsel --clear $f
+    xsel --input $f < /dev/null
+done

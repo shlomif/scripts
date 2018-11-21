@@ -190,7 +190,8 @@ void pester(struct addrinfo *target)
         cur_log_bucket = epoch / Flag_LogPeriod;
         if (cur_log_bucket > prev_log_bucket) {
             prev_log_bucket = cur_log_bucket;
-            printf("%ld %ld %ld\n", prev_epoch, req_count, err_count);
+            printf("%ld %ld %ld\n", (long int) prev_epoch, req_count,
+                   err_count);
             err_count = 0;
             req_count = 0;
             prev_epoch = epoch;

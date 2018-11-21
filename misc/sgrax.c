@@ -1,5 +1,7 @@
 /* sgrax - reverse of xargs */
 
+#include <sys/wait.h>
+
 #include <err.h>
 #include <getopt.h>
 #include <stdio.h>
