@@ -1,4 +1,4 @@
-.Dd March 12 2018
+.Dd November 24 2018
 .Dt RANDMAC 1
 .nh
 .Os
@@ -19,7 +19,8 @@ generates random MAC addresses.
 Options:
 .Bl -tag -width -indent
 .It Fl 6
-IPv6ifies (EUI-64) a 48-bit MAC address, and will flip a bit, independent of the
+IPv6ifies (EUI-64) a 48-bit MAC address, and will flip a bit, 
+independent of the
 .Fl L
 flag. However, the 
 .Fl L
@@ -37,7 +38,7 @@ addresses to be generated.
 .It Fl L
 enforces a literal MAC address.
 .It Fl m
-flag sets the multicast MAC bit. IPv4 and IPv6 set certain MAC prefixes
+sets the multicast MAC bit. IPv4 and IPv6 set certain MAC prefixes
 (see below) for their multicast traffic. NOTE lacking the
 .Fl m
 or
@@ -80,42 +81,48 @@ random filename for use under the pxelinux.cfg directory:
 A digression on bits, the contents of out.txt as provided by IEEE, and
 IP multicast specifics follows.
 .Pp
-Viewing the bits for a given hex value is possible via:
+If one compares the penultimate bit of the first octet of 40:a6:d9 and 
+42:a6:d9:
 .Pp
-.Dl $ Ic perl \-E 'say sprintf qq{%08b}, 0x40'
+.Dl $ Ic perl \-e 'printf \&"%08b\en\&", 0x40'
 .Dl 01000000
-.Dl $ Ic perl \-E 'say sprintf qq{%08b}, 0x42'
+.Dl $ Ic perl \-e 'printf \&"%08b\en\&", 0x42'
 .Dl 01000010
+.Dl \& \& \& \& \& \& ^
 .Pp
-So 42:a6:d9, being private, enables the penultimate bit, while 40:a6:d9,
-being assigned to Apple, does not. However! There appear to be several
-registered OUI that set the private or broadcast bits (*roff mangles the
-code so see randmac.c for that):
+42:a6:d9 is private as it enables the penultimate bit; 40:a6:d9 does 
+not (and is assigned to Apple). However! There appear to be several 
+registered OUI that set the private or broadcast bits:
+.Bd -literal -offset indent
+$ < oui.txt perl -ne '$s{$1}++ if m/^\es*(..)-.*\e(hex/;' \e
+  -e 'END { printf "%08b %s\en", hex($_), $_ for sort keys %s }' \e
+  | perl -nle 'print if m/1. / or m/1 /'
+00000010 02
+00010001 11
+10101010 AA
+.Ed
 .Pp
-.Dl 00000010 02
-.Dl 00010001 11
-.Dl 10101010 AA
-.Pp
-These perhaps should be avoided in "private" assignments, or I've made a
-mistake somewhere in my calculations. The 11 (broadcast bit enabled) is
-a single assignment:
+These perhaps should be avoided in "private" assignments. The 11 
+(broadcast bit enabled) is a single assignment:
 .Pp
 .Dl   11-00-AA   (hex)           PRIVATE
 .Pp
 While the 02 (various companies) and AA (DEC) show 18 globally assigned
 prefixes in the private address space. Doubtless the odds of a random
 private address landing in one of these subnets and conflicting with
-some actual piece of hardware would be somewhat low.
+actual hardware on a network is low.
 .Pp
-IPv4 broadcast sets all ones (low odds of randomly rolling if given all
-XXs); IPv4 multicast uses a prefix of 01:00:5e, and IPv6 multicast the
-prefix 33:33. This tool at present takes no effort not to generate
-something inside these various ranges.
+IPv4 broadcast sets all ones, IPv4 multicast uses a prefix of 01:00:5e,
+and IPv6 multicast the prefix 33:33.
+.Nm
+may generate random MAC within these ranges; other code will be
+necessary to guard against that, or restrict the template so that
+addresses in these ranges cannot be generated.
 .Sh SEE ALSO
 .Xr ifconfig 8 ,
 .Xr ip6tomac 1 ,
 .Xr macnorm 1
 .Pp
-http://standards.ieee.org/develop/regauth/oui/oui.txt
+https://standards.ieee.org/develop/regauth/oui/oui.txt
 .Sh AUTHOR
 .An Jeremy Mates

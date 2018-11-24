@@ -2,7 +2,7 @@
 #
 # repod - git repository remote wrapper with some remote init on the side
 
-package require Tcl 8.6
+package require Tcl 8.5
 
 set git_init_cmd {git init}
 set ssh_cmd {ssh -aqx -e none -o BatchMode=yes -o ClearAllForwardings=yes -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic -o StrictHostKeyChecking=yes}
@@ -100,7 +100,7 @@ if {$directory eq ""} {
 }
 
 if {$target eq "init"} {
-    set directory [string cat $directory .git]
+    append directory .git
     # per git-init(1) "Running git init in an existing repository is
     # safe" and git handles the creation of any necessary parent
     # directories, so just do that
