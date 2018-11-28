@@ -1,0 +1,56 @@
+.Dd November 28 2018
+.Dt SOLITARY 1
+.nh
+.Os
+.Sh NAME
+.Nm solitary
+.Nd dissociation of command from parent
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar directory
+.Ar command
+.Op Ar args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+disassociates the given
+.Ar command
+from the parent process in a fashion similar to that given in the
+.Qq Complete Dissociation of Child from Parent
+section of the
+.Xr perlipc 1
+manual: standard input, output, and error are all closed, the process
+changes to the given
+.Ar directory ,
+and a new session is made for the
+.Ar command
+that
+.Nm
+replaces itself with.
+.Pp
+A double fork is not performed contrary to some process dissociation 
+guides that recommend doing that.
+.Sh EXIT STATUS
+.Nm
+replaces itself with the given
+.Ar command
+or otherwise exits with a code >0 on error.
+.Sh EXAMPLES
+.Dl $ Ic solitary ~/tmp firefox
+.Pp
+is similar to the
+.Cm zsh
+script
+.Bd -literal -offset indent
+#!/usr/bin/env zsh
+cd ~/tmp && firefox >&|/dev/null <&- &|
+.Ed
+.Pp
+only with less ZSH and less line noise.
+.Sh SEE ALSO
+.Xr perlipc 1 ,
+.Xr setsid 2 ,
+.Xr zsh 1
+.Sh AUTHOR
+.An Jeremy Mates

@@ -4,6 +4,7 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
@@ -13,7 +14,13 @@ int main(int argc, char *argv[])
     int fd;
     pid_t pid;
 
-    if (chdir("/") == -1)
+    if (argc < 3) {
+        fprintf(stderr, "Usage: solitary directory command [args ..]\n");
+        exit(EX_USAGE);
+    }
+
+    argv++;
+    if (chdir(*argv) == -1)
         err(EX_OSERR, "chdir failed");
 
     if ((fd = open("/dev/null", O_RDONLY)) == -1)
