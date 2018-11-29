@@ -1,8 +1,7 @@
-/*
- # getpof(1) - get parent dir of some named dir, presumably .git or the like,
- # and do so in an efficient fashion via fts(3). Kind of like findup(1) except
- # looking downwards for directories that contain a particular entry.
- */
+/* getpof(1) - get parent dir of some named dir, presumably .git or the
+ * like, and do so in an efficient fashion via fts(3). kind of like
+ * findup(1) except looking downwards for directories that contain a
+ * particular entry */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,9 +17,9 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-bool Flag_Null;                 // -0
-bool Flag_Quiet;                // -q
-bool Flag_Recurse;              // -r
+bool Flag_Null;                 /* -0 */
+bool Flag_Quiet;                /* -q */
+bool Flag_Recurse;              /* -r */
 
 void emit_help(void);
 
@@ -31,13 +30,16 @@ int main(int argc, char *argv[])
     char **argp, **pathlist, **plp;
     FTS *filetree;
     FTSENT *filedat;
-    // get to the files, limit filesystem calls as much as possible
+    /* get to the files, limit filesystem calls as much as possible */
     int fts_options = FTS_LOGICAL | FTS_COMFOLLOW | FTS_NOSTAT;
 
-    int ret = EXIT_SUCCESS;     // optimistic
+    int ret = EXIT_SUCCESS;
 
-    while ((ch = getopt(argc, argv, "h?qrx0")) != -1) {
+    while ((ch = getopt(argc, argv, "h?0qrx")) != -1) {
         switch (ch) {
+        case '0':
+            Flag_Null = true;
+            break;
         case 'q':
             Flag_Quiet = true;
             break;
@@ -46,9 +48,6 @@ int main(int argc, char *argv[])
             break;
         case 'x':
             fts_options |= FTS_XDEV;
-            break;
-        case '0':
-            Flag_Null = true;
             break;
         case 'h':
         case '?':
@@ -65,7 +64,7 @@ int main(int argc, char *argv[])
         emit_help();
     }
 
-    /* Figure out what directories will be passed to fts(3), current
+    /* figure out what directories will be passed to fts(3), current
      * directory if none are supplied. */
     if ((pathlist = calloc((size_t) argc + 1, sizeof(char *))) == NULL)
         err(EX_OSERR, "could not calloc() path list");
@@ -73,7 +72,7 @@ int main(int argc, char *argv[])
     if (argc == 1) {
         *plp++ = (char *) ".";
     } else {
-        // *argv contains the filename we're searching for
+        /* *argv contains the filename we're searching for */
         argp = argv;
         argp++;
         while (*argp) {
@@ -118,8 +117,9 @@ int main(int argc, char *argv[])
             break;
 
         case FTS_DC:
-            // `ln . foo` is one way (thanks to my users) that a filesystem
-            // loop can be created. So it is handy to warn about these...
+            /* `ln . foo` is one way (thanks to my users) that a
+             * filesystem loop can be created. so it is handy to warn
+             * about these... */
             if (!Flag_Quiet)
                 fprintf(stderr, "filesystem cycle from '%s' to '%s'\n",
                         filedat->fts_accpath, filedat->fts_cycle->fts_accpath);

@@ -1,4 +1,4 @@
-.Dd November 28 2017
+.Dd November 28 2018
 .Dt GETPOF 1
 .nh
 .Os
@@ -8,7 +8,7 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Op Fl qrx
+.Op Fl 0qrx
 .Ar file
 .Op Ar dir ..
 .Ek
@@ -21,6 +21,10 @@ and prints any directories that
 .Pa file
 is found in. Options:
 .Bl -tag -width -indent
+.It Fl 0
+Use
+.Dv NUL
+to delimit directories instead of a newline. 
 .It Fl q
 Emit fewer warning messages.
 .It Fl r

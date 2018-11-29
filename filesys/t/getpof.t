@@ -19,6 +19,9 @@ my @tests = (
     {   args   => '-r recurse',
         stdout => [ './t', './t/recurse' ],
     },
+    {   args   => '-0r recurse',
+        stdout => [ "./t\0./t/recurse\0" ],
+    },
 );
 my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
 
