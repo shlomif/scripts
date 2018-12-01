@@ -7,7 +7,7 @@
  *   yum -y install epel-release man-pages
  *   yum -y install libsodium-devel
  *   make mkpwhash
- *   (echo Hunter2istooshort; echo Hunter2istooshort) | ./mkpwhash
+ *   (echo Hunter2; echo Hunter2) | ./mkpwhash
  */
 
 #define _XOPEN_SOURCE 700
@@ -25,7 +25,7 @@
 #include "salt.h"
 
 // TWEAK adjust these as desired
-#define MIN_PASS_LEN 8
+#define MIN_PASS_LEN 7
 #define MAX_PASS_LEN 128
 
 /* for SHA512, see crypt(3)  "$6$" + (up to) MAX_SALT + "$" + 86  */
@@ -63,13 +63,13 @@ int main(void)
         err(EX_OSERR, "sigprocmask() failed");
 
     /* OpenBSD meanwhile has readpassphrase(3), sigh */
-    if (tcgetattr(STDIN_FILENO, &Orig_Termios) != 0)
-        err(EX_IOERR, "tcgetattr failed");
-    atexit(restore_termios);
-    noecho = Orig_Termios;
-    noecho.c_lflag &= ~ECHO;
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &noecho) != 0)
-        err(EX_IOERR, "tcsetattr failed");
+    if (tcgetattr(STDIN_FILENO, &Orig_Termios) == 0) {
+        atexit(restore_termios);
+        noecho = Orig_Termios;
+        noecho.c_lflag &= ~ECHO;
+        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &noecho) != 0)
+            err(EX_IOERR, "tcsetattr failed");
+    }
 
     if ((plen = getline(&password, &len, stdin)) < 0)
         err(EX_IOERR, "could not read password from stdin");
