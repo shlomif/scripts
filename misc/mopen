@@ -1,40 +1,21 @@
-#!/usr/local/bin/sh
+#!/usr/local/bin/tclsh8.5
 #
-# opens a PDF, unless already open, in which case the PDF viewer is
-# signalled so the PDF is refreshed from disk. used to either open or
-# refresh a PDF being worked on with lilypond or TeX regenerating the
-# PDF. Preview.app on Mac OS X has gone downhill for this use-case from
-# ~10.9 onwards. progress!
+# opens a PDF in mupdf(1)--unless that file has already been opened
+# with this tool, in which case a HUP signal is instead sent to that
+# mupdf process
 
-FILE="$1"
-if [ ! -r "$FILE" ]; then
-   PROG_NAME="`basename $0`"
-   echo >&2 "$PROG_NAME: could not read file '$FILE'"
-   echo >&2 "Usage: $PROG_NAME foo.pdf"
-   exit 65
-fi
+if {[llength $argv] != 1} {
+    puts stderr "Usage: mopen pdf-file"
+    exit 64
+}
+set file [file normalize [lindex $argv 0]]
 
-USER_NAME="`id -un`"
-# NOTE MacPorts calls this mupdf-x11 though regex below should handle that
-PDFREADER=mupdf
+set fh [open "| ps xo pid,command" r]
+while {[gets $fh line] >= 0} {
+    if {[regexp "^\[ ]*(\\d+) mupdf $file" $line -> pid]} {
+        exec kill -HUP $pid
+        exit
+    }
+}
 
-# and a dance to fully qualify the path to the file, to avoid the edge
-# case of x.pdf being edited at the same time from two different
-# directories (I don't do this, but somebody might)
-set -e
-WHERE="`dirname "$FILE"`"
-cd "$WHERE"
-FILE=`pwd`/`basename "$FILE"`
-set +e
-
-trap 'exit 0' USR2
-ps xo pid,user,command | while read pid uc; do
-   if echo "$uc" | egrep -q "^$USER_NAME[[:blank:]]*$PDFREADER.*$FILE"; then
-      kill -HUP "$pid"
-      kill -USR2 "$$"
-      # NOTE potential race condition if code moves on to the exec
-      # before the kill-of-self happens (haven't seen it in practice)
-   fi
-done
-
-exec setsid $PDFREADER "$FILE" >"$HOME/var/log/$PDFREADER" 2>&1
+exec solitary / mupdf $file

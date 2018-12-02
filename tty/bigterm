@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+# must agree with ~/.Xdefaults (see dotfiles repo)
+@bigterms = qw(cous excel mf wr);
+if (@ARGV) {
+    if ( grep { $ARGV[0] eq $_ } @bigterms ) {
+        exec 'solitary', $ENV{HOME},
+          qw(xterm -tn xterm-256color +bdc +cm +dc +itc -class),
+          "$ARGV[0]term", '-e', '/bin/ksh -l';
+    }
+}
+print join( " ", @bigterms ), "\n";
