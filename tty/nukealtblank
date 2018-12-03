@@ -1,4 +1,4 @@
-#!/usr/local/bin/sh
+#!/bin/sh
 #
 # nukes the (horrid) 'alternate screen' feature such that documentation
 # in the man page does not vanish after the man page viewer is exited

@@ -5,6 +5,7 @@ requires 'CPAN::Uploader';
 requires 'Capture::Tiny';
 requires 'Carp';
 requires 'Expect';
+requires 'File::AtomicWrite';
 requires 'File::Basename';
 requires 'File::Path::Tiny';
 requires 'File::Slurper';

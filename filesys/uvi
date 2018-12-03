@@ -1,23 +1,20 @@
 #!/usr/bin/env perl
-# uvi - edit a file (or files) without changing the access times
+# uvi - edit files without changing the access times
 
-die "Usage: uvi file [file2 ..]\n" if !@ARGV;
+die "Usage: uvi file [file2 ..]\n" unless @ARGV;
 
-my $ret = 0;
-
-my @files;
-for my $in (@ARGV) {
-    next unless -f $in;
-    push @files, [ ( stat($in) )[ 8, 9 ], $in ];
+for my $file (@ARGV) {
+    die "not a file: '$file'\n" unless -f $file;
+    push @restore, [ ( stat $file )[ 8, 9 ], $file ];
 }
 
-system( $ENV{'EDITOR'} || 'vi', @ARGV );
+$ret = 0;
+system( $ENV{EDITOR} || 'vi', @ARGV ) == 0 or $ret = 1;
 
-for my $f (@files) {
-    if ( !utime(@$f) ) {
-        warn "could not restore ", $f->[-1], " to orig times: $!\n";
+foreach (@restore) {
+    unless ( utime @$_ ) {
+        warn "could not restore ", $_->[-1], " to orig times: $!\n";
         $ret = 1;
     }
 }
-
 exit $ret;

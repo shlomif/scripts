@@ -1,4 +1,4 @@
-#!/usr/local/bin/sh
+#!/bin/sh
 #
 # make the terminfo(5) "enter_standout_mode" (smso) use inverse codes
 # instead of anything else (such as italics)

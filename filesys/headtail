@@ -1,15 +1,13 @@
-#!/usr/local/bin/sh
-#
-# This use-case comes up from time to time. Opposite of this is
+#!/bin/sh
+# this use-case comes up from time to time. opposite is
 #   sed '1d;$d'
-
 if [ "$#" -eq 0 ]; then
-    sed -n '1p;$p'
+   sed -n '1p;$p'
 elif [ "$#" -eq 1 ]; then
-    sed -n '1p;$p' "$@"
+   sed -n '1p;$p' "$@"
 else
-    for f in "$@"; do
-        echo ">>>>> $f <<<<<"
-        sed -n '1p;$p' "$f"
-    done
+   for f in "$@"; do
+      echo ">>>>> $f <<<<<"
+      sed -n '1p;$p' "$f"
+   done
 fi

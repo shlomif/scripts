@@ -1,14 +1,24 @@
-#!/usr/local/bin/sh
+#!/usr/bin/env perl
 #
-# adds input to the ignore list
-# NOTE requires moreutils for sponge
+# ignore - adds input to the git ignore list
 
-findup -H -q .git && {
-   ( cat .gitignore 2>/dev/null
-     for arg in "$@"; do echo "$arg"; done
-   ) | sort -u | sponge .gitignore
-   exit
+use 5.16.0;
+use warnings;
+use Cwd qw(getcwd);
+use File::AtomicWrite;
+use File::Slurper qw(read_lines);
+
+die "Usage: ignore file-or-pattern [..]\n" unless @ARGV;
+
+if ( system(qw{findup -H -q .git}) == 0 ) {
+    my %ignore;
+    eval { @ignore{ read_lines ".gitignore" } = () };
+    @ignore{@ARGV} = ();
+    my $aw = File::AtomicWrite->new( { file => ".gitignore" } );
+    my $fh = $aw->fh;
+    say $fh $_ for sort keys %ignore;
+    $aw->commit;
+    exit;
 }
 
-echo >&2 "no suitable version control repository detected"
-exit 1
+die "no repository found above '", getcwd, "'\n";

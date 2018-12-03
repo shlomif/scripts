@@ -1,5 +1,4 @@
-#!/usr/local/bin/sh
-#
+#!/bin/sh
 # copy and preview a man page (while writing it install it and review
 # that the docs look good)
 

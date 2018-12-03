@@ -1,5 +1,4 @@
-#!/usr/local/bin/sh
-#
+#!/bin/sh
 # *.wav in, normalized *.mp3 out
 set -e
 for file in "$@"; do

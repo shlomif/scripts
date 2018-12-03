@@ -1,4 +1,4 @@
-#!/usr/local/bin/sh
+#!/bin/sh
 # local all nodes ping, mostly to help avoid having to read ping6(8)
 if [ -z "$1" ]; then
    echo >&2 "$0 interface"

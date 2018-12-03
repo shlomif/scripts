@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+#
+# a password typed out over interactive SSH is really distinctive in
+# tcpdump. instead paste the password (and then wipe the clipboard) or
+# use expect(1) to automate the task. there's also lastpass-cli or kpcli
+# for password database access without the all the clicky
+
+use 5.16.0;
+use warnings;
+use open IO => ':locale';
+use Term::ReadKey qw(ReadMode ReadLine);
+ReadMode(2);
+$|++;
+print "Password: ";
+my $password = ReadLine(0);
+die "no password\n" if !defined $password or $password eq "";
+chomp $password;
+open my $fh, "|-", "pbcopy" or die "could not exec pbcopy: $!\n";
+print $fh $password;
+ReadMode(0);
+print "\n";
