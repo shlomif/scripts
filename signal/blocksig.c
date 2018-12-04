@@ -52,15 +52,15 @@ int main(int argc, char *argv[])
                 if (*optarg == '\0')
                     break;
 
-                if (*optarg != ' ')
-                    errx(EX_DATAERR, "signals must be spaced apart");
+                if (!(*optarg == ' ' || *optarg == ','))
+                    errx(EX_DATAERR,
+                         "signals must be space or comma separated");
 
                 optarg++;
                 if (!isdigit(*optarg))
                     errx(EX_DATAERR, "signals must be plain integers");
             }
             break;
-
         case 'h':
         case '?':
         default:

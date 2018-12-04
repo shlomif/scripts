@@ -1,4 +1,4 @@
-.Dd December  8 2017
+.Dd December  3 2018
 .Dt BLOCKSIG 1
 .nh
 .Os
@@ -27,9 +27,11 @@ flag.
 .Dl $ Ic blocksig -s '1 2 15 30 31' \&.\&.\&.
 .Pp
 A useful use of this program is to mask C-c from something that
-otherwise exits the game with no means to restore.
+otherwise exits the game with no means to restore
 .Pp
 .Dl $ Ic blocksig /usr/games/trek
+.Pp
+which is exactly what this tool was written for.
 .Sh SEE ALSO
 .Xr signal 3 ,
 .Xr trek 6
