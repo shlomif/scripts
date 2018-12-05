@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd December  4 2018
 .Dt FOREXAMPLE 1
 .nh
 .Os
@@ -15,9 +15,12 @@
 .Nm
 runs the given
 .Cm command
-and sends both the command run and any output from it to the
+and sends both the command run and any output from it to the command
+given by the
 .Dv CLIPBOARD
-command. This may facilitate the task of sharing simple example
+environment variable, or to
+.Cm pbcopy
+if that is not set. This may facilitate the task of sharing simple example
 command runs.
 .Sh EXIT STATUS
 .Ex -std
@@ -28,7 +31,7 @@ Command to run that output from the given
 .Cm command
 will be written to. The default is to use the
 .Cm pbcopy
-command; X11 systems may instead need to use
+command; under X11 one may instead need to use
 .Cm xclip
 or
 .Cm xsel .
@@ -44,7 +47,7 @@ will be quit if it has not exited in the given number of seconds, and a
 line will be appended to the output.
 .El
 .Sh EXAMPLES
-.Dl $ Ic CLIPBOARD='xclip -in' forexample pwd
+.Dl $ Ic CLIPBOARD='xsel -l /dev/null -i -b' forexample pwd
 .Pp
 .Dl $ Ic forexample sleep 3
 .Pp
@@ -69,11 +72,6 @@ sequences or carriage returns copied from the PTY the
 is run under. Complicated command output may render poorly, or may
 require processing before being passed to the
 .Dv CLIPBOARD
-command, e.g. a wrapper to strip carriage returns:
-.Pp
-.Dl #!/bin/sh
-.Dl tr -d '\er' | pbcopy
-.Pp
-It may make more sense to write this utility directly in the shell given
-how the shell likely has a better idea of the exact command input as
-opposed to whatever TCL receives following an exec.
+command. It may make more sense to write this utility directly in the
+shell given how the shell likely has a better idea of the exact command
+input as opposed to whatever TCL receives following an exec.

@@ -43,6 +43,7 @@ proc bail_out {} {
 
 proc emit {line} {
     global output_fh output_prefix 
+    set line [string trimright $line]
     puts $output_fh "$output_prefix$line"
 }
 
@@ -60,9 +61,9 @@ proc shellify {command} {
     set result ""
     foreach arg $command {
         if {[llength $arg] > 1} {
-            set result [string cat $result " '$arg'"]
+            append result " '$arg'"
         } else {
-            set result [string cat $result " $arg"]
+            append result " $arg"
         }
     }
     return $result

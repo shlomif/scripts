@@ -1,4 +1,4 @@
-.Dd February 14 2018
+.Dd December  4 2018
 .Dt COPYCAT 1
 .nh
 .Os
@@ -15,13 +15,13 @@
 copies standard input to both standard output and to the command
 mentioned in the
 .Ev CLIPBOARD
-environment variable (or to
+environment variable, or to
 .Xr pbcopy 1
 if
 .Ev CLIPBOARD
-is not set). With the
+is not set. With the
 .Fl n
-flag set, the ultimate newline (if present) will not be printed.
+flag the ultimate newline (if present) will not be printed.
 .Pp
 With
 .Xr tmux 1
@@ -35,31 +35,33 @@ flag but that would not help on Mac OS X.
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
-Using 
-.Xr xclip 1x ,
-via a wrapper script.
-.Pp
-.Dl $ Ic export CLIPBOARD=$HOME/libexec/pbcopy
-.Dl $ Ic cat $HOME/libexec/pbcopy
-.Dl #!/bin/sh
-.Dl exec xclip -in
-.Dl $ Ic chmod +x $HOME/libexec/pbcopy
-.Pp
-.Xr xsel 1x
-is another option, also with a wrapper:
+The
+.Cm pbcopy
+command can be emulated under X11 with a wrapper script
 .Pp
 .Dl #!/bin/sh
-.Dl exec xsel --input
+.Dl exec xsel -l /dev/null -i -b
 .Pp
-as otherwise
+as
 .Xr xsel 1x
-guesses incorrectly on what to do when used under
+used directly may guess incorrectly on what to do when used under
 .Xr vi 1 .
+The
+.Fl b
+flag operates on the
+.Dv CLIPBOARD
+selection for compatiblity with certain web browser software; other
+software such as
+.Xr xterm 1
+may need to be adjusted to also use this:
+.Pp
+.Dl xterm*selectToClipboard: true
 .Pp
 Then, in
-.Xr vi 1
-one may then use a filter via some range to copy the desired lines to
-the clipboard while also to not destroy that data:
+.Cm vi ,
+one may use a filter over some range to copy the desired lines both to the
+clipboard and to retain them in
+.Cm vi .
 .Pp
 .Bl -item -offset indent
 .It
@@ -108,13 +110,14 @@ terminal data.
 .Xr pbcopy 1 ,
 .Xr vi 1 ,
 .Xr vim 1 ,
-.Xr xclip 1x ,
-.Xr xsel 1x
+.Xr xsel 1x ,
+.Xr xterm 1
 .Rs
 .%A Drew Neil
 .%D 2012
 .%B Practical Vim
 .Re
+.Pp
 As an alternative, instead use a FIFO, which might run something like
 .Pp
 .Dl $ Ic mkfifo asdf
