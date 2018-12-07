@@ -1,4 +1,4 @@
-.Dd October 11 2018
+.Dd December 14 2018
 .Dt UDP-SINK 1
 .nh
 .Os
@@ -87,6 +87,20 @@ will listen until terminated, or abort with an exit status >0 if an error
 occurs. SIGINT will cause
 .Nm
 to emit a final statistics line before exiting.
+.Sh EXAMPLES
+Collect packets:
+.Pp
+.Dl $ Ic udp-sink -p 2952 -c 10000 -l \&| tee log
+.Pp
+and to elsewhere feed it:
+.Pp
+.Dl $ Ic udp-sender -p 2952 -f localhost
+.Pp
+There is multicast support, though this has not be tested much and will
+likely need additional work and improvements:
+.Pp
+.Dl $ Ic udp-sink -c 100 -4 -p 1234 -M 224.0.66.66
+.Dl $ Ic udp-sink -c 100 -6 -p 1234 -M FF15:0:0:0:0:0:0:101
 .Sh SEE ALSO
 .Xr iperf3 1 ,
 .Xr nmap 1 ,

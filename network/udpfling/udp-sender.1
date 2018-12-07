@@ -1,4 +1,4 @@
-.Dd October 11 2018
+.Dd December 14 2018
 .Dt UDP-SENDER 1
 .nh
 .Os
@@ -87,6 +87,23 @@ have been sent (0 exit status), or an exit status >0 if an error occurs
 or the process is terminated. SIGINT will cause
 .Nm
 to emit a final statistics line before exiting.
+.Sh EXAMPLES
+Assuming
+.Cm udp-sink
+is running somewhere appropriate,
+.Pp
+.Dl $ Ic udp-sender -p 2952 -f localhost
+.Pp
+Do note that without throttling
+.Nm
+can send large numbers of packets which may cause your MAC address or
+network uplink port to be blacklisted or disabled.
+.Pp
+There is multicast support, though this has not be tested much and will
+likely need additional work and improvements:
+.Pp
+.Dl $ Ic udp-sender -4 -p 1234 224.0.66.66
+.Dl $ Ic udp-sender -6 -p 1234 FF15:0:0:0:0:0:0:101
 .Sh SEE ALSO
 .Xr iperf3 1 ,
 .Xr nmap 1 ,

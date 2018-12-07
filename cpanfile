@@ -30,6 +30,7 @@ requires 'Moo';
 requires 'Music::AtonalUtil';
 requires 'Music::LilyPondUtil';
 requires 'Music::PitchNum';
+requires 'Net::DNS';
 requires 'POSIX';
 requires 'Perl::MinimumVersion';
 requires 'Scalar::Util';

@@ -204,7 +204,7 @@ int mcast_sock(void)
         memcpy(&m6req.ipv6mr_multiaddr, &v6addr,
                sizeof(m6req.ipv6mr_multiaddr));
         if (setsockopt
-            (fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &m6req,
+            (fd, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char *) &m6req,
              sizeof(m6req)) < 0) {
             err(EX_OSERR, "setsockopt failed to multicast for v6");
         }
