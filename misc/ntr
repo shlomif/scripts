@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+#
+# ntr - numeric tr(1)
+#
+#   $ echo abc ABC | ntr 97,122:65248 65,90:65248
+#   ａｂｃ ＡＢＣ
+#   $ echo abc ABC \
+#   | ntr 97,122:65248 65,90:65248 \
+#   | ntr 65345,65371:-65280 65313,65339:-65216
+#   ABC abc
+
+use 5.14.0;
+use warnings;
+use open qw(:encoding(UTF-8) :std);
+
+die "Usage: ntr ntr-spec [ntr-spec ..] < ...\n" unless @ARGV;
+
+my @maps;
+
+sub ntr {
+    my $n = ord $_[0];
+    for my $m (@maps) {
+        if ( $n >= $m->[0] and $n <= $m->[1] ) {
+            return chr $n + $m->[2];
+        }
+    }
+    return $_[0];
+}
+
+sub parse_ntr {
+    return $1, $2, $3 if $_[0] =~ m/^(\d+),(\d+):(-?\d+)$/a;
+    die "could not parse: '$_[0]' (expect start,end:offset)\n";
+}
+@maps = map [ parse_ntr $_ ], @ARGV;
+
+while ( readline *STDIN ) {
+    s/(.)/ntr $1/eg;
+    print;
+}

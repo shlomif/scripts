@@ -1,0 +1,4 @@
+#!/bin/sh
+wireless-down
+doas ifconfig ral0 up
+exec doas ifconfig ral0 scan

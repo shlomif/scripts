@@ -1,0 +1,3 @@
+#!/bin/sh
+doas pkill -f 'dhclient ral0'
+exec doas ifconfig ral0 down lladdr random

@@ -1,0 +1,8 @@
+#!/bin/sh
+# where 'foo' is a name for the coffee shop or whatever. this is oft
+# faster than the Mac OS X 10.11 laptop can configure itself, and
+# sometimes that auto configuration picks the wrong network
+wireless-down
+doas ifconfig ral0 up nwid TODOFIXME wpa wpakey Hunter2 wpaprotos wpa1,wpa2
+#doas ifconfig ral0 inet6 autoconf
+exec solitary / doas dhclient ral0
