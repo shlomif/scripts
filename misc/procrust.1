@@ -1,0 +1,43 @@
+.Dd December 23 2018
+.Dt PROCRUST 1
+.nh
+.Os
+.Sh NAME
+.Nm procrust
+.Nd force all input lines to be the given width
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl f Ar fillchar
+.Ar width
+.Op Ar file .. | -
+.Ek
+.Sh DESCRIPTION
+.Nm
+forces all input lines to be of the same width, truncating or padding
+the lines with a space character or the given
+.Ar fillchar .
+.Pp
+There is no special handling for the backspaces or wide-character
+strings; filter or strip backspaces if necessary with
+.Xr col 1
+or
+.Xr tr 1 .
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic (echo Socrates; echo Ovid) \&| procrust -f x 6
+.Dl Socrat
+.Dl Ovidxx
+.Sh SEE ALSO
+.Xr col 1 ,
+.Xr cut 1 ,
+.Xr horcat 1 ,
+.Xr split 1 ,
+.Xr tr 1
+.Sh HISTORY
+.Qq Procrustes, at the guest-bed
+would likely be appropriate Tamarian for someone (or something) who (or
+that) reworks input in such a fashion.
+.Sh AUTHOR
+.An Jeremy Mates

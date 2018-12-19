@@ -20,7 +20,7 @@ use JSON::MaybeXS ();
 use List::UtilsBy qw( max_by );
 use URI ();
 
-my $img_dir = File::Spec->catfile( File::HomeDir->my_home, 'imgs/xkcd' );
+my $img_dir = File::Spec->catfile( File::HomeDir->my_home, 'share/xkcd' );
 
 my $img_viewer = 'feh';
 

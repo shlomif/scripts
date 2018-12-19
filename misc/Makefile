@@ -8,6 +8,9 @@ muss-with-environ: muss-with-environ.c
 pcre-precompile: pcre-precompile.c Makefile
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs libpcre` pcre-precompile.c -o pcre-precompile
 
+procrust: procrust.c Makefile
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` procrust.c -o procrust
+
 setsid: setsid.c
 sgrax: sgrax.c
 solitary: solitary.c
@@ -22,7 +25,7 @@ depend:
 	cpanm --installdeps .
 	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
-test: bt copycat justblocks sgrax waitornot
+test: bt copycat justblocks procrust sgrax waitornot
 	make -C t
 	@prove --nocolor
 
