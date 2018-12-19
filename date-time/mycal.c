@@ -1,7 +1,5 @@
-/*
- * Mostly motivated by BSD cal(1) lacking the -3 option. Also, to better learn
- * the ctime(3) routines.
- */
+/* mycal - mostly motivated by BSD cal(1) lacking the -3 option. also,
+ * to better learn the ctime(3) routines */
 
 #include <err.h>
 #include <getopt.h>
@@ -24,7 +22,6 @@ int main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
-
         case 'h':
         case '?':
         default:
@@ -40,12 +37,12 @@ int main(int argc, char *argv[])
     if ((when = localtime(&epoch)) == NULL)
         err(EX_OSERR, "localtime() failed");
 
-    /* Ragged ends of months may cause wrap-around problems if run on 31st and
-     * whoops next month doesn't have that so bump to some other month, haha!
-     * Basically, datetime code without massive unit tests checking for these
-     * sorts of edge cases should not be trusted (or it should be of no great
-     * surprise when things do break).
-     */
+    /* ragged ends of months may cause wrap-around problems if run on
+     * 31st and whoops next month doesn't have that so bump to some
+     * other month, haha! basically, datetime code without massive
+     * unit tests checking for these sorts of edge cases should not
+     * be trusted (or it should be of no great surprise when things
+     * do break) */
     when->tm_mday = 1;
 
     when->tm_mon -= 1;
@@ -91,5 +88,7 @@ void whatmonth(struct tm *date)
     } else {                    // parent
         if (wait(NULL) == -1)
             err(EX_OSERR, "wait() error");
+        if (date->tm_mon == 11)
+            putchar('\n');
     }
 }

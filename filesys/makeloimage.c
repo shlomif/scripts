@@ -121,7 +121,7 @@ int losetup(const char *device, const char *path)
 {
     pid_t child;
     int status;
-    child = vfork();
+    child = fork();
     if (child == 0) {           // child
         execlp("losetup", "losetup", device, path, (char *) NULL);
         err(EX_OSERR, "execlp failed");

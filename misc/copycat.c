@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     if (sigprocmask(SIG_BLOCK, &blockthese, NULL) == -1)
         err(EX_OSERR, "could not set sigprocmask of %d", blockthese);
 
-    pid = vfork();
+    pid = fork();
 
     if (pid < 0) {
         err(EX_OSERR, "fork() failed");
