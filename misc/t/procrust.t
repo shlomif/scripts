@@ -21,6 +21,12 @@ my @tests = (
         stdin  => "\n1\n12\n123\n",
         stdout => [qw(qqq 1qq 12q 123)],
     },
+    # this might be considered a bug by some (it might instead throw an
+    # error) though do want some way to fill with NUL...
+    {   args   => "-f '' 3",
+        stdin  => "1\n12\n",
+        stdout => [ "1\0\0", "12\0" ],
+    },
     {   args   => "5 t/procrust.input t/procrust.input",
         stdout => [ "123  ", "12345", "12345", "123  ", "12345", "12345" ],
     },

@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     while ((ch = getopt(argc, argv, "h?f:")) != -1) {
         switch (ch) {
         case 'f':
-            fillchar = *optarg;
+            fillchar = optarg[0];
             break;
         case 'h':
         case '?':

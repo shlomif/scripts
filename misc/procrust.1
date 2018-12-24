@@ -1,4 +1,4 @@
-.Dd December 23 2018
+.Dd December 24 2018
 .Dt PROCRUST 1
 .nh
 .Os
@@ -29,6 +29,17 @@ or
 .Dl $ Ic (echo Socrates; echo Ovid) \&| procrust -f x 6
 .Dl Socrat
 .Dl Ovidxx
+.Pp
+The empty string as a
+.Ar fillchar
+will fill with the
+.Dv NUL
+character.
+.Pp
+.Dl $ Ic echo \&| ./procrust -f '' 2 \&| od -bc
+.Dl 0000000  000 000 012
+.Dl \& \& \& \& \& \& \& \& \&  \e0 \&  \e0 \&  \en
+.Dl 0000003
 .Sh SEE ALSO
 .Xr col 1 ,
 .Xr cut 1 ,

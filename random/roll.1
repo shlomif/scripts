@@ -1,0 +1,37 @@
+.Dd December 25 2018
+.Dt ROLL 1
+.nh
+.Os
+.Sh NAME
+.Nm roll
+.Nd rolls random numbers
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar dice-spec Op ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+rolls random numbers; specify
+.Qq 20
+for a twenty-sided die or
+.Qq 3d6
+for the sum of the rolls of three six-sided dice. Entropy is taken from
+.Pa /dev/urandom
+unless on OpenBSD where
+.Xr arc4random 3
+is instead used.
+.Pp
+The allowed range is from
+.Qq d2
+to
+.Qq d10000
+and 1 to 10000 rolls thereof.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr arc4random 3 ,
+.Xr coinflip 1 ,
+.Xr oneof 1
+.Sh AUTHOR
+.An Jeremy Mates
