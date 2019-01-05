@@ -1,9 +1,10 @@
 /* blocks signals then replaces self with the specified command. only
  * SIGINT is masked by default */
 
+#include <ctype.h>
 #include <err.h>
 #include <getopt.h>
-#include <ctype.h>
+#include <locale.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -23,6 +24,8 @@ int main(int argc, char *argv[])
     int advance = 0;
     int ch, sig_num;
     sigset_t block;
+
+    setlocale(LC_ALL, "C");
 
     /* C-c by default, unless -s flag */
     sigemptyset(&block);

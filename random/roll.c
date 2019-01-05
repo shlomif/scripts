@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <limits.h>
+#include <locale.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,8 @@ void roll_em(const char *spec);
 int main(int argc, char *argv[])
 {
     int ch;
+
+    setlocale(LC_ALL, "C");
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {

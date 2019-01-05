@@ -1,6 +1,7 @@
 /* randmac - generates random Media Access Control (MAC) addresses */
 
 #include <getopt.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,13 +36,15 @@ int main(int argc, char *argv[])
     char *mstrp = mac48tmpl;
     uint8_t *mp;
 
+    setlocale(LC_ALL, "C");
+
     while ((ch = getopt(argc, argv, "6B:Lh?mp")) != -1) {
         switch (ch) {
         case '6':
             Flag_IPv6ify = true;
             break;
-            /* TODO auto-scan string for X and hexchars to figure out size so can
-             * then remove this option. */
+            /* TODO auto-scan string for X and hexchars to figure out
+             * size so can then remove this option. */
         case 'B':
             mac_bytes = (size_t) flagtoul(ch, optarg, 1UL, 64UL);
             break;
@@ -86,7 +89,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Emit the MAC address, possibly as EUI-64 with -6 */
     if (Flag_IPv6ify) {
         if (mac_bytes != 6)
             errx(EX_SOFTWARE, "do not know how to IPv6ify %ld byte MAC",

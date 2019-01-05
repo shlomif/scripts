@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,8 @@ int main(int argc, char *argv[])
     int ch, fd, previous;
     ssize_t amount;
     unsigned long count = 1;
+
+    setlocale(LC_ALL, "C");
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {

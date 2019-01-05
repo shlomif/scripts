@@ -1,11 +1,9 @@
-/*
- * Mostly due to date(1) being non-portable and needing an easy way to
+/* mostly due to date(1) being non-portable and needing an easy way to
  * generate Month Day values for things undergoing fermentation, e.g.
  *
  *   now +5w
  *
- * for a batch of honey mead vinegar.
- */
+ * for a batch of honey mead vinegar */
 
 #include <ctype.h>
 #include <err.h>
@@ -62,7 +60,7 @@ int main(int argc, char *argv[])
 
     /* limit of 2 here mostly because fermentation times rarely exceed a
      * small number of weeks, and also to prevent INT_MAX or such from
-     * being entered. */
+     * being entered */
     if (sscanf(*argv, "%2u%n", &offset, &ch) != 1) {
         warnx("could not parse number of days or weeks");
         emit_help();

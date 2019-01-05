@@ -8,7 +8,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
@@ -195,7 +194,7 @@ int main(int argc, char *argv[])
     if (Flag_Forward) {
         ap = output;
         for (int i = 0; i < S6ADDR_MAX; i++) {
-            sprintf(ap, "%02x", v6addr.s6_addr[i]);
+            snprintf(ap, 2, "%02x", v6addr.s6_addr[i]);
             ap += 2;
             if (i < S6ADDR_MAX - 1 && i % 2 == 1)
                 *ap++ = ':';
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
         ap = output;
         for (int i = S6ADDR_MAX - 1; i >= 0; i--) {
             for (int j = 0; j < 2; j++) {
-                sprintf(ap, "%1x.", v6addr.s6_addr[i] >> (j * 4) & 15);
+                snprintf(ap, 2, "%1x.", v6addr.s6_addr[i] >> (j * 4) & 15);
                 ap += 2;
             }
         }

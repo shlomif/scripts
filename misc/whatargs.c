@@ -2,6 +2,7 @@
 
 #include <err.h>
 #include <ctype.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
@@ -12,6 +13,8 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     char *c;
+
+    setlocale(LC_ALL, "C");
 
     argv++;
     if (*argv == NULL)

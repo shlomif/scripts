@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,7 +87,7 @@ void emit_error(const char *input, int offset, char *msg)
     if (!Flag_Quiet) {
         if (*input != '\0')
             fprintf(stderr, "  %s\n  %*c\n", input, offset + 1, '^');
-        errx(EX_DATAERR, msg);
+        errx(EX_DATAERR, "%s", msg);
     } else {
         exit(EX_DATAERR);
     }
@@ -107,6 +108,8 @@ void normalize_mac(const char *input, int octets, char *out, int ofsep)
     int onum = 1;
     int sep = -1;
     unsigned int value;
+
+    setlocale(LC_ALL, "C");
 
     if (*input == '\0')
         emit_error(input, 0, "cannot parse empty string");

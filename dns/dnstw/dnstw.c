@@ -4,6 +4,7 @@
 
 #include <ctype.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -54,6 +55,8 @@ int main(int argc, char *argv[])
     if (prctl(PR_SET_DUMPABLE, 0) == -1)
         err(EX_OSERR, "could not disable PR_SET_DUMPABLE");
 #endif
+
+    setlocale(LC_ALL, "C");
 
     setup_tcl();
 

@@ -22,6 +22,7 @@
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,6 +59,8 @@ int main(int argc, char *argv[])
     ssize_t lineno = 1;
 
     double pvalue;
+
+    setlocale(LC_ALL, "C");
 
     while ((ch = getopt(argc, argv, "F:h?m:M:")) != -1) {
         switch (ch) {
