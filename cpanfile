@@ -25,6 +25,7 @@ requires 'List::UtilsBy';
 requires 'MIDI';
 requires 'Math::Random';
 requires 'Math::Random::Discrete';
+requires 'Module::Signature';
 requires 'Module::Starter::XSimple';
 requires 'Moo';
 requires 'Music::AtonalUtil';
