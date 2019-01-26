@@ -28,6 +28,7 @@ proc handle_spawn_input {fd} {
 }
 
 proc handle_user_input {fd child_fd} {
+    catch {read $fd 1}
     # assume player is well behaved and close the spawn; may instead need
     # to use kill if the player ignores that close
     close $child_fd
