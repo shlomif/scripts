@@ -32,6 +32,7 @@ requires 'Music::AtonalUtil';
 requires 'Music::LilyPondUtil';
 requires 'Music::PitchNum';
 requires 'Net::DNS';
+requires 'NetAddr::IP';
 requires 'POSIX';
 requires 'Perl::MinimumVersion';
 requires 'Scalar::Util';

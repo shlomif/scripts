@@ -31,7 +31,6 @@ clean:
 	git clean --force -x
 
 depend:
-	cpanm --installdeps ..
 	cpanm --installdeps .
 	pkg-config --exists goptfoo
 	@expect -c "package require Tcl 8.5;"
