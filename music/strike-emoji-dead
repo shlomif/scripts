@@ -2,12 +2,11 @@
 #
 # acquire emoji-data.txt from the Unicode Syndicate e.g.
 #
-#   http://unicode.org/Public/emoji/11.0/emoji-data.txt
-#
-# use the regex built from that file by this script to strip filter or
-# mangle emoji
-#
+#   ftp http://unicode.org/Public/emoji/12.0/emoji-data.txt
 #   ./strike-emoji-dead < emoji-data.txt > regex
+#
+# then use that regex in e.g. an irssi script to filter out the horrid
+# emoji crud
 
 use 5.16.0;
 use strict;

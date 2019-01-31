@@ -1,5 +1,5 @@
 /* findin - finds files by glob in PATH or the given colon-delimited
- * environment variable, or instead with a directory list read from from
+ * environment variable or instead with a directory list given on
  * standard input */
 
 #include <err.h>
@@ -111,7 +111,7 @@ void check_dir(char *directory, size_t dir_len, const char *expr,
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: findin [-0] [-q] file-glob [ENVVAR|-]\n"
+    fprintf(stderr, "Usage: findin [-0q] glob-expr [ENVVAR|-]\n"
             "  note that MANPATH likely requires man*/foo* as a glob\n");
     exit(EX_USAGE);
 }
