@@ -1,0 +1,30 @@
+#!/usr/bin/env perl
+use 5.24.0;
+use warnings;
+
+my @gdb_cmd = qw(gdb -p);
+my @ps_cmd  = qw(ps -o cwd -p);
+
+my $pid = $ARGV[0];
+die "Usage: gdbpid process-id\n" if !defined $pid or $pid !~ m/^\d+$/a;
+
+my $cwd = pid2cwd($pid);
+if ( defined $cwd ) {
+    chdir $cwd or die "gdbpid: could not chdir: $!\n";
+}
+
+exec @gdb_cmd, $pid;
+die "exec failed: $!\n";
+
+sub pid2cwd {
+    my ($pid) = @_;
+    open my $fh, '-|', @ps_cmd, $pid or die "could not exec '@ps_cmd $pid': $!\n";
+    readline $fh;    # ps header line
+    my $cwd = readline $fh;
+    if ( defined $cwd ) {
+        chomp($cwd);
+    } else {
+        warn "gdbpid: no cwd for pid $pid\n" unless defined $cwd;
+    }
+    return $cwd;
+}

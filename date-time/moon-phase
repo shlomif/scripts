@@ -1,11 +1,30 @@
 #!/usr/bin/env perl
-use strict;
+use 5.24.0;
 use warnings;
-use feature qw(say);
 use Astro::MoonPhase qw(phasehunt);
+use POSIX qw(strftime);
+my @prefix = (
+    "New Moon      = ",
+    "First quarter = ",
+    "Full moon     = ",
+    "Last quarter  = ",
+    "New Moon      = ",
+);
 my @phases = phasehunt();
-say "New Moon      = ", scalar( localtime( $phases[0] ) );
-say "First quarter = ", scalar( localtime( $phases[1] ) );
-say "Full moon     = ", scalar( localtime( $phases[2] ) );
-say "Last quarter  = ", scalar( localtime( $phases[3] ) );
-say "New Moon      = ", scalar( localtime( $phases[4] ) );
+my $i      = 0;
+my $now    = time();
+my $n      = $phases[0] > $now ? 0 : @phases;
+my $search = 1;
+
+for my $i ( 0 .. $#phases ) {
+    if ( $search and $phases[$i] > $now ) {
+        $n      = $i;
+        $search = 0;
+    }
+    $phases[$i] = localtime $phases[$i];
+}
+splice @prefix, $n, 0, "          now = ";
+splice @phases, $n, 0, strftime "%a %b %d %H:%M:%S", localtime $now;
+for my $i ( 0 .. $#phases ) {
+    say $prefix[$i] . $phases[$i];
+}
