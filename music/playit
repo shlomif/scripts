@@ -1,136 +1,23 @@
 #!/usr/bin/env expect
 #
-# Wrapper to preview and play lilypond music,
+# playit - lilypond some.ly, view PDF, play MIDI
 
-package require Tcl 8.5
-# NOTE probably requires tcllib package
-package require fileutil
-
-set playitrc [file join ~ .playitrc]
-
-# TWEAK these following can be overridden via the playitrc file
-set lily_cmd {lilypond -dno-point-and-click}
-
-# timidity+lilypond wrapper, reads *.ly file for 'midiutil ...'
-# or "timidity ..." comments in header to change various MIDI
-# related aspects
-set midi_cmd {tlymidity}
-
-set view_cmd {mopen}
-
-if {[array get env PAGER] eq ""} {
-    set env(PAGER) less
+if {[llength $argv] != 1} {
+    puts stderr "Usage: playit lilypond-file.ly"
+    exit 1
 }
+set ly [lindex $argv 0]
+set bn [regsub {\.ly$} $ly ""]
 
-proc handle_spawn_input {fd} {
-    catch { puts -nonewline [read $fd] }
-    if {[chan eof $fd]} { bail_out }
-}
+exec lilypond -dno-point-and-click --silent -o $bn --pdf $ly
+exec mopen $bn.pdf &
 
-proc handle_user_input {fd child_fd} {
-    catch {read $fd 1}
-    # assume player is well behaved and close the spawn; may instead need
-    # to use kill if the player ignores that close
-    close $child_fd
-    #exec kill [exp_pid]
-    bail_out
-}
+if {![catch "exec is-mute"]} { exit 0 }
 
-proc maybe_latest {newfile file mtime} {
-    upvar 1 $file  lyfile
-    upvar 1 $mtime lymtime
+# https://github.com/thrig/realexec
+set auto_path [linsert $auto_path 0 ~/lib/tcl]
+package require realexec
 
-    # exclude foo.bar.ly as for me these are part files that should not
-    # be played
-    if {[regexp {\.[^.]+\.ly$} $newfile]} { return }
-
-    set newmtime [file mtime $newfile]
-    if {$newmtime > $lymtime} {
-        set lyfile  $newfile
-        set lymtime $newmtime
-    }
-}
-
-catch {source $playitrc} msg options
-
-if {[dict get $options -code] != 0} {
-    if {![string match "POSIX ENOENT *" [dict get $options -errorcode]]} {
-        puts stderr [dict get $options -errorinfo]
-        puts stderr "playit: could not source $playitrc"
-        exit 1
-    }
-}
-
-if {[llength $argv] == 0} {
-    set lyfile  ""
-    set lymtime 0
-    set feature ""
-    foreach file [glob *.ly] {
-        maybe_latest $file lyfile lymtime
-    }
-    if {$lyfile eq ""} {
-        puts stderr "playit: no *.ly file found"
-        exit 1
-    }
-} else {
-    set lyfile  [lindex $argv 0]
-    if {[catch {set lymtime [file mtime $lyfile]} msg]} {
-        puts stderr "playit: $msg"
-        exit 1
-    }
-    set feature [lindex $argv 1]
-}
-
-set rootname [regsub {\.ly$} $lyfile ""]
-set midifile "$rootname.midi"
-set pdffile  "$rootname.pdf"
-set tmpfile  ""
-
-stty raw -echo
-
-proc bail_out {{code 0}} {
-    global tmpfile
-    if {$tmpfile ne ""} { file delete $tmpfile }
-    stty -raw echo
-    exit $code
-}
-
-trap {bail_out 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
-
-if {![file exists $pdffile] || $lymtime > [file mtime $pdffile]} {
-    send_user "building $pdffile...\n"
-    set tmpfile [::fileutil::tempfile "playit-out"]
-    if {[catch {exec {*}$lily_cmd -o $rootname --pdf $lyfile >& $tmpfile} msg]} {
-        if {![regexp "nopager" $feature]} {
-            if {[catch {spawn $env(PAGER) $tmpfile} msg]} {
-                puts stderr "playit: could not spawn PAGER: $msg"
-            } else { interact }
-        } else {
-            set tmpfh [open $tmpfile r]
-            while {[gets $tmpfh line] >= 0} { puts $line }
-        }
-        bail_out 1
-    }
-}
-
-if {[catch {exec {*}$view_cmd $pdffile &} msg]} {
-    puts stderr "playit: could not exec $view_cmd: $msg"
-    bail_out 1
-}
-
-if {[file exists $midifile] && [catch {exec is-mute -q} msg]} {
-    send_user "playing $midifile...\n"
-    if {[catch {spawn -noecho {*}$midi_cmd $midifile} msg]} {
-        puts stderr "playit: could not spawn $midi_cmd: $msg"
-        bail_out 1
-    }
-    chan configure stdin -blocking 0 -buffersize 1
-    chan event stdin readable [list handle_user_input stdin $spawn_id]
-
-    chan configure $spawn_id -blocking 0
-    chan event $spawn_id readable [list handle_spawn_input $spawn_id]
-
-    vwait godot
-}
-
-bail_out
+#set preset "D4 Jazz AB"
+#real_exec pianoteq --play-and-quit --headless --preset $preset --midi $bn.midi
+real_exec tlymidity $bn.midi
