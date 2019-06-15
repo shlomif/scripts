@@ -18,7 +18,7 @@ section .note.openbsd.ident
     align 2
 
 section .data
-    ladir db "OpenBSD6.4-amd64",10
+    ladir db "OpenBSD6.5-amd64",10
     .len equ $-ladir
 
 section .text
