@@ -6,11 +6,16 @@ CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 #   ln -s /opt/local/lib/pkgconfig/tcl.pc tcl86.pc 
 TCL=tcl85
 
+gunktty: gunktty.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` gunktty.c -o gunktty
+
 nocolor: nocolor.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs libpcre` -lpthread -o nocolor nocolor.c
 
 nocolor-test: nocolor.c Makefile
 	$(CC) -DNOCOLOR_BUF_SIZE=32 -g $(CFLAGS) `pkg-config --cflags --libs libpcre` -lpthread -o nocolor-test nocolor.c
+
+prte: prte.c
 
 rdcomm: rdcomm.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs $(TCL) goptfoo` rdcomm.c -o rdcomm
