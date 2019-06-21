@@ -120,13 +120,17 @@ inline void tdelta(struct termios *a, struct termios *b)
     flcmp(c_lflag, PENDIN, "pendin", 6);
     flcmp(c_lflag, NOKERNINFO, "nokerninfo", 10);
     flcmp(c_lflag, EXTPROC, "extproc", 7);
+#ifdef __OpenBSD__
     flcmp(c_lflag, XCASE, "xcase", 5);
+#endif
 
     flcmp(c_iflag, ISTRIP, "istrip", 6);
     flcmp(c_iflag, ICRNL, "icrnl", 5);
     flcmp(c_iflag, INLCR, "inlcr", 5);
     flcmp(c_iflag, IGNCR, "igncr", 5);
+#ifdef __OpenBSD__
     flcmp(c_iflag, IUCLC, "iuclc", 5);
+#endif
     flcmp(c_iflag, IXON, "ixon", 4);
     flcmp(c_iflag, IXOFF, "ixoff", 5);
     flcmp(c_iflag, IXANY, "ixany", 5);
@@ -142,7 +146,9 @@ inline void tdelta(struct termios *a, struct termios *b)
     flcmp(c_oflag, OCRNL, "ocrnl", 5);
     flcmp(c_oflag, ONOCR, "onocr", 5);
     flcmp(c_oflag, ONLRET, "onlret", 6);
+#ifdef __OpenBSD__
     flcmp(c_oflag, OLCUC, "olcuc", 5);
+#endif
     flcmp(c_oflag, OXTABS, "oxtabs", 6);
     flcmp(c_oflag, ONOEOT, "onoeot", 6);
 
