@@ -1,4 +1,4 @@
-# Darwin, x86_64, GNU-based assembly
+# Darwin, amd64, GNU-based assembly
 #
 # hexip4todottedquad - converts raw hex IPv4 address to the more
 # typical dotted quad form

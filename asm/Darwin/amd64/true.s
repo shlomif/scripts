@@ -1,4 +1,4 @@
-# Darwin, x86_64, GNU-based assembly
+# Darwin, amd64, GNU-based assembly
 #
 # true - returns a true value
 

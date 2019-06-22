@@ -1,7 +1,7 @@
-; OpenBSD, x86_64, NASM
+; OpenBSD, amd64, NASM
 ;
-; localarchdir - emit directory name for local platform binaries and non-
-; portable scripts (such as is-mute.{Darwin,OpenBSD} over in music)
+; localarchdir - emit directory name for local platform binaries and
+; non-portable scripts (such as is-mute.{Darwin,OpenBSD} over in music)
 
 BITS 64
 

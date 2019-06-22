@@ -1,4 +1,4 @@
-# Darwin, x86_64, GNU-based assembly
+# Darwin, amd64, GNU-based assembly
 #
 # echo - write arguments to the standard output, plus some support for
 # complications added over time

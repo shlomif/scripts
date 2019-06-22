@@ -1,0 +1,37 @@
+.Dd June 22 2019
+.Dt PRTE 1
+.nh
+.Os
+.Sh NAME
+.Nm prte
+.Nd preserve terminal settings across some command
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl W | Fl w
+.Ar command Op args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+attempts to preserve the terminal settings across the given
+.Ar command .
+Options:
+.Bl -tag -width -indent
+.It Fl W
+show what terminal attributes differ (if any) across the execution of
+the
+.Ar command .
+.It Fl w
+warn if the terminal settings are different across the execution of the
+.Ar command .
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr gunktty 1 ,
+.Xr stty 1 ,
+.Xr termios 4
+.Sh AUTHOR
+.An Jeremy Mates
+.Sh CAVEATS
+Not portable given how much the termios struct can vary.

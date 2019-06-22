@@ -1,4 +1,4 @@
-; Linux, x86_64, NASM
+; Linux, amd64, NASM
 ;
 ; filter that translates 8-bit values according to a table. should be
 ; faster than tr(1) though less portable and more difficult to setup for

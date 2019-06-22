@@ -1,0 +1,56 @@
+.Dd June 22 2019
+.Dt GUNKTTY 1
+.nh
+.Os
+.Sh NAME
+.Nm gunktty
+.Nd gunks up the TTY
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl d Ar descriptor | Fl T
+.Op cmd Op args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+gunks up the TTY, presumably for testing purposes or to see how well
+some other tool can restore the settings thus gunked. An optional
+command to replace
+.Nm
+with can be supplied.
+Options:
+.Bl -tag -width -indent
+.It Fl d Ar descriptor
+gunk up the specified file descriptor (must be open, and a TTY). By
+default standard input is gunked up.
+.It Fl T
+open and gunk up
+.Pa /dev/tty .
+This takes precedence over the
+.Fl d
+option.
+.El
+.Pp
+.Dq gunk
+is a non-technical term for
+.Dq write random data into the termios struct until Xr tcsetattr 3 fails to fail setting that data .
+This may thus not mess up the terminal, depending on the exact bits randomized.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Mess up current terminal (maybe).
+.Pp
+.Dl $ Ic gunktty
+.Pp
+See how some command runs under a (maybe) messed up terminal.
+.Pp
+.Dl $ Ic gunktty -- cmd cmd-arg ...
+.Dl ...
+.Sh SEE ALSO
+.Xr isatty 3 ,
+.Xr prte 1 ,
+.Xr stty 1 ,
+.Xr tcsetattr 3 ,
+.Xr termios 4
+.Sh AUTHOR
+.An Jeremy Mates

@@ -1,0 +1,3 @@
+#!/bin/sh
+# lol - LISP one Liner (such as is possible; it's no Perl)
+exec sbcl --noinform --disable-debugger --eval "(progn $1)" --eval '(fresh-line)' --quit
