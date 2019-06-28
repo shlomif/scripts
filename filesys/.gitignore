@@ -8,6 +8,7 @@ getpof
 llcount
 log-update
 nomfd
+pathof
 permcheck
 seek
 stripeofeol

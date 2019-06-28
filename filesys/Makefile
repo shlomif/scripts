@@ -14,6 +14,7 @@ log-update: log-update.c
 nomfd: nomfd.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` nomfd.c -o nomfd
 
+pathof: pathof.c
 permcheck: permcheck.c
 
 seek: seek.c
