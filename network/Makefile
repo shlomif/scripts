@@ -35,7 +35,7 @@ depend:
 	pkg-config --exists goptfoo
 	@expect -c "package require Tcl 8.5;"
 
-test: macnorm v4addr v6addr
+test: macnorm v4addr v6addr validate-rsnapshot
 	@prove --nocolor
 
 .PHONY: clean depend test

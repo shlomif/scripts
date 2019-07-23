@@ -1,0 +1,27 @@
+#!/usr/bin/env perl
+#
+# unvx - revert `printf "%vx" ...` output strings to original form
+
+use feature qw(say);
+use strict;
+use warnings;
+
+sub unhex (_) {
+    my ($in) = @_;
+    chomp $in;
+    my $out = '';
+  LEX: {
+        if ($in =~ m{\G ([[:xdigit:]]{2}) }cgx) {
+            $out .= chr hex $1;
+            redo LEX;
+        }
+        redo LEX if $in =~ m{\G \. }cgx;
+        last LEX if $in =~ m{\G \Z }cgx;
+        die "unvx: unknown input at $ARGV:$.:"
+          . pos($in) . ' -- '
+          . sprintf("%vx\n", substr $in, pos $in);
+    }
+    return $out;
+}
+
+say unhex while readline

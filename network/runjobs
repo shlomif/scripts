@@ -1,0 +1,125 @@
+#!/usr/bin/env perl
+#
+# runjobs - a job runner for such jobs as network backups (rsnapshot, in
+# particular) that must run in parallel (but not too much) and where the
+# jobs need to be retried to account for (usually) network glitches.
+# jobs are commands to exec, one per line of standard input. output from
+# the jobs is saved to the TMPDIR, though by default these files are
+# removed if the job exits without error
+
+use 5.16.0;
+use warnings;
+use File::Temp qw(tempfile);
+use Getopt::Long qw(GetOptions);
+use Text::ParseWords qw(shellwords);
+use Time::HiRes qw(gettimeofday tv_interval);
+
+my $Flag_MaxErrs    = 2;
+my $Flag_MaxQueued  = 6;
+my $Flag_MaxRunning = 4;
+
+GetOptions(
+    'keep-logs'    => \my $Flag_KeepLogs,
+    'post-job=s'   => \my $Flag_PostJob,
+    'max-errors=i' => \$Flag_MaxErrs,
+    'max-queue=i'  => \$Flag_MaxQueued,
+    'max-run=i'    => \$Flag_MaxRunning,
+) or exit 64;
+
+die "runjobs: max-errors must be >= 1\n" if $Flag_MaxErrs < 1;
+die "runjobs: max-queue must be >= 1\n"  if $Flag_MaxQueued < 1;
+die "runjobs: max-run must be >= 1\n"    if $Flag_MaxRunning < 1;
+
+my @post_job;
+@post_job = shellwords($Flag_PostJob) if defined $Flag_PostJob;
+
+use constant { CHILD => 0, EXIT_SUCCESS => 0, NO_CHILD => -1, };
+
+my @jobs;
+use constant { CMD => 0, ERR => 1, PID => 2, START => 3, OUT => 4 };
+
+loadjobs();
+
+my $exit_status = 0;
+
+my %busy;
+while (@jobs or keys %busy) {
+    while (@jobs and keys %busy < $Flag_MaxRunning) {
+        my $job = run(shift @jobs);
+        $busy{ $job->[PID] } = $job if defined $job;
+    }
+    my $pid    = wait();
+    my $status = $?;       # 16-bit exit status word
+    next if $pid == NO_CHILD;
+    if (!exists $busy{$pid}) {
+        warn "runjobs: unknown wait pid $pid ??";
+        next;
+    }
+    my $job = delete $busy{$pid};
+    if (($status >> 8) != EXIT_SUCCESS) {
+        warn "runjobs: non-zero exit $status from $job->[CMD]\n";
+        requeue($job);
+    } else {
+        my $duration = tv_interval($job->[START], [gettimeofday]);
+        warn "runjobs: end pid=$job->[PID] $duration $job->[CMD]\n";
+        if (@post_job) {
+            system(@post_job, $job->[OUT]) == 0
+              or warn "runjobs: post-job failed: $?";
+        }
+        # NOTE jobs that fail do not have their output file unlinked
+        # regardless of this flag
+        unlink $job->[OUT] unless $Flag_KeepLogs;
+    }
+} continue {
+    loadjobs();
+}
+
+exit $exit_status;
+
+sub loadjobs {
+    while (@jobs < $Flag_MaxQueued and defined(my $cmd = readline *STDIN)) {
+        chomp $cmd;
+        my $job;
+        $job->[CMD] = $cmd;
+        $job->[ERR] = 0;
+        push @jobs, $job;
+    }
+}
+
+sub requeue {
+    my ($job) = @_;
+    $job->[ERR]++;
+    push @jobs, $job;
+    return;
+}
+
+sub run {
+    my ($job) = @_;
+    if ($job->[ERR] >= $Flag_MaxErrs) {
+        warn "runjobs: drop too many errors $job->[CMD]\n";
+        $exit_status = 1;
+        return;
+    }
+    my ($fh, $filename) = tempfile("runjobs.$$.XXXXXXXXXX", TMPDIR => 1);
+    my $pid = fork();
+    if (!defined $pid) {
+        warn "runjobs: fork failed for $job->[CMD]: $!\n";
+        goto &requeue;
+    } elsif ($pid == CHILD) {
+        open *STDIN, '<', '/dev/null' or die "runjobs: no open /dev/null: $!\n";
+        $fh->autoflush(1);
+        say $fh $job->[CMD];
+        open *STDOUT, '>&', $fh or die "runjobs: could not dup STDOUT: $!\n";
+        open *STDERR, '>&', $fh or die "runjobs: could not dup STDERR: $!\n";
+        select *STDOUT;
+        { exec shellwords($job->[CMD]) };
+        die "runjobs: exec failed for $job->[CMD]: $!\n";
+    } else {
+        close $fh;
+        $job->[OUT]   = $filename;
+        $job->[PID]   = $pid;
+        $job->[START] = [gettimeofday];
+        warn "runjobs: start pid=$pid $filename $job->[CMD]\n";
+        return $job;
+    }
+}
