@@ -1,6 +1,6 @@
-Some mathes related tools.
+some mathes related tools. see also r-fu and other repos
 
-Biased data for chisq tests taken from "Understanding Statistics: Basic
+biased data for chisq tests taken from "Understanding Statistics: Basic
 Theory and Practice", Grant Foster, 2013, p. 275, who derives an
 q=167.7767 (X-squared) from that data:
 

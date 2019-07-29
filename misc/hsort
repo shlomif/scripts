@@ -1,11 +1,10 @@
 #!/usr/bin/env perl
 #
-# "Human" sort that should emulate behavior of Finder (as of Mac OS X
-# 10.2). Sorts numeric values so 10 appears after 2, and compares in case-
-# insensitive manner. Note that filesystems cannot have duplicate
-# filenames, so this script filters out repeated input lines.
+# hsort - "human" sort that should emulate behavior of Finder (as of Mac
+# OS X 10.2). sorts numeric values so 10 appears after 2, and compares
+# in case-insensitive manner
 #
-# `sort -g` may be a more sensible alternative these days.
+# `sort -g` may be a more sensible alternative these days
 
 my @input = readline;
 my %lookup;
@@ -21,12 +20,3 @@ keys %lookup = scalar @input;
 } = @input;
 
 print @lookup{ sort keys %lookup };
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-

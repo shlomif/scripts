@@ -13,22 +13,18 @@ there is also sometimes documentation; the *.1 files should be copied
 somewhere under a MANPATH directory unless you like reading roff
 
  * the Assembly is mostly just for practice (though may be educational)
- * the C is primarily written for Mac OS X or OpenBSD; portability is
-   largely untested. most of it requires C99 and modern system calls.
-   use `make ... CC=... CFLAGS=...` if you need a different C compiler
-   or CFLAGS set
-   - on OpenBSD, `doas pkg_add gcc` and then `make ... CC=egcc` or
-     remove -fno-diagnostics-color from the CFLAGS (though the base
-     compiler in OpenBSD 6.2 on amd64 has trouble with "inline")
+ * the C is primarily written for Mac OS X (10.11) or OpenBSD;
+   portability is largely untested. most of it requires C99 and modern
+   system calls. use `make ... CC=... CFLAGS=...` if you need a
+   different C compiler or CFLAGS set
    - if on Linux, have fun with the feature_test_macros(7) which may or
      may not require random defines like -D_POSIX_C_SOURCE=200809L when
      compiling. add those to the make rule as necessary? code herein
-     that uses glob(3) is not at all compatible with Linux
+     that uses glob(3) is way not compatible with Linux
  * Perl verion 5.16 is assumed for the tests (compatibility with the
    legacy Centos 7 version of perl); some scripts will work on older
-   perls. Perl::MinimumVersion is most handy here
+   versions. Perl::MinimumVersion is most handy here
  * the shell code is generally tested under /bin/sh on OpenBSD and the
    Heirloom Bourne Shell (jsh) on Mac OS X
  * TCL version 8.5 is required for the TCL code (8.6 isn't really yet
    available for the systems I run) and also sometimes tcllib
- * there's also some Common Lisp and Go if you dig around enough

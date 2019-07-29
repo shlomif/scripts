@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
-# Finds files with same (or similar) modification times as specified
-# file (or a user-supplied date).
+# fbd - finds files with same (or similar) modification times as
+# specified file (or a user-supplied date)
 
 use 5.16.0;
 use warnings;
@@ -18,14 +18,14 @@ GetOptions(
 ) or exit 65;
 
 $Flag_StatField //= 9;    # mtime
-if ( $Flag_StatField < 8 or $Flag_StatField > 10 ) {
+if ($Flag_StatField < 8 or $Flag_StatField > 10) {
     die "statfield must be one of 8 9 10 (perldoc -f stat)\n";
 }
 
-my ( $min_epoch, $max_epoch, $reference_epoch );
+my ($min_epoch, $max_epoch, $reference_epoch);
 
 if ($Flag_ReferenceFile) {
-    $reference_epoch = ( lstat($Flag_ReferenceFile) )[$Flag_StatField];
+    $reference_epoch = (lstat($Flag_ReferenceFile))[$Flag_StatField];
 } elsif ($Flag_ReferenceEpoch) {
     # advanced date parsing: make someone else do it
     die "epoch must be non-negative integer\n"
@@ -49,7 +49,7 @@ if ($Flag_Before) {    # makes AroundAbout "After"
 @ARGV = '.' if !@ARGV;
 # see NOTE below
 #$File::Find::dont_use_nlink = 1;
-find( \&handle_file, @ARGV );
+find(\&handle_file, @ARGV);
 
 sub duration2seconds {
     my ($duration) = @_;
@@ -64,10 +64,10 @@ sub duration2seconds {
 
     my $seconds;
 
-    if ( $duration =~ m/^[0-9]+$/ ) {
+    if ($duration =~ m/^[0-9]+$/) {
         $seconds = $duration;
     } else {
-        while ( $duration =~ m/([0-9]+)([smhdw])/g ) {
+        while ($duration =~ m/([0-9]+)([smhdw])/g) {
             $seconds += $1 * $factor{$2};
         }
         die "could not parse duration '$duration'" if !defined $seconds;
@@ -91,13 +91,12 @@ sub handle_file {
 
     # NOTE may need to use $_ or set $dont_use_nlink if File::Find flubs
     # up (at a loss of efficiency over using cached _ form)
-    my $file_epoch = ( lstat _ )[$Flag_StatField];
+    my $file_epoch = (lstat _)[$Flag_StatField];
 
-    if ((   defined $max_epoch
-            and ( $file_epoch >= $min_epoch and $file_epoch <= $max_epoch )
+    if ((   defined $max_epoch and ($file_epoch >= $min_epoch and $file_epoch <= $max_epoch)
         )
-        or ( $file_epoch == $reference_epoch )
-      ) {
+        or ($file_epoch == $reference_epoch)
+    ) {
         print "$File::Find::name\n";
     }
 }

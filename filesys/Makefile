@@ -27,9 +27,7 @@ twiddle: twiddle.c
 
 unatomappend: unatomappend.c
 
-# needs libbsd libbsd-devel (RPM) or equivalent packages installed on linux
-makeloimage: makeloimage.c
-	$(CC) $(CFLAGS) -lbsd -o makeloimage makeloimage.c
+uvi: uvi.c
 
 clean:
 	git clean --force -x
@@ -39,7 +37,7 @@ depend:
 	pkg-config --exists goptfoo
 	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
-test: fdsplit findin findup getpof llcount seek twiddle
+test: fdsplit findin findup getpof llcount seek twiddle uvi
 	@prove --nocolor
 
 .PHONY: clean depend test

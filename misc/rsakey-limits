@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
 #
-# Lists maximum length possible of data encrypted with varying RSA key
-# lengths and padding options, along with size of ciphertext (binary
-# format) and the ciphertext encoded in base64 format.
+# rsakey-limits - lists maximum length possible of data encrypted
+# with varying RSA key lengths and padding options, along with size
+# of ciphertext (binary format) and the ciphertext encoded in
+# base64 format
 
 use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;
-
 use MIME::Base64;
 
 Crypt::OpenSSL::Random::random_status()
@@ -35,12 +35,3 @@ KEYSIZE: for my $ks (qw(512 1024 2048 3072 4096)) {
         }
     }
 }
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-

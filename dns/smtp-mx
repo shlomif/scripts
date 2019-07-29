@@ -1,10 +1,11 @@
 #!/usr/bin/env perl
 #
-# Returns MX server(s) for domain(s) in question.
+# smtp-mx - returns the MX server(s) for the domain(s) in question
 
 use 5.16.0;
 use warnings;
 use Getopt::Long qw(GetOptions);
+use List::Util qw(shuffle);
 use Net::DNS;
 
 Getopt::Long::Configure("bundling");
@@ -19,37 +20,34 @@ my $dns = Net::DNS::Resolver->new;
 $dns->defnames(0);    # do not search default domain
 
 shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
-chomp( @ARGV = readline ) if !@ARGV;
+chomp(@ARGV = readline) if !@ARGV;
 
 for my $domain (@ARGV) {
-    unless ( $dns->query( $domain, 'SOA' ) ) {
-        warn "warning: no SOA record for '$domain'\n";
+    unless ($dns->query($domain, 'SOA')) {
+        say STDERR "warning: no SOA record for '$domain'";
         next;
     }
-    say +( @ARGV > 1 ? "$domain: " : q{} ), join ' ', get_mx($domain);
+    say +(@ARGV > 1 ? "$domain: " : q{}), join ' ', get_mx($domain);
 }
 
 sub get_mx {
-    my $domain = shift;
-
+    my ($domain) = @_;
     my @mx;
-
-    my $mxresult = $dns->query( $domain, 'MX' );
+    my $mxresult = $dns->query($domain, 'MX');
     if ($mxresult) {
-        for my $rr ( $mxresult->answer ) {
+        for my $rr ($mxresult->answer) {
             push @mx, $rr->exchange if $rr->type eq 'MX';
         }
     } else {
         # if no MX use A record (or possibly AAAA) but this code does
         # not actually verify whether the A (or AAAA (or A6, sheesh))
         # actually exists
-        warn "notice: no MX record for '$domain'\n" if !$Flag_Quiet;
+        say STDERR "notice: no MX record for '$domain'" if !$Flag_Quiet;
         push @mx, $domain;
     }
 
-    fisher_yates_shuffle( \@mx ) if $Flag_Shuffle;
+    @mx = shuffle @mx if $Flag_Shuffle;
     @mx = $mx[0] if $Flag_OnlyOne;
-
     return @mx;
 }
 
@@ -66,14 +64,4 @@ Prints the MX records(s) for the domain(s) in question.
 
 END_USAGE
     exit 64;
-}
-
-sub fisher_yates_shuffle {
-    my $array = $_[0];
-    my $i;
-    for ( $i = @$array; --$i; ) {
-        my $j = int rand( $i + 1 );
-        next if $i == $j;
-        @$array[ $i, $j ] = @$array[ $j, $i ];
-    }
 }

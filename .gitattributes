@@ -3,7 +3,6 @@
 /bench/repeat-character linguist-language=TCL
 /date-time/stardate linguist-language=TCL
 /filesys/here linguist-language=TCL
-/filesys/is-changed-mtime linguist-language=TCL
 /filesys/repod linguist-language=TCL
 /filesys/zcomppoke linguist-language=TCL
 /logging/expectless linguist-language=TCL

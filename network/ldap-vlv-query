@@ -1,12 +1,10 @@
 #!/usr/bin/env perl
 #
-# Test LDAP Virtual List View (VLV) queries. These are used by some LDAP
-# client system libraries (Solaris), and may fail ACI checks, especially
-# if the LDAP client does not bind.
+# ldap-vlv-query - test LDAP Virtual List View (VLV) queries. these are
+# used by some LDAP client system libraries (Solaris), and may fail ACI
+# checks, especially if the LDAP client does not bind
 #
-# test-vlv-query  -h ldapserver  -b searchbase  optionalldapfilter
-#
-# Code mostly just lifted from the SYNOPSIS of the LDAP modules.
+#   test-vlv-query  -h ldapserver  -b searchbase  optionalldapfilter
 
 use 5.16.0;
 use warnings;
@@ -49,12 +47,6 @@ $mesg = $ldap->search(@args);
 ($resp) = $mesg->control(LDAP_CONTROL_VLVRESPONSE);
 $vlv->response($resp);
 
-exit 0;
-
-########################################################################
-#
-# SUBROUTINES
-
 # Nothing too exciting, just testing that output returned, query does
 # not fail. Run before/after changes or updates to see if something
 # breaks during such events.
@@ -67,12 +59,5 @@ sub process_entry {
             print join( "=", $attr, $entry->get_value($attr) ), " ";
         }
         print "\n";
-    }
-}
-
-END {
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
     }
 }

@@ -1,17 +1,17 @@
 #!/usr/bin/env perl
 #
-# Somewhat improve the horrible /proc/net/rpc/nfsd "tr " output. Shows
-# the delta from the previous value instead of unreadable counters, "."
-# if no change in that column.
+# thnfsd - somewhat improve the horrible /proc/net/rpc/nfsd "tr "
+# output. shows the delta from the previous value instead of unreadable
+# counters, "." if no change in that column
 
 use 5.16.0;
 use warnings;
 
-my %factors = ( s => 1, m => 60, h => 3600, d => 86400 );
+my %factors  = (s => 1, m => 60, h => 3600, d => 86400);
 my $duration = shift || 60;
 my $to_sleep;
 
-while ( $duration =~ m/([0-9]+)([smhd])?/g ) {
+while ($duration =~ m/([0-9]+)([smhd])?/g) {
     my $value = $1;
     $value *= $factors{$2} if $2;
     $to_sleep += $value;
@@ -23,16 +23,16 @@ my @prev;
 while (1) {
     open my $fh, '<', "/proc/net/rpc/nfsd"
       or die "could not open /proc/net/rpc/nfsd: $!\n";
-    while ( readline $fh ) {
+    while (readline $fh) {
         if (m/^th /) {
             my @data = split;
             splice @data, 0, 2;
             if (@prev) {
                 my @delta;
-                for my $i ( 0 .. $#data ) {
+                for my $i (0 .. $#data) {
                     push @delta, sprintf "%.1f", $data[$i] - $prev[$i];
                 }
-                print join( "\t", map { $_ == 0 ? '.' : $_ } @delta ), "\n";
+                print join("\t", map { $_ == 0 ? '.' : $_ } @delta), "\n";
             }
             @prev = @data;
             last;

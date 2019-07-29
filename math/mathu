@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
 #
-# Performs various mathematical and statistical operations on input
-# data. (Also known as me being too lazy to use R, or for when I want
-# something quick to mess about with on the CLI, since I am terrible at
-# doing math in my head.) Not for any sort of unattended or non-
-# interactive use, due to lack of input sanity checking, etc.
+# mathu - performs various mathematical and statistical operations on
+# input data. (also known as me being too lazy to use R, or for when I
+# want something quick to mess about with on the CLI, since I am
+# terrible at doing math in my head.) not for any sort of unattended or
+# non- interactive use, due to lack of input sanity checking, etc
 
 use 5.16.0;
 use Math::BigInt;
@@ -217,7 +217,7 @@ sub handle_derivative {
             }
         }
         print join( ' ', ( @input == 1 ? () : $input[0] ), @values ), "\n";
-        @prev_vals = grep { $_ ne 'NA' } @values;
+        @prev_vals  = grep { $_ ne 'NA' } @values;
         $previous_x = $input[0];
     }
 }
@@ -515,12 +515,4 @@ sub standard_deviation {
     my $mean     = shift;
 
     return sqrt( mean( [ map ( ( $_ - $mean )**2, @$arrayref ) ] ) );
-}
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
 }

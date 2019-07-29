@@ -15,6 +15,10 @@
 
 #include <pcre.h>
 
+/* exit codes */
+enum { VR_OK, VR_ERR, VR_NOSOC, VR_PCRE, VR_NOMATCH, VR_PERM, VR_EXEC,
+        VR_DOTS };
+
 int Flag_Preview;               /* -n */
 
 /* NOTE this restricts the length of the options (to prevent the remote
@@ -45,7 +49,7 @@ int main(int argc, char *argv[])
 
 #ifdef __OpenBSD__
     if (pledge("exec rpath stdio", NULL) == -1)
-        err(1, "pledge failed");
+        err(VR_ERR, "pledge failed");
 #endif
 
 #ifdef SYSLOG
@@ -59,7 +63,7 @@ int main(int argc, char *argv[])
 #ifdef SYSLOG
         syslog(LOG_NOTICE, "no SSH_ORIGINAL_COMMAND set for %s", client);
 #endif
-        exit(2);
+        exit(VR_NOSOC);
     }
 
     /* precompiling the pattern gives a 2% speed increase, slightly
@@ -69,7 +73,7 @@ int main(int argc, char *argv[])
         syslog(LOG_ERR, "pcre compile failed at offset %d: %s ??", erroffset,
                error);
 #endif
-        exit(3);
+        exit(VR_PCRE);
     }
 
     rc = pcre_exec(re, NULL, soc, strnlen(soc, MAX_CMD_LEN), 0, 0, offsets,
@@ -78,17 +82,24 @@ int main(int argc, char *argv[])
 #ifdef SYSLOG
         syslog(LOG_NOTICE, "match failed for %s", client);
 #endif
-        exit(4);
+        exit(VR_NOMATCH);
     }
 
-// TODO that there are not ../ runs in path
+    /* disallow .. runs in the path */
+    if (strstr(soc + offsets[2 * SUBSTRINGS], "..") != NULL) {
+#ifdef SYSLOG
+        syslog(LOG_NOTICE, "path may not contain .. '%s'",
+               soc + offsets[2 * SUBSTRINGS]);
+#endif
+        exit(VR_DOTS);
+    }
 
     if (access(soc + offsets[2 * SUBSTRINGS], R_OK | X_OK) != 0) {
 #ifdef SYSLOG
         syslog(LOG_NOTICE, "not allowed to access '%s'",
                soc + offsets[2 * SUBSTRINGS]);
 #endif
-        exit(5);
+        exit(VR_PERM);
     }
 
     for (i = 1; i <= SUBSTRINGS; i++) {
@@ -109,12 +120,12 @@ int main(int argc, char *argv[])
 
     if (Flag_Preview) {
         puts(soc + offsets[2 * SUBSTRINGS]);
-        exit(EXIT_SUCCESS);
+        exit(VR_OK);
     }
     execvp(command[0], command);
 
 #ifdef SYSLOG
     syslog(LOG_NOTICE, "could not exec '%s' (%d)", command[0], errno);
 #endif
-    exit(6);
+    exit(VR_EXEC);
 }

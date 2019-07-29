@@ -47,12 +47,6 @@ for my $nsip ( shuffle @Dns_Servers ) {
     print "$epoch $nsip $elapsed @status\n";
 }
 
-exit 0;
-
-########################################################################
-#
-# SUBROUTINES
-
 sub print_help {
     warn <<"HELP";
 Usage: dns-latency-audit --queryhost=host [--querytype=A] dnsip1 [dnsip2 ..]
@@ -60,12 +54,4 @@ Usage: dns-latency-audit --queryhost=host [--querytype=A] dnsip1 [dnsip2 ..]
 Keep tabs on DNS request latency.
 HELP
     exit 64;
-}
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
 }

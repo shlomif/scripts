@@ -1,35 +1,23 @@
 #!/usr/bin/env perl
 #
-# Print input data in random order.
+# shuffle - print input data in random order
 #
-# TODO FYS algorithm works on in-memory array; way to shuffle while
-# streaming over the input, similar to "print random line from file?"
-# (shuf, apparently, if you have that toolset)
+# see also `shuf` if you have that toolset installed
 
 my @input = readline;
-
 die "error: no data supplied to shuffle\n" unless @input;
 
-fisher_yates_shuffle( \@input );
-
+fisher_yates_shuffle(\@input);
 print for @input;
 
-# fisher_yates_shuffle( \@array ) : generate a random permutation
-# of @array in place
+# fisher_yates_shuffle(\@array) - generate a random permutation of
+# @array in place
 sub fisher_yates_shuffle {
     my $array = shift;
     my $i;
-    for ( $i = @$array; --$i; ) {
-        my $j = int rand( $i + 1 );
+    for ($i = @$array; --$i;) {
+        my $j = int rand($i + 1);
         next if $i == $j;
         @$array[ $i, $j ] = @$array[ $j, $i ];
-    }
-}
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
     }
 }

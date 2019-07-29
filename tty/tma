@@ -1,2 +1,0 @@
-#!/bin/sh
-exec tmux attach -t "$1"

@@ -25,6 +25,12 @@ my @tests = (
         exit_status => 0,
         stdout      => qr(^t$),
     },
+    # usually naughty .. runs are not allowed (if they need to be
+    # supported for some reason, fiddle with the code to allow that)
+    {   args        => '-n',
+        env         => { SSH_ORIGINAL_COMMAND => $soc . 'asdf/../../etc' },
+        exit_status => 7,
+    },
     # NOTE some vendors put files into this directory (??)
     {   args        => '-n',
         env         => { SSH_ORIGINAL_COMMAND => $soc . '/var/empty/' . $$ },

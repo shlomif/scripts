@@ -1,4 +1,4 @@
-.Dd December  7 2017
+.Dd July 28 2019
 .Dt UVI 1
 .nh
 .Os
@@ -13,17 +13,26 @@
 .Sh DESCRIPTION
 .Nm
 edits the given file(s) and reverts the access and modification times on
-the files afterwards. Note that the directory that contains the file
-will not be changed by
-.Nm
-so if the editor creates temporary files the parent directory may change.
+the files afterwards.
 .Sh ENVIRONMENT
+.Dv VISUAL
+or
 .Dv EDITOR
-is used to determine what editor to run, otherwise
-.Cm vi .
+or failing those
+.Cm vi
+is used to edit the file(s).
 .Sh EXIT STATUS
 .Ex -std
+.Sh EXAMPLES
+A useful use of this program is to edit a file so that the edit does not
+float to the top of a file modification list. Note that some editors may
+write temporary or backup files to the directory of the file(s) being
+edited; these changes may leak information. If possible, use a simple
+editor without such features.
+.Pp
+.Dl $ Ic VISUAL=ed uvi ...
 .Sh SEE ALSO
-.Xr stat 1
+.Xr stat 1 ,
+.Xr utimes 2
 .Sh AUTHOR
 .An Jeremy Mates

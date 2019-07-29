@@ -1,18 +1,16 @@
 #!/usr/bin/env perl
 #
-# Parses output from repquota(8) into formats suitable for further
-# processing such as SQL upload or insertion into RRDTool files.
+# pquotarep - parses output from repquota(8) into formats suitable for
+# further processing such as SQL upload or insertion into RRDTool files
 
 use 5.16.0;
 use warnings;
-
 use Data::Dumper;
 
 my ( $data, $cur_filesys, $cur_type );
 
 while ( readline *STDIN ) {
     chomp;
-
     # loose match on user/group list data
     if (/^[a-z\d]+\s/) {
         die "error: no current filesystem and type\n"
@@ -34,7 +32,6 @@ while ( readline *STDIN ) {
      (\d+) \s*        # files, hard
                       # KLUGE empty files grace column?
      /x;
-
         # sanity checks
         next unless defined $tmp{blocks} and $tmp{blocks} =~ m/^\d+$/;
         next unless defined $tmp{files}  and $tmp{files} =~ m/^\d+$/;
@@ -68,12 +65,3 @@ while ( readline *STDIN ) {
 }
 
 #print Dumper $data;
-
-END {
-    # Report problems when writing to stdout (perldoc perlopentut)
-    unless ( close(STDOUT) ) {
-        warn "error: problem closing STDOUT: $!\n";
-        exit 74;
-    }
-}
-

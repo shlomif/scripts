@@ -1,29 +1,53 @@
 #!/usr/bin/env perl
 #
-# create OpenSMTPD table(5) entries to ban spammer domains
+# badsender - create OpenSMTPD table(5) entries to ban spammers
 #
-#   table badsenders db:/etc/mail/notfromthese.db
-#   accept from any sender ! <badsenders> for domain ...
+#   table badsenders file:/etc/mail/badsenders
+#   match from any ... !mail-from regex <badsenders> ...
+#
+# see also RFC 2635
+#
+# suffice to say spammers and I will never get along. I recall having
+# conversed with one many years ago; the spammer asked what was wrong
+# with, say, slipping advertisements under windshield wipers of parked
+# cars and I responded that while walking around town I had seen that
+# litter clogging storm drains
 
 use 5.16.0;
 use warnings;
 use Net::DNS;
 
-my $spammer = shift // die "Usage: badsender smtp-server\n";
+my $spammer = $ARGV[0] // die "Usage: badsender hostname\n";
 my $res     = Net::DNS::Resolver->new;
+my $host    = qr/[^.]{1,63}/;
+my (@mx, %seen_mx);
 
-if ( my ($domain) = $spammer =~ m/\.([^.]{1,63}\.[^.]{1,63})\s*$/ ) {
+$spammer =~ s/\.?\s*$//;
+push @mx, $spammer;
+if (my ($domain) = $spammer =~ m/\.($host\.$host)$/) {
+    $seen_mx{$domain} = 1;
+    push @mx, $domain;
     ban($domain);
 } else {
+    $seen_mx{$spammer} = 1;
     ban($spammer);
 }
 
+# the MX often give other clues as to other domains in need of a
+# permanent ban
+for my $dom (@mx) {
+    for my $rr (mx($res, $dom)) {
+        my $mx = $rr->exchange;
+        say STDERR "info: mx " . $mx unless $seen_mx{$mx}++;
+    }
+}
+
 sub ban {
-    for my $prefix ( '@', '@*.' ) {
-        my $pattern = $prefix . $_[0];
-        say $pattern;
+    my ($dom) = @_;
+    # some spammers buy lots of domains with digits stuck on at the end
+    if ($dom =~ m/\d+(\.$host)$/) {
+        $dom =~ s//[0-9]*$1/;
     }
-    for my $rr ( mx( $res, $_[0] ) ) {
-        warn "info: mx " . $rr->exchange . "\n";
-    }
+    $dom =~ s/\./\\./g;
+    say '@.*', $dom, '$';
 }
