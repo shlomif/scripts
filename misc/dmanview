@@ -18,7 +18,7 @@ SECTION=`fdsplit ext "$FILE"`
    sleep 1
    mkdir -p -- "$HOME/usr/share/man/man$SECTION"
 }
-cp -p -- "$FILE" "$HOME/usr/share/man/man$SECTION/$FILE"
+cp -p -- "$FILE" "$HOME/usr/share/man/man$SECTION/`basename $FILE`"
 
 PAGE=`fdsplit root "$FILE"`
 PAGE=`basename "$PAGE"`

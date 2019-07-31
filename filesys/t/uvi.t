@@ -5,8 +5,12 @@ use UtilityTestBelt;
 my $test_prog = './uvi';
 my $test_dir  = tempdir('uvi.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1);
 
-delete @ENV{qw(EDITOR VISUAL)};
-$ENV{EDITOR} = 'touch';
+my @both = qw(EDITOR VISUAL);
+delete @ENV{@both};
+my $one = $both[ rand @both ];
+$ENV{$one} = 'touch';
+
+diag "testing with $one";
 
 my $subdir = "nope";
 

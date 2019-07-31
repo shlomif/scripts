@@ -25,7 +25,8 @@ void find_core_or_prog(char **corefilep, char **prognamep);
 char **parse_debugger_args(char *progname, char *corefile);
 char *prog_of_core(const char *filename);
 
-const char *Flag_Debugger = "gdb -q";   // -D
+/* for OpenBSD pkg_add gdb or change it */
+const char *Flag_Debugger = "egdb -q";   // -D
 
 int main(int argc, char *argv[])
 {
