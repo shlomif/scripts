@@ -8,7 +8,7 @@
 #include <ctype.h>
 #include <sysexits.h>
 
-int Flag_All;                   /* -a */
+int Flag_Header;                /* -H */
 
 char fill = '\n';
 char *start;
@@ -19,7 +19,7 @@ int nl = 0;
 %}
 %%
 
-[^\n]+ { fputs(yytext, stdout); if (Flag_All) { fill = ' '; BEGIN BODY; } }
+[^\n]+ { fputs(yytext, stdout); if (!Flag_Header) { fill = ' '; BEGIN BODY; } }
 \n\n   { putchar('\n'); nl = 1; BEGIN BODY; }
 \n     { putchar('\n'); nl = 1; }
 
@@ -52,15 +52,15 @@ int main(int argc, char *argv[]) {
     FILE *fh;
     int ch;
 
-    while((ch = getopt(argc, argv, "h?a")) != -1) {
+    while((ch = getopt(argc, argv, "h?H")) != -1) {
         switch (ch) {
-        case 'a':
-            Flag_All = 1;
+        case 'H':
+            Flag_Header = 1;
             break;
         case 'h':
         case '?':
         default:
-            fprintf(stderr, "Usage: unwrap [-a] [file .. | -]\n");
+            fprintf(stderr, "Usage: unwrap [-H] [file .. | -]\n");
             exit(EX_USAGE);
         }
     }

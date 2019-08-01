@@ -8,14 +8,14 @@
 .Sh SYNOPSIS
 .Bk -words
 .Nm
-.Op Fl a
+.Op Fl H
 .Op Ar file .. | -
 .Ek
 .Sh DESCRIPTION
 .Nm
 unfolds hard-wrapped text lines preserving paragraphs. The first
-paragraph will not be altered unless the
-.Fl a
+paragraph will not be altered if the
+.Fl H
 flag is given. Leading whitespace of continuation lines will be consumed.
 .Sh EXIT STATUS
 .Ex -std
