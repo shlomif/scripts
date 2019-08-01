@@ -1,3 +1,5 @@
+%option 8bit nodefault noinput nounput noyywrap
+
 %%
 
 \x07    { printf("\\a"); }

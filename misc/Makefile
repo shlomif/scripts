@@ -25,7 +25,7 @@ depend:
 	cpanm --installdeps .
 	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
-test: bt copycat justblocks procrust sgrax waitornot
+test: bt copycat justblocks procrust sgrax waitornot unwrap
 	make -C t
 	@prove --nocolor
 

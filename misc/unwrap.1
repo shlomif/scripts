@@ -1,0 +1,26 @@
+.Dd August  1 2019
+.Dt UNWRAP 1
+.nh
+.Os
+.Sh NAME
+.Nm unwrap
+.Nd unfolds hard-wrapped text lines
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl a
+.Op Ar file .. | -
+.Ek
+.Sh DESCRIPTION
+.Nm
+unfolds hard-wrapped text lines preserving paragraphs. The first
+paragraph will not be altered unless the
+.Fl a
+flag is given.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr fmt 1 ,
+.Xr procrust 1
+.Sh AUTHOR
+.An Jeremy Mates
