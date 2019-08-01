@@ -3,28 +3,55 @@
 %option 8bit nodefault noinput nounput noyywrap
 %x BODY
 %{
+
 #include <err.h>
+#include <ctype.h>
 #include <sysexits.h>
 
 int Flag_All;                   /* -a */
 
 char fill = '\n';
+char *start;
 int nl = 0;
+
+#define NEW_PP {putchar('\n'); fill = '\n'; nl = 1;}
+
 %}
 %%
-[^\n]+  { fputs(yytext, stdout); if (Flag_All) { fill = ' '; BEGIN BODY; } }
-\n\n    { putchar('\n'); nl = 1; BEGIN BODY; }
-\n      { putchar('\n'); nl = 1; }
 
-<BODY>[^\n]+ { putchar(fill); fputs(yytext, stdout); fill = ' '; nl = 0; }
-<BODY>\n\n+  { putchar('\n'); fill = '\n'; nl = 1; }
+[^\n]+ { fputs(yytext, stdout); if (Flag_All) { fill = ' '; BEGIN BODY; } }
+\n\n   { putchar('\n'); nl = 1; BEGIN BODY; }
+\n     { putchar('\n'); nl = 1; }
+
+<BODY>[^\n]+ {
+    putchar(fill);
+    start = yytext;
+    /* consume leading whitespace on continuation lines */
+    if (!nl) {
+        while (*start != '\0') {
+    	    if (isblank(*start)) {
+                start++;
+                continue;
+            }
+            break;
+    	}
+    }
+    if (*start != '\0') {
+    	fputs(start, stdout);
+    	fill = ' '; nl = 0;
+    } else NEW_PP;
+}
+<BODY>\n\n+ NEW_PP;
 <BODY>\n
 
 <<EOF>> { if (!nl) putchar('\n'); yyterminate(); }
+
 %%
+
 int main(int argc, char *argv[]) {
     FILE *fh;
     int ch;
+
     while((ch = getopt(argc, argv, "h?a")) != -1) {
         switch (ch) {
         case 'a':
@@ -33,12 +60,13 @@ int main(int argc, char *argv[]) {
         case 'h':
         case '?':
         default:
-	    fprintf(stderr, "Usage: unwrap [-a] [file .. | -]\n");
-	    exit(EX_USAGE);
+            fprintf(stderr, "Usage: unwrap [-a] [file .. | -]\n");
+            exit(EX_USAGE);
         }
     }
     argc -= optind;
     argv += optind;
+
     if (argc == 0 || strncmp(*argv, "-", (size_t) 2) == 0) {
         yylex();
     } else {
@@ -48,8 +76,9 @@ int main(int argc, char *argv[]) {
             yyrestart(fh);
             yylex();
             fclose(fh);
-	    argv++;
+            argv++;
         }
     }
+
     exit(EXIT_SUCCESS);
 }

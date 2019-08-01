@@ -53,6 +53,14 @@ my @tests = (
             '', "and some more"
         ],
     },
+    # and leading whitespace needs to be folded into wrapped lines?
+    {   args   => 't/unwrap-leadingws',
+        stdin  => $msg,
+        stdout => [
+            "From: bar", "Subject: foo", "    zot", '',
+	    "    some short lines", '', "and some more"
+        ],
+    },
     {   args   => '-h',
         status => 64,
         stderr => qr/^Usage: /,
