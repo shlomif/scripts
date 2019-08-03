@@ -1,0 +1,32 @@
+.Dd August  3 2019
+.Dt IGNORE 1
+.nh
+.Os
+.Sh NAME
+.Nm ignore
+.Nd adds files or patterns to 
+.Pa .gitignore
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar file-or-pattern Op ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+adds the given file(s) or pattern(s) to the
+.Pa .gitignore
+file in the current directory, but only if a git repository is detected.
+Duplicate entries will not be added, and the ignore list is kept sorted.
+.Sh ENVIRONMENT
+.Dv GIT_CEILING_DIRECTORIES
+and
+.Dv GIT_DIR
+influence whether a given directory is considered a git repository.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+.Dl $ Ic ignore '*.core' fooprog
+.Sh SEE ALSO
+.Xr git 1
+.Sh AUTHOR
+.An Jeremy Mates

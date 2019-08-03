@@ -1,0 +1,28 @@
+#!/usr/bin/env perl
+#
+# withpager - something like ... | while read x; do ... $x | $PAGER; done
+#   only in the shorter form ... | withpager [-0] ...
+
+use Getopt::Long qw(GetOptionsFromArray);
+use IPC::Run qw(run);
+
+# this complication tries to avoid the need to otherwise -- delimit the
+# subsequent command from the options for this program (unless you have
+# commands that being with - which is probably a bad idea)
+while (($i, $arg) = each @ARGV) {
+    last if $arg !~ m/^[-]/;
+    push @opts, $arg;
+}
+if ($i) {
+    splice @ARGV, 0, $i;
+    GetOptionsFromArray(\@opts, '0' => \$Flag_Null) or exit 64;
+}
+
+$pager = $ENV{PAGER} // 'more';
+
+$/ = "\0" if $Flag_Null;
+
+while (readline *STDIN) {
+    chomp unless $Flag_Null;
+    run [ @ARGV, $_ ], '|', [$pager];
+}

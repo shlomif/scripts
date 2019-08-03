@@ -2,23 +2,68 @@
 #
 # ignore - adds input to the git ignore list
 
-use 5.16.0;
-use warnings;
-use Cwd qw(getcwd);
-use File::AtomicWrite;
+use feature qw(say);
+use Cwd qw(getcwd realpath);
+use File::AtomicWrite ();
 use File::Slurper qw(read_lines);
+use File::Spec::Functions qw(catdir splitdir);
 
-die "Usage: ignore file-or-pattern [..]\n" unless @ARGV;
+if (!@ARGV) {
+    say STDERR 'Usage: ignore file-or-pattern [..]';
+    exit 64;
+}
 
-if ( system(qw{findup -H -q .git}) == 0 ) {
+my $here = getcwd();
+
+if (findup_git($here)) {
     my %ignore;
-    eval { @ignore{ read_lines ".gitignore" } = () };
+    eval { @ignore{ read_lines('.gitignore') } = () };
     @ignore{@ARGV} = ();
-    my $aw = File::AtomicWrite->new( { file => ".gitignore" } );
+    my $aw = File::AtomicWrite->new({ file => '.gitignore' });
     my $fh = $aw->fh;
-    say $fh $_ for sort keys %ignore;
+    binmode $fh, ':encoding(UTF-8)';
+    $fh->say($_) for sort keys %ignore;
     $aw->commit;
     exit;
 }
 
-die "no repository found above '", getcwd, "'\n";
+say STDERR 'no repository found above ', $here;
+exit 1;
+
+# logic according to the git(1) docs on GIT_CEILING_DIRECTORIES
+sub findup_git {
+    my $dir = realpath($_[0]);
+
+    return 1 if -d catdir($dir, '.git');
+
+    my $ceiling = git_ceiling_dirs();
+    my @parts   = splitdir($dir);
+    pop @parts;
+
+    while (@parts) {
+        $dir = catdir(@parts);
+        # TODO does git(1) do a realpath(3) on GIT_DIR ?
+        return 1
+          if exists $ENV{GIT_DIR}
+          and $dir eq $ENV{GIT_DIR}
+          and -d catdir($ENV{GIT_DIR}, '.git');
+        return 0 if exists $ceiling->{$dir};
+        return 1 if -d catdir($dir, '.git');
+        pop @parts;
+    }
+    return 0;
+}
+
+sub git_ceiling_dirs {
+    my (%dirs, $noresolv);
+    if (exists $ENV{GIT_CEILING_DIRECTORIES}) {
+        for my $d (split ':', $ENV{GIT_CEILING_DIRECTORIES}) {
+            if ($d eq '') {
+                $noresolv = 1;
+                next;
+            }
+            $dirs{ $noresolv ? $d : realpath($d) } = 1;
+        }
+    }
+    return \%dirs;
+}
