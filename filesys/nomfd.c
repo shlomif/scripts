@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
 {
     int ch;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "f:h?")) != -1) {
         switch (ch) {
         case 'f':
@@ -48,8 +53,7 @@ int main(int argc, char *argv[])
     /* start at three because of std{in,out,err} */
     for (long i = 3; i < Flag_FD_Max; i++) {
         if (open(*argv, O_RDONLY) < 0) {
-            warn("open() failed at %ld of %ld, ceasing opens on '%s'", i,
-                 Flag_FD_Max, *argv);
+            warn("open failed at %ld of %ld", i, Flag_FD_Max);
             break;
         }
     }
@@ -64,6 +68,6 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    fprintf(stderr, "Usage: nomfd [-f fdcount] file\n");
+    fputs("Usage: nomfd [-f fdcount] file\n", stderr);
     exit(EX_USAGE);
 }

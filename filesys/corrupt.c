@@ -70,6 +70,11 @@ int main(int argc, char *argv[])
 {
     int ch;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath wpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?i:n:o:")) != -1) {
         switch (ch) {
         case 'i':
@@ -179,6 +184,6 @@ void corrupt_file(const char *filename)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: corrupt [-i skip] -o odds [-n limit] file ..\n");
+    fputs("Usage: corrupt [-i skip] -o odds [-n limit] file ..\n", stderr);
     exit(EX_USAGE);
 }

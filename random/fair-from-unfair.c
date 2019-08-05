@@ -1,9 +1,8 @@
-/*
- * Extract fair results from a biased coinflip (for edification).
- */
+/* fair-from-unfair - extract fair results from a biased coinflip */
 
 #include <err.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
@@ -19,6 +18,10 @@ double audit(bool(*result) (void));
 
 int main(void)
 {
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
     printf("house heads %.2f%%\n", audit(&house_coinflip));
     printf("      heads %.2f%%\n", audit(&coinflip));
 
@@ -41,15 +44,15 @@ bool house_coinflip(void)
     return arc4random() > UINT32_MAX / IF_YOU_HAVE_TO_ASK ? true : false;
 }
 
-/* Basically, you negotiate with the flipper of the (unfair?) coin to make two
- * rolls, with the provision that HT means H, TH means T, and anything else
- * means the process is started anew. */
+/* basically, you negotiate with the flipper of the (unfair?) coin to
+ * make two rolls, with the provision that HT means H, TH means T, and
+ * anything else means the process is started anew */
 bool coinflip(void)
 {
     bool rolls[2];
 
-    /* May run forever - if the house is really unfair, well, pushing up
-     * the daisies is an occupation not without precedence. */
+    /* may run forever - if the house is really unfair, well, pushing up
+     * the daisies is an occupation not without precedence */
     while (1) {
         rolls[0] = house_coinflip();
         rolls[1] = house_coinflip();

@@ -1,5 +1,5 @@
-/* blocks signals then replaces self with the specified command. only
- * SIGINT is masked by default */
+/* blocksig - blocks signals then replaces self with the specified
+ * command. only SIGINT is masked by default */
 
 #include <ctype.h>
 #include <err.h>
@@ -24,6 +24,11 @@ int main(int argc, char *argv[])
     int advance = 0;
     int ch, sig_num;
     sigset_t block;
+
+#ifdef __OpenBSD__
+    if (pledge("exec stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     setlocale(LC_ALL, "C");
 
@@ -86,6 +91,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: blocksig [-s 'signum ..'] command [args ..]\n");
+    fputs("Usage: blocksig [-s 'signum ..'] command [args ..]\n", stderr);
     exit(EX_USAGE);
 }

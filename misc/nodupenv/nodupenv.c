@@ -9,8 +9,13 @@ int main(int argc, char *argv[])
 {
     char **envp, *envline, *envname, *orig;
 
+#ifdef __OpenBSD__
+    if (pledge("exec stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc < 2) {
-        fprintf(stderr, "Usage: nodupenv command [args ..]\n");
+        fputs("Usage: nodupenv command [args ..]\n", stderr);
         exit(EX_USAGE);
     }
     argv++;                     /* move past our name for exec */

@@ -56,6 +56,12 @@ int main(int argc, char *argv[])
     Tcl_Obj *Assign = NULL;
     Tcl_Obj *Script = NULL;
 
+// TODO untested, need to attach serial device at $work
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio tty wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "bB:Ce:h?I:M:P:rSX")) != -1) {
         switch (ch) {
         case 'b':
@@ -241,8 +247,8 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: rdcomm [-b] [-B baud] [-e expr] [-M minread] [-r] [/dev/foo]\n");
+    fputs("Usage: rdcomm [-b] [-B baud] [-e expr] [-M minread] [-r]"
+          " [/dev/foo]\n", stderr);
     exit(EX_USAGE);
 }
 

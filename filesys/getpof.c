@@ -35,6 +35,11 @@ int main(int argc, char *argv[])
 
     int ret = EXIT_SUCCESS;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?0qrx")) != -1) {
         switch (ch) {
         case '0':
@@ -137,6 +142,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: getpof [-0] [-r] [-q] [-x] filename [dir ..]\n");
+    fputs("Usage: getpof [-0] [-r] [-q] [-x] filename [dir ..]\n", stderr);
     exit(EX_USAGE);
 }

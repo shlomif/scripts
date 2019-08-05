@@ -43,6 +43,11 @@ int main(int argc, char *argv[])
     struct timespec rqtp;
     time_t starttime;
 
+#ifdef __OpenBSD__
+    if (pledge("cpath stdio wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "Ah?")) != -1) {
         switch (ch) {
         case 'A':
@@ -112,6 +117,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: unatomappend [-A] file pattern iterations\n");
+    fputs("Usage: unatomappend [-A] file pattern iterations\n", stderr);
     exit(EX_USAGE);
 }

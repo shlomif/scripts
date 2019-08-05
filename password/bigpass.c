@@ -1,6 +1,4 @@
-/*
- * crypto_pwhash foo (for memory usage, etc)
- */
+/* bigpass - crypto_pwhash foo (for memory usage, etc) */
 
 #include <sys/resource.h>
 
@@ -29,6 +27,11 @@ int main(int argc, char *argv[])
     const char *password = "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf";
 
     struct rusage procuse;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "h?m:o:")) != -1) {
         switch (ch) {
@@ -78,6 +81,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: bigpass [-m memlimit] [-o opslimit]\n");
+    fputs("Usage: bigpass [-m memlimit] [-o opslimit]\n", stderr);
     exit(EX_USAGE);
 }

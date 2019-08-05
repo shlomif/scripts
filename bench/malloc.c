@@ -80,6 +80,11 @@ int main(int argc, char *argv[])
     struct timespec wait;
     unsigned long i;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "c:h?lm:t:")) != -1) {
         switch (ch) {
 
@@ -138,7 +143,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: malloc [-l] -c count -m memory -t threads\n");
+    fputs("Usage: malloc [-l] -c count -m memory -t threads\n", stderr);
     exit(EX_USAGE);
 }
 

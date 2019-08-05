@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd August  4 2019
 .Dt FDSPLIT 1
 .nh
 .Os
@@ -44,11 +44,12 @@ character.
 In the last example, the filename component is the empty string as
 everything preceding the final
 .Qq /
-is considered part of the directory path . Any trailing slashes should
-be removed prior to calling
+is considered part of the directory path. Any trailing slashes must be
+removed prior to calling
 .Nm
 if this behavior is a problem.
 .Sh SEE ALSO
-.Xr cut 1
+.Xr cut 1 ,
+.Xr pathof 1
 .Sh AUTHOR
 .An Jeremy Mates

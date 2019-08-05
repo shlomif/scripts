@@ -12,6 +12,10 @@ void emit_help(void);
 
 int main(int argc, char *argv[])
 {
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
     if (argc != 2)
         emit_help();
     if (realpath(argv[1], (char *) &buf) == NULL)
@@ -22,6 +26,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: pathof filename\n");
+    fputs("Usage: pathof filename\n", stderr);
     exit(EX_USAGE);
 }

@@ -1,4 +1,4 @@
-/* Simple C delta time calculator - possibly handy for benchmark needs,
+/* simple C delta time calculator - possibly handy for benchmark needs,
  * assuming what is being benchmarked runs for a sufficient period of
  * time though consider instead using gprof or similar:
  *
@@ -6,10 +6,9 @@
  *   ./...
  *   gprof ... gmon.out
  *
- * or investigating performance via dtrace or sysdig type OS tools. Yet
+ * or investigating performance via dtrace or sysdig type OS tools. yet
  * another option is the perl Dumbbench module, which uses statistical
- * foo on the wallclock time between various runs.
- */
+ * foo on the wallclock time between various runs */
 
 #include <sys/resource.h>
 #include <sys/time.h>

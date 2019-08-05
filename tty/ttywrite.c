@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ttywrite [-d delayms] [-N] dev [message ...|-]\n");
+    fputs("Usage: ttywrite [-d delayms] [-N] dev [message ...|-]\n", stderr);
     exit(EX_USAGE);
 }
 

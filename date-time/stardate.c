@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #include <tcl.h>
 
@@ -11,6 +12,10 @@ int main(void)
 {
     int ret;
     Tcl_Interp *Interp = NULL;
+#ifdef __OpenBSD__
+    if (pledge("getpw rpath stdio tty", NULL) == -1)
+        err(1, "pledge failed");
+#endif
     if ((Interp = Tcl_CreateInterp()) == NULL)
         errx(EX_OSERR, "Tcl_CreateInterp failed");
     if (Tcl_Init(Interp) == TCL_ERROR)

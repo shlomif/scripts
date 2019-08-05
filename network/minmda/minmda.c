@@ -8,6 +8,7 @@
 
 #include "minmda.h"
 
+char * sanitize_hostid(char *hostid);
 void write_buf(const char *mfile_tmp, int mailfd,
                crypto_hash_sha256_state * hash_state, const unsigned char *buf,
                ssize_t amount);
@@ -18,7 +19,7 @@ char *mfile_tmp = NULL;
 int main(int argc, char *argv[])
 {
     /* arguments */
-    char *cp, *maildir_path, *hostid;
+    char *maildir_path, *hostid;
     size_t len;
 
     /* output file foo */
@@ -33,7 +34,8 @@ int main(int argc, char *argv[])
     crypto_hash_sha256_state hash_state;
 
 #ifdef __OpenBSD__
-    if (pledge("stdio rpath wpath cpath", NULL) == -1)
+    /* unveil is new in OpenBSD 6.4 */
+    if (pledge("cpath rpath stdio unveil wpath", NULL) == -1)
         err(MEXIT_STATUS, "pledge failed");
 #endif
 
@@ -52,28 +54,16 @@ int main(int argc, char *argv[])
 
     setlocale(LC_ALL, "C");
 
-    argc--;
-    argv++;
-    if (argc != 2) {
-        fprintf(stderr, "Usage: minmda mailbox-dir host-id\n");
+    if (argc != 3) {
+        fputs("Usage: minmda mailbox-dir host-id\n", stderr);
         exit(MEXIT_STATUS);
     }
-    maildir_path = *argv++;
+    maildir_path = argv[1];
     len = strnlen(maildir_path, PATH_MAX);
     if (len == 0 || len >= PATH_MAX)
         errx(MEXIT_STATUS, "invalid mailbox-dir");
 
-    cp = hostid = *argv;
-    while (*cp != '\0') {
-        /* "replace / with \057 and : with \072" is how the maildir docs
-         * indicate how to handle "invalid host names" this here instead
-         * deals only with what is illegal in a unix filename */
-        if (*cp == '/')
-            *cp = '_';
-        cp++;
-    }
-    if (cp - hostid <= 0)
-        errx(MEXIT_STATUS, "invalid empty host-id");
+    hostid = sanitize_hostid(argv[2]);
 
     make_paths(maildir_path);
     gen_filenames(maildir_path, hostid, &mfile_tmp, &mfile_new);
@@ -146,7 +136,6 @@ int main(int argc, char *argv[])
         unlink(mfile_tmp);
         errx(MEXIT_STATUS, "failed to verify written data");
     }
-
 #ifdef MINMDA_ALWAYS_CORRUPTS
     warnx("corruption did not happen ??");
     _exit(MEXIT_STATUS);
@@ -156,8 +145,27 @@ int main(int argc, char *argv[])
         unlink(mfile_tmp);
         errx(MEXIT_STATUS, "rename failed");
     }
+    //free(mfile_tmp);
+    //free(mfile_new);
 
     _exit(EXIT_SUCCESS);
+}
+
+inline char * sanitize_hostid(char *hostid)
+{
+    char *cp;
+    if (*hostid == '\0')
+        errx(MEXIT_STATUS, "invalid empty host-id");
+    cp = hostid;
+    while (*cp != '\0') {
+        /* "replace / with \057 and : with \072" is how the maildir docs
+         * indicate how to handle "invalid host names" this here instead
+         * deals only with what is illegal in a unix filename */
+        if (*cp == '/')
+            *cp = '_';
+        cp++;
+    }
+    return hostid;
 }
 
 void tempexit(int unused)

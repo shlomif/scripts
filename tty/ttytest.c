@@ -1,11 +1,14 @@
-/* Iterates characters to see what happens to a terminal via the TIOCSTI
- * ioctl. What state the terminal is in and what it is running will also
- * be important, as for example zsh may be configured to react to
- * certain characters, there may or may not be signal handlers, etc. */
+/* ttytest - iterates characters to see what happens to a terminal via
+ * the TIOCSTI ioctl. what state the terminal is in and what it is
+ * running will also be important, as for example zsh may be configured
+ * to react to certain characters, there may or may not be signal
+ * handlers, etc
+ *
+ * OpenBSD dropped support for the TIOCSTI ioctl */
 
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__)
 #include <sys/ttycom.h>
 #endif
 

@@ -48,6 +48,11 @@ int main(int argc, char *argv[])
     int family = AF_UNSPEC;
     struct addrinfo hints, *target;
 
+#ifdef __OpenBSD__
+    if (pledge("dns inet rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?46b:L:nt:")) != -1) {
         switch (ch) {
         case '4':
@@ -124,8 +129,9 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: portpester [-4|-6] [-b delay] [-L period] [-n] [-t timeout] host port\n");
+    fputs
+        ("Usage: portpester [-4|-6] [-b delay] [-L period] [-n] [-t timeout] host port\n",
+         stderr);
     exit(EX_USAGE);
 }
 

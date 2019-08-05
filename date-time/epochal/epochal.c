@@ -45,6 +45,11 @@ int main(int argc, char *argv[])
     ssize_t linenum = 1;
     time_t now;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (!setlocale(LC_ALL, ""))
         errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
 
@@ -62,7 +67,7 @@ int main(int argc, char *argv[])
             Flag_Global = true;
             break;
         case 'l':
-            setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+            setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
             break;
         case 'o':
             Flag_Output_Format = optarg;
@@ -121,9 +126,10 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: epochal [-sg] [-y|-Y yyyy] -f input-format [-o output-fmt] [file|-]\n"
-            "  Pass data in via standard input. See strftime(3) for formats.\n");
+    fputs
+        ("Usage: epochal [-sg] [-y|-Y yyyy] -f input-format [-o output-fmt] [file|-]\n"
+         "  Pass data in via standard input. See strftime(3) for formats.\n",
+         stderr);
     exit(EX_USAGE);
 }
 

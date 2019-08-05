@@ -27,6 +27,11 @@ int main(int argc, char *argv[])
     fn_parser select_part = parse_root;
     int ch;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "0d:h?")) != -1) {
         switch (ch) {
         case '0':
@@ -89,7 +94,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: fdsplit [-0] [-d delim] root|ext filename\n");
+    fputs("Usage: fdsplit [-0] [-d delim] root|ext filename\n", stderr);
     exit(EX_USAGE);
 }
 

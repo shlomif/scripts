@@ -39,6 +39,11 @@ int main(int argc, char *argv[])
 {
     int ch, ret;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "hp:t:")) != -1) {
         switch (ch) {
         case 'p':
@@ -151,6 +156,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: [-p prefixlen] [-t v6addr] ipv4-address\n");
+    fputs("Usage: [-p prefixlen] [-t v6addr] ipv4-address\n", stderr);
     exit(EX_USAGE);
 }

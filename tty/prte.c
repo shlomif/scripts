@@ -14,6 +14,8 @@
 
 #define LINELENGTH 72
 
+enum { NOPE = -1, CHILD };
+
 struct termios Original_Termios;
 
 int Flag_Warn;                  /* -w */
@@ -30,6 +32,11 @@ int main(int argc, char *argv[])
 {
     int ch, status;
     pid_t pid;
+
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio tty", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "h?Ww")) != -1) {
         switch (ch) {
@@ -53,10 +60,10 @@ int main(int argc, char *argv[])
     if (tcgetattr(STDIN_FILENO, &Original_Termios) < 0)
         err(EX_OSERR, "tcgetattr failed");
 
-    if ((pid = fork()) < 0)
+    if ((pid = fork()) == NOPE)
         err(EX_OSERR, "fork failed");
 
-    if (pid == 0) {
+    if (pid == CHILD) {
         execvp(argv[0], &argv[0]);
         err(1, "could not exec '%s'", argv[0]);
     }
@@ -92,7 +99,7 @@ inline void cleanup(void)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: prte [-w | -W] -- command [arg ..]\n");
+    fputs("Usage: prte [-w | -W] -- command [arg ..]\n", stderr);
     exit(EX_USAGE);
 }
 

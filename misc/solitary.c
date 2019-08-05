@@ -14,8 +14,13 @@ int main(int argc, char *argv[])
     int fd;
     pid_t pid;
 
+#ifdef __OpenBSD__
+    if (pledge("exec proc rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc < 3) {
-        fprintf(stderr, "Usage: solitary directory command [args ..]\n");
+        fputs("Usage: solitary directory command [args ..]\n", stderr);
         exit(EX_USAGE);
     }
 
@@ -55,5 +60,5 @@ int main(int argc, char *argv[])
 
     argv++;
     execvp(*argv, argv);
-    exit(EX_OSERR);
+    err(EX_OSERR, "exec failed");
 }

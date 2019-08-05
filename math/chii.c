@@ -1,22 +1,20 @@
-/*
-# CHIsq test integers belonging to a given contiguous range. C not R
-# because a) a second opinion is good and b) I'm too lazy to figure out
-# how to make R honor sparse input, where a particular bucket might have
-# no values. Otherwise, use the "chisq.test" in R or the "equichisq"
-# arlet of my r-fu script.
-#
-# The following should fail, as there are six buckets (implicit 0 for
-# minimum through 5, inclusive) and the perl only produces numbers for
-# five of those buckets (0..4):
-#
-#   perl -E 'for (1..1000) { say int rand 5}' | chii -M 5
-#
-# (It could also fail for reasons unrelated to the missing bucket, or it
-# could pass if there are not enough trials to reveal the lack.)
-#
-# Now, if you're actually testing the fitness of non-cryptographic hash
-# functions, consider instead the "smhasher" project.
-*/
+/* chii - CHIsq test integers belonging to a given contiguous range. C
+ * not R because a) a second opinion is good and b) I'm too lazy to
+ * figure out how to make R honor sparse input, where a particular
+ * bucket might have no values. otherwise, use the "chisq.test" in R or
+ * the "equichisq" arlet of my r-fu script
+ *
+ * the following should fail, as there are six buckets (implicit 0 for
+ * minimum through 5, inclusive) and the Perl only produces numbers for
+ * five of those buckets (0..4)
+ *
+ *   perl -E 'for (1..1000) { say int rand 5}' | chii -M 5
+ *
+ * (it could also fail for reasons unrelated to the missing bucket, or
+ * it could pass if there are not enough trials to reveal the lack)
+ *
+ * if you are actually testing the fitness of non-cryptographic hash
+ * functions, consider instead the "smhasher" project */
 
 #include <ctype.h>
 #include <err.h>
@@ -59,6 +57,11 @@ int main(int argc, char *argv[])
     ssize_t lineno = 1;
 
     double pvalue;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     setlocale(LC_ALL, "C");
 
@@ -160,6 +163,6 @@ double chisq(long long valuec, long long *values, long long minv,
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: chii [-F fit] -m min -M max [file|-]\n");
+    fputs("Usage: chii [-F fit] -m min -M max [file|-]\n", stderr);
     exit(EX_USAGE);
 }

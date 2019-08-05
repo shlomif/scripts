@@ -1,6 +1,6 @@
 /* obdurate - ignore most common signals. handy to test things that will
  * require up to a SIGKILL to clear from the process table (like,
- * hypothetically, a horribly wedged LDAP server) */
+ * hypothetically, a horribly wedged LDAP server. or, firefox) */
 
 #include <err.h>
 #include <signal.h>
@@ -16,6 +16,11 @@ int main(void)
 {
     int fds[2];
     struct sigaction act;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     if (pipe(fds) != 0)
         err(1, "pipe failed ??");

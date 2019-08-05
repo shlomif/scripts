@@ -14,6 +14,11 @@ int main(int argc, char *argv[])
 {
     char *c;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     setlocale(LC_ALL, "C");
 
     argv++;
@@ -41,6 +46,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: whatargs arg [..]\n");
+    fputs("Usage: whatargs arg [..]\n", stderr);
     exit(EX_USAGE);
 }

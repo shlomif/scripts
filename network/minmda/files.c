@@ -27,42 +27,65 @@ void gen_filenames(const char *dir, const char *hostid, char **tmp, char **new)
 #endif
 
     if (asprintf
-        (tmp, "%s/tmp/%ld.%d_%x_%d.%s", dir, (long) now.tv_sec, (int) now.tv_usec,
-         rand, pid, hostid) < 0)
+        (tmp, "%s/tmp/%ld.%d_%x_%d.%s", dir, (long) now.tv_sec,
+         (int) now.tv_usec, rand, pid, hostid) < 0)
         err(MEXIT_STATUS, "asprintf failed");
     if (strnlen(*tmp, PATH_MAX) == PATH_MAX)
         err(MEXIT_STATUS, "mailbox path exceeds PATH_MAX");
     if (asprintf
-        (new, "%s/new/%ld.%d_%x_%d.%s", dir, (long) now.tv_sec, (int) now.tv_usec,
-         rand, pid, hostid) < 0)
+        (new, "%s/new/%ld.%d_%x_%d.%s", dir, (long) now.tv_sec,
+         (int) now.tv_usec, rand, pid, hostid) < 0)
         err(MEXIT_STATUS, "asprintf failed");
 }
 
 void make_paths(const char *dir)
 {
-    char *subdir;
+    char *curdir, *tmpdir, *newdir;
+
     if (mkdir(dir, 0700) == -1) {
         if (errno != EEXIST)
             err(MEXIT_STATUS, "mkdir failed '%s'", dir);
     }
-    if (asprintf(&subdir, "%s/tmp", dir) < 0)
+
+    /* cur dir - minmda does not use the cur dir but mutt fails to load
+     * the mailbox if only {tmp,new} exist -- ensure it exists */
+    if (asprintf(&curdir, "%s/cur", dir) < 0)
         err(MEXIT_STATUS, "asprintf failed");
-    if (mkdir(subdir, 0700) == -1) {
+    if (mkdir(curdir, 0700) == -1) {
         if (errno != EEXIST)
             err(MEXIT_STATUS, "mkdir failed '%s'", dir);
     }
-    if (asprintf(&subdir, "%s/new", dir) < 0)
+    free(curdir);
+
+    /* tmp dir is where new messages are created, verified, maybe
+     * unlinked from */
+    if (asprintf(&tmpdir, "%s/tmp", dir) < 0)
         err(MEXIT_STATUS, "asprintf failed");
-    if (mkdir(subdir, 0700) == -1) {
+    if (mkdir(tmpdir, 0700) == -1) {
         if (errno != EEXIST)
             err(MEXIT_STATUS, "mkdir failed '%s'", dir);
     }
-    /* minmda does not use the cur dir but mutt fails to load the
-     * mailbox if only {tmp,new} exist */
-    if (asprintf(&subdir, "%s/cur", dir) < 0)
+
+    /* new dir the tmp-file is only renamed into */
+    if (asprintf(&newdir, "%s/new", dir) < 0)
         err(MEXIT_STATUS, "asprintf failed");
-    if (mkdir(subdir, 0700) == -1) {
+    if (mkdir(newdir, 0700) == -1) {
         if (errno != EEXIST)
             err(MEXIT_STATUS, "mkdir failed '%s'", dir);
     }
+#ifdef __OpenBSD__
+    /* new in OpenBSD 6.4 */
+    if (unveil(dir, "r") == -1)
+        err(MEXIT_STATUS, "unveil failed");
+    if (unveil(tmpdir, "crw") == -1)
+        err(MEXIT_STATUS, "unveil failed");
+    if (unveil(newdir, "c") == -1)
+        err(MEXIT_STATUS, "unveil failed");
+    /* no more changes to filesystem access beyond here */
+    if (unveil(NULL, NULL) == -1)
+        err(MEXIT_STATUS, "unveil failed");
+#endif
+
+    free(newdir);
+    free(tmpdir);
 }

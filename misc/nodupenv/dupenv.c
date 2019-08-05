@@ -28,6 +28,11 @@ int main(int argc, char *argv[])
      * this number is changed */
     size_t newenv_alloc = 64;
 
+#ifdef __OpenBSD__
+    if (pledge("exec stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?iU")) != -1) {
         switch (ch) {
         case 'i':
@@ -108,6 +113,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: dupenv [-i] [env=val ..] command [args ..]\n");
+    fputs("Usage: dupenv [-i] [env=val ..] command [args ..]\n", stderr);
     exit(EX_USAGE);
 }

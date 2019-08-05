@@ -1,11 +1,12 @@
-/* a buggy service daemon. presumably for use in testing
+/* buggyservd - a buggy service daemon. presumably for use in testing
  *
  * Signals:
  *   USR1    causes a segfault (or bus error, depending)
  *   USR2    exits the program
  *
  * with no FIFO given, the process will likely take up 100% of the CPU.
- * this is a feature */
+ * this is a feature
+ */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -49,6 +50,11 @@ int main(int argc, char *argv[])
     int ch, fd;
     struct event *ev_fifo;
     struct event_base *ev_base;
+
+#ifdef __OpenBSD__
+    if (pledge("cpath dpath rpath stdio wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "Cf:h?Ip:")) != -1) {
         switch (ch) {
@@ -164,7 +170,7 @@ void do_exit(int unused)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: buggyservd [-C] [-f fifofile] [-I] [-p pidfile]\n");
+    fputs("Usage: buggyservd [-C] [-f fifofile] [-I] [-p pidfile]\n", stderr);
     exit(EX_USAGE);
 }
 

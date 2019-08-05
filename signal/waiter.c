@@ -19,24 +19,31 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+enum { NOPE = -1, CHILD };
+
 int main(int argc, char *argv[])
 {
     int status;
     pid_t pid;
 
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc < 2) {
-        fprintf(stderr, "Usage: waiter command [args ..]\n");
+        fputs("Usage: waiter command [args ..]\n", stderr);
         exit(EX_USAGE);
     }
 
-    pid = fork();
-    if (pid < 0) {
-        err(EX_OSERR, "could not fork");
-    } else if (pid == 0) {      /* child */
+    if ((pid = fork()) == NOPE)
+        err(EX_OSERR, "fork failed");
+
+    if (pid == CHILD) {
         argv++;
         execvp(*argv, argv);
-        err(EX_OSERR, "could not exec");
-    } else {                    /* parent */
+        err(EX_OSERR, "exec failed");
+    } else {
         if (waitpid(pid, &status, 0) < 0)
             err(EX_OSERR, "could not waitpid");
         if (WIFEXITED(status)) {

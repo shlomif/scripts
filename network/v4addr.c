@@ -50,6 +50,11 @@ int main(int argc, char *argv[])
     int state = STATE_WANTNUM;
     struct in_addr v4addr;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "afhrq")) != -1) {
         switch (ch) {
         case 'a':
@@ -152,7 +157,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: [-a | -f | -r] ipv4-address\n");
+    fputs("Usage: [-a | -f | -r] ipv4-address\n", stderr);
     exit(EX_USAGE);
 }
 

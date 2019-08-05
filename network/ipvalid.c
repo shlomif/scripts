@@ -1,4 +1,5 @@
-/* validate an IP address via inet_pton(3) (and emit via inet_ntop(3)) */
+/* ipvalid - validate an IP address via inet_pton(3) and emit via
+ * inet_ntop(3) */
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -28,6 +29,11 @@ struct in6_addr v6addr;
 int main(int argc, char *argv[])
 {
     int ch, ipret;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "q")) != -1) {
         switch (ch) {
@@ -96,6 +102,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ipvalid [-q] ipaddress\n");
+    fputs("Usage: ipvalid [-q] ipaddress\n", stderr);
     exit(EX_USAGE);
 }

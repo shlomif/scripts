@@ -1,12 +1,9 @@
 CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
-# The _core bit is to hopefully get -levent_core as Centos 7 and OpenBSD
-# lack a libevent_core.pc file to bring that in (and the libevent book
-# indicates that -levent might go away in the future).
-#
-# For sd_notify() add `-DSYSTEMD -lsystemd` and ensure OS devel foo
+# maybe `pkg-config ... libevent`_core on Centos7 ?
+# for sd_notify() add `-DSYSTEMD -lsystemd` and ensure OS devel foo
 buggyservd: buggyservd.c
-	$(CC) $(CFLAGS) `pkg-config --cflags --libs libevent`_core -o buggyservd buggyservd.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs libevent` -o buggyservd buggyservd.c
 
 cts: cts.c
 logsoc: logsoc.c

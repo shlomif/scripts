@@ -21,6 +21,11 @@ int main(int argc, char *argv[])
 {
     int ch;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?q")) != -1) {
         switch (ch) {
         case 'q':
@@ -66,6 +71,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: [env TZ=...] date2epoch [-q] YYYY-MM-DD [HH[:MM[:SS]]]\n");
+    fputs("Usage: [env TZ=...] date2epoch [-q] YYYY-MM-DD [HH[:MM[:SS]]]\n", stderr);
     exit(EX_USAGE);
 }

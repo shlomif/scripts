@@ -32,6 +32,11 @@ int main(int argc, char *argv[])
     struct tm *now;
     time_t epoch_now, epoch_when;
 
+#ifdef __OpenBSD__
+    if (pledge("exec stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "C:h?")) != -1) {
         switch (ch) {
         case 'C':
@@ -77,14 +82,15 @@ int main(int argc, char *argv[])
         errx(EX_USAGE, "need YYYY-MM-DD or HH:MM as first argument");
     }
 
-    /* OpenBSD at(1) at least checks for past dates; Mac OS X not so
-     * much. always check here as that's less expensive than exec and
-     * vendor at(1) maybe checking or not */
+    /* OpenBSD at(1) checks for past dates; Mac OS X, not so much */
     if ((epoch_when = mktime(&when)) == (time_t) - 1)
         err(EX_OSERR, "mktime failed");
     /* assume minute granularity on at(1) */
     if (epoch_when - 60 < epoch_now)
         errx(1, "cannot schedule jobs in the past");
+
+    /* yucky TZ with DST need this for isdist? guess-o-matic code */
+    when.tm_isdst = -1;
 
     if (strftime(Time_String, TIME_STRING_LEN - 1, AT_TIMEFORMAT, &when) < 1)
         errx(EX_OSERR, "strftime failed ??");
@@ -100,7 +106,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: myat [-C dir] YYYY-MM-DD [HH:MM]\n"
-            "       myat [-C dir] HH:MM      (assumes today)\n");
+    fputs("Usage: myat [-C dir] YYYY-MM-DD [HH:MM]\n"
+            "       myat [-C dir] HH:MM      (assumes today)\n", stderr);
     exit(EX_USAGE);
 }

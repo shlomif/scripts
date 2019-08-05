@@ -25,6 +25,11 @@ int main(int argc, char *argv[])
 
     Flag_Max_Send = UINT_MAX;   /* how many packets to send (a lot) */
 
+#ifdef __OpenBSD__
+    if (pledge("dns inet rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     arg_offset = parse_opts(argc, argv);
     argc -= arg_offset;
     argv += arg_offset;
@@ -119,8 +124,9 @@ void catch_intr(int sig)
 
 void emit_usage(void)
 {
-    errx(EX_USAGE,
-         "[-4|-6] [-C maxsend] [-c stati] [-d ms|-f] [-l] [-N] [-P octets] -p port hostname");
+    fputs("Usage: udp-sender [-4|-6] [-C maxsend] [-c stati] [-d ms|-f]"
+          " [-l] [-N] [-P octets] -p port hostname\n", stderr);
+    exit(EX_USAGE);
 }
 
 inline void report_counts(void)

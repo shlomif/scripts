@@ -1,15 +1,14 @@
-/*
- * Terminal orchestration. Perhaps for something like controlling multiple
- * gdb sessions in lock-step. Uses the somewhat unsavory TIOCSTI ioctl call,
- * so thus requires root or otherwise suitable permissions to operate.
+/* torc - terminal orchestration, perhaps for something like controlling
+ * multiple gdb sessions in lock-step. uses the unsavory TIOCSTI ioctl
+ * call, so thus requires root or otherwise suitable permissions to
+ * operate (OpenBSD dropped support for TIOCSTI)
  *
- * Be sure to have some way to exit this program, as it by design passes most
- * everything seen off to the controlled terminals.
- */
+ * be sure to have some way to exit this program, as it by design passes
+ * most everything seen off to the controlled terminals */
 
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__)
 #include <sys/ttycom.h>
 #endif
 
@@ -189,7 +188,7 @@ void cleanup(void)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: torc [-o file] [-P] [-q] dev [dev2 ..]\n");
+    fputs("Usage: torc [-o file] [-P] [-q] dev [dev2 ..]\n", stderr);
     exit(EX_USAGE);
 }
 

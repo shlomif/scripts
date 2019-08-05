@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
     int ch, fd;
     struct termios tp;
 
+#ifdef __OpenBSD__
+    if (pledge("exec stdio tty", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     fd = STDIN_FILENO;
 
     while ((ch = getopt(argc, argv, "h?d:T")) != -1) {
@@ -63,7 +68,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: gunktty [-d fdnum | -T] -- [cmd [arg ..]]\n");
+    fputs("Usage: gunktty [-d fdnum | -T] -- [cmd [arg ..]]\n", stderr);
     exit(EX_USAGE);
 }
 

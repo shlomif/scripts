@@ -1,10 +1,8 @@
-/***********************************************************************
+/* getsockname - getsockname(2) practice, as there are fiddly details
  *
- * getsockname(2) practice, as there are fiddly details.
- *
- * Things to read: grep around under /usr/include for the various *.h
+ * things to read: grep around under /usr/include for the various *.h
  * files that define e.g. 'struct addrinfo' and other important types.
- * Also handy was to create a simple Perl implementation:
+ * also handy was to create a simple Perl implementation:
  *
  *   #!/usr/bin/env perl
  *   use strict;
@@ -23,11 +21,10 @@
  *   printf( "Connect from [%s]:$lport\n", inet_ntoa($myaddr) );
  *
  * and then to strace(1) that against what my C program was doing for
- * hints as to what I was doing wrong in C.
+ * hints as to what I was doing wrong in C
  *
- * Use nc(1) or similar to create listeners to connect to, if those
- * are lacking.
- */
+ * use nc(1) or similar to create listeners to connect to, if those
+ * are lacking */
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -56,6 +53,11 @@ int main(int argc, char *argv[])
 {
     int ch, ret, sockfd;
     char ipstr[INET_ADDRSTRLEN];
+
+#ifdef __OpenBSD__
+    if (pledge("dns inet rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -86,7 +88,7 @@ int main(int argc, char *argv[])
     if (argc != 2)
         emit_help();
 
-    setvbuf(stdout, (char *)NULL, _IOLBF, (size_t) 0);
+    setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
 
     if ((ret = getaddrinfo(argv[0], argv[1], &hints, &res)) != 0)
         errx(EX_NOHOST, "getaddrinfo error: %s", gai_strerror(ret));
@@ -97,11 +99,11 @@ int main(int argc, char *argv[])
             warn("socket() error");
             continue;
         }
-        /* Do need to connect first, unless you like seeing [::] or
-         * 0.0.0.0 as your local address. */
+        /* do need to connect first, unless you like seeing [::] or
+         * 0.0.0.0 as your local address */
         if (connect(sockfd, remote->ai_addr, remote->ai_addrlen) == -1) {
-           warn("connect() error");
-           continue;
+            warn("connect() error");
+            continue;
         }
         break;
     }
@@ -142,10 +144,10 @@ int main(int argc, char *argv[])
         errx(EX_OSERR, "unknown address family???");
     }
 
-    /* Cheap blocking trick. Then, presumably, `lsof -i -nP` or
+    /* cheap blocking trick. then, presumably, `lsof -i -nP` or
      * `netstat` or something would be used to investigate what this
      * program has opened. `fg` will then bring the program back so
-     * it can exit. */
+     * it can exit */
     if (Flag_Stick_Around)
         raise(SIGTSTP);
 
@@ -154,6 +156,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: getsockname [-4 | -6] [-s] [-u] host port\n");
+    fputs("Usage: getsockname [-4 | -6] [-s] [-u] host port\n", stderr);
     exit(EX_USAGE);
 }

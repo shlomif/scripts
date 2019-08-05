@@ -31,6 +31,11 @@ int main(int argc, char *argv[])
     char *payload;
     ssize_t recv_size;
 
+#ifdef __OpenBSD__
+    if (pledge("dns inet rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     parse_opts(argc, argv);
 
     if (Flag_Multicast) {
@@ -101,6 +106,7 @@ int any_sock(void)
 {
     int fd;
     struct addrinfo hints, *servinfo, *p;
+    memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = Flag_AI_Family;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
@@ -144,8 +150,9 @@ void catch_intr(int sig)
 
 void emit_usage(void)
 {
-    errx(EX_USAGE,
-         "[-4|-6] [-c stati] [-d ms] [-l] [-M addr] [-N] [-P octets] -p port");
+    fputs("Usage: udp-sink [-4|-6] [-c stati] [-d ms] [-l] [-M addr]"
+          " [-N] [-P octets] -p port\n", stderr);
+    exit(EX_USAGE);
 }
 
 /* TODO also support Source Specific Multicast (SSM) */

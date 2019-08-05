@@ -32,6 +32,11 @@ int main(int argc, char *argv[])
     sigset_t blockthese;
     ssize_t howmuch, prevhowmuch;
 
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?n")) != -1) {
         switch (ch) {
         case 'n':
@@ -121,6 +126,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ... | copycat [-n]\n");
+    fputs("Usage: ... | copycat [-n]\n", stderr);
     exit(EX_USAGE);
 }

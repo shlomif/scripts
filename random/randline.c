@@ -31,6 +31,12 @@ int main(int argc, char *argv[])
     int ch;
     ssize_t counter = 1;
     ssize_t chosen_length, written;
+
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
         case 'h':
@@ -95,7 +101,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: randline [file [file2 ..]|-]\n");
+    fputs("Usage: randline [file [file2 ..]|-]\n", stderr);
     exit(EX_USAGE);
 }
 

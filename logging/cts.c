@@ -1,6 +1,6 @@
-/* Like ts(1) of moreutils fame, only in C for C practice, and only
- * shows the delta between subsequent log lines (use ts(1) if such 
- * customization is necessary). */
+/* cts - like ts(1) of moreutils fame, only in C for C practice, and
+ * only shows the delta between subsequent log lines (use ts(1) if such
+ * customization is necessary) */
 
 #include <err.h>
 #include <getopt.h>
@@ -31,6 +31,11 @@ int main(int argc, char *argv[])
     char buf[BUFSIZ];
     struct pollfd fdwatch[NUMFDS];
     int fdready, readret;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     /* Unbuffered output by default (ts(1) does this) to minimize risk of
      * log lossage should something crash. Use -l for line-buffered. */
@@ -101,6 +106,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ... | cts [-l]\n");
+    fputs("Usage: ... | cts [-l]\n", stderr);
     exit(EX_USAGE);
 }

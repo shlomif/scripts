@@ -33,6 +33,11 @@ int main(int argc, char *argv[])
     char *buf;
     int ch;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?O:p:qs:TxX")) != -1) {
         switch (ch) {
         case 'O':
@@ -95,8 +100,7 @@ void emit_error(const char *input, int offset, char *msg)
 
 void emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: macnorm [-qTxX] [-p prefix] [-s sep] macaddr [..]\n");
+    fputs("Usage: macnorm [-qTxX] [-p prefix] [-s sep] macaddr [..]\n", stderr);
     exit(EX_USAGE);
 }
 

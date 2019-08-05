@@ -1,15 +1,17 @@
-/* showip.c -- show IP addresses for a host given on the command line
- * From "Beej's Guide to Network Programming" */
+/* showip - show IP addresses for a host given on the command line. from
+ * "Beej's Guide to Network Programming" */
 
-#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
+#include <err.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[])
 {
@@ -17,8 +19,13 @@ int main(int argc, char *argv[])
     int status;
     char ipstr[INET6_ADDRSTRLEN];
 
+#ifdef __OpenBSD__
+    if (pledge("dns rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc != 2) {
-        fprintf(stderr, "usage: showip hostname\n");
+        fputs("Usage: showip hostname\n", stderr);
         return 1;
     }
     memset(&hints, 0, sizeof hints);

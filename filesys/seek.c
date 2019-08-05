@@ -24,8 +24,8 @@ char buf[BUFSIZE];
 
 void consume(int ch, unsigned long seekto, char *input_file);
 void emit_help(void);
-inline void readthrough(int ch, unsigned long quitafter, char *input_file,
-                        int outfd, char *output_file);
+void readthrough(int ch, unsigned long quitafter, char *input_file,
+                 int outfd, char *output_file);
 
 int main(int argc, char *argv[])
 {
@@ -33,6 +33,11 @@ int main(int argc, char *argv[])
     int ch, outfd;
     off_t fdeof, fdpos;
     unsigned long seekto, quitafter = ULONG_MAX;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "ah?m:o:")) != -1) {
         switch (ch) {
@@ -130,7 +135,7 @@ inline void consume(int ch, unsigned long seekto, char *input_file)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: seek [-a] [-m max] [-o outfile] seekto [file|-]\n");
+    fputs("Usage: seek [-a] [-m max] [-o outfile] seekto [file|-]\n", stderr);
     exit(EX_USAGE);
 }
 

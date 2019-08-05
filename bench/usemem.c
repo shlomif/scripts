@@ -98,6 +98,11 @@ int main(int argc, char *argv[])
     int ch;
     pthread_t *tids;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio rpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     jkiss64_init(NULL);
 
     while ((ch = getopt(argc, argv, "h?Mm:t:")) != -1) {
@@ -183,7 +188,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: usemem [-M|-m memory|-M -m mem] -t threads\n");
+    fputs("Usage: usemem [-M|-m memory|-M -m mem] -t threads\n", stderr);
     exit(EX_USAGE);
 }
 

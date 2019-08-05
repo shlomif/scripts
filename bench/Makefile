@@ -10,7 +10,7 @@ repcharcount: repcharcount.c
 	$(CC) -O2 $(CFLAGS) repcharcount.c -o repcharcount
 
 usemem: usemem.c
-	$(CC) $(CFLAGS) -g `pkg-config --cflags --libs goptfoo jkiss` -g usemem.c -o usemem
+	$(CC) $(CFLAGS) -g `pkg-config --cflags --libs goptfoo jkiss` -lpthread  usemem.c -o usemem
 
 clean:
 	git clean --force -x

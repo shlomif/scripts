@@ -73,6 +73,11 @@ int main(int argc, char *argv[])
     struct passwd *pw;
     struct stat statbuf;
 
+#ifdef __OpenBSD__
+    if (pledge("getpw rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     /* without -u or -g, permissions default to user running this code */
     Flag_User_ID = getuid();
     Flag_Group_ID = getgid();
@@ -320,17 +325,16 @@ int main(int argc, char *argv[])
         }
     }
     if (errno != 0)
-        err(EX_OSERR, "fts_read() error");
+        err(EX_OSERR, "fts_read error");
 
     exit(ret);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: permcheck "
-            "[-g group] [-n] [-p] [-Rwx] [-u user] [-v] [-X] "
-            "file [file1 ..]\n");
+    fputs("Usage: permcheck "
+          "[-g group] [-n] [-p] [-Rwx] [-u user] [-v] [-X] "
+          "file [file1 ..]\n", stderr);
     exit(EX_USAGE);
 }
 

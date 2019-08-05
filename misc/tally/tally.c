@@ -10,6 +10,12 @@ void read_lines(const char *file);
 int main(int argc, char *argv[])
 {
     int ch;
+ 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
         case 'h':
@@ -35,7 +41,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: tally [files|-]\n");
+    fputs("Usage: tally [files|-]\n", stderr);
     exit(EX_USAGE);
 }
 

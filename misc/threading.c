@@ -1,7 +1,5 @@
-/*
- * Mostly so can have a baseline of what a threaded process looks like in ps(1)
- * and whatnot, etc.
- */
+/* threading - mostly so can have a baseline of what a threaded process
+ * looks like in ps(1) and etc */
 
 #include <err.h>
 #include <pthread.h>
@@ -18,11 +16,16 @@ void *waiting(void *arg);
 int main(void)
 {
 /* Vega and Altair, rather forgotten by most moderns with their lights.
- * Otherwise not very portable, given the distances involved, or the varying
- * struct forms between different OS. */
+ * otherwise not very portable, given the distances involved, or the
+ * varying struct forms between different OS */
     pthread_t weaver_maid, ox_driver;
     int pattern = 21845;
     int *driver;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     if (pthread_create(&weaver_maid, NULL, waiting, &pattern) != 0)
         err(EX_OSERR, "could not make thread");
@@ -37,7 +40,8 @@ int main(void)
 
 void *busy(void *arg)
 {
-    fprintf(stderr, "thread tid %p is %s\n", (void *)pthread_self(), (char *) arg);
+    fprintf(stderr, "thread tid %p is %s\n", (void *) pthread_self(),
+            (char *) arg);
     for (;;);
 }
 
@@ -45,14 +49,14 @@ void *waiting(void *arg)
 {
     int *patternp = arg;
     struct timespec yawn = { 21, 42 };
-    fprintf(stderr, "thread tid %p waits\n", (void *)pthread_self());
+    fprintf(stderr, "thread tid %p waits\n", (void *) pthread_self());
     *patternp = 43690;
     nanosleep(&yawn, NULL);
     pthread_exit(arg);
 
-    /* This gets a "control reaches end of non-void function" warning which
+    /* this gets a "control reaches end of non-void function" warning which
      * the following will suppress though 'The pthread_exit() function
      * cannot return to its caller' kinda obviates the possibility of it
-     * being called. */
+     * being called */
     //return ((void *) -1);
 }

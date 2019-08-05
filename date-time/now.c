@@ -19,7 +19,7 @@
 #define MINOUT 6
 #define MAXOUT 96
 
-const char *ftime_tmpl = "%b %d";
+const char *ftime_tmpl = "%b %d\n";
 
 void emit_help(void);
 
@@ -31,6 +31,11 @@ int main(int argc, char *argv[])
     size_t count, outbuf_len;
     struct tm *when;
     time_t epoch;
+
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     if (!setlocale(LC_TIME, ""))
         errx(EX_USAGE, "setlocale(3) failed: check the locale settings");
@@ -105,13 +110,12 @@ int main(int argc, char *argv[])
                 outbuf_len);
     }
     write(STDOUT_FILENO, outbuf, count);
-    putchar('\n');
 
     exit(EXIT_SUCCESS);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: now +N[dw]\n");
+    fputs("Usage: now +N[dw]\n", stderr);
     exit(EX_USAGE);
 }

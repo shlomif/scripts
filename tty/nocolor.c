@@ -39,6 +39,11 @@ int main(int argc, char *argv[])
     const char *error;
     int erroffset;
 
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc < 2)
         emit_help();
 
@@ -97,7 +102,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: nocolor command [arg ..]\n");
+    fputs("Usage: nocolor command [arg ..]\n", stderr);
     exit(EX_USAGE);
 }
 

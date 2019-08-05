@@ -200,8 +200,9 @@ void call_nsupdate(const char *nsus)
 
 void err_emit_help(void)
 {
-    fprintf(stderr,
-            "Usage: dnstw [-F | -d domain] [-n] [-S server] [-T TTL] module [args ..]\n");
+    fputs
+        ("Usage: dnstw [-F | -d domain] [-n] [-S server] [-T TTL] module [args ..]\n",
+         stderr);
     exit(EX_USAGE);
 }
 

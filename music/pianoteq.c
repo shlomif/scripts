@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
         } else {
             /* assume a filename was given */
             if (*ap[0] == '\0') {
-                fprintf(stderr, "Usage: pianoteq [midifile]\n");
+                fputs("Usage: pianoteq [midifile]\n", stderr);
                 exit(1);
             }
             pianoteq_args = args_for_file(*ap);
@@ -99,7 +99,7 @@ char *latest_midi(void)
 
     if (filename == NULL) {
         warnx("no *.midi file found");
-        fprintf(stderr, "Usage: pianoteq [midifile]\n");
+        fputs("Usage: pianoteq [midifile]\n", stderr);
         exit(1);
     }
     return filename;

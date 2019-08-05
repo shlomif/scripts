@@ -1,3 +1,5 @@
 *.core
 *.dSYM
 *.gdb
+todo
+todo.c

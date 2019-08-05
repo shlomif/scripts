@@ -36,6 +36,11 @@ int main(int argc, char *argv[])
     char *mstrp = mac48tmpl;
     uint8_t *mp;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     setlocale(LC_ALL, "C");
 
     while ((ch = getopt(argc, argv, "6B:Lh?mp")) != -1) {
@@ -115,5 +120,7 @@ int main(int argc, char *argv[])
 
 void emit_usage(void)
 {
-    errx(EX_USAGE, "[-6] [-B bytes] [[-m] [-p] | [-L]] [00:00:36:XX:XX:XX]");
+    fputs("Usage: randmac [-6] [-B bytes] [[-m] [-p] | [-L]]"
+          " [00:00:36:XX:XX:XX]", stderr);
+    exit(EX_USAGE);
 }

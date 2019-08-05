@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #include <pcre.h>
 
@@ -15,8 +16,13 @@ int main(int argc, char *argv[])
     const char *error;
     pcre *re;
 
+#ifdef __OpenBSD__
+    if (pledge("cpath stdio wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc < 2) {
-        fprintf(stderr, "Usage: pcre-precompile regex [out-file]\n");
+        fputs("Usage: pcre-precompile regex [out-file]\n", stderr);
         exit(EX_USAGE);
     }
 
@@ -34,7 +40,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < size; i++) {
         printf("\\x%02X", *((char *) re + i) & 255);
     }
-    printf("\"");
+    printf("\"\n");
 
     if (argc == 3) {
         if ((fh = fopen(argv[2], "w")) == NULL)
@@ -45,5 +51,5 @@ int main(int argc, char *argv[])
             err(EX_IOERR, "fclose failed");
     }
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }

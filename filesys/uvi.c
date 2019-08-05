@@ -26,8 +26,13 @@ int main(int argc, char *argv[])
     struct filetimes *ft, **restore;
     struct stat sb;
 
+#ifdef __OpenBSD__
+    if (pledge("exec fattr proc rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if (argc == 1) {
-        fprintf(stderr, "Usage: uvi file [file2 ..]\n");
+        fputs("Usage: uvi file [file2 ..]\n", stderr);
         exit(EX_USAGE);
     }
 

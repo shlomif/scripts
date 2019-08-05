@@ -1,4 +1,4 @@
-/* waits for a command to complete, or not (on user input) */
+/* waitornot - waits for a command to complete, or not (on user input) */
 
 #include <err.h>
 #include <fcntl.h>
@@ -11,7 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-int Flag_UserOkay;              // -U
+int Flag_UserOkay;              /* -U */
 
 struct termios Original_Termios;
 
@@ -26,6 +26,11 @@ int main(int argc, char *argv[])
     pid_t child_pid;
     struct termios terminfo;
     tcflag_t lflags_nay = ICANON | ECHO;
+
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio tty", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "h?IU")) != -1) {
         switch (ch) {
@@ -59,7 +64,7 @@ int main(int argc, char *argv[])
     /* cfmakeraw(3) is a tad too raw and influences output from child;
      * per termios(5) use "Case B" for quick "any" key reads with
      * canonical mode (line-based processing), echo (to hide the key the
-     * user mashes), and ^Z disabled. ISIG on, unless it is not.
+     * user mashes), and ^Z disabled. ISIG on, unless it is not
      */
     terminfo.c_cc[VMIN] = 1;
     terminfo.c_cc[VTIME] = 0;
@@ -102,14 +107,15 @@ int main(int argc, char *argv[])
 
 void child_signal(int unused)
 {
-    // might try to pass along the exit status of the child, but that's
-    // extra work and complication...
+    /* might try to pass along the exit status of the child, but
+     * that's extra work and complication, and since this is an
+     * interactive tool... */
     exit(0);
 }
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: waitornot [-I] [-U] command [args ..]\n");
+    fputs("Usage: waitornot [-I] [-U] command [args ..]\n", stderr);
     exit(EX_USAGE);
 }
 

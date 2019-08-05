@@ -23,6 +23,11 @@ int main(int argc, char *argv[])
     unsigned int width;
     FILE *fh;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?f:")) != -1) {
         switch (ch) {
         case 'f':
@@ -61,7 +66,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: procrust [-f fillchar] width [file ..|-]\n");
+    fputs("Usage: procrust [-f fillchar] width [file ..|-]\n", stderr);
     exit(EX_USAGE);
 }
 

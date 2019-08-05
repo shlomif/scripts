@@ -40,6 +40,11 @@ int main(int argc, char *argv[])
     char *env_or_stdin;
     int ch;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "0qh?")) != -1) {
         switch (ch) {
         case '0':
@@ -111,8 +116,8 @@ void check_dir(char *directory, size_t dir_len, const char *expr,
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: findin [-0q] glob-expr [ENVVAR|-]\n"
-            "  note that MANPATH likely requires man*/foo* as a glob\n");
+    fputs("Usage: findin [-0q] glob-expr [ENVVAR|-]\n"
+          "  note that MANPATH likely requires man*/foo* as a glob\n", stderr);
     exit(EX_USAGE);
 }
 

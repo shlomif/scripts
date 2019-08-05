@@ -27,6 +27,11 @@ int main(int argc, char *argv[])
     char buf;
     ssize_t amnt_read, amnt_written;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "b:h?o:")) != -1) {
         switch (ch) {
         case 'b':
@@ -81,6 +86,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: twiddle -b bit -o offset file [file1 ..]\n");
+    fputs("Usage: twiddle -b bit -o offset file [file1 ..]\n", stderr);
     exit(EX_USAGE);
 }

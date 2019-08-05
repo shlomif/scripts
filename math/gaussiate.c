@@ -1,4 +1,4 @@
-/* generate with the GSL some Gaussian random variates */
+/* gaussiate - generate with the GSL some Gaussian random variates */
 
 #include <err.h>
 #include <fcntl.h>
@@ -29,9 +29,17 @@ void emit_help(void);
 
 int main(int argc, char *argv[])
 {
-    int ch, fd;
+    int ch;
+#ifndef __OpenBSD__
+    int fd;
+#endif
     gsl_rng *gsl_rand;
     uint32_t seed;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     if ((gsl_rand = gsl_rng_alloc(gsl_rng_taus2)) == NULL)
         err(EX_SOFTWARE, "could not gsl_rng_alloc()");
@@ -81,6 +89,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: gaussiate [-n count] [-S sigma]\n");
+    fputs("Usage: gaussiate [-n count] [-S sigma]\n", stderr);
     exit(EX_USAGE);
 }

@@ -1,4 +1,5 @@
-/* coinflip - decisions are tough */
+/* coinflip - decisions are tough. this service is often provided by IRC
+ * bots, but those are not available when one is off of the Internet */
 
 #include <err.h>
 #include <fcntl.h>
@@ -18,6 +19,11 @@ int main(int argc, char *argv[])
 {
     int ch;
     uint32_t result;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "h?q")) != -1) {
         switch (ch) {
@@ -56,6 +62,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: coinflip [-q]\n");
+    fputs("Usage: coinflip [-q]\n", stderr);
     exit(EX_USAGE);
 }

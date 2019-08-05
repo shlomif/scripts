@@ -1,4 +1,4 @@
-.Dd December 14 2017
+.Dd August  4 2019
 .Dt MYAT 1
 .nh
 .Os
@@ -31,13 +31,15 @@ before running
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
-.Dl $ Ic echo not long now \&| myat 2038-01-19
-.Dl $ Ic echo all is lost  \&| myat 2038-01-19 03:14
+.Dl $ Ic echo echo not long now \&| myat 2038-01-19
+.Dl $ Ic echo echo all is lost  \&| myat 2038-01-19 03:14
 .Dl $ Ic myat 23:14
 .Dl Ic  echo some reminder
 .Dl Ic  ^D
 .Sh SEE ALSO
-.Xr at 1
+.Xr at 1 ,
+.Xr cron 1 ,
+.Xr kronsoon 1
 .Sh AUTHOR
 .An Jeremy Mates
 .Sh CAVEATS
@@ -48,7 +50,7 @@ this can be a problem if a reminder is made under
 .Pa ~/tmp/foo
 that is then deleted before the job can run. Hence, the
 .Fl C
-option.
+flag.
 .Sh BUGS
 .Cm teatime
 is not supported.

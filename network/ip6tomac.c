@@ -28,6 +28,11 @@ int main(int argc, char *argv[])
     int ret = 0;
     struct in6_addr v6addr;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "fh?s:V")) != -1) {
         switch (ch) {
         case 'f':
@@ -85,6 +90,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: ip6tomac [-f | -V] [-s sep] ipv6-address\n");
+    fputs("Usage: ip6tomac [-f | -V] [-s sep] ipv6-address\n", stderr);
     exit(EX_USAGE);
 }

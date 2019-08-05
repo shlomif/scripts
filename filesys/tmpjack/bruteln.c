@@ -1,3 +1,5 @@
+/* bruteln - try to brute force a particular symlink to exist */
+
 #include <err.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -10,6 +12,11 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch;
+
+#ifdef __OpenBSD__
+    if (pledge("cpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "h?s")) != -1) {
         switch (ch) {
@@ -26,9 +33,10 @@ int main(int argc, char *argv[])
     argv += optind;
 
     while (1) {
-        /* could doubtless be much improved on, for example with inode change
-         * notification services, or more intelligent unlink/symlink cycles, or
-         * other threads or processes eating up CPU time, etc. */
+        /* could doubtless be much improved on, for example with inode
+         * change notification services, or more intelligent
+         * unlink/symlink cycles, or other threads or processes eating
+         * up CPU time, etc */
         symlink(argv[0], argv[1]);
         unlink(argv[1]);
     }
@@ -38,6 +46,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: bruteln existing symlink\n");
+    fputs("Usage: bruteln existing symlink\n", stderr);
     exit(EX_USAGE);
 }

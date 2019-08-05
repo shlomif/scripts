@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #define ROLL_MIN 2
 #define ROLL_MAX 10000
@@ -29,6 +30,11 @@ void roll_em(const char *spec);
 int main(int argc, char *argv[])
 {
     int ch;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     setlocale(LC_ALL, "C");
 
@@ -67,7 +73,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: roll dice-spec [dice-spec ..]\n");
+    fputs("Usage: roll dice-spec [dice-spec ..]\n", stderr);
     exit(EX_USAGE);
 }
 

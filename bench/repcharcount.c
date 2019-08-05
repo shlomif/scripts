@@ -25,6 +25,11 @@ int main(int argc, char *argv[])
     ssize_t amount;
     unsigned long count = 1;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     setlocale(LC_ALL, "C");
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
@@ -79,7 +84,7 @@ int main(int argc, char *argv[])
 
 inline void emit_help(void)
 {
-    fprintf(stderr, "Usage: repcharcount [file|-]\n");
+    fputs("Usage: repcharcount [file|-]\n", stderr);
     exit(EX_USAGE);
 }
 

@@ -1,7 +1,7 @@
-/* bt, short for "backtrace" or a utility wrapper to call a debugger
- * (gdb by default) on the most recent *.core file (or failing that
- * executable) in the current working directory unless a core file or
- * program name is given; that is, much effort for a little automation. */
+/* bt - short for "backtrace" or a wrapper to call a debugger (egdb by
+ * default) on the most recent *.core (or failing that executable) file
+ * in the current working directory unless a core file or program name
+ * is given; that is, much effort for a little automation */
 
 #include <sys/stat.h>
 
@@ -25,8 +25,8 @@ void find_core_or_prog(char **corefilep, char **prognamep);
 char **parse_debugger_args(char *progname, char *corefile);
 char *prog_of_core(const char *filename);
 
-/* for OpenBSD pkg_add gdb or change it */
-const char *Flag_Debugger = "egdb -q";   // -D
+/* for OpenBSD pkg_add gdb, or change it */
+const char *Flag_Debugger = "egdb -q";  /* -D */
 
 int main(int argc, char *argv[])
 {
@@ -35,6 +35,11 @@ int main(int argc, char *argv[])
     char *progname = NULL;
     int ch;
     struct stat statbuf;
+
+#ifdef __OpenBSD__
+    if (pledge("exec rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     env_tmp = getenv("BT_DEBUGGER");
     if (env_tmp != NULL)
@@ -95,7 +100,7 @@ char *core_of_prog(const char *filename)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: bt [-D \"foodb -arg\"] [core-or-program-name]\n");
+    fputs("Usage: bt [-D \"foodb -arg\"] [core-or-program-name]\n", stderr);
     exit(EX_USAGE);
 }
 

@@ -1,12 +1,11 @@
-/*
- * Locks memory in memory. Presumably for testing purposes of some sort,
- * e.g. to more readily run a system towards using swap, or such. This
- * program will most likely run into various limitations on memory locking,
- * see mlock(2) and the OS guide for how to change any such limits.
+/* lockalot - locks memory in memory. presumably for testing purposes of
+ * some sort, e.g. to more readily run a system towards using swap, or
+ * such. this program will most likely run into various limitations on
+ * memory locking, see mlock(2) and the OS guide for how to change any
+ * such limits
  *
  * -m for amount of memory to grab; with -L, does not lock, in which case
- * only memory is grabbed until something causes the process to terminate.
- */
+ * only memory is grabbed until something causes the process to terminate */
 
 #include <sys/mman.h>
 
@@ -37,6 +36,13 @@ int main(int argc, char *argv[])
 
     char tmp_filename[] = "/tmp/lockalot.XXXXXXXXXX";
     struct pollfd pfd[1];
+
+/* TODO how allow mlock ?
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+*/
 
     while ((ch = getopt(argc, argv, "h?Lm:")) != -1) {
         switch (ch) {
@@ -74,7 +80,7 @@ int main(int argc, char *argv[])
     if (isatty(STDIN_FILENO)) {
         pfd[0].fd = STDIN_FILENO;
     } else {
-        fprintf(stderr, "notice: doing mkstemp to create file to poll...\n");
+        fputs("notice: doing mkstemp to create file to poll...\n", stderr);
         if ((pfd[0].fd = mkstemp(tmp_filename)) == -1)
             err(EX_IOERR, "mkstemp failed to create tmp file");
     }
@@ -89,6 +95,6 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: lockalot [-L] -m bytestolock\n");
+    fputs("Usage: lockalot [-L] -m bytestolock\n", stderr);
     exit(EX_USAGE);
 }

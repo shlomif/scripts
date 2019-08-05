@@ -1,7 +1,8 @@
-/* Allows for such testing as
+/* testsalt - allows for such testing as
  *   ./testsalt | r-fu equichisq -
  */
 
+#include <err.h>
 #include <unistd.h>
 
 #include "salt.h"
@@ -25,6 +26,11 @@ int main(void)
 {
     char *salt, *sp;
     unsigned int salt_len;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     for (unsigned int i = 0; i < 100000; i++) {
         salt_len =

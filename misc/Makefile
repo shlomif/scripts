@@ -14,7 +14,10 @@ procrust: procrust.c Makefile
 setsid: setsid.c
 sgrax: sgrax.c
 solitary: solitary.c
+
 threading: threading.c
+	$(CC) $(CFLAGS) -lpthread threading.c -o threading
+
 waitornot: waitornot.c
 
 clean:

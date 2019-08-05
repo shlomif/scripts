@@ -1,5 +1,5 @@
-/*
- * Times out the specified command after the specified amount of time.
+/* timeout - times out the specified command after the specified
+ * amount of time
  *
  *   timeout -- 9h firefox
  */
@@ -40,6 +40,11 @@ int main(int argc, char *argv[])
     long duration;
 
     exit_status = EXIT_SUCCESS;
+
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "Fh?q")) != -1) {
         switch (ch) {
@@ -117,7 +122,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: timeout [-F] [-q] -- dur command [cmd args ..]\n");
+    fputs("Usage: timeout [-F] [-q] -- dur command [cmd args ..]\n", stderr);
     exit(EX_USAGE);
 }
 

@@ -1,4 +1,4 @@
-/* Length of line tool for text files */
+/* llcount - length of input lines */
 
 #include <err.h>
 #include <getopt.h>
@@ -17,6 +17,12 @@ char *Flag_Format = "% 3ld % 5ld % 4ld ";
 int main(int argc, char *argv[])
 {
     int ch;
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "f:h?x")) != -1) {
         switch (ch) {
         case 'x':
@@ -46,7 +52,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: llcount [-x] [file|-]\n");
+    fputs("Usage: llcount [-x] [file|-]\n", stderr);
     exit(EX_USAGE);
 }
 

@@ -56,6 +56,11 @@ int main(int argc, char *argv[])
     randrange = 12;
     count = 10000;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?c:p:r:")) != -1) {
         switch (ch) {
         case 'c':

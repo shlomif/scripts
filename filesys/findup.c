@@ -29,6 +29,11 @@ int main(int argc, char *argv[])
     int ch;
     char *homedir, *search_path, *sp;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "Hdfh?q")) != -1) {
         switch (ch) {
         case 'H':
@@ -129,6 +134,6 @@ int does_match(char *wanted, char *in_dir)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: findup [-H] [-d|-f] [-q] filename [dir-path]");
+    fputs("Usage: findup [-H] [-d|-f] [-q] filename [dir-path]", stderr);
     exit(EX_USAGE);
 }

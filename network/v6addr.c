@@ -52,6 +52,11 @@ int main(int argc, char *argv[])
     int ret = 0;
     struct in6_addr v6addr;
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "afhrRq")) != -1) {
         switch (ch) {
         case 'a':
@@ -226,7 +231,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: [-q] [-f | -r | -R] ipv6-address\n");
+    fputs("Usage: [-q] [-f | -r | -R] ipv6-address\n", stderr);
     exit(EX_USAGE);
 }
 

@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
     time_t epoch;
     struct tm *when;
 
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
         case 'h':
@@ -57,7 +62,7 @@ int main(int argc, char *argv[])
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: mycal\n");
+    fputs("Usage: mycal\n", stderr);
     exit(EX_USAGE);
 }
 

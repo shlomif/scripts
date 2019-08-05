@@ -1,3 +1,5 @@
+/* genpass - generate a password from /dev/urandom */
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -18,6 +20,10 @@ char *genpass(const unsigned int len)
 {
     int fd, i;
     char *pass;
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
     if ((pass = malloc(len)) == NULL)
         err(EX_OSERR, "malloc failed");
     if ((fd = open("/dev/urandom", O_RDONLY)) < 0)
@@ -35,6 +41,6 @@ int main(void)
     char *pass;
     pass = genpass(8);
     puts(pass);
-    free(pass);                 // otherwise, memory leak!
+    //free(pass);                 // otherwise, memory leak!
     return 0;
 }

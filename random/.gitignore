@@ -1,4 +1,5 @@
 *.o
+16
 coinflip
 fair-from-unfair
 modulo-bias

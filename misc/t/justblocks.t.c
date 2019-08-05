@@ -1,3 +1,6 @@
+/* justblocks.t - test code that just blocks. TAP output */
+
+#include <sys/resource.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -22,11 +25,16 @@ int main(void)
     pid_t jbpid, kkpid;
     struct rusage usage;
 
+#ifdef __OpenBSD__
+    if (pledge("exec proc stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     setvbuf(stdout, (char *) NULL, _IOLBF, (size_t) 0);
 
     printf("1..2\n");           /* test count for TAP plan */
 
-    fprintf(stderr, "# tests will block for some time...\n");
+    fputs("# tests will block for some time...\n", stderr);
 
     jbpid = fork();
     if (jbpid < 0) {

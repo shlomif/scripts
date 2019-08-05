@@ -4,6 +4,13 @@ depend:
 	cpanm --installdeps .
 	expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
+.SUFFIXES: .m4 .c
+.m4.c:
+	m4 -P ${.IMPSRC} > ${.TARGET}
+
+todo: todo.c
+todo.c: todo.m4
+
 clean:
 	git clean --force -x
 

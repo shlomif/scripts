@@ -1,16 +1,16 @@
-/*
- * Snips any ultimate linefeed chars (\r and \n) from the named files.
+/* stripeofeol - snips any ultimate linefeed chars (\r and \n) from the
+ * named files
  *
- * This is a very bad idea; files on Unix really do need that
- * ultimate newline, as otherwise shell `while` loops silently drop
- * that last line.
+ * this is a very bad idea; files on Unix must have that ultimate
+ * newline (as demanded by POSIX) as otherwise POSIX shell `while` loops
+ * silently drop that last line:
  * 
  *   $ (echo hi; echo -n there) | while read line; do echo $line; done
  *   hi
  *   $ 
  * 
- * Hence various editors warning if the file lacks a trailing newline
- * (or automatically adding it).
+ * hence various editors warning if the file lacks a trailing newline
+ * (or automatically adding it)
  */
 
 #include <err.h>
@@ -29,6 +29,11 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, fd;
+
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((ch = getopt(argc, argv, "h?")) != -1) {
         switch (ch) {
@@ -125,6 +130,6 @@ void trim_file(const int fd, const char *file)
 
 void emit_help(void)
 {
-    fprintf(stderr, "Usage: stripeofeol file [file2 ...]\n");
+    fputs("Usage: stripeofeol file [file2 ...]\n", stderr);
     exit(EX_USAGE);
 }

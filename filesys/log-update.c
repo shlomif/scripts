@@ -26,6 +26,11 @@ int main(void)
     size_t len;
     ssize_t ret;
 
+#ifdef __OpenBSD__
+    if (pledge("cpath flock rpath stdio wpath", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     if ((home = getenv("HOME")) == NULL)
         err(EX_OSERR, "no HOME");
     if (asprintf(&update_file, "%s/%s", home, UPDATE_FILE) == -1)

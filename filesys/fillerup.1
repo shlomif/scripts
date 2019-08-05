@@ -1,0 +1,37 @@
+.Dd August  4 2019
+.Dt FILLERUP 1
+.nh
+.Os
+.Sh NAME
+.Nm fillerup
+.Nd fills up a filesystem
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl q
+.Ar file
+.Ek
+.Sh DESCRIPTION
+.Nm
+fills up a filesystem by writing to a file. Particular attention is paid
+to errors from system calls, and a
+.Dv USR1
+signal can be used to force a
+.Xr close 2
+call on the file descriptor. This should help reveal what, if any,
+errors are reported and from what system calls those errors from when a
+filesystem fills up. By default the PID of the process is written to
+stderr; this can be suppressed with the
+.Fl q
+flag.
+.Sh EXIT STATUS
+.Nm
+does not exit unless signalled or otherwise killed so the exit status
+should not be relied on.
+.Sh SEE ALSO
+.Xr dd 1 ,
+.Xr df 1 ,
+.Xr du 1 ,
+.Xr fstat 1
+.Sh AUTHOR
+.An Jeremy Mates
