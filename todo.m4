@@ -12,9 +12,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-m4_patsubst(`#define TODO_FILE "@@HOME@@/todo"',
-            `@@HOME@@', m4_esyscmd(`printf "%s" "$HOME"'))
-
+m4_define(`TODO_FILE', `"'m4_esyscmd(`printf "%s" "$HOME"')`/todo"')m4_dnl
 enum { NOPE = -1, CHILD };
 
 int main(void)
