@@ -1,0 +1,21 @@
+#!/bin/sh
+# pmt - Perl make test for when fiddling around with a module
+if [ -r Makefile.PL ]; then
+   make clean
+   set -e
+   perl Makefile.PL
+   RELEASE_TESTING=1 TEST_SIGNATURE=1 make test
+elif [ -r Build.PL ]; then
+   ./Build clean > /dev/null 2>&1
+   set -e
+   perl Build.PL
+   ./Build
+   RELEASE_TESTING=1 TEST_SIGNATURE=1 ./Build test
+else
+   # TODO probably need Dzil support, maybe Module::Install
+   echo >&2 "pmt: no known perl build system found in `pwd`"
+   exit 1
+fi
+# NOTE that a full test may also require:
+#   make disttest
+# or similar for other build systems

@@ -1,0 +1,6 @@
+#!/bin/sh
+# j - check for important jobs hiding in who knows what terminal
+( pgrep -u "$USER" -lf '(^|/)(ed|n?vim?) ' | while read pid etc; do
+   ps -o pid,ppid,pgid,tty,command -p "$pid"
+done ) | sort -u
+tty

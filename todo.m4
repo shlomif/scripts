@@ -1,8 +1,10 @@
-/* todo - I used to do fancier things for the todo list
- *
- *   alias todo='VISUAL=ed todo'
- */
+m4_divert(-1)
+todo - I used to do fancier things for the todo list
 
+   alias todo='VISUAL=ed todo'
+
+m4_define(`TODO_FILE', `"'m4_esyscmd(`printf "%s" "$HOME"')`/todo"')m4_dnl
+m4_divert(0)
 #include <sys/file.h>
 #include <sys/wait.h>
 
@@ -12,7 +14,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-m4_define(`TODO_FILE', `"'m4_esyscmd(`printf "%s" "$HOME"')`/todo"')m4_dnl
 enum { NOPE = -1, CHILD };
 
 int main(void)

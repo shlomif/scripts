@@ -1,0 +1,39 @@
+#|
+eval 'exec sbcl --script "$0" ${1+"$@"}'
+|#
+
+; quicklisp - mostly so can type `quicklisp update` to update that.
+; untested outside of SBCL
+
+#-quicklisp
+(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
+                                       (user-homedir-pathname))))
+  (when (probe-file quicklisp-init) (load quicklisp-init)))
+
+(defun cli-args ()
+  #+CCL *unprocessed-command-line-arguments*
+  #+CLISP ext:*args*
+  #+SBCL (cdr *posix-argv*)    ; nix the program name
+  #-(or CCL CLISP SBCL) (error "cli-args unimplemented"))
+
+(defun cli-exit (&optional (code 0))
+  #+SBCL
+  (sb-ext:exit :code code))
+
+(defun update-dist () (ql:update-dist "quicklisp"))
+(defun update-client () (ql:update-client))
+(defun update () (update-dist) (update-client))
+
+(defun main ()
+  (let* ((args (cli-args)) (method (pop args)))
+    (cond ((string= method "update") (update))
+          (t (progn
+               (format t "unknown argument (try update)~%")
+               (cli-exit 1)))))
+  (cli-exit))
+
+(main)
+
+;(sb-ext:save-lisp-and-die "quicklisp"
+;                          :executable t
+;                          :toplevel 'main)
