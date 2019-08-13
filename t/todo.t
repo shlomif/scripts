@@ -2,27 +2,19 @@
 use lib qw(lib/perl5);
 use UtilityTestBelt;
 
-my $test_prog = './todo';
+my $cmd = Test::UnixCmdWrap->new;
 
-my @both = qw(EDITOR VISUAL);
-delete @ENV{@both};
-my $one = $both[ rand @both ];
-$ENV{$one} = 'echo';
+# either of these is supported though VISUAL has priority so both must
+# be gone for the tests
+delete @ENV{ my @editor = qw(EDITOR VISUAL) };
 
 # check if HOME has been corrupted (which the m4 inserts into the code)
-# by comparing it against the password database
-my $home  = ( getpwuid $> )[7];
-my @tests = ( { stdout => qr(^$home/todo$) }, );
-my $cmd   = Test::Cmd->new( prog => $test_prog, workdir => '', );
+# by comparing it against the password database. the macro definition is
+# within a divert(-1) block to help prevent shennanigans should HOME
+# contain something that is not only a home directory
+my $home = ( getpwuid $> )[7];
 
-for my $test (@tests) {
-    $test->{status} //= 0;
-    $test->{stderr} //= qr/^$/;
-    $cmd->run;
-    exit_is( $?, $test->{status}, "STATUS $test_prog" );
-    ok( $cmd->stdout =~ m/$test->{stdout}/, "STDOUT $test_prog" )
-      or diag 'STDOUT ' . $cmd->stdout;
-    ok( $cmd->stderr =~ m/$test->{stderr}/, "STDERR $test_prog" )
-      or diag 'STDERR ' . $cmd->stderr;
+foreach (@editor) {
+    $cmd->run( stdout => qr(^$home/todo$), env => { $_ => 'echo' } );
 }
-done_testing( @tests * 3 );
+done_testing(6);

@@ -1,3 +1,5 @@
+CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
+
 .SUFFIXES: .m4 .c
 .m4.c:
 	m4 -P ${.IMPSRC} > ${.TARGET}

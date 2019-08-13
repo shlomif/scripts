@@ -1,0 +1,57 @@
+.Dd August 13 2019
+.Dt SEARCH 1
+.nh
+.Os
+.Sh NAME
+.Nm search
+.Nd search for files and maybe act on them
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Ar pattern
+.Op Ar cmd Op Ar args ..
+.Ek
+.Sh DESCRIPTION
+.Nm
+searches for the give
+.Ar pattern
+(a glob expression) in the current working directory and lists the
+filenames found. Subsequent arguments (if any) are treated as a command
+that will be passed the filenames in the manner of
+.Xr xargs 1 .
+With
+.Dv CWD
+set the search will instead happen under that directory name.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Find all the
+.Ar *.c
+files.
+.Pp
+.Dl $ Ic search \e*.c
+.Pp
+Find all the
+.Ar *.t
+perl test files that contain the string
+.Ar env .
+.Pp
+.Dl $ Ic search \e*.t fgrep -l env
+.Pp
+Tally up 
+.Xr File::Spec 3p
+calls in perl test files found under the current working directory.
+.Pp
+.Dl $ Ic search \e*.t perl -nE 'say $1 if m/File::Spec->([^(]+)/' \&| tally
+.Pp
+Search somewhere else for ...
+.Pp
+.Dl $ Ic CWD=/some/other/dir search ...
+.Sh SEE ALSO
+.Xr find 1 ,
+.Xr grep 1 ,
+.Xr perl 1 ,
+.Xr tally 1 ,
+.Xr xargs 1
+.Sh AUTHORS
+.An Jeremy Mates

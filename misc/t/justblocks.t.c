@@ -17,7 +17,7 @@
 
 void is_signal(int status, int sig);
 
-int Current_Test = 1;
+volatile int Current_Test = 1;
 
 int main(void)
 {

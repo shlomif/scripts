@@ -21,9 +21,8 @@ somewhere under a MANPATH directory unless you like reading roff
      may not require random defines like -D_POSIX_C_SOURCE=200809L when
      compiling. add those to the make rule as necessary? code herein
      that uses glob(3) is way not compatible with Linux
- * Perl verion 5.16 is assumed for the tests (compatibility with the
-   legacy Centos 7 version of perl); some scripts will work on older
-   versions. Perl::MinimumVersion is most handy here
+ * Perl verion 5.24 is used in places though the code could likely be
+   ported backwards if really necessary
  * the shell code is generally tested under /bin/sh on OpenBSD and the
    Heirloom Bourne Shell (jsh) on Mac OS X
  * TCL version 8.5 is required for the TCL code (8.6 isn't really yet

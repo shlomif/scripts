@@ -2,22 +2,18 @@
 use lib qw(../../../lib/perl5);
 use UtilityTestBelt;
 
-my $expected = "OpenBSD6.4-amd64\n";
-my $output;
+my $cmd = Test::UnixCmdWrap->new;
 
-$output = qx(./localarchdir);
-exit_is( $?, 0 );
-ok( $output eq $expected ) or compare( $output, $expected );
+my $release = qx(uname -r);
+chomp $release;
+my $expected = "OpenBSD$release-amd64\n";
 
-$output = qx(./localarchdir >&-);
-exit_is( $?, 1 );
-is( $output, "" );
+$cmd->run(stdout => $expected);
 
-done_testing(4);
+# Test::Cmd does not document a way to close stdout
+my $prog   = $cmd->prog;
+my $output = qx($prog >&-);
+exit_is($?, 1);
+is($output, "");
 
-sub compare {
-    for my $arg (@_) {
-        my $nofancy = $arg =~ s/[^\x20-\x7e]/./gr;
-        diag sprintf "%0*v2x\t%s\n", ' ', $arg, $nofancy;
-    }
-}
+done_testing(5);

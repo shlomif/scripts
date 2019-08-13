@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# search - search for files
+
+name=${1?need -name expr to search for}
+shift
+
+indir=${CWD:-.}
+
+if [ $# -eq 0 ]; then
+   exec find "$indir" -name "$name" -print
+else
+   exec find "$indir" -name "$name" -exec "$@" {} +
+fi

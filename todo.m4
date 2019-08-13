@@ -4,7 +4,7 @@ todo - I used to do fancier things for the todo list
    alias todo='VISUAL=ed todo'
 
 m4_define(`TODO_FILE', `"'m4_esyscmd(`printf "%s" "$HOME"')`/todo"')m4_dnl
-m4_divert(0)
+m4_divert(0)m4_dnl
 #include <sys/file.h>
 #include <sys/wait.h>
 
