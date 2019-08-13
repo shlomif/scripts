@@ -1,2 +1,0 @@
-requires 'Test::Most';
-requires 'Test::UnixExit';

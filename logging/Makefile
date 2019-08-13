@@ -11,8 +11,4 @@ logsoc: logsoc.c
 clean:
 	git clean --force -x
 
-depend:
-	cpanm --installdeps ..
-	expect -c "package require Tcl 8.5"
-
-.PHONY: clean depend
+.PHONY: clean

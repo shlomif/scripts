@@ -114,6 +114,11 @@ int main(int argc, char *argv[])
         File_Name = *argv;
     }
 
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((linelen = getline(&line, &linesize, fh)) != -1) {
         parseline(line, linenum);
         linenum++;

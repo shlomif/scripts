@@ -1,10 +1,10 @@
-m4_divert(-1)
+divert(-1)
 todo - I used to do fancier things for the todo list
 
    alias todo='VISUAL=ed todo'
 
-m4_define(`TODO_FILE', `"'m4_esyscmd(`printf "%s" "$HOME"')`/todo"')m4_dnl
-m4_divert(0)m4_dnl
+define(`TODO_FILE', `"'esyscmd(`printf "%s" "$HOME"')`/todo"')dnl
+divert(0)dnl
 #include <sys/file.h>
 #include <sys/wait.h>
 

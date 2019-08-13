@@ -1,9 +1,0 @@
-requires 'File::HomeDir';
-requires 'File::Slurper';
-requires 'HTTP::Tiny';
-requires 'IO::Socket::INET';
-requires 'JSON::MaybeXS';
-requires 'LWP::Protocol::https';
-requires 'NetAddr::IP';
-requires 'Sys::Hostname';
-requires 'URI';

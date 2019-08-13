@@ -1,4 +1,0 @@
-requires 'LWP::UserAgent';
-requires 'URI';
-requires 'XML::LibXML::XPathContext';
-requires 'XML::SAX::Exception';

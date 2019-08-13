@@ -1,3 +1,0 @@
-requires 'File::Path';
-requires 'File::Spec';
-requires 'Net::DNS';

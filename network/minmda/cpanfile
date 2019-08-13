@@ -1,7 +1,0 @@
-requires 'App::Prove';
-requires 'File::Cmp';
-requires 'File::Spec';
-requires 'File::Temp';
-requires 'Test::Cmd';
-requires 'Test::Most';
-requires 'Test::UnixExit';

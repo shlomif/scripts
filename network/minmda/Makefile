@@ -12,15 +12,8 @@ files.o: files.c
 clean:
 	git clean --force -x
 
-# this does not attempt the install as that will vary between platform
-depend:
-	pkg-config --exists libsodium
-
-test-depend:
-	cpanm --installdeps .
-
 test: minmda minmda-corrupts
 	@prove --nocolor
 	@-rm minmda-corrupts 2>/dev/null
 
-.PHONY: clean depend test test-depend
+.PHONY: clean test

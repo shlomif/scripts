@@ -32,12 +32,7 @@ uvi: uvi.c
 clean:
 	git clean --force -x
 
-depend:
-	cpanm --installdeps ..
-	pkg-config --exists goptfoo
-	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
-
 test: fdsplit findin findup getpof llcount seek twiddle uvi
 	@prove --nocolor
 
-.PHONY: clean depend test
+.PHONY: clean test

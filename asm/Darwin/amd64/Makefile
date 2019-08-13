@@ -46,10 +46,7 @@ bench: echo false true
 clean:
 	git clean --force -x
 
-depend:
-	cpanm --installdeps .
-
 test: false localarchdir regpollute true
 	@prove --nocolor
 
-.PHONY: bench depend test clean
+.PHONY: bench test clean

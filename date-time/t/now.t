@@ -3,44 +3,32 @@ use lib qw(../lib/perl5);
 use UtilityTestBelt;
 use POSIX qw(strftime);
 
-my $test_prog = './now';
+my $cmd = Test::UnixCmdWrap->new;
 
 $ENV{TZ} = 'US/Pacific';
 
 my $cur_epoch = time();
 # NOTE tests will fail if the day rolls over somewhere between here and
 # the last date-related ->run, below.
-my $three_days = strftime( "%b %d", localtime( $cur_epoch + 3 * 86400 ) );
-my $four_weeks = strftime( "%b %d", localtime( $cur_epoch + 4 * 7 * 86400 ) );
+my $three_days = strftime("%b %d", localtime($cur_epoch + 3 * 86400));
+my $four_weeks = strftime("%b %d", localtime($cur_epoch + 4 * 7 * 86400));
 
-my @tests = (
-    {   args   => '3',
-        stdout => [$three_days],
-    },
-    {   args   => '+3',
-        stdout => [$three_days],
-    },
-    {   args   => '+3d',
-        stdout => [$three_days],
-    },
-    {   args   => '+4w',
-        stdout => [$four_weeks],
-    },
+$cmd->run(
+    args   => '3',
+    stdout => [$three_days],
 );
-my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
+$cmd->run(
+    args   => '+3',
+    stdout => [$three_days],
+);
+$cmd->run(
+    args   => '+3d',
+    stdout => [$three_days],
+);
+$cmd->run(
+    args   => '+4w',
+    stdout => [$four_weeks],
+);
+$cmd->run(args => '-h', status => 64, stderr => qr/Usage/);
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= '';
-
-    $testcmd->run( args => $test->{args} );
-
-    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
-    eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
-        $test->{stdout}, "STDOUT $test_prog $test->{args}" );
-    is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
-}
-$testcmd->run( args => '-h' );
-exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
-ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-done_testing( @tests * 3 + 2 );
+done_testing(15);

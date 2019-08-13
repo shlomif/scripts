@@ -5,10 +5,7 @@ epochal: epochal.c
 clean:
 	git clean --force -x
 
-depend:
-	cpanm --installdeps ../..
-
 test: epochal
 	@prove --nocolor
 
-.PHONY: clean depend test
+.PHONY: clean test

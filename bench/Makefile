@@ -15,13 +15,7 @@ usemem: usemem.c
 clean:
 	git clean --force -x
 
-depend:
-	cpanm --installdeps ..
-	pkg-config --exists goptfoo
-	pkg-config --exists jkiss
-	@expect -c "package require Tcl 8.5"
-
 test: repcharcount
 	@prove --nocolor
 
-.PHONY: clean depend test
+.PHONY: clean test

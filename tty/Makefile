@@ -31,10 +31,7 @@ clean:
 	git clean --force -x
 
 depend:
-	cpanm --installdeps ..
-	cpanm --installdeps .
 	pkg-config --exists libpcre goptfoo $(TCL)
-	@expect -c "package require Tcl 8.5; package require fileutil 1.13.0"
 
 test: nocolor-test
 	@prove --nocolor

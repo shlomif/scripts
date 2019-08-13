@@ -23,7 +23,6 @@ clean:
 
 # the Perl deps are for `make test`; dnstw itself should only need TCL
 depend:
-	cpanm --installdeps ../..
 	pkg-config --exists goptfoo $(TCL)
 	@expect -c "package require Tcl 8.5"
 

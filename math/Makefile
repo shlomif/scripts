@@ -9,8 +9,4 @@ gaussiate: gaussiate.c
 clean:
 	git clean --force -x
 
-depend:
-	pkg-config --exists goptfoo
-	pkg-config --exists gsl
-
-.PHONY: clean depend
+.PHONY: clean

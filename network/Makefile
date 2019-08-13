@@ -30,12 +30,7 @@ validate-rsnapshot: validate-rsnapshot.c
 clean:
 	git clean --force -x
 
-depend:
-	cpanm --installdeps .
-	pkg-config --exists goptfoo
-	@expect -c "package require Tcl 8.5;"
-
 test: macnorm v4addr v6addr validate-rsnapshot
 	@prove --nocolor
 
-.PHONY: clean depend test
+.PHONY: clean test

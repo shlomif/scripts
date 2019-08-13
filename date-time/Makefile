@@ -17,12 +17,7 @@ timeout: timeout.c
 clean:
 	git clean --force -x
 
-depend:
-	perl -e 'use 5.16.0'
-	cpanm --installdeps ..
-	expect -c 'package require Tcl 8.5'
-
 test: date2epoch now stardate timeout
 	@prove --nocolor
 
-.PHONY: clean depend test
+.PHONY: clean test

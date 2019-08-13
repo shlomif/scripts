@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
-# Generates crontab(5) compatible time specifications for near
-# future runs.
+# kronsoon - generates crontab(5) compatible time specifications for
+# near future runs
 
 use 5.16.0;
 use warnings;
@@ -9,24 +9,25 @@ use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);
 
 # NOTE do not change this without first understanding the logic of
-# various combinations of fields. There's a surprise (that should be
-# documented in crontab(5)).
+# various combinations of fields. there's a surprise (that should be
+# documented in crontab(5))
 sub CRON_TIME_FORMAT () { '%M %H %d %m *' }
 
 GetOptions(
     'gmtime|gmt|g' => \my $Flag_GMT,
     'help|h|?'     => \&emit_help,
-    'padby|p=i'    => \my $Flag_Pad_By,
+    'padby|p=i'    => \my $Flag_Pad,
 ) or exit 65;
 
-if ( defined $Flag_Pad_By ) {
-    if ( $Flag_Pad_By < 60 or $Flag_Pad_By > 300 ) {
-        die "kronsoon: pad by time $Flag_Pad_By out of range\n";
+if (defined $Flag_Pad) {
+    if ($Flag_Pad < 60 or $Flag_Pad > 640) {
+        say STDERR "kronsoon: pad by time $Flag_Pad out of range";
+        exit 65;
     }
 } else {
     # Could be set lower assuming you're on the ball about editing cron
     # and saving it and having crond pickup on the changes...
-    $Flag_Pad_By = 89;
+    $Flag_Pad = 89;
 }
 
 my $command;
@@ -34,16 +35,15 @@ my $command;
 shift @ARGV if @ARGV == 1 and $ARGV[0] eq '-';
 if (@ARGV) {
     $command = "@ARGV";
-} elsif ( !-t ) {
+} elsif (!-t) {
     $command = do { local $/; readline *STDIN };
     chomp($command);
 }
 
-my $when = time() + $Flag_Pad_By;
+my $when = time() + $Flag_Pad;
 
-print strftime( CRON_TIME_FORMAT,
-    $Flag_GMT ? gmtime($when) : localtime($when) ),
-  ( defined $command ? " $command" : '' ), "\n";
+say strftime(CRON_TIME_FORMAT, $Flag_GMT ? gmtime($when) : localtime($when)),
+  (defined $command ? ' ' . $command : ' ');
 
 sub emit_help {
     warn <<"END_USAGE";

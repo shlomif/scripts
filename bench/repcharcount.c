@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     unsigned long count = 1;
 
 #ifdef __OpenBSD__
-    if (pledge("stdio", NULL) == -1)
+    if (pledge("rpath stdio", NULL) == -1)
         err(1, "pledge failed");
 #endif
 
@@ -52,6 +52,11 @@ int main(int argc, char *argv[])
             err(EX_IOERR, "could not open '%s'", *argv);
         fname = *argv;
     }
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     if ((amount = read(fd, buf, 1)) != 1)
         err(EX_IOERR, "read() on %s failed", fname);
