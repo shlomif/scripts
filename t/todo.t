@@ -17,4 +17,7 @@ my $home = ( getpwuid $> )[7];
 foreach (@editor) {
     $cmd->run( stdout => qr(^$home/todo$), env => { $_ => 'echo' } );
 }
-done_testing(6);
+
+$cmd->run( env => { VISUAL => 'false' }, status => 1 );
+
+done_testing(9);

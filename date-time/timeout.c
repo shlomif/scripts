@@ -131,9 +131,7 @@ void handle_alarm(int sig)
     Timed_Out = true;
 }
 
-/*
- * Parse the duration, could either be just "42" or "1m3s"
- */
+/* parse the duration, could either be "42" or "1m3s" */
 long parse_duration(char *durp)
 {
     char duration_spec;

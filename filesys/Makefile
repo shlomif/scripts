@@ -3,6 +3,9 @@ CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 corrupt: corrupt.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` corrupt.c -o corrupt
 
+fbd: fbd.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` fbd.c -o fbd
+
 fdsplit: fdsplit.c
 fillerup: fillerup.c
 findin: findin.c
@@ -32,7 +35,7 @@ uvi: uvi.c
 clean:
 	git clean --force -x
 
-test: fdsplit findin findup getpof llcount seek twiddle uvi
+test: fbd fdsplit findin findup getpof llcount seek twiddle uvi
 	@prove --nocolor
 
 .PHONY: clean test

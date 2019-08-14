@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 {
     int ch;
 
-    char **argp, **pathlist, **plp;
+    char **pathlist, **plp, *pof;
     FTS *filetree;
     FTSENT *filedat;
     /* get to the files, limit filesystem calls as much as possible */
@@ -69,23 +69,20 @@ int main(int argc, char *argv[])
         emit_help();
     }
 
-    /* figure out what directories will be passed to fts(3), current
-     * directory if none are supplied. */
-    if ((pathlist = calloc((size_t) argc + 1, sizeof(char *))) == NULL)
-        err(EX_OSERR, "could not calloc() path list");
+    pof = *argv;
+
+    if ((pathlist =
+         calloc((size_t) (argc == 1 ? 2 : argc), sizeof(char *))) == NULL)
+        err(EX_OSERR, "calloc path list failed");
     plp = pathlist;
     if (argc == 1) {
         *plp++ = (char *) ".";
     } else {
-        /* *argv contains the filename we're searching for */
-        argp = argv;
-        argp++;
-        while (*argp) {
-            char *realp;
-            if ((realp = realpath(*argp, NULL)) == NULL)
-                err(EX_IOERR, "realpath() failed on '%s'", *argp);
-            *plp++ = realp;
-            argp++;
+        argv++;
+        while (*argv) {
+            if ((*plp++ = realpath(*argv, NULL)) == NULL)
+                err(EX_IOERR, "realpath failed on '%s'", *argv);
+            argv++;
         }
     }
     *plp = (char *) 0;
@@ -97,8 +94,10 @@ int main(int argc, char *argv[])
         char *filep;
         struct stat statbuf;
         switch (filedat->fts_info) {
+        case FTS_F:
+            break;
         case FTS_D:
-            if (asprintf(&filep, "%s/%s", filedat->fts_accpath, *argv) == -1)
+            if (asprintf(&filep, "%s/%s", filedat->fts_accpath, pof) == -1)
                 err(EX_OSERR, "could not asprintf() file path");
 
             if (stat(filep, &statbuf) == 0) {
@@ -113,23 +112,22 @@ int main(int argc, char *argv[])
             }
             free(filep);
             break;
-
         case FTS_DNR:
             ret = EX_NOPERM;
             if (!Flag_Quiet)
                 warnx("failed to open %s directory: %s", filedat->fts_path,
                       strerror(filedat->fts_errno));
             break;
-
         case FTS_DC:
             /* `ln . foo` is one way (thanks to my users) that a
              * filesystem loop can be created. so it is handy to warn
              * about these... */
             if (!Flag_Quiet)
-                fprintf(stderr, "filesystem cycle from '%s' to '%s'\n",
-                        filedat->fts_accpath, filedat->fts_cycle->fts_accpath);
+                warnx("filesystem cycle from '%s' to '%s'\n",
+                      filedat->fts_accpath, filedat->fts_cycle->fts_accpath);
             break;
-
+        case FTS_ERR:
+            err(1, "fts_read failed??");
         default:
             ;                   /* do nothing but silence warnings */
         }

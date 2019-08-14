@@ -1,5 +1,6 @@
 *.o
 corrupt
+fbd
 fdsplit
 fillerup
 findin

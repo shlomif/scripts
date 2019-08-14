@@ -59,7 +59,7 @@ int IpParse(ClientData clientData, Tcl_Interp * interp, int objc,
                      v6addr.s6_addr[i] >> 4 & 15);
             rp += 4;
         }
-        strncpy(rp, "ip6.arpa.", 9);
+        strncpy(rp, "ip6.arpa.", 10);
 
         ipObj[2] = Tcl_NewStringObj("AAAA", -1);
     }

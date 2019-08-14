@@ -19,7 +19,7 @@ enum { NOPE = -1, CHILD };
 int main(void)
 {
     char *editor;
-    int fd, status;
+    int exit_status = 0, fd, status;
     pid_t pid;
 #ifdef __OpenBSD__
     if (pledge("cpath exec flock proc rpath stdio", NULL) == -1)
@@ -43,8 +43,9 @@ int main(void)
         err(1, "exec '%s' failed", editor);
     } else {
         wait(&status);
+        if (status != EXIT_SUCCESS) exit_status = 1;
     }
     flock(fd, LOCK_UN);
     close(fd);
-    exit(EXIT_SUCCESS);
+    exit(exit_status);
 }
