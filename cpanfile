@@ -59,5 +59,6 @@ requires 'Time::HiRes';
 requires 'URI';
 requires 'URL::Search';
 requires 'Unicode::UTF8';
+requires 'XML::LibXML';
 requires 'XML::LibXML::XPathContext';
 requires 'XML::SAX::Exception';

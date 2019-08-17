@@ -2,69 +2,50 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-my $test_prog = './uvi';
-my $test_dir  = tempdir('uvi.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1);
+# TODO may need flag if noatime is set on filesystem
 
-my @both = qw(EDITOR VISUAL);
-delete @ENV{@both};
-my $one = $both[ rand @both ];
-$ENV{$one} = 'touch';
+my $cmd = Test::UnixCmdWrap->new;
 
-diag "testing with $one";
+delete @ENV{ my @editor = qw(EDITOR VISUAL) };
 
-my $subdir = "nope";
-
-my @tests = (
-    { files => ["no.$$"] },
-    { files => [qw(pa re ci)] },
-    # nope on directory edits
-    {   files       => [$subdir],
-        exit_status => 1,
-        stderr      => qr/^/,
-    },
-    {   exit_status => 64,
-        stderr      => qr/^Usage: /
-    }
-);
-my $cmd = Test::Cmd->new(prog => $test_prog, workdir => '',);
+my $test_dir = tempdir('uvi.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1);
+my $subdir   = 'foo';
 
 # the mtime + 1 (below in various places) is to test that atime and
-# mtime are not reversed by uvi(1)
+# mtime are not mixed up
 my $randtime = int rand 10000;
 
 # this is for the "not a file" test so that it passes the mtime tests
-my $sd = File::Spec->catfile($test_dir, $subdir);
-mkdir $sd;
-utime $randtime, $randtime + 1, $sd;
+my $sd = catdir($test_dir, $subdir);
+mkdir $sd or BAIL_OUT("mkdir failed '$sd': $!");
+utime($randtime, $randtime + 1, $sd) or BAIL_OUT("utime error dir $sd?? $!");
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= qr/^$/;
-    $test->{stdout}      //= qr/^$/;
-
-    my $args;
-    for my $f (@{ $test->{files} }) {
-        $f = File::Spec->catfile($test_dir, $f);
-        if (!-d $f) {
-            open my $fh, '>', $f or die "could not write $f: $!\n";
-            utime($randtime, $randtime + 1, $f) > 0 or die "utime error?? $!";
-        }
-        $args .= $f . ' ';
+sub with_files {
+    my ($files, $param) = @_;
+    for my $f ($files->@*) {
+        $f = catfile($test_dir, $f);
+        next if -d $f;
+        open my $fh, '>', $f or BAIL_OUT("could not write $f: $!");
     }
-    $cmd->run(defined $args ? (args => $args) : ());
-
-    $args //= '';
-    exit_is($?, $test->{exit_status}, "STATUS $test_prog $args");
-    ok($cmd->stdout =~ $test->{stdout}, "STDOUT $test_prog $args")
-      or diag "STDOUT >" . $cmd->stdout . "<";
-    ok($cmd->stderr =~ $test->{stderr}, "STDERR $test_prog $args")
-      or diag "STDERR >" . $cmd->stderr . "<";
-
-    for my $f (@{ $test->{files} }) {
+    utime($randtime, $randtime + 1, $files->@*) or BAIL_OUT("utime error?? $!");
+    $param->{env} = { VISUAL => 'touch' } unless exists $param->{env};
+    $cmd->run($param->%*, args => join ' ', $files->@*);
+    for my $f ($files->@*) {
         my ($atime, $mtime) = (stat $f)[ 8, 9 ];
         is $atime, $randtime;
         is $mtime, $randtime + 1;
     }
 }
 
-done_testing;
+with_files(["no.$$"]);
+with_files([qw(pa re ci)]);
+
+# nope on directory edits
+with_files([$subdir], { status => 74, stderr => qr/not a file/ });
+
+# EDITOR should be equivalent to VISUAL
+with_files(['vo'], { env => { EDITOR => 'touch' } });
+
+$cmd->run(status => 64, stderr => qr/^Usage: /);
+
+done_testing(27);

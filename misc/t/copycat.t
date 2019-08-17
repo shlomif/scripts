@@ -2,30 +2,15 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-my $test_prog = './copycat';
+my $cmd = Test::UnixCmdWrap->new;
 
 # since may not have pbcopy/X11 available, fake things
 $ENV{CLIPBOARD} = 'cat';
 
-my @tests = (
-    {   stdin  => "foo $$\n",
-        stdout => [ "foo $$", "foo $$" ],
-    },
+$cmd->run(
+    stdin  => "foo $$\n",
+    stdout => [ "foo $$", "foo $$" ],
 );
-my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
+$cmd->run(args => '-h', status => 64, stderr => qr/Usage/);
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= '';
-
-    $testcmd->run( stdin => $test->{stdin} );
-
-    exit_is( $?, $test->{exit_status}, "STATUS $test->{stdin} | $test_prog" );
-    eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
-        $test->{stdout}, "STDOUT $test->{stdin} | $test_prog" );
-    is( $testcmd->stderr, $test->{stderr}, "STDERR $test->{stdin} | $test_prog" );
-}
-$testcmd->run( args => '-h' );
-exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
-ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-done_testing( @tests * 3 + 2 );
+done_testing(6);

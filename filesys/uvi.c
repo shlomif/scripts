@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
         if (stat(*ap, &sb) != 0)
             err(EX_OSERR, "stat failed");
         if (!S_ISREG(sb.st_mode))
-            err(1, "not a file: %s", *ap);
+            errx(EX_IOERR, "not a file: %s", *ap);
         if ((ft = malloc(sizeof(struct filetimes))) == NULL)
             err(EX_OSERR, "malloc failed");
         ft->file = *ap;

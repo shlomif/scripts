@@ -11,7 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-int Flag_UserOkay;              /* -U */
+enum { NOPE = -1, CHILD };
 
 struct termios Original_Termios;
 
@@ -32,13 +32,10 @@ int main(int argc, char *argv[])
         err(1, "pledge failed");
 #endif
 
-    while ((ch = getopt(argc, argv, "h?IU")) != -1) {
+    while ((ch = getopt(argc, argv, "h?I")) != -1) {
         switch (ch) {
         case 'I':
             lflags_nay |= ISIG;
-            break;
-        case 'U':
-            Flag_UserOkay = 1;
             break;
         case 'h':
         case '?':
@@ -64,8 +61,7 @@ int main(int argc, char *argv[])
     /* cfmakeraw(3) is a tad too raw and influences output from child;
      * per termios(5) use "Case B" for quick "any" key reads with
      * canonical mode (line-based processing), echo (to hide the key the
-     * user mashes), and ^Z disabled. ISIG on, unless it is not
-     */
+     * user mashes), and ^Z disabled. ISIG on, unless it is not */
     terminfo.c_cc[VMIN] = 1;
     terminfo.c_cc[VTIME] = 0;
     terminfo.c_lflag |= ISIG;
@@ -84,25 +80,22 @@ int main(int argc, char *argv[])
 
     signal(SIGCHLD, child_signal);
 
-    child_pid = fork();
+    if ((child_pid = fork()) == NOPE)
+        err(EX_OSERR, "fork failed");
 
-    if (child_pid == 0) {       // child
+    if (child_pid == CHILD) {
         freopen("/dev/null", "r", stdin);
         signal(SIGCHLD, SIG_DFL);
         status = execvp(*argv, argv);
         warn("could not exec '%s' (%d)", *argv, status);
         _exit(EX_OSERR);
-
-    } else if (child_pid > 0) { // parent
+    } else {
         if ((status = read(STDIN_FILENO, &anykey, 1)) < 0)
             err(EX_IOERR, "read() failed??");
         kill(child_pid, SIGTERM);
-
-    } else {
-        err(EX_OSERR, "could not fork");
     }
 
-    exit(Flag_UserOkay ? 0 : 1);
+    exit(EXIT_SUCCESS);
 }
 
 void child_signal(int unused)
@@ -110,12 +103,12 @@ void child_signal(int unused)
     /* might try to pass along the exit status of the child, but
      * that's extra work and complication, and since this is an
      * interactive tool... */
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 void emit_help(void)
 {
-    fputs("Usage: waitornot [-I] [-U] command [args ..]\n", stderr);
+    fputs("Usage: waitornot [-I] command [args ..]\n", stderr);
     exit(EX_USAGE);
 }
 

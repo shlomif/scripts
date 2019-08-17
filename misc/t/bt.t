@@ -4,7 +4,7 @@ use UtilityTestBelt;
 use Cwd qw(getcwd);
 use Expect;
 
-my $test_prog = File::Spec->catfile( getcwd, 'bt' );
+my $test_prog = File::Spec->catfile( getcwd(), 'bt' );
 my $exp;
 
 $ENV{BT_DEBUGGER} = "echo by env $$";

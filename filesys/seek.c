@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     unsigned long seekto, quitafter = ULONG_MAX;
 
 #ifdef __OpenBSD__
-    if (pledge("stdio", NULL) == -1)
+    if (pledge("cpath rpath stdio wpath", NULL) == -1)
         err(1, "pledge failed");
 #endif
 

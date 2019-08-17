@@ -25,18 +25,18 @@ if { [catch {set output_fh [open "| $clipboard_command" w]} msg] } {
 if {[info exists env(OUTPUT_PREFIX)]} {
     set output_prefix $env(OUTPUT_PREFIX)
 } else {
-    set output_prefix "    "
+    set output_prefix {    }
 }
 if {[info exists env(SHELL)] && [string match "*zsh*" $env(SHELL)]} {
-    set shell_prompt "%"
+    set shell_prompt {% }
 } else {
     # assume ksh or sh by default
-    set shell_prompt "$"
+    set shell_prompt {$ }
 }
 
 proc bail_out {} {
     global output_fh shell_prompt
-    emit "$shell_prompt "
+    emit $shell_prompt
     close $output_fh
     exit
 }
@@ -59,12 +59,14 @@ proc handle_spawn_input {fh} {
 # like the original command
 proc shellify {command} {
     set result ""
+    set sep ""
     foreach arg $command {
         if {[llength $arg] > 1} {
-            append result " '$arg'"
+            append result "$sep'$arg'"
         } else {
-            append result " $arg"
+            append result $sep$arg
         }
+        set sep " "
     }
     return $result
 }

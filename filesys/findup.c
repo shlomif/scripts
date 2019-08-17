@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     char *homedir, *search_path, *sp;
 
 #ifdef __OpenBSD__
-    if (pledge("rpath stdio", NULL) == -1)
+    if (pledge("getpw rpath stdio", NULL) == -1)
         err(1, "pledge failed");
 #endif
 

@@ -2,39 +2,21 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-my @tests = (
-    {   args   => "xom",
-        stdout => "xom\n",
-    },
-    {   args        => '',
-        exit_status => 64,
-        stdout      => "",
-        stderr      => qr/^Usage: /,
-    },
-    {   args        => '-h',
-        exit_status => 64,
-        stdout      => "",
-        stderr      => qr/^Usage: /,
-    },
-);
-my $command = Test::Cmd->new( prog => './oneof', workdir => '', );
+my $cmd  = Test::UnixCmdWrap->new;
+my $tcmd = $cmd->cmd;
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= qr/^$/;
+$cmd->run(args => "xom", stdout => ["xom"]);
 
-    $command->run( exists $test->{args} ? ( args => $test->{args} ) : () );
-
-    my $args = ' ' . ( $test->{args} // '' );
-    exit_is( $?, $test->{exit_status}, "STATUS ./oneof$args" );
-    is( $command->stdout, $test->{stdout}, "STDOUT ./oneof$args" );
-    ok( $command->stderr =~ $test->{stderr}, "STDERR ./oneof$args" );
-}
 my %seen;
-for ( 1 .. 30 ) {
-    $command->run( args => "a b c" );
-    chomp( my $out = $command->stdout );
+# NOTE may false alarm if RNG streaks
+for (1 .. 30) {
+    $tcmd->run(args => "a b c");
+    chomp(my $out = $tcmd->stdout);
     $seen{$out}++;
 }
-eq_or_diff( [ sort keys %seen ], [qw/a b c/] );
-done_testing( @tests * 3 + 1 );
+eq_or_diff([ sort keys %seen ], [qw/a b c/]);
+
+$cmd->run(status => 64,   stderr => qr/^Usage: /);
+$cmd->run(args   => '-h', status => 64, stderr => qr/^Usage: /);
+
+done_testing(10);

@@ -45,12 +45,6 @@ for my $document (@ARGV) {
     my $xpath = parse_xml( $file, $document );
     my $nodelist = $xpath->find($query);
 
-    # this may fail if the module interface changes... (or did, hence
-    # the check)
-    my $nlref = ref $nodelist;
-    die "xpquery: want XML::LibXML::NodeList but got '$nlref' instead??\n"
-      if $nlref ne 'XML::LibXML::NodeList';
-
     for my $node ( $nodelist->get_nodelist ) {
         if ($Flag_Subquery) {
             my $subnodelist = $xpath->find( $Flag_Subquery, $node );

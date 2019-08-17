@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     int ch;
 
 #ifdef __OpenBSD__
-    if (pledge("stdio", NULL) == -1)
+    if (pledge("rpath stdio", NULL) == -1)
         err(1, "pledge failed");
 #endif
 
@@ -72,6 +72,11 @@ void read_lines(const char *file)
     } else {
         fh = stdin;
     }
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     while ((numchars = getline(&line, &linebuflen, fh)) > 0) {
         printf(Flag_Format, linenumber++, seenchars, numchars);

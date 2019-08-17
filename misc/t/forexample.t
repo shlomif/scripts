@@ -3,75 +3,53 @@ use lib qw(../lib/perl5);
 use UtilityTestBelt;
 use Time::HiRes qw(gettimeofday tv_interval);
 
-# environment sanitization and ease of testing
-delete @ENV{qw(OUTPUT_PREFIX TIMEOUT)};
+my $cmd = Test::UnixCmdWrap->new;
+
+delete @ENV{qw(OUTPUT_PREFIX SHELL TIMEOUT)};
 $ENV{CLIPBOARD} = 'cat';
 
 # NOTE see TODOs elsewhere (snooze.t)
 my $tolerance = 0.15;
 
-my $test_prog = './forexample';
-
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
-);
-
-# no args, help
-$testcmd->run();
-ok( $testcmd->stderr =~ m/Usage: / );
-is( $testcmd->stdout, "" );
-exit_is( $?, 64, "EX_USAGE no args" );
-
 # what does a command-not-found failure look like? (while making wild
 # assumptions concerning the not-existence of askdjfksdjfkds...)
-$testcmd->run( args => "askdjfksdjfkds" );
-is( $testcmd->stdout, "" );
-ok( $testcmd->stderr =~ m/forexample/ );
-exit_is( $?, 1 );
+$cmd->run(
+    args   => "/var/empty/askdjfksdjfkds",
+    status => 1,
+    stderr => qr/forexample/
+);
 
 # ditto for bad CLIPBOARD command
 {
-    local $ENV{CLIPBOARD} = "askdjfksdjfkds";
-
-    $testcmd->run( args => "echo hi" );
-    is( $testcmd->stdout, "" );
-    ok( $testcmd->stderr =~ m/forexample/ );
-    exit_is( $?, 1 );
+    local $ENV{CLIPBOARD} = "/var/empty/askdjfksdjfkds";
+    $cmd->run(args => "echo hi", status => 1, stderr => qr/forexample/);
 }
 
 # can we at least echo/cat something?
-$testcmd->run( args => "echo '$$'" );
-
-# KLUGE strip out any CR from PTY
-my $stdout = $testcmd->stdout =~ tr/\r//dr;
-
-is( $stdout,          "    \$ echo $$\n    $$\n    \$ \n" );
-is( $testcmd->stderr, "" );
-exit_is( $?, 0 );
-
-{
-    local $ENV{OUTPUT_PREFIX} = "";
-
-    $testcmd->run( args => "echo '$$'" );
-    $stdout = $testcmd->stdout =~ tr/\r//dr;
-    is( $stdout,          "\$ echo $$\n$$\n\$ \n" );
-    is( $testcmd->stderr, "" );
-    exit_is( $?, 0 );
-}
+$cmd->run(
+    args   => "echo '$$'",
+    stdout => [ "    \$ echo $$", "    $$", "    \$" ]
+);
+$cmd->run(
+    args   => "echo '$$'",
+    env    => { OUTPUT_PREFIX => '' },
+    stdout => [ "\$ echo $$", "$$", "\$" ]
+);
+$cmd->run(
+    args   => "echo '$$'",
+    env    => { SHELL => 'zsh' },
+    stdout => [ "    % echo $$", "    $$", "    %" ]
+);
 
 # this one should timeout before completion
-{
-    local $ENV{TIMEOUT} = 0.5;
+my $start = [gettimeofday];
+$cmd->run(
+    args   => "sleep 7",
+    env    => { TIMEOUT => '0.5' },
+    stdout => qr/sleep 7/
+);
+ok(tv_interval($start) < 3);
 
-    my $start = [gettimeofday];
-    $testcmd->run( args => "sleep 7" );
+$cmd->run(status => 64, stderr => qr/Usage/);
 
-    is( $testcmd->stdout, "    \$ sleep 7\n    ...\n" );
-    is( $testcmd->stderr, "" );
-    exit_is( $?, 0 );
-
-    ok( tv_interval($start) < 3 );
-}
-done_testing(19);
+done_testing(22);

@@ -2,54 +2,38 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-my $test_prog = './glf';
+my $cmd = Test::UnixCmdWrap->new;
 
 my $test_epoch = 915148800;
-my $test_dir = tempdir( "glf-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1 );
+my $test_dir   = tempdir("glf-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1);
 
-my @test_files = ( [ 'test', 0 ], [ 'newer', 300 ], [ 'older', -900 ] );
+my %test_files = (test => 0, newer => 300, older => -900);
 
-for my $tf (@test_files) {
-    $tf->[0] = File::Spec->catfile( $test_dir, $tf->[0] );
-    open my $fh, '>', $tf->[0], or die "could not create $tf->[0]: $!\n";
-    $tf->[1] += $test_epoch;
-    utime $tf->[1], $tf->[1], $tf->[0];
+while (my ($file, $epmod) = each %test_files) {
+    $file = catfile($test_dir, $file);
+    open my $fh, '>', $file, or die "could not create $file: $!\n";
+    $epmod += $test_epoch;
+    utime $epmod, $epmod, $file;
 }
 
-my @tests = (
-    {   chdir  => $test_dir,
-        stdout => ['newer'],
-    },
-    {   args   => q{-e '^new'},
-        chdir  => $test_dir,
-        stdout => ['test'],
-    },
-    {   args   => q{'^old'},
-        chdir  => $test_dir,
-        stdout => ['older'],
-    },
-    {   args   => "'^' '$test_dir'",
-        stdout => ['newer'],
-    },
+$cmd->run(
+    chdir  => $test_dir,
+    stdout => ['newer'],
 );
-my $testcmd = Test::Cmd->new( prog => $test_prog, workdir => '', );
+$cmd->run(
+    args   => q{-e '^new'},
+    chdir  => $test_dir,
+    stdout => ['test'],
+);
+$cmd->run(
+    args   => q{'^old'},
+    chdir  => $test_dir,
+    stdout => ['older'],
+);
+$cmd->run(
+    args   => "'^' '$test_dir'",
+    stdout => ['newer'],
+);
+$cmd->run(args => '-h', status => 64, stderr => qr/Usage/);
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= '';
-
-    $testcmd->run(
-        exists $test->{args}  ? ( args  => $test->{args} )  : (),
-        exists $test->{chdir} ? ( chdir => $test->{chdir} ) : ()
-    );
-
-    $test->{args} //= '';
-    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
-    eq_or_diff( [ map { s/\s+$//r } split $/, $testcmd->stdout ],
-        $test->{stdout}, "STDOUT $test_prog $test->{args}" );
-    is( $testcmd->stderr, $test->{stderr}, "STDERR $test_prog $test->{args}" );
-}
-$testcmd->run( args => '-h' );
-exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
-ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
-done_testing( @tests * 3 + 2 );
+done_testing(15);

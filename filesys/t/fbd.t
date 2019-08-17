@@ -8,37 +8,40 @@ my $test_epoch     = 915148800;
 my $test_dir       = tempdir("fbd-t.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1);
 my $test_dir_epoch = $test_epoch - 86400;
 
-my @test_files = (
-    [ 'test',        0 ],
-    [ 'newer',       300 ],
-    [ 'older',       -900 ],
-    [ 'false-early', -3605 ],
-    [ 'false-late',  3605 ],
+my %test_files = (
+    'test'        => 0,
+    'newer'       => 300,
+    'older'       => -900,
+    'false-early' => -3605,
+    'false-late'  => 3605,
 );
-for my $tf (@test_files) {
-    $tf->[0] = catfile($test_dir, $tf->[0]);
-    open my $fh, '>', $tf->[0], or die "could not create $tf->[0]: $!\n";
-    $tf->[1] += $test_epoch;
+my %path_to;
+
+while (my ($file, $epmod) = each %test_files) {
+    my $path = catfile($test_dir, $file);
+    open my $fh, '>', $path, or die "could not create $path: $!\n";
+    $epmod += $test_epoch;
     # atime is offset from mtime so can (maybe) test that
-    utime $tf->[1] - 3605, $tf->[1], $tf->[0] or die "utime failed: $!\n";
+    utime $epmod - 3605, $epmod, $path or die "utime failed: $!\n";
+    $path_to{$file} = $path;
 }
 utime $test_dir_epoch, $test_dir_epoch, $test_dir;
 
 $cmd->run(
     args   => "epoch $test_epoch '$test_dir'",
-    stdout => [ $test_files[0][0] ],
+    stdout => [ $path_to{test} ],
 );
 
 # TODO may need env flag to disable atime tests if filesystem sets noatime
 my $atime_epoch = $test_epoch - 3605;
 $cmd->run(
     args   => "-s a epoch $atime_epoch '$test_dir'",
-    stdout => [ $test_files[0][0] ],
+    stdout => [ $path_to{test} ],
 );
 
 $cmd->run(
-    args   => "file $test_files[0][0] '$test_dir'",
-    stdout => [ $test_files[0][0] ],
+    args   => "file $path_to{test} '$test_dir'",
+    stdout => [ $path_to{test} ],
 );
 
 $cmd->run(
@@ -51,7 +54,7 @@ $cmd->run(
     args   => "epoch $test_epoch no-such-file-$$",
     chdir  => "/var/empty",
     stderr => qr/failed to stat/,
-    status => 77,                                 # EX_NOPERM
+    status => 77,                                    # EX_NOPERM
 );
 
 # fts(3) may not sort the file listings into any particular order. this
@@ -124,4 +127,4 @@ eq_or_diff([ sort map { s/\s+//r } split $/, $o->stdout ],
 
 $cmd->run(args => '-h', status => 64, stderr => qr/Usage/);
 
-done_testing
+done_testing(42);

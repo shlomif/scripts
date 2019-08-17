@@ -2,68 +2,50 @@
 use lib qw(../lib/perl5);
 use UtilityTestBelt;
 
-my @tests = (
-    {   args        => "''",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/empty string/,
-    },
-    {   args        => "bar",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/number/,
-    },
-    {   args        => "'0'",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/below minimum/,
-    },
-    {   args        => "9999999",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/above maximum/,
-    },
-    {   args        => "1s20",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/unknown char/,
-    },
-    {   args        => "1d",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/stray char/,
-    },
-    {   args        => "1d1",
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/below minimum/,
-    },
-    # proper statistical tests should also be done...
-    {   args        => "1d2",
-        stdout      => qr/^[12]$/,
-        stderr      => qr/^$/,
-    },
-    {   args        => '-h',
-        exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/^Usage: /,
-    },
-    {   exit_status => 64,
-        stdout      => qr/^$/,
-        stderr      => qr/^Usage: /,
-    },
+my $cmd = Test::UnixCmdWrap->new;
+
+$cmd->run(
+    args   => "''",
+    status => 64,
+    stderr => qr/empty string/,
 );
-my $command = Test::Cmd->new( prog => './roll', workdir => '', );
+$cmd->run(
+    args   => "bar",
+    status => 64,
+    stderr => qr/number/,
+);
+$cmd->run(
+    args   => "'0'",
+    status => 64,
+    stderr => qr/below minimum/,
+);
+$cmd->run(
+    args   => "9999999",
+    status => 64,
+    stderr => qr/above maximum/,
+);
+$cmd->run(
+    args   => "1s20",
+    status => 64,
+    stderr => qr/unknown char/,
+);
+$cmd->run(
+    args   => "1d",
+    status => 64,
+    stderr => qr/stray char/,
+);
+$cmd->run(
+    args   => "1d1",
+    status => 64,
+    stderr => qr/below minimum/,
+);
+# proper statistical tests should also be done...
+$cmd->run(
+    args   => "1d2",
+    stdout => qr/^[12]$/,
+    stderr => qr/^$/,
+);
+$cmd->run(args => '-h', status => 64, stderr => qr/^Usage: /);
+$cmd->run(status => 64, stderr => qr/^Usage: /);
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= qr/^$/;
-
-    $command->run( exists $test->{args} ? ( args => $test->{args} ) : () );
-
-    my $args = ' ' . ( $test->{args} // '' );
-    exit_is( $?, $test->{exit_status}, "STATUS ./roll$args" );
-    ok( $command->stdout =~ $test->{stdout}, "STDOUT ./roll$args" );
-    ok( $command->stderr =~ $test->{stderr}, "STDERR ./roll$args" );
-}
-done_testing( @tests * 3 );
+done_testing(30);

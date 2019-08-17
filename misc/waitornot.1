@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd August 16 2019
 .Dt WAITORNOT 1
 .nh
 .Os
@@ -9,7 +9,6 @@
 .Bk -words
 .Nm
 .Op Fl I
-.Op Fl U
 .Bk -words
 .Ar command 
 .Op Ar args ..
@@ -37,9 +36,6 @@ Disables ISIG such that INTR, QUIT, and others generate no signals; ISIG
 is otherwise enabled by default, though the key for SUSP (and DSUSP,
 maybe) is disabled by default, so a ^Z (or ^Y, maybe) should cause the
 command to exit early, regardless.
-.It Fl U
-Makes a user keyboard interrupt generate a 0 exit status instead of the
-default 1.
 .El
 .Sh EXIT STATUS
 .Ex -std
@@ -49,8 +45,10 @@ will not be passed along; if the child exits, the exit status from
 .Nm
 will be 0 regardless.
 .Sh SEE ALSO
+.Xr blocksig 1 ,
 .Xr feed 1 ,
-.Xr playit 1 ,
+.Xr getraw 1 ,
+.Xr prte 1 ,
 .Xr termios 5
 .Sh AUTHOR
 .An Jeremy Mates
