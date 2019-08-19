@@ -1,11 +1,21 @@
-#!/usr/bin/perl
-# must agree with ~/.Xdefaults (see dotfiles repo)
-@bigterms = qw(cous excel mf wr);
+#!/usr/bin/env perl
+#
+# bigterm - launches a big (or sometimes small) terminal. must agree
+# with ~/.Xdefaults (see dotfiles repo)
+
+use feature qw(say);
+
+@bigterms = qw(brogue cous excel mf spleen tt wr);
+@shell    = qw(/bin/ksh -l);
+
 if (@ARGV) {
     if ( grep { $ARGV[0] eq $_ } @bigterms ) {
-        exec 'solitary', $ENV{HOME},
-          qw(xterm -tn xterm-256color +bdc +cm +dc +itc -class),
-          "$ARGV[0]term", '-e', '/bin/ksh -l';
+        delete $ENV{TMUX};
+        exec( 'solitary', $ENV{HOME},
+            qw(xterm -tn xterm-256color +bdc +cm +dc +itc -class),
+            "$ARGV[0]term", '-e', @shell )
+          or die "exec failed: $!\n";
     }
 }
-print join( " ", @bigterms ), "\n";
+
+say join ' ', @bigterms;
