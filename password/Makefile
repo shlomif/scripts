@@ -12,6 +12,9 @@ salt.o: salt.c
 testsalt: testsalt.c salt.o
 	$(CC) -std=c99 $(CFLAGS) `pkg-config --cflags --libs libsodium` -Werror -Wall -Wextra -Wundef -ftrapv -fno-diagnostics-color -fstack-protector-all -pedantic -pipe -o testsalt testsalt.c salt.o
 
+xor: xor.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` xor.c -o xor
+
 clean:
 	git clean --force -x
 
