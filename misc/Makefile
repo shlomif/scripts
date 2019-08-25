@@ -1,6 +1,7 @@
 CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 bt: bt.c
+charinfo: charinfo.c
 copycat: copycat.c
 justblocks: justblocks.c
 muss-with-environ: muss-with-environ.c

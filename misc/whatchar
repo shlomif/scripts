@@ -1,0 +1,10 @@
+#!/bin/sh
+#! -*-perl-*-
+eval 'exec perl -CAO -x -wS $0 ${1+"$@"}'
+  if 0;
+use feature qw(say);
+use Unicode::UCD qw(charinfo);
+for (split //, "@ARGV") {
+    my $info = charinfo ord;
+    say '[' . $_ . '] U+' . $info->{code} . ' ' . $info->{name};
+}
