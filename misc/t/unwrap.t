@@ -66,6 +66,19 @@ $cmd->run(
         '', "and some more"
     ],
 );
+# and trailing whitespace needs squashing too (this is also a not-POSIX
+# input lacking the ultimate newline POSIX demands)
+$cmd->run(
+    stdin  => "foo  \t   \nbar   \t   \nzot    \t  ",
+    stdout => qr/^foo bar zot$/,
+);
+# what happens for lines that are only whitespace?
+# TODO probably need to mix these in with paragraphs of text
+$cmd->run(
+    stdin  => "    \t   \t\t  \n  \t  \t   \t\n",
+    stdout => qr/^$/,
+);
+
 $cmd->run(
     args   => '-h',
     status => 64,
@@ -77,4 +90,4 @@ $cmd->run(
     stderr => qr/Usage: /,
 );
 
-done_testing(30);
+done_testing(36);

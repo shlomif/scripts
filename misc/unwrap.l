@@ -11,20 +11,28 @@
 int Flag_Header;                /* -H */
 
 char fill = '\n';
-char *start;
-int nl = 0;
+int indent, nl = 0;
 
 #define NEW_PP {putchar('\n'); fill = '\n'; nl = 1;}
 
 %}
 %%
 
-[^\n]+ { fputs(yytext, stdout); if (!Flag_Header) { fill = ' '; BEGIN BODY; } }
+[^\n]+ {
+    for (indent = yyleng - 1; indent > 0; indent--)
+        if (!isspace(yytext[indent])) break;
+    if (indent > 0) {
+        yytext[indent+1] = '\0';
+        fputs(yytext, stdout);
+    }
+    if (!Flag_Header) { fill = ' '; BEGIN BODY; }
+}
 \n\n   { putchar('\n'); nl = 1; BEGIN BODY; }
 \n     { putchar('\n'); nl = 1; }
 
 <BODY>[^\n]+ {
-    putchar(fill);
+    char *start;
+    if (indent) putchar(fill);
     start = yytext;
     /* consume leading whitespace on continuation lines */
     if (!nl) {
@@ -37,7 +45,12 @@ int nl = 0;
     	}
     }
     if (*start != '\0') {
-    	fputs(start, stdout);
+        for (indent = yyleng - 1; indent > 0; indent--)
+            if (!isspace(yytext[indent])) break;
+        if (indent > 0) {
+            yytext[indent+1] = '\0';
+            fputs(start, stdout);
+        }
     	fill = ' '; nl = 0;
     } else NEW_PP;
 }
