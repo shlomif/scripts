@@ -15,12 +15,14 @@
 
 package require Tcl 8.5
 
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {dns inet stdio} NULL
+
 set host [lindex $argv 0]
 set port [lindex $argv 1]
 
-if {$port eq ""} {
-    set port 9999
-}
+if {$port eq ""} { set port 9999 }
 
 if {$host eq ""} {
     set sockargs [list handling $port]

@@ -1,5 +1,6 @@
 *.core
 *.dSYM
 *.gdb
+ktrace.out
 todo
 todo.c

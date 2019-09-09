@@ -5,6 +5,10 @@
 
 package require Tcl 8.5
 
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {rpath stdio} NULL
+
 proc emit_help {} {
     puts stderr \
       "Usage: repeat-character character length repeat-count buffer-style"

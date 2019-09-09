@@ -1,9 +1,13 @@
 #!/usr/bin/env expect
 #
-# Avoids `... | sort -rn | head -1` for what need only be a first-past-the-
-# post test.
+# maxof - avoids `... | sort -rn | head -1` for what need only be a
+# first-past-the- post test
 
 package require Tcl 8.5
+
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {rpath stdio} NULL
 
 set prog_name [lindex [split $argv0 "/"] end]
 

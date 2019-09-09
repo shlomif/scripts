@@ -7,6 +7,13 @@ if {[llength $argv] == 0} {
     exit 1
 }
 
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {cpath exec proc rpath stdio wpath unix unveil} NULL
+unveil /tmp rwc
+unveil /usr/local/bin/git x
+unveil
+
 set fh [open "| git log --format=%H -- [lindex $argv 0]"]
 while {[gets $fh commit] >= 0} {
     puts "[exec -- git show --abbrev-commit --format=%H --name-only $commit]\n"

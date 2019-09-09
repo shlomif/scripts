@@ -9,7 +9,6 @@ elif [ -r Build.PL ]; then
    ./Build clean > /dev/null 2>&1
    set -e
    perl Build.PL
-   ./Build
    RELEASE_TESTING=1 TEST_SIGNATURE=1 ./Build test
 else
    # TODO probably need Dzil support, maybe Module::Install

@@ -4,6 +4,15 @@
 
 package require Tcl 8.5
 
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {cpath exec proc rpath stdio wpath unix unveil} NULL
+unveil / r
+unveil /tmp rwc
+unveil /usr/bin/ssh x
+unveil /usr/local/bin/git x
+unveil
+
 set git_init_cmd {git init}
 set ssh_cmd {ssh -aqx -e none -o BatchMode=yes -o ClearAllForwardings=yes -o PreferredAuthentications=hostbased,publickey,gssapi-with-mic -o StrictHostKeyChecking=yes}
 
@@ -68,6 +77,20 @@ proc git_remote_geturl {name} {
     return $url
 }
 
+proc process_args {target} {
+    global argv repo_path
+    upvar hostname hn directory dn
+    set hn [lindex $argv 1]
+    if {$hn eq ""} {
+        warn "target '$target' requires a hostname"
+        emit_help
+    }
+    set dn [lindex $argv 2]
+    if {$dn eq ""} {
+        set dn "[alter_path $target $hn [relative2home $repo_path]]"
+    }
+}
+
 proc relative2home {path} {
     global env
     regsub $env(HOME)/ $path ""
@@ -77,37 +100,35 @@ proc relative2home {path} {
 #
 # TARGETS
 
-set target [lindex $argv 0]; if {$target eq ""} { emit_help }
+set target [lindex $argv 0]
 
-if {$target eq "github"} {
-    set git_user [exec git config github.user]
-    if {$git_user eq ""} { die "no username from 'git config github.user'" }
-    add_git_remote github git@github.com:$git_user/$repo
-    exit
-} elseif {$target ne "init" && $target ne "put" && $target ne "remote"} {
-    warn "unknown target '$target'"
-    emit_help
-}
-
-set hostname [lindex $argv 1]
-if {$hostname eq ""} {
-    warn "target '$target' requires a hostname"
-    emit_help
-}
-set directory [lindex $argv 2]
-if {$directory eq ""} {
-    set directory "[alter_path $target $hostname [relative2home $repo_path]]"
-}
-
-if {$target eq "init"} {
-    append directory .git
-    # per git-init(1) "Running git init in an existing repository is
-    # safe" and git handles the creation of any necessary parent
-    # directories, so just do that
-    exec {*}$ssh_cmd $hostname "$git_init_cmd --bare $directory"
-} elseif {$target eq "put"} {
-    exec {*}$ssh_cmd $hostname "$git_init_cmd $directory"
-    exec {*}$ssh_cmd $hostname "git --git-dir=$directory/.git config receive.denyCurrentBranch ignore"
+switch -exact $target {
+    github {
+        set git_user [exec git config github.user]
+        if {$git_user eq ""} { die "no username from 'git config github.user'" }
+        add_git_remote github git@github.com:$git_user/$repo
+        exit
+    }
+    init {
+        process_args $target
+        append directory .git
+        # per git-init(1) "Running git init in an existing repository is
+        # safe" and git handles the creation of any necessary parent
+        # directories, so just do that
+        exec {*}$ssh_cmd $hostname "$git_init_cmd --bare $directory"
+    }
+    put {
+        process_args
+        exec {*}$ssh_cmd $hostname "$git_init_cmd $directory"
+        exec {*}$ssh_cmd $hostname "git --git-dir=$directory/.git config receive.denyCurrentBranch ignore"
+    }
+    remote {
+        process_args
+    }
+    default {
+        warn "unknown target '$target'"
+        emit_help
+    }
 }
 
 add_git_ssh_remote $hostname $directory
