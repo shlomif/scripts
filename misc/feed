@@ -1,67 +1,67 @@
 #!/usr/bin/env expect
 #
-# feeds the commands in the given input file (or stdin) to the
-# subsequent program then turns interaction over to the user
+# feed - copies data from the input file (or stdin) to the subsequent
+# REPL-based program and then turns interaction with that program over
+# to the user
 
-package require Tcl 8.5
-# for equivalent of mktemp(1); requires tcllib package
-package require fileutil
-
-set prog_name [lindex [split $argv0 "/"] end]
 if {[llength $argv] < 2} {
-    puts stderr "Usage: $prog_name file|- command \[args ..]"
+    puts stderr "Usage: feed file|- command \[args ..]"
     exit 64
 }
 
-# somewhat high timeout to help spot when feed is not properly
-# feeding things
+package require Tcl 8.5
+# `doas pkg_add tcllib` or equivalent
+package require fileutil
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {cpath exec proc rpath stdio tty wpath unix unveil} NULL
+
+# somewhat high timeout to help spot bad interactions with a REPL
 set timeout 3
 
-# avoid doubled lines whereby both this program and what lines being fed
-# to print the same data
-stty -echo
+set argv [lassign $argv input_file]
 
-proc warn {msg} {
-    global prog_name
-    puts stderr "$prog_name: $msg"
-}
-proc die {{msg ""}} {
-    if {$msg ne ""} { warn $msg }
-    exit 1
-}
-
-# first argument is where the commands come from: stdin or from a file?
-set argv [lassign $argv input_file];  # it's shift, Jim, but not as we know it
+proc warn {msg} { puts stderr "feed: $msg" }
+proc die  {msg} { warn $msg; stty echo; exit 1 }
 
 if {$input_file eq "-"} {
-    # copy stdin into a tmp file and then hopefully restore access to tty
-    set tmpfile [::fileutil::tempfile "$prog_name-"]
-    trap {file delete $tmpfile; puts ""; exit 1} {SIGHUP SIGINT SIGPIPE SIGTERM}
+    # copy stdin into a tmp file and then hopefully restore access to
+    # the tty by closing stdin
+    set tmpfile [::fileutil::tempfile "feed-"]
+    unveil $tmpfile crw
+    trap {file delete $tmpfile; puts ""; stty echo; exit 1} \
+      {SIGHUP SIGINT SIGPIPE SIGTERM}
     if {[catch {set tmpfh [open $tmpfile w]} err]} {
-        file delete $tmpfile
-        die $err
+        file delete $tmpfile; die $err
     }
-    while {[gets stdin line] >= 0} {
-        puts $tmpfh $line
+    fconfigure $tmpfh -encoding binary -translation binary
+    while {1} {
+        set tmpbuf [read stdin 1024]
+        if {$tmpbuf eq ""} { break }
+        puts -nonewline $tmpfh $tmpbuf
     }
     if {[catch {close $tmpfh} err]} {
-        file delete $tmpfile
-        die $err
+        file delete $tmpfile; die $err
     }
     close stdin
     open /dev/tty r+
     if {[catch {set input_fh [open $tmpfile r]} err]} {
-        file delete $tmpfile
-        die $err
+        file delete $tmpfile; die $err
     }
 } else {
-    # regular file input - though without any "| program" shenanigans
+    # regular file input, no "| program" shenanigans (see open(n))
     set input_file [string trimleft $input_file "| "]
-    if {[catch {set input_fh [open $input_file r]} err]} {
-        die $err
-    }
+    if {[catch {set input_fh [open $input_file r]} err]} { die $err }
+    fconfigure $input_fh -encoding binary -translation binary
     set tmpfile ""
 }
+
+unveil / rx
+unveil /dev rw
+unveil
+
+# avoid doubled lines
+stty -echo
 
 if {[catch {spawn -noecho {*}$argv} err]} {
     if {$tmpfile ne ""} { file delete $tmpfile }
@@ -73,7 +73,12 @@ if {[catch {spawn -noecho {*}$argv} err]} {
 # control+\ remains a good way to abort when things go really awry
 set CONTROL_C \003
 set CONTROL_Z \032
-trap {puts ""; exit 1} {SIGHUP SIGPIPE SIGTERM}
+trap {
+    if {$tmpfile ne ""} { file delete $tmpfile }
+    puts ""
+    stty echo
+    exit 1
+} {SIGHUP SIGPIPE SIGTERM}
 #trap SIG_IGN SIGINT
 trap {send $CONTROL_C} SIGINT
 
@@ -90,10 +95,10 @@ proc interactionby {} {
 
 # and here we try to figure out hopefully a 90% solution for feeding of
 # varied inputs to varied REPL
-set tocall [lindex $argv 0]
+set command [lindex $argv 0]
 
 # ... except that buck now gets passed to the user to write (there's an
-# example over in my dotfiles repo)
+# example in my dotfiles repo)
 set feedrc [lindex [array get env FEEDRC] end]
 if {$feedrc eq ""} { set feedrc $env(HOME)/.feedrc }
 catch {source $feedrc} cresult coptions
@@ -104,24 +109,34 @@ if {[dict get $coptions -code] != 0} {
     die "feed: could not source $feedrc"
 }
 
-# ... though do need a fallback if nothing created the necessary proc
-if {[info commands dosomethingwith] eq ""} {
-    # assume only leading # as comments and send the rest through;
-    # probably adequate for shell scripts and doubtless other things
-    # though does not wait for any prompt
-    proc dosomethingwith {line} {
-        if {[regexp {^[#]} $line]} { return }
-        send -- "$line\r"
+if {[info commands await_prompt] eq ""} {
+    # no-op so bad for things that first spin up and flush input from
+    # before that point
+    proc await_prompt {} {}
+}
+
+if {[info commands consume] eq ""} {
+    # probably adequate for shell scripts or similar line-based things;
+    # may need trailing \ handling for continuation lines if there's a
+    # long wait for a ptompt setup
+    proc consume {fh} {
+        global buf
+        while {[gets $fh line] >= 0} {
+            if {[regexp {^[[:blank:]]*(?:#|$)} $line]} { continue }
+            if {[string length $buf]} { send -- "$buf\r" }
+            set buf $line
+            return 1
+        }
+        return 0
     }
 }
 
-set terminate 0
-while {[gets $input_fh line] >= 0} {
-    dosomethingwith $line
-    if {$terminate} { break }
+set buf {}
+set bail 0
+while {[consume $input_fh]} {
+    if {$bail} { break }
+    await_prompt
 }
+if {[string length $buf] && !$bail} { send -- "$buf\r" }
 
-# and hand REPL over to the bluberous fleshy mandibles of the user
-# (user .feedrc might call this directly e.g. if error condition in REPL
-# demands an immediate interact)
 interactionby

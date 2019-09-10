@@ -1,4 +1,4 @@
-.Dd August  2 2018
+.Dd September 10 2019
 .Dt FEED 1
 .nh
 .Os
@@ -16,9 +16,9 @@
 .Nm
 reads lines from the given
 .Pa file
-(or standard input) and feeds these lines to the subsequent
+(or stdin) and feeds those lines to the subsequent
 .Ar command ,
-Once all the lines have been fed, the user will be able to
+Once all the lines have been fed the user will be able to
 .Ic interact
 with the REPL manually.
 .Pp
@@ -42,66 +42,19 @@ Try
 .Ic control+\e
 if things go horribly awry.
 .Sh ENVIRONMENT
-The
 .Ev FEEDRC
-environment variable offers a means to customize the path to what by default
-is the
+allows the path to the
 .Pa ~/.feedrc
-file.
+file to be customized.
 .Sh FILES
 The file
 .Pa ~/.feedrc
-must exist, and should contain TCL code that specifies a
-.Cm dosomethingwith
-proc that will be passed each line of the input in turn.
-.Pa ~/.feedrc
-will likely end up with a series of if/else statements along the lines
-of:
-.Pp
-.Dl # "tocall" contains the command name (2nd argument to feed)
-.Dl if {$tocall eq \&"pfe\&"} {
-.Dl \& \& \& \&  expect -re {(ok|bye)}
-.Dl \& \& \& \&  proc dosomethingwith {line} {
-.Dl \& \& \& \& \& \& \& \&  if {[regexp {^[[:blank:]]*(\e\e[[:blank:]].*)?$} $line]} {
-.Dl \& \& \& \& \& \& \& \& \& \& \& \& return
-.Dl \& \& \& \& \& \& \& \& }
-.Dl \& \& \& \& \& \& \& \&  send -- \&"$line\er\&"
-.Dl \& \& \& \&  }
-.Dl } elseif {$tocall eq \&"gdb\&"} {
-.Dl \& \& \& \&  ...
-.Pp
-There is a default
-.Cm dosomethingwith
-that will be used if 
-.Pa ~/.feedrc
-does not set one. If this is a problem, end
-.Pa ~/.feedrc
-with something like:
-.Pp
-.Dl if {[info commands dosomethingwith] eq \&"\&"} {
-.Dl \& \& \& \& puts stderr oops
-.Dl \& \& \& \& exit 1
-.Dl }
-.Pp
-.Cm dosomethingwith
-can signal that no more lines should be processed via the
-.Dv terminate
-variable:
-.Pp
-.Dl proc dosomethingwith {line} {
-.Dl \& \& \& \& global terminate
-.Dl \& \& \& \& ...
-.Dl \& \& \& \& if {...} { set terminate 1 }
-.Dl \& \& \& \& ...
-.Pp
-Various other parts of the code of
-.Nm
-can be overridden from 
-.Pa ~/.feedrc .
-You get to keep all the pieces if you break something.
+must exist, and should contain TCL code that customized how lines are
+parsed and fed to a REPL.
 .Sh EXIT STATUS
 .Ex -std
-The exit status once
+.Pp
+However, the exit status once
 .Nm
 has begun to
 .Ic interact
@@ -117,7 +70,7 @@ or
 signal is sent.
 .Sh EXAMPLES
 From a
-.Xr vim 1
+.Xr vi 1
 buffer containing LISP code in a file, one could issue
 .Pp
 .Dl Ic :!feed % sbcl --noinform
@@ -159,84 +112,16 @@ A
 .Xr vim 1
 mapping might look something like:
 .Pp
-.Dl map <Leader>t :!feed % gdb -q<CR><CR>
-.Pp
-.Nm
-assisted the design and debugging of the ZSH completion script for
-.Nm ;
-given a
-.Pa vi
-buffer containing
-.Pp
-.Dl rm ~/.zcompdump
-.Dl fpath=(~/co/zsh/compdef $fpath)
-.Dl autoload -U compinit && compinit
-.Dl # fake completion on ls as want to see if complete its arguments
-.Dl zstyle ':completion:*:*:feed:*:commands' fake-always ls
-.Dl zstyle ':completion:*:*:feed:*:commands' ignored-patterns '*'
-.Dl # stdin completion testing
-.Dl #print -z 'echo foo | feed '
-.Dl print -z 'feed '
-.Pp
-one can then feed a test shell invocation with these commands via
-.Pp
-.Dl Ic :!feed % zsh -f
-.Pp
-and then try out the tab completion (edited elsewhere) until it works. The
-.Ar -f
-to
-.Pa zsh
-prevents anything in the regular shell configuration from interfering
-with the task at hand. Note that undesirable environment variables may
-still be passed through from the parent process.
-.Pp
-Functions may be difficult to pass through
-.Nm
-as these span multiple lines during which
-.Nm
-may waste time waiting for a prompt to appear that will not appear. One
-workaround is to define any necessary functions in a separate file and
-then to include that file in the commands passed to the REPL. Using R,
-one could define a
-.Pa libfoo
-file containing
-.Pp
-.Dl examplefn = function()
-.Dl {
-.Dl \& \&   print("asdf")
-.Dl }
-.Pp
-and then in the file that is passed through
-.Nm
-source
-.Pa libfoo
-along with any other necessary commands:
-.Pp
-.Dl source("libfoo")
-.Dl examplefn()
-.Dl ...
-.Pp
-An even easier workaround is to lower the
-.Dv timeout
-in
-.Pa ~/.feedrc
-so
-.Nm
-wastes less time waiting:
-.Pp
-.Dl } elseif {$tocall eq \&"sbcl\&"} {
-.Dl \& \& \& \& expect -ex {* }
-.Dl \& \& \& \& set timeout .05
-.Dl \& \& \& \& proc dosomethingwith {line} {
-.Dl \& \& \& \& \& \& \& \& ...
+.Dl map <Leader>t :!feed % egdb -q<CR><CR>
 .Sh SEE ALSO
+.Xr entr 1 ,
 .Xr expect 1 ,
-.Xr regexp n ,
-.Xr vim 1 ,
+.Xr vi 1 ,
 .Xr zcomppoke 1
 .Sh AUTHOR
 .An Jeremy Mates
 .Sh CAVEATS
-The history may need to be disabled for the REPL because repeated
+History functionality for a REPL may need to be disabled
+because repeated
 .Nm
-runs may spam the history for the REPL with repeated entries.
+runs will spam the history with repeated entries.
