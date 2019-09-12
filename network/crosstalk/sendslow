@@ -1,0 +1,36 @@
+#!/usr/bin/env expect
+#
+# sendslow - consistent(ish) data sends so that timing information can
+# be measured for different protocols (e.g. nc(1) vs. SSH) and with and
+# without noise sources added to the mix (for the case of SSH but
+# probably not nc(1))
+#
+# this should probably be run with tcpdump or some other means of
+# collecting the relevant timing information
+
+package require Tcl 8.5
+
+# https://github.com/thrig/tcl-pledge
+package require pledge
+pledge {cpath dns exec inet proc rpath stdio tty wpath unix unveil} NULL
+unveil /tmp crw
+unveil / rx
+unveil
+
+# for [send -s ...]
+set send_slow {1 .01}
+
+# for [send -h ...] emulate "a fast and consistent typist" per expect(1)
+set send_human {.1 .3 1 .05 2}
+
+# send to a socket
+set sock [socket example.org 4200]
+spawn -noecho -open $sock
+
+# to run some random program (like, I don't know, ssh)
+#spawn -noecho {*}$argv
+
+# if you need to wait for the other side to spin up
+#expect ...
+
+send -s [string repeat a 10000]

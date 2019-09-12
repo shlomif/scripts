@@ -27,6 +27,9 @@ ttytest: ttytest.c
 ttywrite: ttywrite.c
 	$(CC) $(CFLAGS) `pkg-config --cflags --libs goptfoo` ttywrite.c -o ttywrite
 
+typingtimer: typingtimer.c
+	$(CC) $(CFLAGS) -lncurses typingtimer.c -o typingtimer
+
 clean:
 	git clean --force -x
 

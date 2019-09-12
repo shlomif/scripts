@@ -1,0 +1,33 @@
+crosstalk - add noise to a communication channel
+
+with tcpdump logging the delta time between packets of a SSH connection
+followed by some typing over that connection one may observe
+
+  0.094840 192.0.196.123.1053 > 192.0.196.42.22: tcp 36 (DF) [tos 0x48]
+  0.000842 192.0.196.42.22 > 192.0.196.123.1053: tcp 68 (DF) [tos 0x10]
+  0.197156 192.0.196.123.1053 > 192.0.196.42.22: tcp 0 (DF) [tos 0x48]
+  0.009991 192.0.196.123.1053 > 192.0.196.42.22: tcp 36 (DF) [tos 0x48]
+  0.000835 192.0.196.42.22 > 192.0.196.123.1053: tcp 68 (DF) [tos 0x10]
+  0.199161 192.0.196.123.1053 > 192.0.196.42.22: tcp 0 (DF) [tos 0x48]
+  0.007984 192.0.196.123.1053 > 192.0.196.42.22: tcp 36 (DF) [tos 0x48]
+  0.000819 192.0.196.42.22 > 192.0.196.123.1053: tcp 68 (DF) [tos 0x10]
+
+which has various interesting features; one is the time between packets
+from 192.0.196.123 of tos 0x48, which would be when keystrokes from the
+client were logged by tcpdump (and anyone else with an interest in such
+timing information). over time and with statistical analysis the timing
+information may leak hints as to what was typed depending on the layout
+of the keyboard and how humans type especially if the protocol does not
+well buffer or otherwise mask the timing information
+
+one method to mask ssh traffic is to set IPQoS to be the same value for
+both interactive and non-interactive sessions; see ssh_config(5) mandoc
+
+  Host foo
+    IPQoS cs1
+    ...
+
+now with this set additional data can be sent over a SSH tunnel to help
+confound statistics (and activity trackers) by randomly generating data
+to send now and then. protocols that lack such channels to send masking
+data over (e.g. raw nc(1) links) will remain vulnerable to timing leaks
