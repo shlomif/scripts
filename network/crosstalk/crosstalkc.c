@@ -4,6 +4,7 @@
 #include <sys/un.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <math.h>
 #include <pthread.h>
 #include <signal.h>
@@ -39,6 +40,11 @@ int main(int argc, char *argv[])
     struct event_base *ev_base;
     struct sockaddr_un addr;
 
+#ifdef __OpenBSD__
+    if (pledge("rpath stdio unix unveil", NULL) == -1)
+        err(1, "pledge failed");
+#endif
+
     while ((ch = getopt(argc, argv, "h?C:")) != -1) {
         switch (ch) {
         case 'C':
@@ -62,6 +68,13 @@ int main(int argc, char *argv[])
     if (strlen(argv[0]) >= sizeof(addr.sun_path))
         errx(EX_DATAERR, "socket name longer than sun_path");
     sock_path = argv[0];
+
+#ifdef __OpenBSD__
+    if (unveil(argv[0], "r") == -1)
+        err(1, "unveil failed");
+    if (unveil(NULL, NULL) == -1)
+        err(1, "unveil failed");
+#endif
 
     if ((server = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
         err(EX_IOERR, "socket failed");
@@ -92,6 +105,11 @@ int main(int argc, char *argv[])
         err(EX_IOERR, "bufferevent_socket_connect failed");
 
     bufferevent_enable(ev_bev, EV_READ);
+
+#ifdef __OpenBSD__
+    if (pledge("stdio", NULL) == -1)
+        err(1, "pledge failed");
+#endif
 
     event_base_dispatch(ev_base);
     exit(42);
