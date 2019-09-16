@@ -1,0 +1,46 @@
+.Dd September 16 2019
+.Dt CROSSTALKD 1
+.nh
+.Os
+.Sh NAME
+.Nm crosstalkd
+.Nd a server for crosstalk communication
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl C Ar directory
+.Ar socket-file
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a server that communicates over a socket that it opens.
+.Pp
+Options:
+.Bl -tag -width -indent
+.It Fl C Ar directory
+Change to the given
+.Ar directory
+before opening the socket.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+In
+.Pa sshd_config
+conflate interactive and non-interactive traffic to have the same
+QoS values:
+.Pp
+.Dl IPQoS cs1
+.Pp
+Restart
+.Cm sshd
+and also start
+.Nm
+to open a particular socket path that a
+.Xr crosstalkc 1
+will connect to.
+.Sh SEE ALSO
+.Xr crosstalkc 1 ,
+.Xr sshd_config 5
+.Sh AUTHOR
+.An Jeremy Mates

@@ -1,4 +1,4 @@
-.Dd November 22 2017
+.Dd September 15 2019
 .Dt AUTOFORMAT 1
 .nh
 .Os
@@ -56,7 +56,12 @@ evaluated and passed directly to
 .Nm
 destroys tabs by default, so should be used with caution in e.g.
 .Pa Makefile .
+One can set
+.Cm ignore => qr/^\et/
+to skip such lines though that sets
+.Cm all => 1
+which is undesirable for other reasons.
 .Sh SECURITY CONSIDERATIONS
 .Nm
-.Em must not
+.Em MUST NOT
 be used under elevated privileges.

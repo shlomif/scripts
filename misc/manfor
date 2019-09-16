@@ -1,0 +1,4 @@
+#!/bin/sh
+# no I haven't been looking things up in ncurses manual pages, why do you ask?
+[ -z "$1" ] && { echo >&2 "Usage: manfor search"; exit 64; }
+man "$1" | less -p "$1"

@@ -74,10 +74,8 @@ int main(int argc, char *argv[])
 
         if (ch == erasechar()) {
             getyx(stdscr, row, col);
-            if (col > 0) {
-                mvaddch(row, col - 1, ' ');
-                move(row, col - 1);
-            }
+            if (col > 0)
+                mvdelch(row, col - 1);
         } else if (ch == killchar()) {
             getyx(stdscr, row, col);
             move(row, 0);

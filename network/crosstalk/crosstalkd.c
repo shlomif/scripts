@@ -116,11 +116,7 @@ int main(int argc, char *argv[])
     sd_notify(SYSTEMD_UNSET_ENV, "READY=1\n");
 #endif
 
-    //while (1) {
     event_base_dispatch(ev_base);
-    //    if (event_base_got_exit(ev_base))
-    //         break;
-    //  }
     exit(42);
 }
 
@@ -131,8 +127,6 @@ void accept_cb(struct evconnlistener *c, evutil_socket_t client,
     struct bufferevent *ev_bev =
         bufferevent_socket_new(ev_base, client, BEV_OPT_CLOSE_ON_FREE);
     bufferevent_setcb(ev_bev, cross_talk, NULL, cross_event, NULL);
-    // we don't need EV_WRITE becase only reads are responded to?
-    //bufferevent_enable(ev_bev, EV_READ | EV_WRITE);
     bufferevent_enable(ev_bev, EV_READ);
 }
 

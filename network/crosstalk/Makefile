@@ -1,6 +1,7 @@
-CFLAGS=-std=c99 -g -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
+CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
 
 crosstalkc: crosstalkc.c
+	$(CC) $(CFLAGS) `pkg-config --cflags --libs libevent` -lm -lpthread -o crosstalkc crosstalkc.c
 
 # for sd_notify() on Linux add `-DSYSTEMD -lsystemd` (plus various other
 # random requirements, because Linux)

@@ -1,0 +1,65 @@
+.Dd September 16 2019
+.Dt CROSSTALKC 1
+.nh
+.Os
+.Sh NAME
+.Nm crosstalkc
+.Nd a client for crosstalk communication
+.Sh SYNOPSIS
+.Bk -words
+.Nm
+.Op Fl C Ar directory
+.Ar socket-file
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a client that communicates with a socket.
+.Pp
+Options:
+.Bl -tag -width -indent
+.It Fl C Ar directory
+Change to the given
+.Ar directory
+before opening the socket.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Enable the
+.Cm StreamLocalBindUnlink
+option in
+.Pa ~/.ssh/config ,
+and conflate interactive and non-interactive traffic to have the same
+QoS values:
+.Pp
+.Dl Host ...
+.Dl \& \& StreamLocalBindUnlink yes
+.Dl \& \& IPQoS cs1
+.Dl \& \& ...
+.Pp
+Then connect to a
+.Xr crosstalkd 1
+socket across a 
+.Cm ssh
+connection to the given host:
+.Pp
+.Dl $ Ic ssh -L ~/.ssh/crosstalk:/var/run/crosstalk.sock example.edu
+.Pp
+Then start
+.Nm :
+.Pp
+.Dl $ Ic crosstalkc ~/.ssh/crosstalk
+.Pp
+Inspect the network traffic to confirm that the QoS fields leak no
+information and that the crosstalk generates noise across the
+.Cm ssh
+connection:
+.Pp
+.Dl $ Ic doas tcpdump -tttt -qnnl example.edu
+.Dl ...
+.Sh SEE ALSO
+.Xr crosstalkd 1 ,
+.Xr ssh 1 ,
+.Xr ssh_config 5
+.Sh AUTHOR
+.An Jeremy Mates

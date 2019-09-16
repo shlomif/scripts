@@ -1,13 +1,15 @@
 #!/usr/bin/env perl
 use Text::Autoformat qw(autoformat break_wrap);
-
-$default = { right => 72, squeeze => 1, all => 0, break=>break_wrap };
+$default = {
+    all     => 0,
+    break   => break_wrap,         # don't hyphenate
+    quoter  => qr{//|<QUOTER>},    # support (modern) C comments
+    right   => 72,
+    squeeze => 1,
+};
 $input = '$user = {' . $ARGV[0] . '};';
 eval $input;
 %$user = () if $@;
-
-$out = autoformat { %$default, %$user };
-
-# standardize trailing newline behavior, e.g. strip it.
+$out   = autoformat { %$default, %$user };
 chomp $out;
 print $out;
