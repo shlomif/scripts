@@ -137,7 +137,9 @@ void eventcb(struct bufferevent *ev_bev, short events, void *ptr)
         if (pthread_create(&tid, NULL, schedule_talk, NULL) != 0)
             err(EX_OSERR, "pthread_create failed");
     } else if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-        bufferevent_free(ev_bev);
+        // may instead want a sleep/restart but that's complicated so just
+        //bufferevent_free(ev_bev);
+        exit(1);
     } else if (events & BEV_EVENT_ERROR) {
         warn("bufferevent error");
     }
