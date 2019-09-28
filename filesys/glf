@@ -6,7 +6,7 @@
 
 use 5.16.0;
 use warnings;
-use File::Spec ();
+use File::Spec::Functions qw(catfile);
 use Getopt::Long qw(GetOptions);
 
 GetOptions(
@@ -31,7 +31,7 @@ while ( my $file = readdir($dh) ) {
     if ( defined $Flag_Exclude ) {
         next if $file =~ m/$Flag_Exclude/;
     }
-    my $file_mtime = ( stat( File::Spec->catfile( $directory, $file ) ) )[9];
+    my $file_mtime = ( stat( catfile( $directory, $file ) ) )[9];
     if ( $file_mtime > $latest_mtime ) {
         $latest_mtime = $file_mtime;
         $latest_file  = $file;

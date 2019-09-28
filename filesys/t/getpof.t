@@ -7,7 +7,7 @@ my $cmd = Test::UnixCmdWrap->new;
 
 # from the Cwd(3pm) docs this should be compatible with the realpath(3)
 # that getpof uses when directories are given...
-my $test_dir = File::Spec->catfile(getcwd, 't');
+my $test_dir = catfile(getcwd, 't');
 
 $cmd->run(
     args   => 'getpof.t',

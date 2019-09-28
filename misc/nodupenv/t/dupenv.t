@@ -1,91 +1,79 @@
 #!perl
-use 5.16.0;
-use warnings;
-use Test::Cmd;
-use Test::Most tests => 64;
-use Test::UnixExit;
+use lib qw(../../lib/perl5);
+use UtilityTestBelt;
 
 # for eq_or_diff; see "DIFF STYLES" in perldoc Test::Differences
 unified_diff;
 
+my $cmd       = Test::UnixCmdWrap->new;
 my $test_prog = './dupenv';
 
-my @tests = (
-    # these all should have no arguments to exec so like env(1) should
-    # report the set environment variables
-    {   env    => { DUPENVTEST => 'goodifseen' },
-        stdout => [qr/(?m)^DUPENVTEST=goodifseen$/],
-    },
-    # -i should wipe out the existing environment
-    {   args   => '-i',
-        env    => { DUPENVTEST => 'badifseen' },
-        stdout => [qr/^$/],
-    },
-    # as should -i followed by something that prints the env (but
-    # without any new env being set)
-    {   args   => "-i '$test_prog'",
-        env    => { DUPENVTEST => 'badifseen' },
-        stdout => [qr/^$/],
-    },
-    {   args   => '-i DUPENVTEST=goodifseen',
-        stdout => [qr/(?m)^DUPENVTEST=goodifseen$/],
-    },
-    {   args => '-i DUPENVTEST=goodifseen DUPENVTEST=alsogoodifseen',
-        stdout =>
-          [ qr/(?m)^DUPENVTEST=goodifseen$/, qr/(?m)^DUPENVTEST=alsogoodifseen$/, ],
-    },
-    {   args => 'DUPENVTEST=alsogoodifseen',
-        env  => { DUPENVTEST => 'goodifseen' },
-        stdout =>
-          [ qr/(?m)^DUPENVTEST=goodifseen$/, qr/(?m)^DUPENVTEST=alsogoodifseen$/, ],
-    },
-    # can we exec ourself? (vendor provided env(1) who knows how it
-    # handles duplicate envs...)
-    {   args   => "-i DUPENVTEST=goodifseen '$test_prog'",
-        env    => { DUPENVTEST => 'badifseen' },
-        stdout => [qr/(?m)^DUPENVTEST=goodifseen$/],
-    },
-    {   args => "DUPENVTEST=goodifseen DUPENVTEST=alsogoodifseen '$test_prog'",
-        stdout =>
-          [ qr/(?m)^DUPENVTEST=goodifseen$/, qr/(?m)^DUPENVTEST=alsogoodifseen$/, ],
-    },
-    # so very wrong
-    {   args        => "-i =nameless '$test_prog'",
-        exit_status => 1,
-        stderr      => qr/invalid/,
-        stdout      => [qr/^$/],
-    },
-    # but allowed! with a flag
-    {   args   => "-U -i =nameless '$test_prog'",
-        stdout => [qr/^=nameless$/],
-    },
-);
-my $testcmd = Test::Cmd->new(
-    prog    => $test_prog,
-    verbose => 0,
-    workdir => '',
+delete $ENV{DUPENVTEST};
+
+# these all should have no arguments to exec so like env(1) should
+# report the set environment variables
+$cmd->run(
+    env    => { DUPENVTEST => 'goodifseen' },
+    stdout => qr/(?m)^DUPENVTEST=goodifseen$/,
 );
 
-for my $test (@tests) {
-    $test->{exit_status} //= 0;
-    $test->{stderr}      //= qr/^$/;
+# -i should wipe out the existing environment
+$cmd->run(
+    args => '-i',
+    env  => { DUPENVTEST => 'badifseen' },
+);
 
-    # Test::Cmd complicates matters by running things through the shell
-    # which can in turn introduce envrionment variables so the stdout
-    # tests instead use regex to look for things
-    local %ENV;
-    @ENV{ keys %{ $test->{env} } } = values %{ $test->{env} };
+# as should -i followed by something that prints the env (but
+# without any new env being set)
+$cmd->run(
+    args => "-i '$test_prog'",
+    env  => { DUPENVTEST => 'badifseen' },
+);
 
-    $testcmd->run( exists $test->{args} ? ( args => $test->{args} ) : () );
+$cmd->run(
+    args   => '-i DUPENVTEST=goodifseen',
+    stdout => qr/(?m)^DUPENVTEST=goodifseen$/,
+);
 
-    $test->{args} //= '';
+my $o = $cmd->run(
+    args   => '-i DUPENVTEST=goodifseen DUPENVTEST=alsogoodifseen',
+    stdout => qr/(?m)^DUPENVTEST=goodifseen$/
+);
+ok($o->stdout =~ m/(?m)^DUPENVTEST=alsogoodifseen$/);
 
-    exit_is( $?, $test->{exit_status}, "STATUS $test_prog $test->{args}" );
-    for my $re ( @{ $test->{stdout} } ) {
-        ok( $testcmd->stdout =~ m/$re/, "STDOUT $test_prog $test->{args} ($re)" );
-    }
-    ok( $testcmd->stderr =~ m/$test->{stderr}/, "STDERR $test_prog $test->{args}" );
-}
+$o = $cmd->run(
+    args   => 'DUPENVTEST=alsogoodifseen',
+    env    => { DUPENVTEST => 'goodifseen' },
+    stdout => qr/(?m)^DUPENVTEST=goodifseen$/
+);
+ok($o->stdout =~ m/(?m)^DUPENVTEST=alsogoodifseen$/);
+
+# can we exec ourself? (vendor provided env(1) who knows how it
+# handles duplicate envs...)
+$cmd->run(
+    args   => "-i DUPENVTEST=goodifseen '$test_prog'",
+    env    => { DUPENVTEST => 'badifseen' },
+    stdout => qr/(?m)^DUPENVTEST=goodifseen$/
+);
+
+$o = $cmd->run(
+    args   => "DUPENVTEST=goodifseen DUPENVTEST=alsogoodifseen '$test_prog'",
+    stdout => qr/(?m)^DUPENVTEST=goodifseen$/
+);
+ok($o->stdout =~ m/(?m)^DUPENVTEST=alsogoodifseen$/);
+
+# so very wrong
+$cmd->run(
+    args   => "-i =nameless '$test_prog'",
+    status => 1,
+    stderr => qr/invalid/,
+);
+
+# but allowed! ... with a flag
+$cmd->run(
+    args   => "-U -i =nameless '$test_prog'",
+    stdout => qr/^=nameless$/,
+);
 
 # look for realloc bugs around the default newenv_alloc value starting
 # from a clean slate environment
@@ -94,16 +82,13 @@ for my $test (@tests) {
 
     my @envspam = map { sprintf "ENVSPAM=%02d", $_ } 1 .. $env_count;
 
-    for my $i ( 1 .. 4 ) {
-        my $cur = $env_count + $i;
-        push @envspam, sprintf "ENVSPAM=%02d", $cur;
+    for my $i (1 .. 4) {
+        push @envspam, sprintf "ENVSPAM=%02d", $env_count + $i;
 
-        $testcmd->run( args => "'$test_prog' -i " . join ' ', @envspam );
-        eq_or_diff( [ map { tr/\n//dr } $testcmd->stdout ],
-            \@envspam, "-i envspam count $cur" );
-
-        exit_is( $?, 0, "-i realloc test $cur" );
-        is( $testcmd->stderr, "", "no stderr for -i envspam count $cur" );
+        $cmd->run(
+            args   => "'$test_prog' -i " . join(' ', @envspam),
+            stdout => \@envspam
+        );
     }
 }
 
@@ -116,34 +101,26 @@ for my $test (@tests) {
     # environment may be larger than
     $ENV{FOO} = 'bar';
 
-    $testcmd->run( args => $test_prog );
-    exit_is( $?, 0, "obtain default env used by Test::Cmd" );
+    $o = $cmd->run(args => $test_prog, stdout => qr/^/,);
 
-    my @default_env = map { tr/\n//dr } $testcmd->stdout;
+    chomp(my @default_env = $o->stdout);
 
-    # the heck shell are they running that adds this many by default?
+    # this may false postive if the env is cluttered...
     BAIL_OUT("too many env vars set by sh??") if @default_env > 59;
 
     my $env_count = 60 - @default_env;
-    my @envspam = map { sprintf "ENVSPAM=%02d", $_ } 1 .. $env_count;
+    my @envspam   = map { sprintf "ENVSPAM=%02d", $_ } 1 .. $env_count;
 
-    for my $i ( 1 .. 5 ) {
-        my $cur = $env_count + $i;
-        push @envspam, sprintf "ENVSPAM=%02d", $cur;
+    for my $i (1 .. 5) {
+        push @envspam, sprintf "ENVSPAM=%02d", $env_count + $i;
 
-        $testcmd->run( args => "'$test_prog' " . join ' ', @envspam );
-        eq_or_diff(
-            [ map { tr/\n//dr } $testcmd->stdout ],
-            [ @default_env, @envspam ],
-            "envspam count $cur"
+        $cmd->run(
+            args   => "'$test_prog' " . join(' ', @envspam),
+            stdout => [ @default_env, @envspam ],
         );
-
-        exit_is( $?, 0, "realloc test $cur" );
-        is( $testcmd->stderr, "", "no stderr for envspam count $cur" );
     }
 }
 
-$testcmd->run( args => '-h' );
-exit_is( $?, 64, "EX_USAGE of sysexits(3) fame" );
-is( $testcmd->stdout, "", "no stdout on help" );
-ok( $testcmd->stderr =~ m/Usage/, "help mentions usage" );
+$cmd->run(args => '-h', status => 64, stderr => qr/Usage/);
+
+done_testing(66);

@@ -7,7 +7,7 @@ use warnings;
 use Cwd ();
 use File::Basename qw(basename);
 use File::HomeDir ();
-use File::Spec    ();
+use File::Spec::Functions qw(catfile rel2abs);
 use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
 use URI ();
@@ -63,7 +63,7 @@ sub do_shortcut {
         } elsif ( $ARGV[0] =~ m{[./]} ) {
             # possibly a "foo/bar" path or "example.org" hostname?
             if ( -e $ARGV[0] ) {
-                visit( 'file://' . File::Spec->rel2abs( $ARGV[0] ) );
+                visit( 'file://' . rel2abs( $ARGV[0] ) );
             } else {
                 visit( 'http://' . $ARGV[0] );
             }
@@ -136,7 +136,7 @@ sub loadremap {
     return $relist;
 }
 
-sub path_to { File::Spec->catfile( File::HomeDir->my_home, '.ow', $_[0] ) }
+sub path_to { catfile( File::HomeDir->my_home, '.ow', $_[0] ) }
 
 sub visit {
     my ($url) = @_;

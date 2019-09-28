@@ -33,9 +33,9 @@
 use 5.16.0;
 use warnings;
 
-use File::Path qw/make_path/;
-use File::Spec ();
-use Getopt::Long qw/GetOptions/;
+use File::Path qw(make_path);
+use File::Spec::Functions qw(catfile);
+use Getopt::Long qw(GetOptions);
 use Net::DNS;
 
 my $Exit_Status = 0;
@@ -78,7 +78,7 @@ while (readline) {
     # directory sep. character that likewise needs special handling.
     ( my $zone_fname = $zone ) =~ tr[/][_];
 
-    my $output_file = File::Spec->catfile( $Output_Dir, $zone_fname );
+    my $output_file = catfile( $Output_Dir, $zone_fname );
     open my $ofh, '>', $output_file
       or die "zone-snarf: could not write '$output_file' for '$zone': $!\n";
 

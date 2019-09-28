@@ -7,77 +7,83 @@ use File::Cmp qw(fcmp);
 sub MBUF_MAX ()     { 8192 }
 sub MEXIT_STATUS () { 75 }
 
-my $test_prog = './minmda';
-my $test_dir  = tempdir("minmda.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1);
-
-my $cmd = Test::Cmd->new(prog => $test_prog, workdir => '',);
+my $cmd      = Test::UnixCmdWrap->new;
+my $test_dir = tempdir("minmda.XXXXXXXXX", CLEANUP => 1, TMPDIR => 1);
 
 # invalid arguments
 {
-    $cmd->run(chdir => $test_dir);
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/Usage/, "usage error");
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
+    $cmd->run(
+        chdir  => $test_dir,
+        stderr => qr/Usage/,
+        status => MEXIT_STATUS,
+    );
 
-    $cmd->run(args => "bad1 hostid toofar", chdir => $test_dir);
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/Usage/, "usage error");
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
+    $cmd->run(
+        args   => "bad1 hostid toofar",
+        chdir  => $test_dir,
+        stderr => qr/Usage/,
+        status => MEXIT_STATUS,
+    );
 
-    # ... and should not create any directories
-    ok(!-e File::Spec->catdir($test_dir, 'bad1'));
+    # ... that must not create any directories
+    ok(!-e catdir($test_dir, 'bad1'));
 
     # mailbox-dir must be something
-    $cmd->run(args => "'' hostid", chdir => $test_dir);
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/invalid mailbox-dir$/);
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
+    $cmd->run(
+        args   => "'' hostid",
+        chdir  => $test_dir,
+        stderr => qr/invalid mailbox-dir$/,
+        status => MEXIT_STATUS,
+    );
 
     # also host-id must be set to something
-    $cmd->run(args => "bad2 ''", chdir => $test_dir);
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/invalid empty host-id$/);
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
+    $cmd->run(
+        args   => "bad2 ''",
+        chdir  => $test_dir,
+        stderr => qr/invalid empty host-id$/,
+        status => MEXIT_STATUS,
+    );
 
-    # ... and should not create any directories
-    ok(!-e File::Spec->catdir($test_dir, 'bad2'));
+    # ... that still must not create any directories
+    ok(!-e catdir($test_dir, 'bad2'));
 }
 
 # no input data - either if nothing sent or if only newlines sent
 {
-    $cmd->run(args => "oops nope", chdir => $test_dir, stdin => "",);
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/read no data from stdin$/)
-      or diag 'STDERR ' . $cmd->stderr;
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
+    $cmd->run(
+        args   => "oops nope",
+        chdir  => $test_dir,
+        stdin  => "",
+        stderr => qr/read no data from stdin$/,
+        status => MEXIT_STATUS,
+    );
 
     # this test *should* create the dirs, as need somewhere to write
     for ([qw/oops/], [qw/oops cur/], [qw/oops new/], [qw/oops tmp/]) {
-        my $dir = File::Spec->catdir($test_dir, @$_);
+        my $dir = catdir($test_dir, @$_);
         ok(-e $dir, "exists '$dir'");
     }
 
-    my @found = glob(File::Spec->catfile($test_dir, 'oops', '*', '*.nope'));
+    my @found = glob(catfile($test_dir, 'oops', '*', '*.nope'));
     ok(@found == 0, "no file created but found @found");
     unlink(@found) if @found;
 
     # only newlines more than the buffer size involves various edge
     # cases in the code
     $cmd->run(
-        args  => "oops hostid",
-        chdir => $test_dir,
-        stdin => "\n" x (42 + MBUF_MAX),
+        args   => "oops hostid",
+        chdir  => $test_dir,
+        stdin  => "\n" x (42 + MBUF_MAX),
+        stderr => qr/read no data from stdin$/,
+        status => MEXIT_STATUS,
     );
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/read no data from stdin$/);
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
 
-    @found = glob(File::Spec->catfile($test_dir, 'oops', '*', '*.nope'));
+    @found = glob(catfile($test_dir, 'oops', '*', '*.nope'));
     ok(@found == 0, "no file created but found @found");
 }
 
-my $mailbox = File::Spec->catdir($test_dir, 'inbox');
-my $curdir  = File::Spec->catdir($mailbox,  'new');
+my $mailbox = catdir($test_dir, 'inbox');
+my $curdir  = catdir($mailbox,  'new');
 
 my $message = "blah blah blah";
 
@@ -87,12 +93,9 @@ my $message = "blah blah blah";
         chdir => $test_dir,
         stdin => $message,
     );
-    is($cmd->stdout, "");
-    is($cmd->stderr, "");
-    exit_is($?, 0);
 
     # / are somewhat illegal in filenames and must be mangled by minmda
-    my $mailfile = glob(File::Spec->catfile($curdir, "*.___-$$"));
+    my $mailfile = glob(catfile($curdir, "*.___-$$"));
     open my $fh, '<', $mailfile or diag "could not open '$mailfile': $!\n";
     is(do { local $/; readline $fh }, $message);
     unlink($mailfile);
@@ -106,11 +109,8 @@ my $message = "blah blah blah";
         chdir => $test_dir,
         stdin => "\n\n\n" . $message,
     );
-    is($cmd->stdout, "");
-    is($cmd->stderr, "");
-    exit_is($?, 0);
 
-    my $mailfile = glob(File::Spec->catfile($curdir, "*.strip-$$"));
+    my $mailfile = glob(catfile($curdir, "*.strip-$$"));
     open my $fh, '<', $mailfile or diag "could not open '$mailfile': $!\n";
     is(do { local $/; readline $fh }, $message);
     unlink($mailfile);
@@ -123,11 +123,8 @@ my $message = "blah blah blah";
         chdir => $test_dir,
         stdin => $message . "\n\n\n",
     );
-    is($cmd->stdout, "");
-    is($cmd->stderr, "");
-    exit_is($?, 0);
 
-    my $mailfile = glob(File::Spec->catfile($curdir, "*.nostrip-$$"));
+    my $mailfile = glob(catfile($curdir, "*.nostrip-$$"));
     open my $fh, '<', $mailfile or diag "could not open '$mailfile': $!\n";
     is(do { local $/; readline $fh }, $message . "\n\n\n");
     unlink($mailfile);
@@ -145,31 +142,23 @@ my $message = "blah blah blah";
         stdin => $longmsg,
     );
 
-    is($cmd->stdout, "");
-    is($cmd->stderr, "");
-    exit_is($?, 0);
-
-    my $mailfile = glob(File::Spec->catfile($curdir, "*.cla-$$"));
+    my $mailfile = glob(catfile($curdir, "*.cla-$$"));
     ok(fcmp($mailfile, $long_mfile, binmode => ':raw'));
     unlink($mailfile);
 }
 
-# corruption
+# colluption NOTE requires that `make minmda-corrupts` is run before
+# `prove t/minmda.t` or instead use `make test`
 {
-    $cmd->prog('./minmda-corrupts');
-
-    $cmd->run(
-        args  => "'$mailbox' 'bla-$$'",
-        chdir => $test_dir,
-        stdin => $message,
+    $cmd = Test::UnixCmdWrap->new(cmd => './minmda-corrupts');
+    my $o = $cmd->run(
+        args   => "'$mailbox' 'bla-$$'",
+        chdir  => $test_dir,
+        stdin  => $message,
+        stderr => qr/failed to verify written data/,
+        status => MEXIT_STATUS,
     );
-    is($cmd->stdout, "");
-    ok($cmd->stderr =~ m/corrupting the output file/);
-    ok($cmd->stderr =~ m/failed to verify written data/);
-    ok($cmd->stderr !~ m/corruption did not happen/);
-    exit_is($?, MEXIT_STATUS, "standard tmp exit code");
-
-    $cmd->prog($test_prog);
+    ok($o->stderr !~ m/corruption did not happen/);
 }
 
-done_testing(47);
+done_testing(46);

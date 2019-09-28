@@ -12,7 +12,7 @@
 use 5.16.0;
 use File::HomeDir ();
 use File::Slurper qw(write_binary write_text);
-use File::Spec ();
+use File::Spec::Functions qw(catfile);
 use File::stat qw(stat);
 use Getopt::Long qw(GetOptions);
 use HTTP::Tiny    ();
@@ -20,7 +20,7 @@ use JSON::MaybeXS ();
 use List::UtilsBy qw( max_by );
 use URI ();
 
-my $img_dir = File::Spec->catfile( File::HomeDir->my_home, 'share/xkcd' );
+my $img_dir = catfile( File::HomeDir->my_home, 'share/xkcd' );
 
 my $img_viewer = 'feh';
 

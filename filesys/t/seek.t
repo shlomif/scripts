@@ -18,7 +18,7 @@ my $bigbufsize = do { local $/; readline $fh };
 close $fh;
 
 my $test_dir = tempdir('seek.XXXXXXXXXX', CLEANUP => 1, TMPDIR => 1);
-my $file_f   = File::Spec->catfile($test_dir, "F");
+my $file_f   = catfile($test_dir, 'F');
 
 $cmd->run(
     args   => '82 t/seek-nopnopnop',

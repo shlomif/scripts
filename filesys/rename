@@ -9,7 +9,7 @@ use warnings;
 use File::Basename qw(dirname);
 use File::Copy       ();
 use File::Path::Tiny ();
-use File::Spec       ();
+use File::Spec::Functions qw(rel2abs);
 use Getopt::Long qw(GetOptions);
 
 Getopt::Long::Configure("bundling");
@@ -89,7 +89,7 @@ sub handle_file {
     eval $expr;
     die "rename: unable to eval expression: $@\n" if $@;
 
-    return if File::Spec->rel2abs($origfile) eq File::Spec->rel2abs($_);
+    return if rel2abs($origfile) eq rel2abs($_);
 
     print "$how_str $origfile $_\n"
       if $Flag_Dry_Run

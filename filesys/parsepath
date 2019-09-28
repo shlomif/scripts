@@ -6,7 +6,7 @@
 use 5.16.0;
 use warnings;
 use Cwd qw(realpath);
-use File::Spec ();
+use File::Spec::Functions qw(catdir catfile rel2abs splitdir);
 
 # NOTE may need alteration per site policy on usernames
 my $USERNAME_MATCH = qr/[\w-]{1,32}/;
@@ -125,7 +125,7 @@ my $text_block = 1;
 
 PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
     my $path           = $paths[$pnum];
-    my @pathbits       = File::Spec->splitdir($path);
+    my @pathbits       = splitdir($path);
     my $links_followed = 0;
 
     $output = q{};
@@ -147,7 +147,7 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
     my $previous = q{};
     for ( my $i = 0; $i <= $#pathbits; $i++ ) {
         $previous = $current;
-        $current = File::Spec->catdir( $current, $pathbits[$i] );
+        $current = catdir( $current, $pathbits[$i] );
         my $filedata = getfileinfo($current);
 
         if ( !$filedata ) {
@@ -176,7 +176,7 @@ PATH: for ( my $pnum = 0; $pnum <= $#paths; $pnum++ ) {
             }
             $current = $previous;
             push @pathbits,
-              resolve_path( File::Spec->catfile( $previous, $filedata->{link} ) );
+              resolve_path( catfile( $previous, $filedata->{link} ) );
         }
     }
 
@@ -410,5 +410,5 @@ sub resolve_path {
           ? return $tmp
           : warn "warning: could not convert with realpath: path=$potential\n";
     }
-    File::Spec->rel2abs($potential);
+    rel2abs($potential);
 }

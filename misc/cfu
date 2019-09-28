@@ -4,7 +4,7 @@
 
 use 5.16.0;
 use warnings;
-use File::Spec ();
+use File::Spec::Functions qw(catfile);
 use File::Temp qw(tempdir);
 use Getopt::Long qw(GetOptions);
 use Text::ParseWords qw(shellwords);
@@ -118,7 +118,7 @@ if ($Flag_Show_Code) {
 
 my $work_dir  = getworkdir();
 my $exe_name  = defined $Flag_Fake_Name ? $Flag_Fake_Name : 'cfu';
-my $code_file = File::Spec->catfile( $work_dir, $exe_name . '.c' );
+my $code_file = catfile( $work_dir, $exe_name . '.c' );
 
 open my $cfh, '>', $code_file or die "could not write '$code_file': $!\n";
 print $cfh $c_template;
@@ -133,7 +133,7 @@ if ($Flag_Compile_Only) {
       or die "cfu: could not exec '$CC': $!\n";
 }
 
-my $exe_file = File::Spec->catfile( $work_dir, $exe_name );
+my $exe_file = catfile( $work_dir, $exe_name );
 
 if ( system( $CC, @CFLAGS, '-o', $exe_file, $code_file ) != 0 ) {
     die "cfu: could not exec '$CC': $?\n" if $? == -1;

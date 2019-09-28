@@ -117,9 +117,7 @@ inline void consume(int ch, unsigned long seekto, char *input_file)
         consume = BUFSIZE;
         if (BUFSIZE > seekto - seen) {
             consume = seekto - seen;
-            if (consume < 0)
-                abort();        /* DBG */
-            if (consume <= 0)
+            if (consume == 0)
                 break;
         }
         if ((amount = read(ch, buf, consume)) < 0)
@@ -150,9 +148,7 @@ inline void readthrough(int ch, unsigned long quitafter, char *input_file,
         consume = BUFSIZE;
         if (BUFSIZE > quitafter - seen) {
             consume = quitafter - seen;
-            if (consume < 0)
-                abort();        /* DBG */
-            if (consume <= 0)
+            if (consume == 0)
                 break;
         }
         if ((amount = read(ch, buf, consume)) < 0)
