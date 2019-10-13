@@ -1,7 +1,6 @@
 *.pl linguist-language=Perl
 *.t linguist-language=Perl
 /bench/repeat-character linguist-language=TCL
-/date-time/stardate linguist-language=TCL
 /filesys/here linguist-language=TCL
 /filesys/repod linguist-language=TCL
 /filesys/zcomppoke linguist-language=TCL
