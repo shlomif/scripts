@@ -4,12 +4,12 @@ if [ -r Makefile.PL ]; then
    make clean
    set -e
    perl Makefile.PL
-   RELEASE_TESTING=1 TEST_SIGNATURE=1 make test
+   AUTHOR_TEST_JMATES=1 RELEASE_TESTING=1 TEST_SIGNATURE=1 make test
 elif [ -r Build.PL ]; then
    ./Build clean > /dev/null 2>&1
    set -e
    perl Build.PL
-   RELEASE_TESTING=1 TEST_SIGNATURE=1 ./Build test
+   AUTHOR_TEST_JMATES=1 RELEASE_TESTING=1 TEST_SIGNATURE=1 ./Build test
 else
    # TODO probably need Dzil support, maybe Module::Install
    echo >&2 "pmt: no known perl build system found in `pwd`"
