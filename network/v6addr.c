@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
             /* wipe out the trailing dot */
             ap--;
         } else {
-            strncpy(ap, "ip6.arpa.", 9);
+            strcpy(ap, "ip6.arpa.");
             ap += 9;
         }
         *ap++ = '\n';
