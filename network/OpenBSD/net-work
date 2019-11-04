@@ -4,4 +4,5 @@
 doas pkill -f 'dhclient re0'
 doas ifconfig re0 down lladdr random
 doas ifconfig re0 up
+echo "doas rcctl -f restart ntpd" | at now + 1 minute
 exec solitary / doas dhclient re0
