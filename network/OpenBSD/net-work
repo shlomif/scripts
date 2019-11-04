@@ -1,6 +1,6 @@
 #!/bin/sh
 # turn on the physical network interface (if on by default it slows the
-# boot down and I"m not always on a network)
+# boot down and I'm not always on a network)
 doas pkill -f 'dhclient re0'
 doas ifconfig re0 down lladdr random
 doas ifconfig re0 up
