@@ -5,7 +5,7 @@
 
 use feature qw(say);
 
-@bigterms = qw(brogue cous excel mf spleen tt wr);
+@bigterms = qw(cous excel mf spleen tt wr);
 @shell    = qw(/bin/ksh -l);
 
 if (@ARGV) {
