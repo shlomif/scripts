@@ -12,7 +12,7 @@ if (@ARGV) {
     if ( grep { $ARGV[0] eq $_ } @bigterms ) {
         delete $ENV{TMUX};
         exec( 'solitary', $ENV{HOME},
-            qw(xterm -tn xterm-256color +bdc +cm +dc +itc -class),
+            qw(xterm -tn xterm-256color +cm +dc +itc -class),
             "$ARGV[0]term", '-e', @shell )
           or die "exec failed: $!\n";
     }
