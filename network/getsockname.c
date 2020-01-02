@@ -52,7 +52,7 @@ void emit_help(void);
 int main(int argc, char *argv[])
 {
     int ch, ret, sockfd;
-    char ipstr[INET_ADDRSTRLEN];
+    char ipstr[INET6_ADDRSTRLEN];
 
 #ifdef __OpenBSD__
     if (pledge("dns inet rpath stdio", NULL) == -1)

@@ -11,6 +11,8 @@
 #include <time.h>
 #include <unistd.h>
 
+int Flag_Newline;               /* -N */
+
 void emit_help(void);
 void whatmonth(struct tm *date);
 
@@ -25,8 +27,11 @@ int main(int argc, char *argv[])
         err(1, "pledge failed");
 #endif
 
-    while ((ch = getopt(argc, argv, "h?")) != -1) {
+    while ((ch = getopt(argc, argv, "h?N")) != -1) {
         switch (ch) {
+        case 'N':
+            Flag_Newline = 1;
+            break;
         case 'h':
         case '?':
         default:
@@ -93,7 +98,7 @@ void whatmonth(struct tm *date)
     } else {                    // parent
         if (wait(NULL) == -1)
             err(EX_OSERR, "wait() error");
-        if (date->tm_mon == 11)
+        if (Flag_Newline && date->tm_mon == 11)
             putchar('\n');
     }
 }
